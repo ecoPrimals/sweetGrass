@@ -1,5 +1,10 @@
 /target/
 Cargo.lock
+
+# Showcase outputs and runtime files
+showcase/**/outputs/
+showcase/**/logs/
+showcase/**/pids/
 *.swp
 *.swo
 .DS_Store

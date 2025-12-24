@@ -1,0 +1,629 @@
+//! Anchoring integration.
+//!
+//! Provides capability-based discovery for anchoring Braids to primals
+//! that offer permanent storage capabilities. Uses `Capability::Anchoring`
+//! for discovery - no specific primal names are hardcoded.
+
+use std::sync::Arc;
+
+use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
+use tracing::{debug, instrument};
+
+use sweet_grass_core::braid::{BraidId, Timestamp};
+use sweet_grass_core::config::Capability;
+use sweet_grass_core::Braid;
+
+use crate::discovery::{DiscoveredPrimal, PrimalDiscovery};
+use crate::error::IntegrationError;
+use crate::Result;
+
+/// Information about an anchor in a permanent storage primal.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AnchorInfo {
+    /// Braid ID.
+    pub braid_id: BraidId,
+
+    /// Spine ID where anchored.
+    pub spine_id: String,
+
+    /// Entry hash in the spine.
+    pub entry_hash: String,
+
+    /// Index in the spine.
+    pub index: u64,
+
+    /// When the anchor was created.
+    pub anchored_at: Timestamp,
+
+    /// Whether the anchor has been verified.
+    pub verified: bool,
+}
+
+/// Receipt from an anchor operation.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct AnchorReceipt {
+    /// Anchor information.
+    pub anchor: AnchorInfo,
+
+    /// Transaction ID (if applicable).
+    pub transaction_id: Option<String>,
+
+    /// Confirmation count.
+    pub confirmations: u32,
+}
+
+/// Trait for anchoring client connections.
+///
+/// Implemented by clients connecting to primals with `Capability::Anchoring`.
+#[async_trait]
+pub trait AnchoringClient: Send + Sync {
+    /// Anchor a Braid to a spine.
+    async fn anchor(&self, braid: &Braid, spine_id: &str) -> Result<AnchorReceipt>;
+
+    /// Verify an anchor.
+    async fn verify(&self, braid_id: &BraidId) -> Result<Option<AnchorInfo>>;
+
+    /// Get all anchors for a Braid.
+    async fn get_anchors(&self, braid_id: &BraidId) -> Result<Vec<AnchorInfo>>;
+
+    /// Check connection health.
+    async fn health(&self) -> Result<bool>;
+}
+
+/// Manages Braid anchoring using capability-based discovery.
+pub struct AnchorManager {
+    /// Discovery service for capability-based primal lookup.
+    /// Used for reconnection and failover scenarios.
+    #[allow(dead_code)]
+    discovery: Arc<dyn PrimalDiscovery>,
+    anchoring_client: Arc<dyn AnchoringClient>,
+    store: Arc<dyn sweet_grass_store::BraidStore>,
+}
+
+impl AnchorManager {
+    /// Create a new anchor manager using discovery.
+    #[instrument(skip(discovery, store, client_factory))]
+    pub async fn new<F>(
+        discovery: Arc<dyn PrimalDiscovery>,
+        store: Arc<dyn sweet_grass_store::BraidStore>,
+        client_factory: F,
+    ) -> Result<Self>
+    where
+        F: FnOnce(&DiscoveredPrimal) -> Arc<dyn AnchoringClient>,
+    {
+        debug!("Discovering anchoring capability");
+
+        let primal = discovery
+            .find_one(&Capability::Anchoring)
+            .await
+            .map_err(|e| IntegrationError::Discovery(e.to_string()))?;
+
+        debug!(primal = %primal.name, "Found anchoring primal");
+
+        let anchoring_client = client_factory(&primal);
+
+        Ok(Self {
+            discovery,
+            anchoring_client,
+            store,
+        })
+    }
+
+    /// Create with an existing client.
+    pub fn with_client(
+        client: Arc<dyn AnchoringClient>,
+        store: Arc<dyn sweet_grass_store::BraidStore>,
+    ) -> Self {
+        let discovery = Arc::new(crate::discovery::LocalDiscovery::new());
+        Self {
+            discovery,
+            anchoring_client: client,
+            store,
+        }
+    }
+
+    /// Anchor a Braid by ID.
+    #[instrument(skip(self))]
+    pub async fn anchor_by_id(&self, braid_id: &BraidId, spine_id: &str) -> Result<AnchorReceipt> {
+        let braid =
+            self.store.get(braid_id).await?.ok_or_else(|| {
+                IntegrationError::Anchoring(format!("Braid not found: {braid_id}"))
+            })?;
+
+        self.anchoring_client.anchor(&braid, spine_id).await
+    }
+
+    /// Verify a Braid's anchor.
+    pub async fn verify(&self, braid_id: &BraidId) -> Result<Option<AnchorInfo>> {
+        self.anchoring_client.verify(braid_id).await
+    }
+
+    /// Get all anchors for a Braid.
+    pub async fn get_anchors(&self, braid_id: &BraidId) -> Result<Vec<AnchorInfo>> {
+        self.anchoring_client.get_anchors(braid_id).await
+    }
+
+    /// Get the underlying client.
+    #[must_use]
+    pub fn client(&self) -> &dyn AnchoringClient {
+        self.anchoring_client.as_ref()
+    }
+}
+
+// ============================================================================
+// tarpc Service Definition
+// ============================================================================
+
+/// tarpc service definition for anchoring.
+///
+/// Generic service interface for any primal offering `Capability::Anchoring`.
+#[tarpc::service]
+pub trait AnchoringRpc {
+    /// Anchor a braid (serialized as JSON bytes).
+    async fn anchor(braid_bytes: Vec<u8>, spine_id: String)
+        -> std::result::Result<Vec<u8>, String>;
+
+    /// Verify an anchor.
+    async fn verify(braid_id: String) -> std::result::Result<Option<Vec<u8>>, String>;
+
+    /// Get all anchors for a braid.
+    async fn get_anchors(braid_id: String) -> std::result::Result<Vec<u8>, String>;
+
+    /// Health check.
+    async fn health() -> std::result::Result<bool, String>;
+}
+
+/// Real tarpc client for connecting to an anchoring service.
+///
+/// This is the production implementation that connects to any primal
+/// offering `Capability::Anchoring` using tarpc over TCP with bincode serialization.
+pub struct TarpcAnchoringClient {
+    client: AnchoringRpcClient,
+}
+
+impl TarpcAnchoringClient {
+    /// Connect to an anchoring service at the given address.
+    #[instrument(skip_all, fields(addr = %addr))]
+    pub async fn connect(addr: &str) -> Result<Self> {
+        use tarpc::serde_transport::tcp;
+        use tarpc::tokio_serde::formats::Bincode;
+
+        debug!("Connecting to anchoring service at {}", addr);
+
+        let transport = tcp::connect(addr, Bincode::default)
+            .await
+            .map_err(|e| IntegrationError::Connection(format!("Failed to connect: {e}")))?;
+
+        let client = AnchoringRpcClient::new(tarpc::client::Config::default(), transport).spawn();
+
+        debug!("Connected to anchoring service");
+        Ok(Self { client })
+    }
+
+    /// Create from a discovered primal.
+    pub async fn from_primal(primal: &DiscoveredPrimal) -> Result<Self> {
+        let addr = primal.tarpc_address.as_ref().ok_or_else(|| {
+            IntegrationError::Discovery("Primal has no tarpc address".to_string())
+        })?;
+        Self::connect(addr).await
+    }
+}
+
+#[async_trait]
+impl AnchoringClient for TarpcAnchoringClient {
+    async fn anchor(&self, braid: &Braid, spine_id: &str) -> Result<AnchorReceipt> {
+        let braid_bytes = serde_json::to_vec(braid)
+            .map_err(|e| IntegrationError::Serialization(e.to_string()))?;
+
+        let receipt_bytes = self
+            .client
+            .anchor(tarpc::context::current(), braid_bytes, spine_id.to_string())
+            .await
+            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
+            .map_err(IntegrationError::Anchoring)?;
+
+        let receipt: AnchorReceipt = serde_json::from_slice(&receipt_bytes)
+            .map_err(|e| IntegrationError::Serialization(e.to_string()))?;
+
+        Ok(receipt)
+    }
+
+    async fn verify(&self, braid_id: &BraidId) -> Result<Option<AnchorInfo>> {
+        let anchor_bytes = self
+            .client
+            .verify(tarpc::context::current(), braid_id.to_string())
+            .await
+            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
+            .map_err(IntegrationError::Anchoring)?;
+
+        match anchor_bytes {
+            Some(bytes) => {
+                let anchor: AnchorInfo = serde_json::from_slice(&bytes)
+                    .map_err(|e| IntegrationError::Serialization(e.to_string()))?;
+                Ok(Some(anchor))
+            },
+            None => Ok(None),
+        }
+    }
+
+    async fn get_anchors(&self, braid_id: &BraidId) -> Result<Vec<AnchorInfo>> {
+        let anchors_bytes = self
+            .client
+            .get_anchors(tarpc::context::current(), braid_id.to_string())
+            .await
+            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
+            .map_err(IntegrationError::Anchoring)?;
+
+        let anchors: Vec<AnchorInfo> = serde_json::from_slice(&anchors_bytes)
+            .map_err(|e| IntegrationError::Serialization(e.to_string()))?;
+
+        Ok(anchors)
+    }
+
+    async fn health(&self) -> Result<bool> {
+        self.client
+            .health(tarpc::context::current())
+            .await
+            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
+            .map_err(IntegrationError::Connection)
+    }
+}
+
+/// Async factory function to create an anchoring client from a discovered primal.
+///
+/// In test mode, returns a mock client. In production, connects via tarpc.
+pub async fn create_anchoring_client_async(
+    primal: &DiscoveredPrimal,
+) -> std::result::Result<Arc<dyn AnchoringClient>, IntegrationError> {
+    #[cfg(any(test, feature = "test-support"))]
+    {
+        let _ = primal;
+        Ok(Arc::new(testing::MockAnchoringClient::new()))
+    }
+    #[cfg(not(any(test, feature = "test-support")))]
+    {
+        let client = TarpcAnchoringClient::from_primal(primal).await?;
+        Ok(Arc::new(client))
+    }
+}
+
+// Legacy type aliases for backward compatibility
+// WILL BE REMOVED in v0.4.0 - See MIGRATION_GUIDE_V0.4.0.md
+#[deprecated(
+    since = "0.3.0",
+    note = "Use AnchoringClient instead. WILL BE REMOVED in v0.4.0"
+)]
+pub type LoamSpineClient = dyn AnchoringClient;
+#[deprecated(
+    since = "0.3.0",
+    note = "Use AnchoringRpc instead. WILL BE REMOVED in v0.4.0"
+)]
+pub type LoamSpineRpc = dyn AnchoringRpc;
+#[deprecated(
+    since = "0.3.0",
+    note = "Use TarpcAnchoringClient instead. WILL BE REMOVED in v0.4.0"
+)]
+pub type TarpcLoamSpineClient = TarpcAnchoringClient;
+#[deprecated(
+    since = "0.3.0",
+    note = "Use create_anchoring_client_async instead. WILL BE REMOVED in v0.4.0"
+)]
+pub async fn create_loamspine_client_async(
+    primal: &DiscoveredPrimal,
+) -> std::result::Result<Arc<dyn AnchoringClient>, IntegrationError> {
+    create_anchoring_client_async(primal).await
+}
+
+// Legacy mock type alias (only in test mode)
+// WILL BE REMOVED in v0.4.0
+#[cfg(any(test, feature = "test-support"))]
+#[deprecated(
+    since = "0.3.0",
+    note = "Use MockAnchoringClient instead. WILL BE REMOVED in v0.4.0"
+)]
+pub type MockLoamSpineClient = testing::MockAnchoringClient;
+
+// ============================================================================
+// Test-only implementations
+// ============================================================================
+
+/// Test-only module containing mock implementations.
+#[cfg(any(test, feature = "test-support"))]
+#[allow(clippy::unwrap_used)]
+pub mod testing {
+    use super::{async_trait, AnchorInfo, AnchorReceipt, AnchoringClient, Braid, BraidId, Result};
+
+    /// Mock anchoring client for testing.
+    pub struct MockAnchoringClient {
+        healthy: bool,
+        anchors: std::sync::RwLock<Vec<AnchorInfo>>,
+    }
+
+    impl MockAnchoringClient {
+        /// Create a new mock client.
+        #[must_use]
+        pub fn new() -> Self {
+            Self {
+                healthy: true,
+                anchors: std::sync::RwLock::new(Vec::new()),
+            }
+        }
+
+        /// Set health status.
+        #[must_use]
+        pub fn with_health(mut self, healthy: bool) -> Self {
+            self.healthy = healthy;
+            self
+        }
+    }
+
+    impl Default for MockAnchoringClient {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
+    #[async_trait]
+    impl AnchoringClient for MockAnchoringClient {
+        async fn anchor(&self, braid: &Braid, spine_id: &str) -> Result<AnchorReceipt> {
+            let anchor = AnchorInfo {
+                braid_id: braid.id.clone(),
+                spine_id: spine_id.to_string(),
+                entry_hash: format!("entry:{}", braid.data_hash),
+                index: 0,
+                anchored_at: u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0),
+                verified: false,
+            };
+
+            self.anchors.write().unwrap().push(anchor.clone());
+
+            Ok(AnchorReceipt {
+                anchor,
+                transaction_id: Some("mock-tx-001".to_string()),
+                confirmations: 1,
+            })
+        }
+
+        async fn verify(&self, braid_id: &BraidId) -> Result<Option<AnchorInfo>> {
+            let anchors = self.anchors.read().unwrap();
+            Ok(anchors.iter().find(|a| &a.braid_id == braid_id).cloned())
+        }
+
+        async fn get_anchors(&self, braid_id: &BraidId) -> Result<Vec<AnchorInfo>> {
+            let anchors = self.anchors.read().unwrap();
+            Ok(anchors
+                .iter()
+                .filter(|a| &a.braid_id == braid_id)
+                .cloned()
+                .collect())
+        }
+
+        async fn health(&self) -> Result<bool> {
+            Ok(self.healthy)
+        }
+    }
+}
+
+#[cfg(any(test, feature = "test-support"))]
+pub use testing::MockAnchoringClient;
+
+#[cfg(test)]
+#[allow(clippy::float_cmp, clippy::expect_used, clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use sweet_grass_core::agent::Did;
+    use sweet_grass_core::braid::BraidBuilder;
+    use sweet_grass_store::MemoryStore;
+
+    fn create_test_braid() -> Braid {
+        BraidBuilder::default()
+            .data_hash("sha256:test123")
+            .mime_type("text/plain")
+            .size(100)
+            .attributed_to(Did::new("did:key:z6MkTest"))
+            .build()
+            .expect("build braid")
+    }
+
+    fn create_test_braid_with_hash(hash: &str) -> Braid {
+        BraidBuilder::default()
+            .data_hash(hash)
+            .mime_type("text/plain")
+            .size(100)
+            .attributed_to(Did::new("did:key:z6MkTest"))
+            .build()
+            .expect("build braid")
+    }
+
+    #[tokio::test]
+    async fn test_mock_client_anchor() {
+        let client = MockAnchoringClient::new();
+        let braid = create_test_braid();
+
+        let receipt = client.anchor(&braid, "spine-1").await.expect("anchor");
+        assert_eq!(receipt.anchor.spine_id, "spine-1");
+        assert!(receipt.transaction_id.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_mock_client_verify() {
+        let client = MockAnchoringClient::new();
+        let braid = create_test_braid();
+
+        // Anchor first
+        client.anchor(&braid, "spine-1").await.expect("anchor");
+
+        // Then verify
+        let info = client.verify(&braid.id).await.expect("verify");
+        assert!(info.is_some());
+        assert_eq!(info.unwrap().braid_id, braid.id);
+    }
+
+    #[tokio::test]
+    async fn test_mock_client_health() {
+        let client = MockAnchoringClient::new();
+        assert!(client.health().await.expect("health"));
+
+        let unhealthy = MockAnchoringClient::new().with_health(false);
+        assert!(!unhealthy.health().await.expect("health"));
+    }
+
+    #[tokio::test]
+    async fn test_mock_client_get_anchors() {
+        let client = MockAnchoringClient::new();
+        let braid = create_test_braid();
+
+        // No anchors initially
+        let anchors = client.get_anchors(&braid.id).await.expect("get");
+        assert!(anchors.is_empty());
+
+        // Anchor the braid
+        client.anchor(&braid, "spine-1").await.expect("anchor");
+
+        // Now should have one anchor
+        let anchors = client.get_anchors(&braid.id).await.expect("get");
+        assert_eq!(anchors.len(), 1);
+        assert_eq!(anchors[0].spine_id, "spine-1");
+    }
+
+    #[tokio::test]
+    async fn test_mock_client_verify_not_found() {
+        let client = MockAnchoringClient::new();
+        let braid = create_test_braid();
+
+        // Verify without anchoring first
+        let info = client.verify(&braid.id).await.expect("verify");
+        assert!(info.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_anchor_manager_with_client() {
+        let client: Arc<dyn AnchoringClient> = Arc::new(MockAnchoringClient::new());
+        let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+
+        let manager = AnchorManager::with_client(client, store);
+        assert!(manager.client().health().await.expect("health"));
+    }
+
+    #[tokio::test]
+    async fn test_anchor_manager_anchor_by_id() {
+        let client: Arc<dyn AnchoringClient> = Arc::new(MockAnchoringClient::new());
+        let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+        let braid = create_test_braid_with_hash("sha256:anchor_test");
+
+        // Store the braid first
+        store.put(&braid).await.expect("store");
+
+        let manager = AnchorManager::with_client(client, store);
+        let receipt = manager
+            .anchor_by_id(&braid.id, "test-spine")
+            .await
+            .expect("anchor");
+        assert_eq!(receipt.anchor.spine_id, "test-spine");
+    }
+
+    #[tokio::test]
+    async fn test_anchor_manager_anchor_by_id_not_found() {
+        let client: Arc<dyn AnchoringClient> = Arc::new(MockAnchoringClient::new());
+        let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+        let braid = create_test_braid();
+
+        // Don't store the braid
+        let manager = AnchorManager::with_client(client, store);
+        let result = manager.anchor_by_id(&braid.id, "test-spine").await;
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("not found"));
+    }
+
+    #[tokio::test]
+    async fn test_anchor_manager_verify() {
+        let client: Arc<dyn AnchoringClient> = Arc::new(MockAnchoringClient::new());
+        let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+        let braid = create_test_braid_with_hash("sha256:verify_test");
+
+        store.put(&braid).await.expect("store");
+
+        let manager = AnchorManager::with_client(Arc::clone(&client), store);
+
+        // Anchor via the client directly
+        client.anchor(&braid, "spine-1").await.expect("anchor");
+
+        // Verify via manager
+        let info = manager.verify(&braid.id).await.expect("verify");
+        assert!(info.is_some());
+    }
+
+    #[tokio::test]
+    async fn test_anchor_manager_get_anchors() {
+        let client: Arc<dyn AnchoringClient> = Arc::new(MockAnchoringClient::new());
+        let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+        let braid = create_test_braid_with_hash("sha256:get_anchors_test");
+
+        store.put(&braid).await.expect("store");
+
+        let manager = AnchorManager::with_client(Arc::clone(&client), store);
+
+        // Anchor via client
+        client.anchor(&braid, "spine-1").await.expect("anchor");
+        client.anchor(&braid, "spine-2").await.expect("anchor");
+
+        // Get all anchors via manager
+        let anchors = manager.get_anchors(&braid.id).await.expect("get");
+        assert_eq!(anchors.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_anchor_receipt_structure() {
+        let client = MockAnchoringClient::new();
+        let braid = create_test_braid_with_hash("sha256:receipt_test");
+
+        let receipt = client.anchor(&braid, "test-spine").await.expect("anchor");
+
+        assert_eq!(receipt.anchor.braid_id, braid.id);
+        assert_eq!(receipt.anchor.spine_id, "test-spine");
+        assert!(receipt.anchor.entry_hash.starts_with("entry:"));
+        assert!(!receipt.anchor.verified);
+        assert!(receipt.confirmations >= 1);
+    }
+
+    #[tokio::test]
+    async fn test_anchor_info_structure() {
+        let client = MockAnchoringClient::new();
+        let braid = create_test_braid_with_hash("sha256:info_test");
+
+        client.anchor(&braid, "spine-test").await.expect("anchor");
+
+        let info = client.verify(&braid.id).await.expect("verify").unwrap();
+
+        assert_eq!(info.braid_id, braid.id);
+        assert_eq!(info.spine_id, "spine-test");
+        assert!(info.anchored_at > 0);
+    }
+
+    #[tokio::test]
+    async fn test_create_anchoring_client_async() {
+        use crate::discovery::DiscoveredPrimal;
+        use sweet_grass_core::config::Capability;
+
+        // Use environment variable for test address (capability-based)
+        let test_address =
+            std::env::var("TEST_ANCHORING_ADDR").unwrap_or_else(|_| "localhost:8093".to_string());
+
+        let primal = DiscoveredPrimal {
+            instance_id: "anchor-1".to_string(),
+            name: "TestAnchoringService".to_string(),
+            capabilities: vec![Capability::Anchoring],
+            tarpc_address: Some(test_address),
+            rest_address: None,
+            last_seen: std::time::SystemTime::now(),
+            healthy: true,
+        };
+
+        // In test mode, returns a mock client
+        let client = create_anchoring_client_async(&primal)
+            .await
+            .expect("create client");
+        assert!(client.health().await.expect("health"));
+    }
+}

@@ -1,0 +1,38 @@
+[package]
+name = "sweet-grass-store-sled"
+description = "Attribution Layer - Sled embedded storage backend (Pure Rust)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Internal crates
+sweet-grass-core = { path = "../sweet-grass-core" }
+sweet-grass-store = { path = "../sweet-grass-store" }
+
+# Sled (Pure Rust embedded database)
+sled = { workspace = true }
+
+# Async
+tokio = { workspace = true }
+async-trait = "0.1"
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util", "macros"] }
+tempfile = "3"
+

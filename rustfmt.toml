@@ -1,0 +1,44 @@
+# SweetGrass Rust Formatting Configuration
+# Pure Rust, Primal Sovereignty
+#
+# Note: This configuration uses only stable rustfmt options.
+# Unstable options require nightly and are commented out for reference.
+
+edition = "2021"
+
+# Line width - keep reasonable for readability
+max_width = 100
+tab_spaces = 4
+hard_tabs = false
+
+# Import organization (stable)
+reorder_imports = true
+reorder_modules = true
+
+# Struct field shorthand
+use_field_init_shorthand = true
+
+# Match formatting
+match_block_trailing_comma = true
+
+# Other stable formatting
+use_try_shorthand = true
+newline_style = "Unix"
+
+# ==============================================================================
+# Unstable options (require nightly rustfmt)
+# Uncomment if using `cargo +nightly fmt`
+# ==============================================================================
+# imports_granularity = "Crate"
+# group_imports = "StdExternalCrate"
+# fn_params_layout = "Tall"
+# fn_single_line = false
+# struct_lit_single_line = true
+# control_brace_style = "AlwaysSameLine"
+# wrap_comments = true
+# format_code_in_doc_comments = true
+# doc_comment_code_block_width = 80
+# normalize_doc_attributes = true
+# format_strings = false
+# trailing_comma = "Vertical"
+# trailing_semicolon = true
