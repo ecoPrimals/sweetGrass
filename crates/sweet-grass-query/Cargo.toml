@@ -1,0 +1,31 @@
+[package]
+name = "sweet-grass-query"
+description = "Attribution Layer - Query engine and PROV-O export"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+sweet-grass-core = { path = "../sweet-grass-core" }
+sweet-grass-store = { path = "../sweet-grass-store" }
+sweet-grass-factory = { path = "../sweet-grass-factory" }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+indexmap = { workspace = true }
+
+# Async trait support
+async-trait = "0.1"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util", "macros"] }
+

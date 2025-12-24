@@ -1,0 +1,65 @@
+[package]
+name = "sweet-grass-service"
+description = "Attribution Layer - Pure Rust tarpc + REST Service"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Internal crates
+sweet-grass-core = { path = "../sweet-grass-core" }
+sweet-grass-store = { path = "../sweet-grass-store" }
+sweet-grass-store-postgres = { path = "../sweet-grass-store-postgres" }
+sweet-grass-store-sled = { path = "../sweet-grass-store-sled" }
+sweet-grass-factory = { path = "../sweet-grass-factory" }
+sweet-grass-query = { path = "../sweet-grass-query" }
+sweet-grass-compression = { path = "../sweet-grass-compression" }
+
+# Async runtime
+tokio = { workspace = true }
+futures = { workspace = true }
+
+# Pure Rust RPC (no gRPC, no protobuf)
+tarpc = { workspace = true }
+bincode = { workspace = true }
+
+# Storage backends for factory
+sled = { workspace = true }
+
+# Web framework (REST fallback)
+axum = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Encoding
+base64 = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Time
+chrono = { workspace = true }
+
+# Async trait
+async-trait = "0.1"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util", "macros"] }
+axum-test = "16"
+
+[[example]]
+name = "demo"
+path = "examples/demo.rs"

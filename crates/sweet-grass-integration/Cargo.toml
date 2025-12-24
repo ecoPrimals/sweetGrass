@@ -1,0 +1,52 @@
+[package]
+name = "sweet-grass-integration"
+description = "Attribution Layer - Capability-based integration with ecosystem primals"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[features]
+default = []
+# Enable test support utilities (mock clients, etc.)
+test-support = []
+
+[lints]
+workspace = true
+
+[dependencies]
+# Internal crates
+sweet-grass-core = { path = "../sweet-grass-core" }
+sweet-grass-compression = { path = "../sweet-grass-compression" }
+sweet-grass-store = { path = "../sweet-grass-store" }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Pure Rust RPC (Primal Sovereignty - no gRPC/protobuf)
+tarpc = { workspace = true }
+bincode = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+# Time
+chrono = { workspace = true }
+
+# Async trait
+async-trait = "0.1"
+
+# Futures for async streams
+futures = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util", "macros"] }
+

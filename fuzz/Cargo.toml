@@ -1,0 +1,48 @@
+[package]
+name = "sweet-grass-fuzz"
+version = "0.0.0"
+authors = ["Automated"]
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
+
+[dependencies.sweet-grass-core]
+path = "../crates/sweet-grass-core"
+
+[dependencies.sweet-grass-factory]
+path = "../crates/sweet-grass-factory"
+
+[dependencies.sweet-grass-store]
+path = "../crates/sweet-grass-store"
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "fuzz_braid_deserialize"
+path = "fuzz_targets/fuzz_braid_deserialize.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_query_filter"
+path = "fuzz_targets/fuzz_query_filter.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "fuzz_attribution"
+path = "fuzz_targets/fuzz_attribution.rs"
+test = false
+doc = false
+bench = false
+

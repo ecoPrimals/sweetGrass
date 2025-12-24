@@ -1,18 +1,30 @@
 # SweetGrass — Integration Specification
 
-**Version**: 0.2.0  
-**Status**: Draft  
+**Version**: 2.0.0  
+**Status**: Canonical  
 **Last Updated**: December 2025
 
 ---
 
 ## 1. Overview
 
-SweetGrass integrates with the ecoPrimals ecosystem as the semantic provenance layer, drawing data from RhizoCrypt and LoamSpine while serving queries to applications, gAIa, and sunCloud.
+SweetGrass integrates with the ecoPrimals ecosystem using **pure Rust tarpc** for primal-to-primal communication. All integrations follow primal sovereignty principles—no gRPC, no protobuf.
+
+### 1.1 Capability-Based Architecture
+
+SweetGrass uses **capability-based discovery** rather than hardcoded primal names. Each integration is defined by the capability it provides, not the specific primal that implements it.
+
+| Capability | Purpose | Example Primals |
+|------------|---------|-----------------|
+| `Signing` | Braid signatures, DID resolution | BearDog |
+| `SessionEvents` | Session capture, activity tracking | RhizoCrypt |
+| `Anchoring` | Permanent storage anchoring | LoamSpine |
+| `Compute` | Task execution, compute activity | ToadStool |
+| `Discovery` | Service mesh, primal discovery | Songbird |
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        SweetGrass                                │
+│                        SweetGrass 🌾                             │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │                    ┌─────────────────┐                          │
@@ -21,54 +33,67 @@ SweetGrass integrates with the ecoPrimals ecosystem as the semantic provenance l
 │                    └────────┬────────┘                          │
 │                             │                                    │
 │     ┌───────────────────────┼───────────────────────┐           │
+│     │ tarpc      │ tarpc    │ tarpc    │ tarpc      │           │
 │     │           │           │           │           │           │
 │ ┌───▼───┐  ┌───▼───┐  ┌───▼───┐  ┌───▼───┐  ┌───▼───┐        │
-│ │RhizoCr│  │LoamSp │  │BearDog│  │ToadSt │  │sunCld │        │
-│ │Adapter│  │Adapter│  │Adapter│  │Adapter│  │Adapter│        │
+│ │Session│  │Anchor │  │Signing│  │Compute│  │Attrib │        │
+│ │Events │  │Client │  │Client │  │Client │  │Provider│        │
 │ └───┬───┘  └───┬───┘  └───┬───┘  └───┬───┘  └───┬───┘        │
 │     │           │           │           │           │           │
 └─────┼───────────┼───────────┼───────────┼───────────┼───────────┘
-      │           │           │           │           │
+      │ tarpc     │ tarpc     │ tarpc     │ tarpc     │ tarpc
       ▼           ▼           ▼           ▼           ▼
  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐
- │RhizoCrpt│ │LoamSpine│ │ BearDog │ │ToadStool│ │ sunCloud│
- │   🍄    │ │   🦴    │ │   🐻    │ │   🍄    │ │   ☀️    │
+ │ Session │ │Anchoring│ │ Signing │ │ Compute │ │ Attrib  │
+ │ Events  │ │ Service │ │ Service │ │ Service │ │ Service │
  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘
+```
+
+### 1.2 Zero-Knowledge Startup
+
+SweetGrass starts with minimal configuration and discovers capabilities at runtime:
+
+```rust
+// Discovery-based client creation (no hardcoded addresses)
+let discovery = create_discovery().await;
+let primal = discovery.find_one(&Capability::Signing).await?;
+let client = create_signing_client_async(&primal).await?;
 ```
 
 ---
 
-## 2. RhizoCrypt Integration
+## 2. Session Events Integration
 
-RhizoCrypt is a primary source of provenance data through session dehydration.
+Session events capability provides activity tracking and session data through dehydration.
 
-### 2.1 Event Subscription
+*Note: Currently implemented by RhizoCrypt, but SweetGrass discovers by capability, not name.*
+
+### 2.1 tarpc Client Trait
 
 ```rust
-/// RhizoCrypt client for SweetGrass
-#[async_trait]
-pub trait RhizoCryptClient: Send + Sync {
-    /// Subscribe to session resolution events
-    fn subscribe_resolutions(&self) -> impl Stream<Item = DehydrationSummary> + Send;
+/// Session events tarpc service (capability-based)
+#[tarpc::service]
+pub trait SessionEventsRpc {
+    /// Subscribe to session resolution events (returns stream ID)
+    async fn subscribe_resolutions() -> Result<SubscriptionId, RhizoCryptError>;
+    
+    /// Poll for new resolutions
+    async fn poll_resolutions(
+        subscription_id: SubscriptionId,
+    ) -> Result<Vec<DehydrationSummary>, RhizoCryptError>;
     
     /// Get session details
-    async fn get_session(&self, session_id: &SessionId) -> Result<Session, RhizoCryptError>;
+    async fn get_session(session_id: SessionId) -> Result<Session, RhizoCryptError>;
     
     /// Get vertices for a session
-    async fn get_vertices(
-        &self,
-        session_id: &SessionId,
-    ) -> Result<Vec<Vertex>, RhizoCryptError>;
+    async fn get_vertices(session_id: SessionId) -> Result<Vec<Vertex>, RhizoCryptError>;
     
     /// Get session graph structure
-    async fn get_session_graph(
-        &self,
-        session_id: &SessionId,
-    ) -> Result<SessionGraph, RhizoCryptError>;
+    async fn get_session_graph(session_id: SessionId) -> Result<SessionGraph, RhizoCryptError>;
 }
 
 /// Dehydration summary from RhizoCrypt
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DehydrationSummary {
     pub session_id: SessionId,
     pub session_type: SessionType,
@@ -87,12 +112,58 @@ pub struct DehydrationSummary {
 }
 ```
 
-### 2.2 Session Processing
+### 2.2 Client Implementation
 
 ```rust
-/// Process RhizoCrypt session for Braid creation
-pub struct RhizoCryptProcessor {
-    client: Arc<dyn RhizoCryptClient>,
+use tarpc::{client, context};
+
+pub struct TarpcSessionEventsClient {
+    client: SessionEventsRpcClient,
+}
+
+impl TarpcSessionEventsClient {
+    pub async fn connect(addr: &str) -> Result<Self> {
+        let transport = tarpc::serde_transport::tcp::connect(
+            addr,
+            tarpc::tokio_serde::formats::Bincode::default,
+        ).await?;
+        
+        let client = SessionEventsRpcClient::new(
+            client::Config::default(),
+            transport,
+        ).spawn();
+        
+        Ok(Self { client })
+    }
+    
+    pub async fn get_session(&self, session_id: SessionId) -> Result<Session> {
+        self.client.get_session(context::current(), session_id).await?
+            .map_err(Into::into)
+    }
+    
+    pub async fn subscribe_and_process<F>(&self, mut handler: F) -> Result<()>
+    where
+        F: FnMut(DehydrationSummary) -> Result<()>,
+    {
+        let sub_id = self.client.subscribe_resolutions(context::current()).await??;
+        
+        loop {
+            let summaries = self.client.poll_resolutions(context::current(), sub_id).await??;
+            for summary in summaries {
+                handler(summary)?;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    }
+}
+```
+
+### 2.3 Session Processing
+
+```rust
+/// Process session events for Braid creation
+pub struct SessionEventsProcessor {
+    client: Arc<dyn SessionEventsClient>,
     compression: Arc<CompressionEngine>,
     factory: Arc<BraidFactory>,
     store: Arc<dyn BraidStore>,
@@ -100,22 +171,16 @@ pub struct RhizoCryptProcessor {
 
 impl RhizoCryptProcessor {
     /// Process a dehydration event
-    pub async fn process(
-        &self,
-        summary: DehydrationSummary,
-    ) -> Result<ProcessingResult, ProcessingError> {
+    pub async fn process(&self, summary: DehydrationSummary) -> Result<ProcessingResult> {
         // 1. Get full session details if needed
         let session = if summary.vertex_count > self.config.detail_threshold {
-            Some(self.client.get_session(&summary.session_id).await?)
+            Some(self.client.get_session(summary.session_id.clone()).await?)
         } else {
             None
         };
         
         // 2. Compress to Braids
-        let compression_result = self.compression.compress(
-            session.as_ref(),
-            &summary,
-        ).await?;
+        let compression_result = self.compression.compress_summary(&summary, session.as_ref())?;
         
         // 3. Store Braids
         let braids = match compression_result {
@@ -133,12 +198,7 @@ impl RhizoCryptProcessor {
         };
         
         for braid in &braids {
-            self.store.put(braid.clone()).await?;
-        }
-        
-        // 4. Emit events
-        for braid in &braids {
-            self.emit_braid_created(braid);
+            self.store.put(braid).await?;
         }
         
         Ok(ProcessingResult::Created(braids))
@@ -146,337 +206,258 @@ impl RhizoCryptProcessor {
 }
 ```
 
-### 2.3 Slice Provenance
-
-SweetGrass tracks slice operations for lending provenance:
-
-```rust
-/// Create Braid for slice operation
-pub async fn create_slice_braid(
-    &self,
-    slice_info: &SliceInfo,
-    session_summary: &DehydrationSummary,
-) -> Result<Braid, BraidError> {
-    let activity = Activity {
-        activity_type: match slice_info.mode {
-            SliceMode::Loan { .. } => ActivityType::CertificateLoan,
-            SliceMode::Consignment { .. } => ActivityType::Custom { 
-                type_uri: "ecop:SliceConsignment".to_string() 
-            },
-            SliceMode::Copy => ActivityType::Derivation,
-            SliceMode::Escrow { .. } => ActivityType::Custom {
-                type_uri: "ecop:SliceEscrow".to_string()
-            },
-            SliceMode::Waypoint { .. } => ActivityType::Custom {
-                type_uri: "ecop:SliceWaypoint".to_string()
-            },
-            SliceMode::Transfer => ActivityType::CertificateTransfer,
-        },
-        was_associated_with: vec![
-            AgentAssociation {
-                agent: slice_info.owner.clone(),
-                role: AgentRole::Creator,
-                on_behalf_of: None,
-                had_plan: None,
-            },
-        ],
-        ecop: ActivityEcoPrimals {
-            rhizo_session: Some(session_summary.session_id.clone()),
-            ..Default::default()
-        },
-        ..Default::default()
-    };
-    
-    self.factory.create(BraidSpec {
-        braid_type: BraidType::Slice {
-            slice_mode: slice_info.mode.clone(),
-            origin_spine: slice_info.origin_spine.clone(),
-        },
-        was_generated_by: Some(activity),
-        ecop: EcoPrimalsAttributes {
-            slice: Some(SliceRef {
-                slice_id: slice_info.slice_id.clone(),
-                mode: slice_info.mode.clone(),
-                origin_spine: slice_info.origin_spine.clone(),
-                origin_entry: slice_info.origin_entry.clone(),
-                checkout_time: slice_info.checkout_time,
-                return_time: slice_info.return_time,
-            }),
-            ..Default::default()
-        },
-        ..Default::default()
-    }).await
-}
-```
-
 ---
 
-## 3. LoamSpine Integration
+## 3. Anchoring Integration
 
-LoamSpine provides permanent anchoring and certificate provenance.
+Anchoring capability provides permanent storage and certificate provenance.
 
-### 3.1 Client Interface
+*Note: Currently implemented by LoamSpine, but SweetGrass discovers by capability, not name.*
+
+### 3.1 tarpc Client Trait
 
 ```rust
-/// LoamSpine client for SweetGrass
-#[async_trait]
-pub trait LoamSpineClient: Send + Sync {
+/// Anchoring tarpc service (capability-based)
+#[tarpc::service]
+pub trait AnchoringRpc {
     // ==================== Anchoring ====================
     
     /// Anchor a Braid to a spine
     async fn anchor_braid(
-        &self,
-        braid: &Braid,
+        braid_hash: ContentHash,
         spine_id: SpineId,
     ) -> Result<LoamAnchor, LoamError>;
     
     /// Verify Braid anchor
-    async fn verify_anchor(
-        &self,
-        braid_id: &BraidId,
-    ) -> Result<Option<LoamAnchor>, LoamError>;
+    async fn verify_anchor(braid_id: BraidId) -> Result<Option<LoamAnchor>, LoamError>;
     
     // ==================== Event Subscription ====================
     
     /// Subscribe to spine entries
-    fn subscribe_entries(&self, spine_id: SpineId) -> impl Stream<Item = LoamEntry> + Send;
+    async fn subscribe_entries(spine_id: SpineId) -> Result<SubscriptionId, LoamError>;
+    
+    /// Poll for new entries
+    async fn poll_entries(subscription_id: SubscriptionId) -> Result<Vec<LoamEntry>, LoamError>;
     
     /// Subscribe to certificate events
-    fn subscribe_certificates(&self) -> impl Stream<Item = CertificateEvent> + Send;
+    async fn subscribe_certificates() -> Result<SubscriptionId, LoamError>;
+    
+    /// Poll for certificate events
+    async fn poll_certificates(
+        subscription_id: SubscriptionId,
+    ) -> Result<Vec<CertificateEvent>, LoamError>;
     
     // ==================== Queries ====================
     
     /// Get entry by hash
-    async fn get_entry(&self, entry_hash: &EntryHash) -> Result<Option<LoamEntry>, LoamError>;
+    async fn get_entry(entry_hash: EntryHash) -> Result<Option<LoamEntry>, LoamError>;
     
     /// Get certificate
-    async fn get_certificate(&self, cert_id: &CertificateId) -> Result<Option<Certificate>, LoamError>;
+    async fn get_certificate(cert_id: CertificateId) -> Result<Option<Certificate>, LoamError>;
     
     /// Get certificate history
     async fn get_certificate_history(
-        &self,
-        cert_id: &CertificateId,
+        cert_id: CertificateId,
     ) -> Result<Vec<LoamEntry>, LoamError>;
     
     /// Get spine hierarchy
-    async fn get_spine_hierarchy(&self, spine_id: SpineId) -> Result<SpineHierarchy, LoamError>;
+    async fn get_spine_hierarchy(spine_id: SpineId) -> Result<SpineHierarchy, LoamError>;
 }
 ```
 
-### 3.2 Entry Processing
+### 3.2 Client Implementation
 
 ```rust
-/// Process LoamSpine entries for provenance
-pub struct LoamSpineProcessor {
-    client: Arc<dyn LoamSpineClient>,
-    factory: Arc<BraidFactory>,
+pub struct TarpcAnchoringClient {
+    client: AnchoringRpcClient,
+}
+
+impl TarpcAnchoringClient {
+    pub async fn connect(addr: &str) -> Result<Self> {
+        let transport = tarpc::serde_transport::tcp::connect(
+            addr,
+            tarpc::tokio_serde::formats::Bincode::default,
+        ).await?;
+        
+        let client = AnchoringRpcClient::new(
+            client::Config::default(),
+            transport,
+        ).spawn();
+        
+        Ok(Self { client })
+    }
+    
+    pub async fn anchor_braid(
+        &self,
+        braid: &Braid,
+        spine_id: SpineId,
+    ) -> Result<AnchorReceipt> {
+        self.client.anchor_braid(
+            context::current(),
+            braid.data_hash.clone(),
+            spine_id,
+        ).await?.map_err(Into::into)
+    }
+    
+    pub async fn verify_anchor(&self, braid_id: &BraidId) -> Result<Option<AnchorInfo>> {
+        self.client.verify_anchor(context::current(), braid_id.clone()).await?
+            .map_err(Into::into)
+    }
+}
+```
+
+### 3.3 Anchor Manager
+
+```rust
+/// Manage Braid anchoring (capability-based)
+pub struct AnchorManager {
+    anchoring_client: Arc<dyn AnchoringClient>,
     store: Arc<dyn BraidStore>,
 }
 
-impl LoamSpineProcessor {
-    /// Process LoamSpine entry
-    pub async fn process_entry(
-        &self,
-        entry: &LoamEntry,
-    ) -> Result<Option<Braid>, ProcessingError> {
-        // Only create Braids for certain entry types
-        match &entry.entry_type {
-            EntryType::SessionCommit { summary, .. } => {
-                // RhizoCrypt already created Braids, just update anchor
-                self.update_anchors(summary).await?;
-                Ok(None)
-            }
-            EntryType::CertificateMint { certificate, .. } => {
-                let braid = self.create_certificate_braid(certificate, entry).await?;
-                self.store.put(braid.clone()).await?;
-                Ok(Some(braid))
-            }
-            EntryType::CertificateTransfer { from, to, .. } => {
-                let braid = self.create_transfer_braid(entry, from, to).await?;
-                self.store.put(braid.clone()).await?;
-                Ok(Some(braid))
-            }
-            EntryType::CertificateLoan { .. } => {
-                let braid = self.create_loan_braid(entry).await?;
-                self.store.put(braid.clone()).await?;
-                Ok(Some(braid))
-            }
-            EntryType::BraidCommit { braid_id, .. } => {
-                // Update existing Braid with anchor
-                self.update_braid_anchor(braid_id, entry).await?;
-                Ok(None)
-            }
-            _ => Ok(None),
-        }
-    }
-    
-    /// Create Braid for certificate mint
-    async fn create_certificate_braid(
-        &self,
-        certificate: &Certificate,
-        entry: &LoamEntry,
-    ) -> Result<Braid, ProcessingError> {
-        let activity = Activity {
-            activity_type: ActivityType::CertificateMint,
-            was_associated_with: vec![
-                AgentAssociation {
-                    agent: certificate.mint.minter.clone(),
-                    role: AgentRole::Creator,
-                    on_behalf_of: None,
-                    had_plan: None,
-                },
-            ],
-            started_at_time: entry.timestamp,
-            ended_at_time: Some(entry.timestamp),
-            ..Default::default()
-        };
+impl AnchorManager {
+    pub async fn anchor(&self, braid: &Braid, spine_id: SpineId) -> Result<AnchorReceipt> {
+        // 1. Request anchor from anchoring service
+        let anchor = self.anchoring_client.anchor(braid, spine_id).await?;
         
-        self.factory.create(BraidSpec {
-            braid_type: BraidType::Entity,
-            data_hash: certificate.id.to_string(),
-            was_generated_by: Some(activity),
-            was_attributed_to: certificate.owner.clone(),
-            ecop: EcoPrimalsAttributes {
-                certificate: Some(certificate.id.clone()),
-                loam_commit: Some(LoamCommitRef {
-                    spine_id: entry.spine_id.clone(),
-                    entry_hash: entry.hash.clone(),
-                    index: entry.index,
-                }),
-                ..Default::default()
-            },
-            loam_anchor: Some(LoamAnchor {
-                spine_id: entry.spine_id.clone(),
-                entry_hash: entry.hash.clone(),
-                index: entry.index,
-                anchored_at: entry.timestamp,
-                verified: true,
-            }),
-            ..Default::default()
-        }).await
+        // 2. Update Braid with anchor
+        let mut updated = braid.clone();
+        updated.loam_anchor = Some(anchor.anchor.clone());
+        self.store.put(&updated).await?;
+        
+        Ok(anchor)
     }
-}
-```
-
-### 3.3 Spine Hierarchy for Attribution
-
-```rust
-/// Get spine hierarchy for radiating attribution
-pub async fn get_attribution_hierarchy(
-    &self,
-    entity: &EntityReference,
-) -> Result<AttributionHierarchy, AttributionError> {
-    // 1. Find the Braid
-    let braid = self.resolve_to_braid(entity).await?;
     
-    // 2. Get LoamSpine location
-    let anchor = braid.loam_anchor.as_ref()
-        .ok_or(AttributionError::NotAnchored)?;
-    
-    // 3. Get spine hierarchy
-    let hierarchy = self.loam_client.get_spine_hierarchy(anchor.spine_id.clone()).await?;
-    
-    // 4. Map to attribution levels
-    Ok(AttributionHierarchy {
-        entity: entity.clone(),
-        levels: hierarchy.spines.iter().enumerate().map(|(i, spine)| {
-            AttributionLevel {
-                level: i as u32,
-                spine_id: spine.id.clone(),
-                spine_type: spine.spine_type.clone(),
-                owner: spine.owner.clone(),
-            }
-        }).collect(),
-    })
+    pub async fn verify(&self, braid_id: &BraidId) -> Result<AnchorVerification> {
+        let anchor = self.anchoring_client.verify(braid_id).await?;
+        
+        Ok(AnchorVerification {
+            anchored: anchor.is_some(),
+            anchor,
+            verified: true,
+            verification_time: Some(current_timestamp_nanos()),
+        })
+    }
 }
 ```
 
 ---
 
-## 4. BearDog Integration
+## 4. Signing Integration
 
-BearDog provides identity and signing for Braids.
+Signing capability provides identity and cryptographic signatures for Braids.
 
-### 4.1 Client Interface
+*Note: Currently implemented by BearDog, but SweetGrass discovers by capability, not name.*
+
+### 4.1 tarpc Client Trait
 
 ```rust
-/// BearDog client for SweetGrass
-#[async_trait]
-pub trait BearDogClient: Send + Sync {
+/// Signing tarpc service (capability-based)
+#[tarpc::service]
+pub trait SigningRpc {
     /// Resolve DID to document
-    async fn resolve_did(&self, did: &Did) -> Result<DidDocument, BearDogError>;
+    async fn resolve_did(did: Did) -> Result<DidDocument, BearDogError>;
     
-    /// Sign a Braid
-    async fn sign_braid(
-        &self,
-        braid: &Braid,
-        key_id: &KeyId,
-    ) -> Result<BraidSignature, BearDogError>;
+    /// Sign data with agent key
+    async fn sign(
+        data: Vec<u8>,
+        key_id: KeyId,
+    ) -> Result<Signature, BearDogError>;
     
-    /// Verify Braid signature
-    async fn verify_braid_signature(&self, braid: &Braid) -> Result<bool, BearDogError>;
+    /// Verify signature
+    async fn verify(
+        data: Vec<u8>,
+        signature: Signature,
+        did: Did,
+    ) -> Result<bool, BearDogError>;
     
     /// Get agent profile
-    async fn get_agent_profile(&self, did: &Did) -> Result<AgentProfile, BearDogError>;
+    async fn get_agent_profile(did: Did) -> Result<AgentProfile, BearDogError>;
 }
 ```
 
-### 4.2 Signature Operations
+### 4.2 Braid Signing
 
 ```rust
-impl BraidFactory {
-    /// Sign a Braid with BearDog
-    pub async fn sign_braid(
-        &self,
-        braid: &mut Braid,
-    ) -> Result<(), BraidError> {
-        // 1. Compute signature input (canonicalized JSON-LD)
-        let canonical = self.canonicalize_for_signing(braid)?;
+pub struct DiscoverySigner {
+    signing_client: Arc<dyn SigningClient>,
+    key_id: KeyId,
+}
+
+impl DiscoverySigner {
+    pub async fn sign_braid(&self, braid: &mut Braid) -> Result<()> {
+        // 1. Canonicalize Braid for signing
+        let canonical = self.canonicalize(braid)?;
         
-        // 2. Request signature from BearDog
-        let signature = self.beardog.sign_braid(braid, &self.key_id).await?;
+        // 2. Request signature from signing service
+        let signature = self.signing_client.sign(canonical, self.key_id.clone()).await?;
         
-        // 3. Attach signature
-        braid.signature = signature;
+        // 3. Create Braid signature
+        braid.signature = BraidSignature {
+            signature_type: "Ed25519Signature2020".to_string(),
+            created: current_timestamp_nanos(),
+            verification_method: self.key_id.to_string(),
+            proof_purpose: "assertionMethod".to_string(),
+            proof_value: base64::encode(&signature),
+        };
         
         Ok(())
     }
     
-    /// Verify a Braid signature
-    pub async fn verify_signature(&self, braid: &Braid) -> Result<bool, BraidError> {
-        self.beardog.verify_braid_signature(braid).await
-            .map_err(|e| BraidError::Verification(e.to_string()))
+    pub async fn verify_signature(&self, braid: &Braid) -> Result<bool> {
+        let canonical = self.canonicalize(braid)?;
+        let signature = base64::decode(&braid.signature.proof_value)?;
+        
+        self.signing_client.verify(
+            canonical,
+            signature,
+            braid.was_attributed_to.clone(),
+        ).await
+    }
+    
+    fn canonicalize(&self, braid: &Braid) -> Result<Vec<u8>> {
+        // Create signing input without signature field
+        let mut signing_input = braid.clone();
+        signing_input.signature = BraidSignature::default();
+        Ok(serde_json::to_vec(&signing_input)?)
     }
 }
 ```
 
 ---
 
-## 5. ToadStool Integration
+## 5. Compute Integration
 
-ToadStool provides compute activity events for provenance.
+Compute capability provides task execution events for provenance tracking.
 
-### 5.1 Client Interface
+*Note: Currently implemented by ToadStool, but SweetGrass discovers by capability, not name.*
+
+### 5.1 tarpc Client Trait
 
 ```rust
-/// ToadStool client for SweetGrass
-#[async_trait]
-pub trait ToadStoolClient: Send + Sync {
+/// Compute tarpc service (capability-based)
+#[tarpc::service]
+pub trait ComputeRpc {
     /// Subscribe to task completion events
-    fn subscribe_completions(&self) -> impl Stream<Item = TaskCompletion> + Send;
+    async fn subscribe_completions() -> Result<SubscriptionId, ToadStoolError>;
+    
+    /// Poll for completions
+    async fn poll_completions(
+        subscription_id: SubscriptionId,
+    ) -> Result<Vec<TaskCompletion>, ToadStoolError>;
     
     /// Get task details
-    async fn get_task(&self, task_id: &TaskId) -> Result<TaskDetails, ToadStoolError>;
+    async fn get_task(task_id: TaskId) -> Result<TaskDetails, ToadStoolError>;
     
     /// Get task inputs
-    async fn get_task_inputs(&self, task_id: &TaskId) -> Result<Vec<TaskInput>, ToadStoolError>;
+    async fn get_task_inputs(task_id: TaskId) -> Result<Vec<TaskInput>, ToadStoolError>;
     
     /// Get task outputs
-    async fn get_task_outputs(&self, task_id: &TaskId) -> Result<Vec<TaskOutput>, ToadStoolError>;
+    async fn get_task_outputs(task_id: TaskId) -> Result<Vec<TaskOutput>, ToadStoolError>;
 }
 
 /// Task completion event
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct TaskCompletion {
     pub task_id: TaskId,
     pub task_type: String,
@@ -491,78 +472,56 @@ pub struct TaskCompletion {
 }
 ```
 
-### 5.2 Activity Processing
+### 5.2 Task Processing
 
 ```rust
-/// Process ToadStool task for Braid creation
-pub struct ToadStoolProcessor {
-    client: Arc<dyn ToadStoolClient>,
+/// Process compute tasks for Braid creation
+pub struct ComputeProcessor {
+    client: Arc<dyn ComputeClient>,
     factory: Arc<BraidFactory>,
     store: Arc<dyn BraidStore>,
 }
 
 impl ToadStoolProcessor {
-    /// Process task completion
-    pub async fn process_completion(
-        &self,
-        completion: TaskCompletion,
-    ) -> Result<Vec<Braid>, ProcessingError> {
+    pub async fn process_completion(&self, completion: TaskCompletion) -> Result<Vec<Braid>> {
         // Skip failed tasks
         if completion.status != TaskStatus::Completed {
             return Ok(vec![]);
         }
         
-        // Create Braid for each output
         let mut braids = Vec::new();
         
         for output in &completion.outputs {
-            let activity = Activity {
-                id: format!("urn:activity:toadstool:{}", completion.task_id),
-                activity_type: self.map_task_type(&completion.task_type),
-                used: completion.inputs.iter().map(|i| UsedEntity {
-                    entity: EntityReference::ByHash {
-                        data_hash: i.data_hash.clone(),
-                        mime_type: Some(i.mime_type.clone()),
-                    },
-                    role: EntityRole::Input,
-                    time: Some(completion.started_at),
-                    extent: None,
-                }).collect(),
-                was_associated_with: vec![
-                    AgentAssociation {
-                        agent: completion.executor.clone(),
-                        role: AgentRole::ComputeProvider,
-                        on_behalf_of: None,
-                        had_plan: None,
-                    },
-                ],
-                started_at_time: completion.started_at,
-                ended_at_time: Some(completion.ended_at),
-                ecop: ActivityEcoPrimals {
+            let activity = Activity::builder(ActivityType::Computation)
+                .with_id(ActivityId::from_task(&completion.task_id))
+                .started_at_time(completion.started_at)
+                .ended_at_time(Some(completion.ended_at))
+                .associated_with(AgentAssociation::new(
+                    completion.executor.clone(),
+                    AgentRole::ComputeProvider,
+                ))
+                .ecop(ActivityEcoPrimals {
                     compute_units: Some(completion.compute_units),
                     toadstool_task: Some(completion.task_id.clone()),
                     rhizo_session: completion.rhizo_session.clone(),
                     ..Default::default()
-                },
-                ..Default::default()
-            };
+                })
+                .build();
             
-            let braid = self.factory.create(BraidSpec {
-                braid_type: BraidType::Entity,
-                data_hash: output.data_hash.clone(),
-                mime_type: output.mime_type.clone(),
-                size: output.size,
-                was_generated_by: Some(activity),
-                was_derived_from: completion.inputs.iter().map(|i| {
-                    EntityReference::ByHash {
-                        data_hash: i.data_hash.clone(),
-                        mime_type: Some(i.mime_type.clone()),
-                    }
+            let braid = self.factory.create_from_data_spec(
+                output.data_hash.clone(),
+                output.mime_type.clone(),
+                output.size,
+                completion.executor.clone(),
+                Some(activity),
+                completion.inputs.iter().map(|i| {
+                    EntityReference::by_hash(&i.data_hash)
                 }).collect(),
-                ..Default::default()
-            }).await?;
+                BraidMetadata::default(),
+                Default::default(),
+            )?;
             
-            self.store.put(braid.clone()).await?;
+            self.store.put(&braid).await?;
             braids.push(braid);
         }
         
@@ -577,97 +536,79 @@ impl ToadStoolProcessor {
 
 sunCloud queries SweetGrass for attribution data.
 
-### 6.1 Interface
+### 6.1 SweetGrass as Attribution Provider
 
 ```rust
-/// sunCloud interface for attribution queries
-#[async_trait]
-pub trait SunCloudProvider: Send + Sync {
+/// SweetGrass implements attribution provider for sunCloud
+#[tarpc::service]
+pub trait SunCloudAttributionRpc {
     /// Get attribution chain for value distribution
-    async fn get_attribution(
-        &self,
-        entity: EntityReference,
-    ) -> Result<AttributionChain, AttributionError>;
+    async fn get_attribution(entity: EntityReference) -> Result<AttributionChain, AttributionError>;
     
-    /// Get attribution with radiating distribution
-    async fn radiate_attribution(
-        &self,
+    /// Calculate reward shares
+    async fn calculate_shares(
         entity: EntityReference,
-        value: f64,
-    ) -> Result<RadiationResult, AttributionError>;
+        total_value: f64,
+    ) -> Result<Vec<RewardShare>, AttributionError>;
     
     /// Get agent's total contributions
     async fn get_agent_contributions(
-        &self,
-        agent: &Did,
+        agent: Did,
         time_range: Option<TimeRange>,
     ) -> Result<AgentContributions, AttributionError>;
     
     /// Record distribution for auditing
     async fn record_distribution(
-        &self,
         entity: EntityReference,
         distributions: Vec<RewardDistribution>,
     ) -> Result<DistributionReceipt, AttributionError>;
     
     /// Verify attribution calculation
-    async fn verify_attribution(
-        &self,
-        chain: &AttributionChain,
-    ) -> Result<VerificationResult, AttributionError>;
+    async fn verify_attribution(chain: AttributionChain) -> Result<VerificationResult, AttributionError>;
 }
 
-impl SunCloudProvider for SweetGrass {
+impl SunCloudAttributionRpc for SweetGrassServer {
     async fn get_attribution(
-        &self,
+        self,
+        _: Context,
         entity: EntityReference,
     ) -> Result<AttributionChain, AttributionError> {
-        self.attribution_calculator.calculate(entity).await
+        let hash = entity.content_hash()
+            .ok_or(AttributionError::InvalidEntity)?;
+        self.query.attribution_chain(hash).await
+            .map_err(|e| AttributionError::Query(e.to_string()))
     }
     
-    async fn radiate_attribution(
-        &self,
+    async fn calculate_shares(
+        self,
+        _: Context,
         entity: EntityReference,
-        value: f64,
-    ) -> Result<RadiationResult, AttributionError> {
-        self.radiating_attribution.radiate(entity, value).await
+        total_value: f64,
+    ) -> Result<Vec<RewardShare>, AttributionError> {
+        let chain = self.get_attribution(entity).await?;
+        
+        Ok(chain.contributors.iter().map(|c| {
+            RewardShare {
+                agent: c.agent.clone(),
+                share: c.share,
+                amount: c.share * total_value,
+                role: c.role.clone(),
+            }
+        }).collect())
     }
     
     async fn record_distribution(
-        &self,
+        self,
+        _: Context,
         entity: EntityReference,
         distributions: Vec<RewardDistribution>,
     ) -> Result<DistributionReceipt, AttributionError> {
         // Create a Braid recording the distribution
-        let activity = Activity {
-            activity_type: ActivityType::Custom {
-                type_uri: "ecop:RewardDistribution".to_string(),
-            },
-            was_associated_with: distributions.iter().map(|d| {
-                AgentAssociation {
-                    agent: d.agent.clone(),
-                    role: d.role.clone(),
-                    on_behalf_of: None,
-                    had_plan: None,
-                }
-            }).collect(),
-            ..Default::default()
-        };
-        
-        let braid = self.factory.create(BraidSpec {
-            braid_type: BraidType::Custom {
-                type_uri: "ecop:DistributionRecord".to_string(),
-            },
-            was_generated_by: Some(activity),
-            metadata: BraidMetadata {
-                custom: serde_json::to_value(&distributions)?,
-                ..Default::default()
-            },
-            ..Default::default()
-        }).await?;
+        let braid = self.factory.create_distribution_record(&entity, &distributions)?;
         
         // Anchor to LoamSpine for permanent record
-        let anchor = self.anchor_manager.anchor(&braid, self.config.distribution_spine).await?;
+        let anchor = self.anchor_manager.anchor(&braid, self.config.distribution_spine.clone()).await
+            .map_err(|e| AttributionError::Anchor(e.to_string()))?;
         
         Ok(DistributionReceipt {
             entity,
@@ -675,6 +616,7 @@ impl SunCloudProvider for SweetGrass {
             total_distributed: distributions.iter().map(|d| d.amount).sum(),
             timestamp: current_timestamp_nanos(),
             braid_id: braid.id,
+            anchor: Some(anchor),
         })
     }
 }
@@ -682,240 +624,104 @@ impl SunCloudProvider for SweetGrass {
 
 ---
 
-## 7. gAIa Integration
-
-gAIa queries SweetGrass for trust assessment and knowledge graph.
-
-### 7.1 Interface
-
-```rust
-/// gAIa query interface
-#[async_trait]
-pub trait GaiaQueryInterface: Send + Sync {
-    /// Assess trust for an entity
-    async fn assess_trust(
-        &self,
-        entity: EntityReference,
-    ) -> Result<TrustAssessment, GaiaError>;
-    
-    /// Get attribution for entity
-    async fn get_attribution(
-        &self,
-        entity: EntityReference,
-    ) -> Result<AttributionChain, GaiaError>;
-    
-    /// Search knowledge graph
-    async fn search(
-        &self,
-        query: SemanticQuery,
-    ) -> Result<SearchResults, GaiaError>;
-    
-    /// Get provenance graph
-    async fn provenance_graph(
-        &self,
-        entity: EntityReference,
-        depth: u32,
-    ) -> Result<ProvenanceGraph, GaiaError>;
-}
-
-/// Trust assessment result
-#[derive(Clone, Debug)]
-pub struct TrustAssessment {
-    pub entity: EntityReference,
-    pub trust_score: f64,
-    pub factors: Vec<TrustFactor>,
-    pub provenance_depth: u32,
-    pub agent_reputations: HashMap<Did, f64>,
-}
-
-#[derive(Clone, Debug)]
-pub struct TrustFactor {
-    pub name: String,
-    pub weight: f64,
-    pub score: f64,
-    pub evidence: Vec<BraidId>,
-}
-
-impl GaiaQueryInterface for SweetGrass {
-    async fn assess_trust(
-        &self,
-        entity: EntityReference,
-    ) -> Result<TrustAssessment, GaiaError> {
-        // 1. Get provenance graph
-        let graph = self.query_engine.provenance_graph(entity.clone(), 10).await?;
-        
-        // 2. Calculate trust factors
-        let factors = vec![
-            self.calculate_depth_factor(&graph),
-            self.calculate_signature_factor(&graph).await?,
-            self.calculate_anchor_factor(&graph).await?,
-            self.calculate_reputation_factor(&graph).await?,
-        ];
-        
-        // 3. Combine factors
-        let total_weight: f64 = factors.iter().map(|f| f.weight).sum();
-        let weighted_score: f64 = factors.iter()
-            .map(|f| f.weight * f.score)
-            .sum::<f64>() / total_weight;
-        
-        // 4. Get agent reputations
-        let agent_reputations = self.get_agent_reputations(&graph).await?;
-        
-        Ok(TrustAssessment {
-            entity,
-            trust_score: weighted_score,
-            factors,
-            provenance_depth: graph.depth,
-            agent_reputations,
-        })
-    }
-}
-```
-
----
-
-## 8. Songbird Integration
+## 7. Songbird Integration
 
 Songbird provides service discovery for SweetGrass.
 
-### 8.1 Registration
+### 7.1 Registration
 
 ```rust
-/// Register SweetGrass with Songbird
+/// Register SweetGrass with Songbird via tarpc
 pub async fn register_with_songbird(
-    sweetgrass: &SweetGrass,
-    songbird: &impl SongbirdClient,
-) -> Result<RegistrationReceipt, SongbirdError> {
-    let capabilities = vec![
-        Capability::new("sweetgrass:braid:create"),
-        Capability::new("sweetgrass:braid:query"),
-        Capability::new("sweetgrass:provenance:graph"),
-        Capability::new("sweetgrass:attribution:calculate"),
-        Capability::new("sweetgrass:graphql"),
-        Capability::new("sweetgrass:sparql"),
-    ];
+    songbird_addr: &str,
+    sweetgrass_config: &SweetGrassConfig,
+) -> Result<RegistrationReceipt> {
+    let client = SongbirdClient::connect(songbird_addr).await?;
     
     let service_info = ServiceInfo {
         name: "sweetgrass".to_string(),
-        version: sweetgrass.version().to_string(),
-        capabilities,
-        endpoints: vec![
-            Endpoint::Grpc {
-                host: sweetgrass.grpc_host(),
-                port: sweetgrass.grpc_port(),
-            },
-            Endpoint::Rest {
-                base_url: sweetgrass.rest_url(),
-            },
-            Endpoint::GraphQL {
-                url: sweetgrass.graphql_url(),
-            },
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        address: sweetgrass_config.bind_address.clone(),
+        tarpc_port: sweetgrass_config.tarpc_port,
+        http_port: sweetgrass_config.http_port,
+        capabilities: vec![
+            "sweetgrass:braid:create".to_string(),
+            "sweetgrass:braid:query".to_string(),
+            "sweetgrass:provenance:graph".to_string(),
+            "sweetgrass:attribution:calculate".to_string(),
+            "sweetgrass:prov-o:export".to_string(),
         ],
-        health_check: Some(HealthCheck {
-            endpoint: "/health".to_string(),
-            interval: Duration::from_secs(30),
-        }),
+        metadata: Default::default(),
     };
     
-    songbird.register(service_info).await
+    client.register_service(service_info).await
 }
 ```
 
 ---
 
-## 9. Adapter Pattern
+## 8. Connection Pool
 
-All integrations use a common adapter pattern:
+For high-performance inter-primal communication:
 
 ```rust
-/// Generic primal adapter
-pub struct PrimalAdapter<C> {
-    client: C,
-    config: AdapterConfig,
-    metrics: AdapterMetrics,
-    circuit_breaker: CircuitBreaker,
+/// Connection pool for tarpc clients
+pub struct TarpcPool<C> {
+    connections: Arc<RwLock<Vec<C>>>,
+    factory: Box<dyn Fn() -> Pin<Box<dyn Future<Output = Result<C>> + Send>> + Send + Sync>,
+    max_connections: usize,
 }
 
-impl<C> PrimalAdapter<C> {
-    pub fn new(client: C, config: AdapterConfig) -> Self {
-        Self {
-            client,
-            config,
-            metrics: AdapterMetrics::default(),
-            circuit_breaker: CircuitBreaker::new(config.circuit_breaker.clone()),
-        }
-    }
-    
-    /// Execute with retry and circuit breaker
-    pub async fn execute<F, T, E>(&self, operation: F) -> Result<T, AdapterError>
-    where
-        F: Fn(&C) -> Pin<Box<dyn Future<Output = Result<T, E>> + Send>>,
-        E: std::error::Error + Send + 'static,
-    {
-        // Check circuit breaker
-        if self.circuit_breaker.is_open() {
-            return Err(AdapterError::CircuitOpen);
-        }
-        
-        let mut attempts = 0;
-        loop {
-            attempts += 1;
-            
-            match tokio::time::timeout(
-                self.config.timeout,
-                operation(&self.client),
-            ).await {
-                Ok(Ok(result)) => {
-                    self.circuit_breaker.record_success();
-                    self.metrics.record_success(attempts);
-                    return Ok(result);
-                }
-                Ok(Err(e)) => {
-                    self.circuit_breaker.record_failure();
-                    if attempts >= self.config.retry.max_attempts {
-                        self.metrics.record_failure();
-                        return Err(AdapterError::Operation(e.to_string()));
-                    }
-                    tokio::time::sleep(self.config.retry.delay(attempts)).await;
-                }
-                Err(_) => {
-                    self.circuit_breaker.record_failure();
-                    if attempts >= self.config.retry.max_attempts {
-                        self.metrics.record_timeout();
-                        return Err(AdapterError::Timeout);
-                    }
-                    tokio::time::sleep(self.config.retry.delay(attempts)).await;
-                }
+impl<C: Clone + Send + Sync + 'static> TarpcPool<C> {
+    pub async fn get(&self) -> Result<C> {
+        // Try to get existing connection
+        {
+            let conns = self.connections.read().await;
+            if !conns.is_empty() {
+                return Ok(conns[fastrand::usize(..conns.len())].clone());
             }
         }
+        
+        // Create new connection
+        let conn = (self.factory)().await?;
+        {
+            let mut conns = self.connections.write().await;
+            if conns.len() < self.max_connections {
+                conns.push(conn.clone());
+            }
+        }
+        Ok(conn)
     }
 }
 ```
 
 ---
 
-## 10. Error Handling
+## 9. Error Handling
 
 ```rust
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, Serialize, Deserialize, thiserror::Error)]
 pub enum IntegrationError {
-    #[error("RhizoCrypt error: {0}")]
-    RhizoCrypt(#[from] RhizoCryptError),
+    #[error("Session events error: {0}")]
+    SessionEvents(String),
     
-    #[error("LoamSpine error: {0}")]
-    LoamSpine(#[from] LoamError),
+    #[error("Anchoring error: {0}")]
+    Anchoring(String),
     
-    #[error("BearDog error: {0}")]
-    BearDog(#[from] BearDogError),
+    #[error("Signing error: {0}")]
+    Signing(String),
     
-    #[error("ToadStool error: {0}")]
-    ToadStool(#[from] ToadStoolError),
+    #[error("Compute error: {0}")]
+    Compute(String),
     
-    #[error("Songbird error: {0}")]
-    Songbird(#[from] SongbirdError),
+    #[error("Discovery error: {0}")]
+    Discovery(String),
     
-    #[error("Adapter error: {0}")]
-    Adapter(#[from] AdapterError),
+    #[error("Connection error: {0}")]
+    Connection(String),
+    
+    #[error("Timeout")]
+    Timeout,
     
     #[error("Processing error: {0}")]
     Processing(String),
@@ -924,14 +730,46 @@ pub enum IntegrationError {
 
 ---
 
-## 11. References
+## 10. Configuration
 
-- [ARCHITECTURE.md](./ARCHITECTURE.md) — System architecture
-- [API_SPECIFICATION.md](./API_SPECIFICATION.md) — API definitions
-- [RhizoCrypt Integration](../../rhizoCrypt/specs/INTEGRATION_SPECIFICATION.md)
-- [LoamSpine Integration](../../loamSpine/specs/INTEGRATION_SPECIFICATION.md)
+Configuration uses environment variables for zero-knowledge startup:
+
+```bash
+# Discovery service (optional - enables runtime discovery)
+SONGBIRD_ADDRESS=localhost:8091
+
+# Capability-specific overrides (optional - discovered if not set)
+SESSION_EVENTS_ADDRESS=localhost:8092
+ANCHORING_ADDRESS=localhost:8093
+SIGNING_ADDRESS=localhost:8094
+COMPUTE_ADDRESS=localhost:8095
+```
+
+```toml
+[integration]
+# Connection pool settings
+pool_size = 4
+
+# Retry settings
+max_retries = 3
+retry_delay_ms = 100
+timeout_ms = 5000
+
+# Capability requirements
+required_capabilities = ["signing", "anchoring"]
+optional_capabilities = ["session_events", "compute"]
+```
+
+*Note: Addresses are discovered at runtime via Songbird. Environment variables are fallbacks.*
 
 ---
 
-*SweetGrass: The semantic bridge connecting the ecosystem.*
+## 11. References
 
+- [PRIMAL_SOVEREIGNTY.md](./PRIMAL_SOVEREIGNTY.md) — Pure Rust principles
+- [API_SPECIFICATION.md](./API_SPECIFICATION.md) — API definitions
+- [ARCHITECTURE.md](./ARCHITECTURE.md) — System architecture
+
+---
+
+*SweetGrass: Pure Rust integration with the ecoPrimals ecosystem.*
