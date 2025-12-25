@@ -1,298 +1,469 @@
-# 🌾 Level 1: Primal Coordination
+# 🌾 SweetGrass Inter-Primal Integration
 
-**Goal**: See SweetGrass coordinating with other ecoPrimals  
-**Prerequisites**: Level 0 completed, primals available  
-**Time**: 45 minutes  
-**Complexity**: Intermediate
+**"SweetGrass + ONE Other Primal"**
 
----
-
-## 🎯 What You'll Learn
-
-- Sign Braids with BearDog
-- Compress RhizoCrypt sessions to Braids
-- Anchor commits with LoamSpine
-- Capability-based discovery (no hardcoding!)
-- tarpc integration (pure Rust RPC)
+**Time**: ~60 minutes  
+**Prerequisites**: Level 0 (local showcase) complete  
+**Pattern**: Real binaries from ../bins, NO MOCKS
 
 ---
 
-## 📁 Demos
+## 🎯 PURPOSE
 
-### 1. SweetGrass + BearDog (15 min)
-**Directory**: `01-sweetgrass-beardog/`
+Demonstrate SweetGrass integrating with individual primals using **REAL binaries**.
 
-Cryptographically sign Braids with DID-based identities.
+**Philosophy**: "Interactions show us gaps in our evolution"
+- Real binaries reveal real integration issues
+- Mocks hide problems until production
+- We discover gaps NOW and evolve
+
+---
+
+## 🚀 QUICK START
+
+### Automated Tour
+```bash
+./RUN_ME_FIRST.sh  # Runs all integrations (~60 min)
+```
+
+### Individual Integration
+```bash
+cd 04-sweetgrass-songbird
+./demo-discovery-live.sh  # ~15 minutes
+```
+
+---
+
+## 📋 AVAILABLE INTEGRATIONS
+
+### ✅ 1. SweetGrass + Songbird (Discovery)
+**Directory**: `04-sweetgrass-songbird/`  
+**Binary**: `../../../bins/songbird-orchestrator` (20MB, real ELF)  
+**Time**: 15 minutes  
+**Status**: ✅ Working
+
+**What it demonstrates**:
+- Capability-based service discovery
+- Register attribution services
+- Query for provenance capabilities
+- Runtime primal discovery
+- **No hardcoded addresses**
+
+**Run**:
+```bash
+cd 04-sweetgrass-songbird
+./demo-discovery-live.sh
+```
+
+**Verification**:
+- ✅ Starts real Songbird (PID captured)
+- ✅ Verifies port listening (lsof)
+- ✅ Registers SweetGrass capabilities
+- ✅ Discovers services by capability
+- ✅ Clean shutdown
+
+---
+
+### ✅ 2. SweetGrass + NestGate (Storage)
+**Directory**: `02-sweetgrass-nestgate/`  
+**Binary**: `../../../bins/nestgate` (3.4MB, real ELF)  
+**Time**: 15 minutes  
+**Status**: ✅ Working
+
+**What it demonstrates**:
+- Persistent Braid storage
+- ZFS snapshot integration
+- Distributed storage provenance
+- Cross-primal data access
+
+**Run**:
+```bash
+cd 02-sweetgrass-nestgate
+./demo-storage-live.sh
+```
+
+**Verification**:
+- ✅ Starts real NestGate (PID captured)
+- ✅ Stores Braids in NestGate
+- ✅ Retrieves from distributed storage
+- ✅ Provenance tracked across primal boundary
+
+---
+
+### ✅ 3. SweetGrass + ToadStool (Compute)
+**Directory**: `02-ml-training-provenance/`  
+**Binary**: `../../../bins/toadstool-cli` (21MB, real ELF)  
+**Time**: 15 minutes  
+**Status**: 🟡 Partial (needs enhancement)
+
+**What it demonstrates**:
+- Compute task provenance
+- ML training attribution
+- GPU workload tracking
+- Task execution graphs
+
+**Run**:
+```bash
+cd 02-ml-training-provenance
+./demo-ml-provenance.sh
+```
+
+**Note**: Currently uses ToadStool CLI. Could be enhanced to use `toadstool-byob-server` for full integration.
+
+---
+
+### ✅ 4. SweetGrass + Squirrel (AI Agents)
+**Directory**: `05-sweetgrass-squirrel/` (to be created)  
+**Binary**: `../../../bins/squirrel` (12MB, real ELF)  
+**Time**: 15 minutes  
+**Status**: 📋 Planned
+
+**What it would demonstrate**:
+- AI agent activity provenance
+- Agent decision attribution
+- Multi-agent collaboration tracking
+- Agent genealogy
+
+**Planned**:
+```bash
+cd 05-sweetgrass-squirrel
+./demo-agent-provenance.sh
+```
+
+---
+
+### ⏳ 5. SweetGrass + BearDog (Signing)
+**Directory**: `01-sweetgrass-beardog/`  
+**Binary**: `../../../bins/beardog` (4.5MB, real ELF)  
+**Time**: 15 minutes  
+**Status**: ❌ **BLOCKED** - BearDog needs server mode
+
+**What it should demonstrate**:
+- Braid signing with Ed25519
+- DID resolution
+- Cryptographic integrity
+- Digital signatures
+
+**Current Issue**:
+```bash
+$ ../../../bins/beardog --help
+# Shows CLI commands only (key, encrypt, decrypt, etc.)
+# NO server or service subcommand
+```
+
+**Gap Discovered**:
+BearDog is currently CLI-only. To integrate with SweetGrass service, BearDog needs:
+- `beardog server --port 8091` subcommand
+- RPC/REST API for signing operations
+- Service discovery integration
+- Documented in `../INTEGRATION_GAPS_DISCOVERED.md`
+
+**Workaround**:
+Current demos use BearDog CLI directly (shell commands), not as a service.
+
+---
+
+## 🔍 REAL BINARY VERIFICATION
+
+### How to Verify NO MOCKS
+
+Each integration demo includes verification steps:
 
 ```bash
-cd 01-sweetgrass-beardog
-./demo-signed-braid.sh
+# 1. Binary exists and is real ELF
+file ../../../bins/songbird-orchestrator
+# Output: ELF 64-bit LSB pie executable...
+
+# 2. Process created with PID
+ps aux | grep songbird-orchestrator
+
+# 3. Port actually listening
+lsof -i :8000
+
+# 4. Real HTTP responses
+curl http://localhost:8000/health
+
+# 5. Logs generated
+tail -f logs/songbird.log
 ```
 
-**What you'll see**:
-- Create a Braid
-- Discover BearDog via capability
-- Sign with Ed25519
-- Verify W3C Data Integrity proof
-
-**Key Integration**:
-```
-SweetGrass                    BearDog
-    │                            │
-    ├── Create Braid ────────────┤
-    │                            │
-    ├── Discover(Signing) ───────┤
-    │   ← TarpcBearDogClient ────┤
-    │                            │
-    ├── Sign(braid) ─────────────┤
-    │   ← BraidSignature ────────┤
-    │                            │
-    └── Store signed Braid ──────┘
-```
+**All demos save verification logs** to prove real execution.
 
 ---
 
-### 2. SweetGrass + RhizoCrypt (15 min)
-**Directory**: `02-sweetgrass-rhizocrypt/`
+## 📊 INTEGRATION STATUS MATRIX
 
-Compress edit sessions into Braids.
+| Primal | Binary | Size | Status | Demo | Verification |
+|--------|--------|------|--------|------|--------------|
+| **Songbird** | songbird-orchestrator | 20MB | ✅ Working | discovery-live | ✅ Verified |
+| **NestGate** | nestgate | 3.4MB | ✅ Working | storage-live | ✅ Verified |
+| **ToadStool** | toadstool-cli | 21MB | 🟡 Partial | ml-provenance | 🟡 Can enhance |
+| **Squirrel** | squirrel | 12MB | 📋 Planned | - | - |
+| **BearDog** | beardog | 4.5MB | ❌ Blocked | - | Gap documented |
 
+**Legend**:
+- ✅ Working - Fully functional with real binary
+- 🟡 Partial - Works but could be enhanced
+- 📋 Planned - Binary available, demo not created
+- ❌ Blocked - External dependency (BearDog server mode)
+
+---
+
+## 🎓 LEARNING OBJECTIVES
+
+After completing this showcase, you should understand:
+
+- [ ] **Capability-based discovery** (Songbird integration)
+- [ ] **Cross-primal storage** (NestGate integration)
+- [ ] **Compute provenance** (ToadStool integration)
+- [ ] **Real binary integration** (no mocks anywhere)
+- [ ] **Gap discovery process** (BearDog limitation found)
+- [ ] **Service lifecycle** (start, verify, use, shutdown)
+
+---
+
+## 🔧 TROUBLESHOOTING
+
+### "Binary not found"
 ```bash
-cd 02-sweetgrass-rhizocrypt
-./demo-session-compression.sh
+# Check if binaries exist
+ls -lah ../../../bins/
+
+# Should see:
+# songbird-orchestrator, nestgate, toadstool-cli, beardog, squirrel
 ```
 
-**What you'll see**:
-- Subscribe to RhizoCrypt events
-- Receive session commits
-- Compress to Braids (0/1/Many model)
-- Track session provenance
-
-**Compression Model**:
-```
-Session Outcome → Braid Count
-───────────────────────────────
-Empty/Rollback  → 0 (discard)
-Single Commit   → 1 (single Braid)
-Branched DAG    → N (multiple Braids)
-```
-
-**Key Integration**:
-```
-RhizoCrypt                   SweetGrass
-    │                            │
-    ├── Session Started ─────────┤
-    │                            │
-    ├── Vertices Added ──────────┤
-    │                            │
-    ├── Session Committed ───────┤
-    │   ← Listen via tarpc ──────┤
-    │                            │
-    └── Compress to Braid(s) ────┘
-```
-
----
-
-### 3. SweetGrass + LoamSpine (15 min)
-**Directory**: `03-sweetgrass-loamspine/`
-
-Anchor Braid commits for immutability.
-
+### "Port already in use"
 ```bash
-cd 03-sweetgrass-loamspine
-./demo-anchor.sh
+# Check what's using the port
+lsof -i :8000
+
+# Kill if needed
+kill $(lsof -t -i:8000)
 ```
 
-**What you'll see**:
-- Create a Braid
-- Discover LoamSpine via capability
-- Anchor to a spine
-- Verify anchor proof
-
-**Key Integration**:
+### "Demo script not executable"
+```bash
+chmod +x */demo-*.sh
+chmod +x RUN_ME_FIRST.sh
 ```
-SweetGrass                   LoamSpine
-    │                            │
-    ├── Create Braid ────────────┤
-    │                            │
-    ├── Discover(Anchoring) ─────┤
-    │   ← TarpcLoamSpineClient ──┤
-    │                            │
-    ├── Anchor(braid, spine) ────┤
-    │   ← AnchorReceipt ─────────┤
-    │                            │
-    └── Store anchor proof ──────┘
+
+### "Want to see integration gaps"
+```bash
+cat ../INTEGRATION_GAPS_DISCOVERED.md
+# Documents real gaps found through real testing
 ```
 
 ---
 
-## 🔧 Capability-Based Discovery
+## 💡 KEY INSIGHTS
 
-SweetGrass discovers primals at runtime via capabilities:
+### Why Real Binaries Matter
 
-```rust
-use sweet_grass_integration::{LocalDiscovery, Capability};
-
-let discovery = LocalDiscovery::new();
-
-// Find a primal that can sign
-let signer = discovery.find_one(&Capability::Signing).await?;
-println!("Found signer: {} at {}", signer.name, signer.address);
-
-// Find a primal that can anchor
-let anchor = discovery.find_one(&Capability::Anchoring).await?;
-println!("Found anchor: {} at {}", anchor.name, anchor.address);
+**With Mocks** ❌:
+```bash
+# Fake function that always returns success
+mock_songbird() {
+  echo '{"status": "ok"}'
+}
 ```
+**Problems**:
+- ❌ Hides API mismatches
+- ❌ Hides integration bugs
+- ❌ Hides performance issues
+- ❌ Delays discovery until production
 
-**No hardcoded addresses!** Primals are discovered by capability.
-
----
-
-## 🔗 tarpc Integration
-
-SweetGrass uses pure Rust RPC (no gRPC/protobuf):
-
-```rust
-use sweet_grass_integration::signer::{TarpcBearDogClient, create_beardog_client_async};
-
-// Create client from discovered primal
-let client = create_beardog_client_async(&primal.tarpc_address).await?;
-
-// Sign a braid
-let signature = client.sign(braid_bytes).await?;
+**With Real Binaries** ✅:
+```bash
+# Actual binary from ../bins
+../../../bins/songbird-orchestrator --port 8000 &
+PID=$!
 ```
-
 **Benefits**:
-- Pure Rust (no C dependencies)
-- Type-safe (Rust types on wire)
-- Fast (zero-copy where possible)
-- Primal Sovereignty compliant
+- ✅ Discovers API gaps immediately (BearDog!)
+- ✅ Tests real integration
+- ✅ Validates performance
+- ✅ Evolves NOW, not in production
 
 ---
 
-## 📊 Expected Output
+### Gap Discovery Philosophy
 
-### Signed Braid
+**"Interactions show us gaps in our evolution"**
+
+This showcase **intentionally** uses real binaries to find integration issues:
+
+**Gaps Discovered So Far**:
+1. ✅ **SweetGrass service binary missing** (FIXED in Phase 2)
+2. ✅ **API mismatch for provenance creation** (FIXED in Phase 2)
+3. ❌ **BearDog server mode missing** (EXTERNAL - needs BearDog team)
+
+**Each gap makes us better!**
+
+---
+
+## 📚 PATTERN EXAMPLES
+
+### Starting Real Service
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Start real binary from ../bins
+BINARY="../../../bins/songbird-orchestrator"
+PORT=8000
+
+# Verify it's real
+file "$BINARY" | grep -q "ELF" || exit 1
+
+# Start in background
+"$BINARY" --port $PORT > logs/songbird.log 2>&1 &
+PID=$!
+
+# Save PID
+echo $PID > pids/songbird.pid
+
+# Wait for startup
+sleep 3
+
+# Verify running
+if ! ps -p $PID > /dev/null; then
+  echo "Failed to start"
+  exit 1
+fi
+
+# Verify port
+if ! lsof -i :$PORT | grep -q LISTEN; then
+  echo "Port not listening"
+  kill $PID
+  exit 1
+fi
+
+# Now use it
+curl http://localhost:$PORT/health
+
+# Clean shutdown
+kill $PID
+wait $PID
 ```
-🌾 Signing Braid with BearDog...
 
-Braid ID: urn:braid:abc123...
-Discovering signing capability...
-  ✅ Found BearDog at localhost:8091
+### Gap Discovery Logging
 
-Signing...
-  ✅ Signature created
-  
-Signature Details:
-  Type: Ed25519Signature2020
-  Signer: did:key:z6MkBearDog...
-  Proof: eyJhbGciOiJFZ...
+```bash
+# If something doesn't work, log it
+if ! curl -s http://localhost:$PORT/api/endpoint; then
+  cat >> gaps/discovered-$(date +%Y%m%d).md << EOF
+## Gap: Endpoint Missing
 
-✅ Signed Braid stored!
-```
+**Date**: $(date)
+**Service**: Songbird
+**Issue**: /api/endpoint returned 404
+**Expected**: 200 OK with JSON response
+**Impact**: Cannot complete integration
 
-### Session Compression
-```
-🌾 Compressing RhizoCrypt session...
+**Next Steps**:
+1. Check Songbird API docs
+2. Coordinate with Songbird team
+3. Update integration code
 
-Subscribing to session events...
-  ✅ Connected to RhizoCrypt
-
-Received: SessionCommitted
-  Session ID: session-456
-  Vertices: 12
-  Branches: 1
-
-Compressing (Single model)...
-  ✅ Created 1 Braid
-
-Braid: urn:braid:def789...
-  Derived from: 12 vertices
-  Attribution: 3 contributors
+EOF
+fi
 ```
 
 ---
 
-## 🛠️ Configuration
+## ⏭️ WHAT'S NEXT?
 
-### Discovery Configuration
-```toml
-[discovery]
-# Where to look for primals
-method = "local"  # or "songbird", "dns"
+### After Inter-Primal Integration:
 
-# Fallback addresses (if discovery fails)
-[fallback]
-beardog = "localhost:8091"
-rhizocrypt = "localhost:8092"
-loamspine = "localhost:8093"
+**Option A**: **Federation** (Recommended next)
+```bash
+cd ../02-federation
+```
+- Multi-tower SweetGrass mesh
+- Cross-tower provenance queries
+- Distributed attribution
+- **Time**: ~45 minutes
+
+**Option B**: **Full Ecosystem**
+```bash
+cd ../02-full-ecosystem
+```
+- All primals working together
+- Complete ML pipeline with attribution
+- Multi-primal provenance
+- **Time**: ~60 minutes
+
+**Option C**: **Real-World Value**
+```bash
+cd ../03-real-world
+```
+- $40M+ demonstrated value
+- Concrete business cases
+- ROI calculations
+- **Time**: ~90 minutes
+
+---
+
+## 🌟 SUCCESS CRITERIA
+
+Inter-primal integration is complete when you can:
+
+- [ ] Start real Songbird and discover SweetGrass
+- [ ] Store Braids in real NestGate
+- [ ] Track compute provenance in ToadStool
+- [ ] Understand why real > mocks
+- [ ] Document gaps discovered
+- [ ] Clean shutdown all services
+
+---
+
+## 📝 NOTES
+
+### Available Binaries
+
+All binaries in `../../../bins/` are:
+- ✅ Real ELF executables (not scripts)
+- ✅ Built from phase1 primals
+- ✅ Production-ready
+- ✅ Executable permissions set
+
+### No Mocks Anywhere
+
+This showcase contains:
+- ✅ **ZERO** mock functions
+- ✅ **ZERO** fake responses
+- ✅ **ZERO** simulated services
+
+Everything uses real binaries or documents why not possible.
+
+### Gap Documentation
+
+All discovered gaps are documented in:
+- `../INTEGRATION_GAPS_DISCOVERED.md` - Main gap tracker
+- `gaps/*.md` - Per-demo gap logs
+- `outputs/*/INTEGRATION_GAPS.md` - Per-run discoveries
+
+---
+
+**Ready to see real integration?**
+
+```bash
+./RUN_ME_FIRST.sh
 ```
 
-### tarpc Configuration
-```toml
-[tarpc]
-# Connection timeout
-connect_timeout_secs = 10
+Or pick an integration:
 
-# Request timeout
-request_timeout_secs = 30
+```bash
+cd 04-sweetgrass-songbird && ./demo-discovery-live.sh
 ```
 
 ---
 
-## 💡 Key Insights
+🌾 **Real binaries, real integration, real evolution!** 🌾
 
-### Capability-Based > Address-Based
-Instead of hardcoding `localhost:8091`, discover by capability.
-This enables:
-- Dynamic primal deployment
-- Failover to alternatives
-- Multi-machine meshes
-
-### tarpc > gRPC
-Pure Rust RPC means:
-- No protobuf compilation
-- No C/C++ dependencies
-- Type safety across wire
-- Primal Sovereignty
-
-### Signatures Are Proofs
-BearDog signatures provide:
-- Authorship proof (who)
-- Integrity proof (unchanged)
-- Non-repudiation (can't deny)
-
----
-
-## 🎯 Success Criteria
-
-Level 1 is complete when you can:
-
-- [ ] Sign a Braid with BearDog
-- [ ] Compress a session from RhizoCrypt
-- [ ] Anchor a commit with LoamSpine
-- [ ] Use capability-based discovery
-- [ ] Understand tarpc integration
-
----
-
-## 📚 Next Steps
-
-After Level 1, proceed to:
-
-1. **Level 2**: `../02-full-ecosystem/README.md`
-   - Complete attribution pipeline
-   - Multi-primal provenance
-   - Reward distribution
-
-2. **Experiment**:
-   - Run with live primals
-   - Test failover scenarios
-   - Measure RPC latency
-
----
-
-**Ready?** Start with `01-sweetgrass-beardog/demo-signed-braid.sh`!
-
-🌾 **Coordinate the primals!** 🌾
-
+*Following patterns from:*
+- *🎵 Songbird: Real execution verification*
+- *🍄 ToadStool: Compute integration mastery*
+- *🏰 NestGate: Cross-primal storage*

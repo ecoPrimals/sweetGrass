@@ -198,6 +198,7 @@ pub struct CachedDiscovery {
 
 impl CachedDiscovery {
     /// Create a new cached discovery client.
+    #[allow(dead_code)]
     #[must_use]
     pub fn new(inner: Arc<dyn PrimalDiscovery>, cache_ttl: Duration) -> Self {
         Self {
@@ -208,12 +209,14 @@ impl CachedDiscovery {
     }
 
     /// Invalidate cache for a capability.
+    #[allow(dead_code)]
     pub async fn invalidate(&self, capability: &Capability) {
         let mut cache = self.cache.write().await;
         cache.remove(capability);
     }
 
     /// Invalidate all cache entries.
+    #[allow(dead_code)]
     pub async fn invalidate_all(&self) {
         let mut cache = self.cache.write().await;
         cache.clear();
@@ -384,6 +387,7 @@ impl SongbirdDiscovery {
     }
 
     /// Register local fallback primals (for hybrid discovery).
+    #[allow(dead_code)]
     pub async fn register_fallback(&self, primal: DiscoveredPrimal) {
         self.fallback.register(primal).await;
     }

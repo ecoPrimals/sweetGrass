@@ -1,144 +1,134 @@
-//! Integration adapters for `SweetGrass`.
+//! # SweetGrass Integration
 //!
-//! This crate provides capability-based discovery and integration with other
-//! primals. `SweetGrass` discovers primals at runtime based on what capabilities
-//! they offer, not hardcoded addresses.
-//!
-//! ## Key Concepts
-//!
-//! - **Capability-based discovery**: Find primals by what they can do
-//! - **No hardcoded addresses**: Primals are discovered, not configured
-//! - **Test isolation**: Mocks are in `testing` modules, not production code
-//! - **Zero-knowledge startup**: Service starts with minimal config, discovers rest
+//! Integration with other ecoPrimals via pure Rust tarpc (no gRPC).
 //!
 //! ## Architecture
 //!
-//! ```text
-//! ┌─────────────────────────────────────────────────────────────────┐
-//! │                     SweetGrass Integration                       │
-//! │                                                                  │
-//! │  ┌─────────────────────────────────────────────────────────────┐│
-//! │  │                  Capability Discovery                        ││
-//! │  │    find_by_capability(Signing) → DiscoveredPrimal           ││
-//! │  └─────────────────────────────────────────────────────────────┘│
-//! │                            │                                     │
-//! │         ┌──────────────────┼──────────────────┐                 │
-//! │         ▼                  ▼                  ▼                 │
-//! │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
-//! │  │  Session    │    │  Anchoring  │    │   Signing   │         │
-//! │  │   Events    │    │  Service    │    │   Service   │         │
-//! │  │ (Activity)  │    │ (Permanent) │    │ (Identity)  │         │
-//! │  └─────────────┘    └─────────────┘    └─────────────┘         │
-//! └─────────────────────────────────────────────────────────────────┘
+//! SweetGrass uses **capability-based discovery** to find and integrate
+//! with other primals at runtime:
+//!
+//! - **No hardcoded primal names** - discover by capability, not name
+//! - **tarpc for RPC** - pure Rust, no gRPC/protobuf
+//! - **Runtime discovery** - via Songbird or local discovery
+//! - **Test isolation** - mocks only in testing modules
+//!
+//! ## Capabilities
+//!
+//! | Capability | Purpose | Example Primal |
+//! |------------|---------|----------------|
+//! | `Signing` | Braid signatures, DID resolution | BearDog |
+//! | `SessionEvents` | Session activity tracking | RhizoCrypt |
+//! | `Anchoring` | Permanent storage anchoring | LoamSpine |
+//! | `Compute` | Task execution events | ToadStool |
+//!
+//! ## Integration Patterns
+//!
+//! ### 1. Capability-Based Discovery
+//!
+//! ```no_run
+//! use sweet_grass_integration::*;
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     // Discover signing capability (could be BearDog, or any primal offering signing)
+//!     let discovery = create_discovery().await;
+//!     let primal = discovery.find_one(&Capability::Signing).await.unwrap();
+//!     let signing_client = create_signing_client_async(&primal).await.unwrap();
+//!     // Use signing_client...
+//! }
 //! ```
 //!
-//! ## Usage
+//! ### 2. Anchoring
 //!
-//! ```rust,ignore
-//! use sweet_grass_integration::{
-//!     LocalDiscovery, DiscoverySigner, Capability,
-//!     create_signing_client_async,
-//! };
-//! use std::sync::Arc;
+//! ```no_run
+//! use sweet_grass_integration::*;
 //!
-//! // Create discovery service
-//! let discovery = Arc::new(LocalDiscovery::new());
+//! #[tokio::main]
+//! async fn main() {
+//!     let discovery = create_discovery().await;
+//!     let primal = discovery.find_one(&Capability::Anchoring).await.unwrap();
+//!     let anchor_client = create_anchoring_client_async(&primal).await.unwrap();
+//!     // Use anchor_client...
+//! }
+//! ```
 //!
-//! // Register a primal (or discover from network)
-//! discovery.register(/* primal info */).await;
+//! ## Test Support
 //!
-//! // Find signing primal and create client
-//! let primal = discovery.find_one(&Capability::Signing).await?;
-//! let client = create_signing_client_async(&primal).await?;
+//! All mocks are isolated to `#[cfg(test)]` or `testing` modules:
 //!
-//! // Create signer with the client
-//! let signer = DiscoverySigner::with_client(client).await?;
-//! let signed_braid = signer.sign_braid(&braid).await?;
+//! ```rust
+//! #[cfg(test)]
+//! use sweet_grass_integration::MockSigningClient;
+//!
+//! #[tokio::test]
+//! async fn test_with_mock() {
+//!     let mock = MockSigningClient::new();
+//!     // ... test code
+//! }
 //! ```
 
 #![forbid(unsafe_code)]
-// Note: These pedantic lints are planned for cleanup in v0.3.0
-#![allow(clippy::missing_const_for_fn)]
-#![allow(clippy::missing_errors_doc)]
-#![allow(clippy::doc_markdown)]
+#![warn(missing_docs)]
 
-pub mod anchor;
-pub mod discovery;
-pub mod error;
-pub mod listener;
+mod anchor;
+mod discovery;
+mod error;
+mod listener;
 pub mod signer;
 
-// Core discovery exports
-pub use discovery::{
-    create_discovery, CachedDiscovery, DiscoveredPrimal, DiscoveryError, LocalDiscovery,
-    PrimalDiscovery, ServiceInfo, SongbirdDiscovery, SongbirdRpc,
-};
-
-// Anchor exports (capability-based naming)
-#[cfg(any(test, feature = "test-support"))]
-pub use anchor::MockAnchoringClient;
+// Re-exports
 pub use anchor::{
-    create_anchoring_client_async, AnchorInfo, AnchorManager, AnchorReceipt, AnchoringClient,
-    AnchoringRpc, TarpcAnchoringClient,
+    create_anchoring_client_async, AnchorInfo, AnchorReceipt, AnchoringClient, TarpcAnchoringClient,
 };
-
-// Deprecated anchor aliases for backward compatibility
-#[allow(deprecated)]
-pub use anchor::{
-    create_loamspine_client_async, LoamSpineClient, LoamSpineRpc, TarpcLoamSpineClient,
-};
-
-#[cfg(any(test, feature = "test-support"))]
-#[allow(deprecated)]
-pub use anchor::MockLoamSpineClient;
-
-// Error exports
+pub use discovery::{DiscoveredPrimal, LocalDiscovery, PrimalDiscovery};
 pub use error::IntegrationError;
+pub use listener::{
+    create_session_events_client_async, SessionEventStream, SessionEventsClient,
+    TarpcSessionEventsClient,
+};
+pub use signer::{create_signing_client_async, SignatureInfo, SigningClient};
+pub use sweet_grass_core::config::Capability;
 
-// Listener exports (capability-based naming)
-#[cfg(any(test, feature = "test-support"))]
+// Function to create discovery instance
+pub use discovery::create_discovery;
+
+// Test support (mocks only)
+#[cfg(test)]
+pub use anchor::MockAnchoringClient;
+#[cfg(test)]
 pub use listener::MockSessionEventsClient;
-pub use listener::{
-    create_session_events_client_async, EventHandler, SessionEvent, SessionEventStream,
-    SessionEventType, SessionEventsClient, SessionEventsRpc, TarpcSessionEventsClient,
-};
-
-// Deprecated listener aliases for backward compatibility
-#[allow(deprecated)]
-pub use listener::{
-    create_rhizocrypt_client_async, RhizoCryptClient, RhizoCryptRpc, TarpcRhizoCryptClient,
-};
-
-#[cfg(any(test, feature = "test-support"))]
-#[allow(deprecated)]
-pub use listener::MockRhizoCryptClient;
-
-// Signer exports (capability-based naming)
-pub use signer::{
-    create_signing_client_async, DiscoverySigner, LegacySigner, SignatureInfo, Signer,
-    SigningClient, SigningRpc, SigningRpcClient, TarpcSigningClient,
-};
-
-// Deprecated aliases for backward compatibility
-#[allow(deprecated)]
-pub use signer::{create_beardog_client, create_beardog_client_async, TarpcBearDogClient};
-
-// Type alias for backward compatibility
-#[deprecated(since = "0.3.0", note = "Use LegacySigner - capability-based naming")]
-pub type BearDogSigner = LegacySigner;
-
-// Test support exports (only when feature enabled or in tests)
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(test)]
 pub use signer::testing::MockSigningClient;
 
-// Backward compatibility alias
-#[cfg(any(test, feature = "test-support"))]
-#[deprecated(
-    since = "0.3.0",
-    note = "Use MockSigningClient - capability-based naming"
-)]
-#[allow(deprecated)]
-pub use signer::testing::MockBearDogClient;
-
-/// Result type for integration operations.
+// Type aliases for documentation (not deprecated)
+/// Result type for integration operations
 pub type Result<T> = std::result::Result<T, IntegrationError>;
+
+/// Modern capability-based integration - discover by capability, not name
+///
+/// # Example
+///
+/// ```no_run
+/// use sweet_grass_integration::*;
+///
+/// #[tokio::main]
+/// async fn main() {
+///     let discovery = create_discovery().await;
+///     let primal = discovery.find_one(&Capability::Signing).await.unwrap();
+///     let client = create_signing_client_async(&primal).await.unwrap();
+///     // Use client...
+/// }
+/// ```
+///
+/// Capability-based integration patterns (modern approach)
+///
+/// Use `Capability::Signing` instead of "BearDog"
+/// Use `Capability::SessionEvents` instead of "RhizoCrypt"
+/// Use `Capability::Anchoring` instead of "LoamSpine"
+pub mod capability_based {
+
+    pub use super::{
+        create_discovery, AnchoringClient, Capability, DiscoveredPrimal, LocalDiscovery,
+        PrimalDiscovery, SessionEventsClient, SigningClient,
+    };
+}

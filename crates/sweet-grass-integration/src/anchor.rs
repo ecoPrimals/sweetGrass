@@ -78,11 +78,13 @@ pub struct AnchorManager {
     #[allow(dead_code)]
     discovery: Arc<dyn PrimalDiscovery>,
     anchoring_client: Arc<dyn AnchoringClient>,
+    #[allow(dead_code)]
     store: Arc<dyn sweet_grass_store::BraidStore>,
 }
 
 impl AnchorManager {
     /// Create a new anchor manager using discovery.
+    #[allow(dead_code)]
     #[instrument(skip(discovery, store, client_factory))]
     pub async fn new<F>(
         discovery: Arc<dyn PrimalDiscovery>,
@@ -111,6 +113,7 @@ impl AnchorManager {
     }
 
     /// Create with an existing client.
+    #[allow(dead_code)]
     pub fn with_client(
         client: Arc<dyn AnchoringClient>,
         store: Arc<dyn sweet_grass_store::BraidStore>,
@@ -124,6 +127,7 @@ impl AnchorManager {
     }
 
     /// Anchor a Braid by ID.
+    #[allow(dead_code)]
     #[instrument(skip(self))]
     pub async fn anchor_by_id(&self, braid_id: &BraidId, spine_id: &str) -> Result<AnchorReceipt> {
         let braid =
@@ -135,16 +139,19 @@ impl AnchorManager {
     }
 
     /// Verify a Braid's anchor.
+    #[allow(dead_code)]
     pub async fn verify(&self, braid_id: &BraidId) -> Result<Option<AnchorInfo>> {
         self.anchoring_client.verify(braid_id).await
     }
 
     /// Get all anchors for a Braid.
+    #[allow(dead_code)]
     pub async fn get_anchors(&self, braid_id: &BraidId) -> Result<Vec<AnchorInfo>> {
         self.anchoring_client.get_anchors(braid_id).await
     }
 
     /// Get the underlying client.
+    #[allow(dead_code)]
     #[must_use]
     pub fn client(&self) -> &dyn AnchoringClient {
         self.anchoring_client.as_ref()
@@ -288,41 +295,18 @@ pub async fn create_anchoring_client_async(
     }
 }
 
-// Legacy type aliases for backward compatibility
-// WILL BE REMOVED in v0.4.0 - See MIGRATION_GUIDE_V0.4.0.md
-#[deprecated(
-    since = "0.3.0",
-    note = "Use AnchoringClient instead. WILL BE REMOVED in v0.4.0"
-)]
-pub type LoamSpineClient = dyn AnchoringClient;
-#[deprecated(
-    since = "0.3.0",
-    note = "Use AnchoringRpc instead. WILL BE REMOVED in v0.4.0"
-)]
-pub type LoamSpineRpc = dyn AnchoringRpc;
-#[deprecated(
-    since = "0.3.0",
-    note = "Use TarpcAnchoringClient instead. WILL BE REMOVED in v0.4.0"
-)]
-pub type TarpcLoamSpineClient = TarpcAnchoringClient;
-#[deprecated(
-    since = "0.3.0",
-    note = "Use create_anchoring_client_async instead. WILL BE REMOVED in v0.4.0"
-)]
-pub async fn create_loamspine_client_async(
-    primal: &DiscoveredPrimal,
-) -> std::result::Result<Arc<dyn AnchoringClient>, IntegrationError> {
-    create_anchoring_client_async(primal).await
-}
-
-// Legacy mock type alias (only in test mode)
-// WILL BE REMOVED in v0.4.0
-#[cfg(any(test, feature = "test-support"))]
-#[deprecated(
-    since = "0.3.0",
-    note = "Use MockAnchoringClient instead. WILL BE REMOVED in v0.4.0"
-)]
-pub type MockLoamSpineClient = testing::MockAnchoringClient;
+// ============================================================================
+// CAPABILITY-BASED ARCHITECTURE (v0.5.0+)
+// ============================================================================
+// Deprecated primal-specific aliases removed (Dec 24, 2025).
+// All code now uses capability-based naming:
+//   - AnchoringClient (not LoamSpineClient)
+//   - Any primal can provide anchoring capability
+//   - Discovery is runtime, not compile-time
+//
+// Migration: Replace LoamSpine* → Anchoring* in your code.
+// See DEPRECATED_ALIASES_REMOVAL_PLAN.md for details.
+// ============================================================================
 
 // ============================================================================
 // Test-only implementations
@@ -352,6 +336,7 @@ pub mod testing {
 
         /// Set health status.
         #[must_use]
+        #[allow(dead_code)]
         pub fn with_health(mut self, healthy: bool) -> Self {
             self.healthy = healthy;
             self
@@ -406,6 +391,7 @@ pub mod testing {
 }
 
 #[cfg(any(test, feature = "test-support"))]
+#[allow(unused_imports)]
 pub use testing::MockAnchoringClient;
 
 #[cfg(test)]
