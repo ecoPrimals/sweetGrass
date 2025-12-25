@@ -64,13 +64,13 @@ pub struct TarpcSigningClient {
     client: SigningRpcClient,
 }
 
-/// Backward compatibility alias.
-/// WILL BE REMOVED in v0.4.0 - See MIGRATION_GUIDE_V0.4.0.md
-#[deprecated(
-    since = "0.3.0",
-    note = "Use TarpcSigningClient - capability-based naming. WILL BE REMOVED in v0.4.0"
-)]
-pub type TarpcBearDogClient = TarpcSigningClient;
+// ============================================================================
+// CAPABILITY-BASED ARCHITECTURE (v0.5.0+)
+// ============================================================================
+// Deprecated primal-specific type aliases removed (Dec 24, 2025).
+// Use TarpcSigningClient for capability-based architecture.
+// See DEPRECATED_ALIASES_REMOVAL_PLAN.md for migration details.
+// ============================================================================
 
 impl TarpcSigningClient {
     /// Connect to a signing service at the given address.
@@ -216,46 +216,10 @@ pub async fn create_signing_client_async(
     }
 }
 
-/// Backward compatibility alias.
-#[deprecated(
-    since = "0.3.0",
-    note = "Use create_signing_client_async - capability-based naming"
-)]
-pub async fn create_beardog_client_async(
-    primal: &DiscoveredPrimal,
-) -> std::result::Result<Arc<dyn SigningClient>, IntegrationError> {
-    create_signing_client_async(primal).await
-}
-
-/// Sync factory function for test mode only.
-///
-/// In test mode, returns a mock client synchronously.
-/// In production, this will fail - use `create_signing_client_async` instead.
-///
-/// # Errors
-///
-/// In production, always returns `NotImplemented` error. Use async version instead.
-#[deprecated(
-    since = "0.2.0",
-    note = "Use create_signing_client_async for async connections"
-)]
-pub fn create_beardog_client(
-    primal: &DiscoveredPrimal,
-) -> std::result::Result<Arc<dyn SigningClient>, IntegrationError> {
-    #[cfg(any(test, feature = "test-support"))]
-    {
-        // In test mode, return mock client
-        let _ = primal;
-        Ok(Arc::new(super::testing::MockSigningClient::new()))
-    }
-    #[cfg(not(any(test, feature = "test-support")))]
-    {
-        // In production, guide users to async version
-        let _ = primal;
-        Err(IntegrationError::NotImplemented(
-            "Sync client creation is not supported in production. \
-             Use create_signing_client_async() instead."
-                .to_string(),
-        ))
-    }
-}
+// ============================================================================
+// CAPABILITY-BASED ARCHITECTURE (v0.5.0+)
+// ============================================================================
+// Deprecated primal-specific functions removed (Dec 24, 2025).
+// Use create_signing_client_async() for capability-based discovery.
+// See DEPRECATED_ALIASES_REMOVAL_PLAN.md for migration details.
+// ============================================================================

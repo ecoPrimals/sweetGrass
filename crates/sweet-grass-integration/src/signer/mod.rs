@@ -36,14 +36,10 @@ pub use traits::{SignatureInfo, Signer, SigningClient};
 // Re-export signers
 pub use discovery::{DiscoverySigner, LegacySigner};
 
-// Re-export tarpc client and factories (capability-based naming)
+// Re-export tarpc client and factories (capability-based naming only - v0.5.0+)
 pub use tarpc_client::{
     create_signing_client_async, SigningRpc, SigningRpcClient, TarpcSigningClient,
 };
-
-// Backward compatibility aliases
-#[allow(deprecated)]
-pub use tarpc_client::{create_beardog_client, create_beardog_client_async, TarpcBearDogClient};
 
 // ============================================================================
 // Tests
@@ -212,20 +208,9 @@ mod tests {
     }
 
     #[tokio::test]
-    #[allow(deprecated)]
-    async fn test_create_client_sync_deprecated() {
-        let primal = DiscoveredPrimal {
-            instance_id: "signing-002".to_string(),
-            name: "signing-service".to_string(),
-            capabilities: vec![Capability::Signing],
-            tarpc_address: Some("discovered:9999".to_string()),
-            rest_address: None,
-            last_seen: std::time::SystemTime::now(),
-            healthy: true,
-        };
-
-        // Sync version - in test mode returns mock
-        let client = create_beardog_client(&primal).expect("create client");
+    async fn test_create_client_sync_mock_directly() {
+        // In test mode, we can use mock clients directly
+        let client = testing::MockSigningClient::new();
         assert!(client.health().await.expect("health"));
     }
 

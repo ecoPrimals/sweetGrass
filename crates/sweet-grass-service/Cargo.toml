@@ -56,9 +56,17 @@ chrono = { workspace = true }
 # Async trait
 async-trait = "0.1"
 
+# CLI
+clap = { version = "4", features = ["derive", "env"] }
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util", "macros"] }
 axum-test = "16"
+serial_test = "3"
+
+[[bin]]
+name = "sweet-grass-service"
+path = "src/bin/service.rs"
 
 [[example]]
 name = "demo"

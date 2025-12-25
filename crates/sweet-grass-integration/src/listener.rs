@@ -98,6 +98,7 @@ pub struct EventHandler {
 
 impl EventHandler {
     /// Create a new event handler using discovery.
+    #[allow(dead_code)]
     #[instrument(skip(discovery, compression, store, client_factory))]
     pub async fn new<F>(
         discovery: Arc<dyn PrimalDiscovery>,
@@ -128,6 +129,7 @@ impl EventHandler {
     }
 
     /// Create with an existing client.
+    #[allow(dead_code)]
     pub fn with_client(
         client: Arc<dyn SessionEventsClient>,
         compression: Arc<sweet_grass_compression::CompressionEngine>,
@@ -143,6 +145,7 @@ impl EventHandler {
     }
 
     /// Start processing events.
+    #[allow(dead_code)]
     #[instrument(skip(self))]
     pub async fn start(&self) -> Result<()> {
         let mut stream = self.session_client.subscribe().await?;
@@ -157,6 +160,7 @@ impl EventHandler {
     }
 
     /// Process a single event.
+    #[allow(dead_code)]
     #[instrument(skip(self, event), fields(session_id = %event.session_id))]
     async fn process_event(&self, event: SessionEvent) -> Result<()> {
         match event.event_type {
@@ -177,6 +181,7 @@ impl EventHandler {
     }
 
     /// Compress a session and store resulting Braids.
+    #[allow(dead_code)]
     async fn compress_and_store(&self, mut session: Session) -> Result<()> {
         session.finalize(SessionOutcome::Committed);
 
@@ -191,6 +196,7 @@ impl EventHandler {
     }
 
     /// Get the underlying client.
+    #[allow(dead_code)]
     #[must_use]
     pub fn client(&self) -> &dyn SessionEventsClient {
         self.session_client.as_ref()
@@ -333,41 +339,18 @@ pub async fn create_session_events_client_async(
     }
 }
 
-// Legacy type aliases for backward compatibility
-// WILL BE REMOVED in v0.4.0 - See MIGRATION_GUIDE_V0.4.0.md
-#[deprecated(
-    since = "0.3.0",
-    note = "Use SessionEventsClient instead. WILL BE REMOVED in v0.4.0"
-)]
-pub type RhizoCryptClient = dyn SessionEventsClient;
-#[deprecated(
-    since = "0.3.0",
-    note = "Use SessionEventsRpc instead. WILL BE REMOVED in v0.4.0"
-)]
-pub type RhizoCryptRpc = dyn SessionEventsRpc;
-#[deprecated(
-    since = "0.3.0",
-    note = "Use TarpcSessionEventsClient instead. WILL BE REMOVED in v0.4.0"
-)]
-pub type TarpcRhizoCryptClient = TarpcSessionEventsClient;
-#[deprecated(
-    since = "0.3.0",
-    note = "Use create_session_events_client_async instead. WILL BE REMOVED in v0.4.0"
-)]
-pub async fn create_rhizocrypt_client_async(
-    primal: &DiscoveredPrimal,
-) -> std::result::Result<Arc<dyn SessionEventsClient>, IntegrationError> {
-    create_session_events_client_async(primal).await
-}
-
-// Legacy mock type alias (only in test mode)
-// WILL BE REMOVED in v0.4.0
-#[cfg(any(test, feature = "test-support"))]
-#[deprecated(
-    since = "0.3.0",
-    note = "Use MockSessionEventsClient instead. WILL BE REMOVED in v0.4.0"
-)]
-pub type MockRhizoCryptClient = testing::MockSessionEventsClient;
+// ============================================================================
+// CAPABILITY-BASED ARCHITECTURE (v0.5.0+)
+// ============================================================================
+// Deprecated primal-specific aliases removed (Dec 24, 2025).
+// All code now uses capability-based naming:
+//   - SessionEventsClient (not RhizoCryptClient)
+//   - Any primal can provide session events capability
+//   - Discovery is runtime, not compile-time
+//
+// Migration: Replace RhizoCrypt* → SessionEvents* in your code.
+// See DEPRECATED_ALIASES_REMOVAL_PLAN.md for details.
+// ============================================================================
 
 // ============================================================================
 // Test-only implementations
@@ -406,18 +389,21 @@ pub mod testing {
         }
 
         /// Add a session to the mock.
+        #[allow(dead_code)]
         pub fn add_session(&self, session: Session) {
             let mut sessions = self.sessions.write().unwrap();
             sessions.insert(session.id.clone(), session);
         }
 
         /// Queue an event.
+        #[allow(dead_code)]
         pub async fn queue_event(&self, event: SessionEvent) {
             let mut events = self.events.lock().await;
             events.push_back(event);
         }
 
         /// Set health status.
+        #[allow(dead_code)]
         #[must_use]
         pub fn with_health(mut self, healthy: bool) -> Self {
             self.healthy = healthy;
@@ -469,6 +455,7 @@ pub mod testing {
 }
 
 #[cfg(any(test, feature = "test-support"))]
+#[allow(unused_imports)]
 pub use testing::MockSessionEventsClient;
 
 #[cfg(test)]

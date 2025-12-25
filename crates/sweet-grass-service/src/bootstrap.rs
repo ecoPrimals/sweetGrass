@@ -185,6 +185,7 @@ mod tests {
     // NOTE: These tests modify environment variables and should be run with --test-threads=1
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn test_infant_bootstrap_defaults() {
         // Clear environment for clean test
         std::env::remove_var("PRIMAL_NAME");
@@ -203,6 +204,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn test_infant_bootstrap_with_config() {
         std::env::set_var("PRIMAL_NAME", "sweetgrass-test");
         std::env::set_var("PRIMAL_INSTANCE_ID", "test-123");
@@ -223,6 +225,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn test_create_app_state_from_env() {
         std::env::remove_var("DATABASE_URL");
         std::env::remove_var("SLED_PATH");

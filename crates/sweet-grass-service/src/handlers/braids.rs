@@ -9,13 +9,14 @@ use serde::{Deserialize, Serialize};
 use sweet_grass_core::{
     agent::Did,
     braid::{BraidId, BraidMetadata},
+    entity::EntityReference,
     Braid,
 };
 use sweet_grass_store::{QueryFilter, QueryOrder};
 
 use crate::{error::ServiceError, state::AppState};
 
-/// Request to create a new Braid.
+/// Request to create a new Braid from raw data.
 #[derive(Debug, Deserialize)]
 pub struct CreateBraidRequest {
     /// Raw data (base64 encoded).
@@ -32,6 +33,30 @@ pub struct CreateBraidRequest {
 
     /// Optional tags.
     pub tags: Option<Vec<String>>,
+}
+
+/// Request to create a Braid with full provenance metadata.
+#[derive(Debug, Deserialize)]
+pub struct CreateProvenanceBraidRequest {
+    /// Content hash (existing data).
+    pub data_hash: String,
+
+    /// MIME type.
+    pub mime_type: String,
+
+    /// Data size in bytes.
+    pub size: u64,
+
+    /// Attribution DID (who created it).
+    pub was_attributed_to: String,
+
+    /// Derivation (what it was derived from).
+    #[serde(default)]
+    pub was_derived_from: Vec<String>,
+
+    /// Optional tags.
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 /// Response for Braid creation.
@@ -109,7 +134,7 @@ pub async fn get_braid_by_hash(
     Ok(Json(braid))
 }
 
-/// Create a new Braid.
+/// Create a new Braid from raw data.
 pub async fn create_braid(
     State(state): State<AppState>,
     Json(request): Json<CreateBraidRequest>,
@@ -132,6 +157,51 @@ pub async fn create_braid(
     let braid = state
         .factory
         .from_data(&data, &request.mime_type, Some(metadata))?;
+
+    // Store it
+    state.store.put(&braid).await?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(CreateBraidResponse {
+            id: braid.id.to_string(),
+            hash: braid.data_hash.clone(),
+        }),
+    ))
+}
+
+/// Create a Braid with full provenance metadata (from existing hash).
+pub async fn create_provenance_braid(
+    State(state): State<AppState>,
+    Json(request): Json<CreateProvenanceBraidRequest>,
+) -> Result<(StatusCode, Json<CreateBraidResponse>), ServiceError> {
+    // Create the agent DID
+    let agent_did = Did::new(&request.was_attributed_to);
+
+    // Create derivation references
+    let was_derived_from: Vec<EntityReference> = request
+        .was_derived_from
+        .iter()
+        .map(EntityReference::by_hash)
+        .collect();
+
+    // Create metadata
+    let metadata = BraidMetadata {
+        tags: request.tags,
+        ..Default::default()
+    };
+
+    // Create the Braid from hash
+    let mut braid = state.factory.from_hash(
+        request.data_hash.clone(),
+        request.mime_type,
+        request.size,
+        Some(metadata),
+    )?;
+
+    // Set provenance fields
+    braid.was_attributed_to = agent_did;
+    braid.was_derived_from = was_derived_from;
 
     // Store it
     state.store.put(&braid).await?;

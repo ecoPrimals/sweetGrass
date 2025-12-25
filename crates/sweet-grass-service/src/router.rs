@@ -15,7 +15,7 @@ pub fn create_router(state: AppState) -> Router {
     let api_v1 = Router::new()
         // Braid endpoints
         .route("/braids", get(braids::list_braids))
-        .route("/braids", post(braids::create_braid))
+        .route("/braids", post(braids::create_provenance_braid))
         .route("/braids/{id}", get(braids::get_braid))
         .route("/braids/{id}", delete(braids::delete_braid))
         .route("/braids/hash/{hash}", get(braids::get_braid_by_hash))

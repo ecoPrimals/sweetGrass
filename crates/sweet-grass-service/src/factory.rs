@@ -228,6 +228,7 @@ mod tests {
     // PostgreSQL Backend Tests
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn test_postgres_backend_missing_url() {
         std::env::set_var("STORAGE_BACKEND", "postgres");
         std::env::remove_var("DATABASE_URL");
@@ -241,6 +242,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_postgres_config_missing_url() {
         std::env::remove_var("DATABASE_URL");
         std::env::remove_var("STORAGE_URL");
@@ -252,6 +254,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_postgres_config_with_database_url() {
         std::env::set_var("DATABASE_URL", "postgresql://localhost/test");
         std::env::remove_var("STORAGE_URL");
@@ -261,6 +264,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_postgres_config_with_storage_url() {
         std::env::remove_var("DATABASE_URL");
         std::env::set_var("STORAGE_URL", "postgresql://localhost/test");
@@ -270,6 +274,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_postgres_config_prefers_database_url() {
         std::env::set_var("DATABASE_URL", "postgresql://localhost/primary");
         std::env::set_var("STORAGE_URL", "postgresql://localhost/secondary");
@@ -280,6 +285,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_postgres_config_with_max_connections() {
         std::env::set_var("DATABASE_URL", "postgresql://localhost/test");
         std::env::set_var("PG_MAX_CONNECTIONS", "20");
@@ -290,6 +296,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_postgres_config_with_min_connections() {
         std::env::set_var("DATABASE_URL", "postgresql://localhost/test");
         std::env::set_var("PG_MIN_CONNECTIONS", "5");
@@ -299,6 +306,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_postgres_config_with_invalid_max_connections() {
         std::env::set_var("DATABASE_URL", "postgresql://localhost/test");
         std::env::set_var("PG_MAX_CONNECTIONS", "not_a_number");
@@ -311,6 +319,7 @@ mod tests {
     // Sled Backend Tests
 
     #[test]
+    #[serial_test::serial]
     fn test_build_sled_config_default_path() {
         std::env::remove_var("STORAGE_PATH");
 
@@ -319,6 +328,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_sled_config_custom_path() {
         std::env::set_var("STORAGE_PATH", "/tmp/custom/path");
 
@@ -327,6 +337,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_sled_config_with_cache_size() {
         std::env::set_var("STORAGE_PATH", "/tmp/test");
         std::env::set_var("SLED_CACHE_SIZE", "512");
@@ -336,6 +347,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_sled_config_with_flush_interval() {
         std::env::set_var("STORAGE_PATH", "/tmp/test");
         std::env::set_var("SLED_FLUSH_MS", "1000");
@@ -344,6 +356,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_build_sled_config_with_invalid_cache_size() {
         std::env::set_var("STORAGE_PATH", "/tmp/test");
         std::env::set_var("SLED_CACHE_SIZE", "not_a_number");
@@ -355,6 +368,7 @@ mod tests {
     // Helper Function Tests
 
     #[test]
+    #[serial_test::serial]
     fn test_parse_env_var_success() {
         std::env::set_var("TEST_VAR", "42");
         let result: Option<u32> = BraidStoreFactory::parse_env_var("TEST_VAR");
@@ -362,6 +376,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_parse_env_var_missing() {
         std::env::remove_var("MISSING_VAR");
         let result: Option<u32> = BraidStoreFactory::parse_env_var("MISSING_VAR");
@@ -369,6 +384,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_parse_env_var_invalid_parse() {
         std::env::set_var("INVALID_VAR", "not_a_number");
         let result: Option<u32> = BraidStoreFactory::parse_env_var("INVALID_VAR");
@@ -376,6 +392,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_parse_env_var_different_types() {
         std::env::set_var("STRING_VAR", "hello");
         let result: Option<String> = BraidStoreFactory::parse_env_var("STRING_VAR");
