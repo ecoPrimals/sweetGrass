@@ -15,6 +15,7 @@ sweet-grass-core = { path = "../sweet-grass-core" }
 sweet-grass-store = { path = "../sweet-grass-store" }
 sweet-grass-factory = { path = "../sweet-grass-factory" }
 tokio = { workspace = true }
+futures = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

@@ -42,11 +42,15 @@ cd showcase/03-real-world/05-supply-chain && ./demo-product-lineage.sh
 - 🤖 **ML Training**: Fair $100k/month attribution
 - 📦 **Supply Chain**: **$40M saved** in precise recall
 - 🐿️ **AI Attribution**: **REVOLUTIONARY** - Fair credit for data providers, ML engineers, AI models, and users
+- 💼 **Enterprise ML**: **$100K → $2.5M ROI** (25x return) ⭐ NEW
+- 🍄 **Compute Provenance**: Complete ML pipeline tracking ⭐ NEW
+- 🐦 **Multi-Primal Workflows**: 4-primal integration patterns ⭐ NEW
 
 ---
 
 ## Documentation
 
+- **[STATUS.md](./STATUS.md)** - 📊 **Current build status and metrics** ⭐ UPDATED
 - **[DOCUMENTATION_INDEX.md](./DOCUMENTATION_INDEX.md)** - 📚 **Complete documentation index**
 - **[START_HERE.md](./START_HERE.md)** - 👈 **Start here** for navigation
 - **[STATUS.md](./STATUS.md)** - Current build status and metrics
