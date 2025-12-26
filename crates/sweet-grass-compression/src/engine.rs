@@ -87,10 +87,15 @@ pub struct CompressionEngine {
     config: CompressionConfig,
     analyzer: SessionAnalyzer,
     factory: Arc<BraidFactory>,
+    /// Source primal name (discovered at runtime, not hardcoded).
+    source_primal: String,
 }
 
 impl CompressionEngine {
     /// Create a new compression engine.
+    ///
+    /// Note: Use `with_source()` to set the source primal name from discovery.
+    /// Defaults to "unknown" if not set.
     #[must_use]
     pub fn new(factory: Arc<BraidFactory>) -> Self {
         let config = CompressionConfig::default();
@@ -98,7 +103,25 @@ impl CompressionEngine {
             analyzer: SessionAnalyzer::new(config.clone()),
             config,
             factory,
+            source_primal: "unknown".to_string(),
         }
+    }
+
+    /// Set the source primal name from discovery.
+    ///
+    /// This should be called with the discovered primal's name, not hardcoded.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let primal = discovery.find_one(&Capability::SessionEvents).await?;
+    /// let engine = CompressionEngine::new(factory)
+    ///     .with_source(&primal.name);
+    /// ```
+    #[must_use]
+    pub fn with_source(mut self, source: impl Into<String>) -> Self {
+        self.source_primal = source.into();
+        self
     }
 
     /// Create with custom configuration.
@@ -122,14 +145,14 @@ impl CompressionEngine {
             CompressionStrategy::Discard(reason) => Ok(CompressionResult::None { reason }),
 
             CompressionStrategy::Single => {
-                let braid = Self::compress_single(session, &analysis)?;
+                let braid = self.compress_single(session, &analysis)?;
                 Ok(CompressionResult::Single(braid))
             },
 
             CompressionStrategy::Split(_branches) => {
                 // For now, fall back to single for each branch
                 // Full implementation would create per-branch Braids
-                let braid = Self::compress_single(session, &analysis)?;
+                let braid = self.compress_single(session, &analysis)?;
                 let summary = if self.config.generate_summaries {
                     Some(self.create_meta_braid(&[braid.clone()], &session.id)?)
                 } else {
@@ -143,7 +166,7 @@ impl CompressionEngine {
 
             CompressionStrategy::Hierarchical(_levels) => {
                 // For now, fall back to single with summary
-                let braid = Self::compress_single(session, &analysis)?;
+                let braid = self.compress_single(session, &analysis)?;
                 let summary = if self.config.generate_summaries {
                     Some(self.create_meta_braid(&[braid.clone()], &session.id)?)
                 } else {
@@ -158,7 +181,7 @@ impl CompressionEngine {
     }
 
     /// Compress to a single Braid.
-    fn compress_single(session: &Session, analysis: &SessionAnalysis) -> Result<Braid> {
+    fn compress_single(&self, session: &Session, analysis: &SessionAnalysis) -> Result<Braid> {
         // Get the primary output
         let committed = session.committed_vertices();
         let output = committed
@@ -209,8 +232,10 @@ impl CompressionEngine {
         };
 
         // Build ecoPrimals attributes
+        // Note: source_primal is discovered at runtime via with_source(),
+        // not hardcoded. "unknown" indicates discovery was not used.
         let ecop = EcoPrimalsAttributes {
-            source_primal: Some("rhizoCrypt".to_string()),
+            source_primal: Some(self.source_primal.clone()),
             rhizo_session: Some(session.id.clone()),
             compression: Some(CompressionMeta {
                 vertex_count: analysis.vertex_count as u64,

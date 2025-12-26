@@ -76,6 +76,9 @@ mod error;
 mod listener;
 pub mod signer;
 
+#[cfg(any(test, feature = "test-support"))]
+pub mod testing;
+
 // Re-exports
 pub use anchor::{
     create_anchoring_client_async, AnchorInfo, AnchorReceipt, AnchoringClient, TarpcAnchoringClient,
