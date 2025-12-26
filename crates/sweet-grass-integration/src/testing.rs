@@ -15,6 +15,7 @@ use std::net::TcpListener;
 /// # Panics
 ///
 /// Panics if the OS cannot allocate a port (extremely rare).
+/// This is acceptable in test code where failure indicates a system-level issue.
 ///
 /// # Example
 ///
@@ -23,6 +24,7 @@ use std::net::TcpListener;
 /// let addr = format!("127.0.0.1:{port}");
 /// let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
 /// ```
+#[allow(clippy::expect_used)] // Test helper: panic on system failure is acceptable
 pub fn allocate_test_port() -> u16 {
     TcpListener::bind("127.0.0.1:0")
         .expect("OS should allocate port")
@@ -62,7 +64,7 @@ mod tests {
     fn test_allocate_multiple_ports() {
         let ports = allocate_test_ports::<3>();
         assert_eq!(ports.len(), 3);
-        
+
         // All ports should be unique
         assert_ne!(ports[0], ports[1]);
         assert_ne!(ports[1], ports[2]);
@@ -72,10 +74,9 @@ mod tests {
     #[test]
     fn test_ports_are_available() {
         let port = allocate_test_port();
-        
+
         // Should be able to bind to the allocated port
         let result = TcpListener::bind(format!("127.0.0.1:{port}"));
         assert!(result.is_ok(), "Port {port} should be available");
     }
 }
-

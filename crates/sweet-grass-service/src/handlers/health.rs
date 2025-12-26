@@ -365,9 +365,10 @@ mod tests {
 
     #[test]
     fn test_primal_status_connected() {
-        // Use environment variable for test address (capability-based)
+        // Use environment variable or OS-allocated port (zero hardcoding)
+        // Note: Using simplified test address since integration testing module not available here
         let test_address =
-            std::env::var("TEST_PRIMAL_ADDR").unwrap_or_else(|_| "localhost:8091".to_string());
+            std::env::var("TEST_PRIMAL_ADDR").unwrap_or_else(|_| "localhost:0".to_string());
 
         let status = PrimalStatus::connected(Some(test_address));
         assert!(status.connected);

@@ -592,9 +592,9 @@ mod tests {
         use crate::discovery::DiscoveredPrimal;
         use sweet_grass_core::config::Capability;
 
-        // Use environment variable for test address (capability-based)
-        let test_address =
-            std::env::var("TEST_ANCHORING_ADDR").unwrap_or_else(|_| "localhost:8093".to_string());
+        // Use environment variable or OS-allocated port (zero hardcoding)
+        let test_address = std::env::var("TEST_ANCHORING_ADDR")
+            .unwrap_or_else(|_| format!("localhost:{}", crate::testing::allocate_test_port()));
 
         let primal = DiscoveredPrimal {
             instance_id: "anchor-1".to_string(),
