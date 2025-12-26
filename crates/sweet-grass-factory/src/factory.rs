@@ -12,6 +12,7 @@ use sweet_grass_core::{
         EcoPrimalsAttributes, LoamCommitRef, SummaryType,
     },
     entity::EntityReference,
+    primal_info::SelfKnowledge,
     ContentHash,
 };
 
@@ -31,12 +32,36 @@ pub struct BraidFactory {
 }
 
 impl BraidFactory {
-    /// Create a new Braid factory.
+    /// Create from self-knowledge (preferred constructor).
+    ///
+    /// Uses the primal's self-discovered name instead of hardcoding.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let self_knowledge = SelfKnowledge::from_env()?;
+    /// let factory = BraidFactory::from_self_knowledge(
+    ///     Did::new("did:key:agent"),
+    ///     &self_knowledge
+    /// );
+    /// ```
+    #[must_use]
+    pub fn from_self_knowledge(default_agent: Did, self_knowledge: &SelfKnowledge) -> Self {
+        Self {
+            default_agent,
+            source_primal: self_knowledge.name.clone(),
+            niche: None,
+        }
+    }
+
+    /// Create with explicit source (for testing or when self-knowledge unavailable).
+    ///
+    /// Prefer `from_self_knowledge()` in production code.
     #[must_use]
     pub fn new(default_agent: Did) -> Self {
         Self {
             default_agent,
-            source_primal: "sweetGrass".to_string(),
+            source_primal: "unknown".to_string(),
             niche: None,
         }
     }
@@ -412,7 +437,7 @@ mod tests {
         assert!(braid.data_hash.starts_with("sha256:"));
         assert_eq!(braid.mime_type, "text/plain");
         assert_eq!(braid.size, 13);
-        assert_eq!(braid.ecop.source_primal, Some("sweetGrass".to_string()));
+        assert_eq!(braid.ecop.source_primal, Some("unknown".to_string()));
     }
 
     #[test]
@@ -585,5 +610,24 @@ mod tests {
             .expect("should create");
 
         assert_eq!(braid.ecop.source_primal, Some("rhizoCrypt".to_string()));
+    }
+
+    #[test]
+    fn test_from_self_knowledge() {
+        use sweet_grass_core::primal_info::SelfKnowledge;
+        
+        let mut self_knowledge = SelfKnowledge::default();
+        self_knowledge.name = "test-primal".to_string();
+        
+        let factory = BraidFactory::from_self_knowledge(
+            Did::new("did:key:z6MkTest"),
+            &self_knowledge
+        );
+        
+        let braid = factory
+            .from_data(b"test", "text/plain", None)
+            .expect("should create");
+        
+        assert_eq!(braid.ecop.source_primal, Some("test-primal".to_string()));
     }
 }

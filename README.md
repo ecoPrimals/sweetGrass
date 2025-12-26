@@ -47,12 +47,12 @@ cd showcase/03-real-world/05-supply-chain && ./demo-product-lineage.sh
 
 ## Documentation
 
-- **[START_HERE.md](./START_HERE.md)** - 👈 **Start here** for navigation and quick links
+- **[DOCUMENTATION_INDEX.md](./DOCUMENTATION_INDEX.md)** - 📚 **Complete documentation index**
+- **[START_HERE.md](./START_HERE.md)** - 👈 **Start here** for navigation
 - **[STATUS.md](./STATUS.md)** - Current build status and metrics
-- **[ROADMAP.md](./ROADMAP.md)** - Future enhancements and milestones
-- **[reports/](./reports/)** - Quality reports and audits
 - **[ROADMAP.md](./ROADMAP.md)** - Future development plans
-- **[specs/](./specs/)** - Technical specifications
+- **[specs/](./specs/)** - Technical specifications (10 docs)
+- **[reports/](./reports/)** - Quality reports and audits
 
 ---
 
@@ -173,13 +173,16 @@ cd showcase/01-primal-coordination
 ## Quality Metrics
 
 ```
+Version:          v0.5.0-dev (Infant Discovery Complete)
 Tests:            489 (100% passing)
-Coverage:         82%+ function, 92%+ region
+Coverage:         78.34% function, 88.71% line
 unsafe:           0 (forbidden in all crates)
 Production Unwraps: 0 (A+ safety)
-Clippy:           Clean (pedantic + nursery, -D warnings)
+Hardcoding:       0 violations (100% Infant Discovery)
+Clippy:           6 warnings (non-blocking)
 Showcase:         37 scripts (all functional)
-Grade:            A+ (100/100)
+Grade:            A+ (94/100)
+Status:           Production Ready
 ```
 
 ---
@@ -188,15 +191,17 @@ Grade:            A+ (100/100)
 
 ### With Other Primals
 
-SweetGrass integrates via capability-based discovery:
+SweetGrass integrates via **capability-based discovery** (100% compliant):
 
-- **BearDog**: Signing for Braid integrity
-- **NestGate**: Persistent storage
-- **RhizoCrypt**: Secure session compression
-- **LoamSpine**: Blockchain anchoring
-- **Songbird**: Service discovery
+- **Signing**: BearDog for Braid integrity
+- **Storage**: NestGate for persistent storage
+- **SessionEvents**: RhizoCrypt for secure session compression
+- **Anchoring**: LoamSpine for blockchain anchoring
+- **Discovery**: Songbird universal adapter
 
-See `INTEGRATION_GAPS_DISCOVERED.md` for current status.
+**Infant Discovery**: Each primal knows only itself at birth. Network effects emerge through the universal adapter. Zero hardcoding.
+
+See [reports/INTEGRATION_GAPS_DISCOVERED.md](reports/INTEGRATION_GAPS_DISCOVERED.md) for current status.
 
 ---
 
@@ -226,11 +231,13 @@ See LICENSE file.
 
 ## Status
 
-**Version**: 0.4.1 (Phase 2 Evolution Complete)  
+**Version**: v0.5.0-dev (Infant Discovery Complete)  
 **Status**: ✅ Production Ready  
-**Grade**: A+ (100/100)
+**Grade**: A+ (94/100)  
+**Last Updated**: December 25, 2025
 
-For detailed status, see [STATUS.md](./STATUS.md).
+For detailed status, see [STATUS.md](./STATUS.md).  
+For audit report, see [reports/dec-25-evolution/EXECUTIVE_SUMMARY.md](./reports/dec-25-evolution/EXECUTIVE_SUMMARY.md).
 
 ---
 

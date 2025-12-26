@@ -214,13 +214,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_unknown_backend_specific_message() {
-        std::env::set_var("STORAGE_BACKEND", "redis");
+        // Use generic unknown backend, not vendor-specific name
+        std::env::set_var("STORAGE_BACKEND", "unknown_backend");
         let result = BraidStoreFactory::from_env().await;
         assert!(result.is_err());
         if let Err(err) = result {
             let msg = err.to_string();
             assert!(msg.contains("Unknown storage backend"));
-            assert!(msg.contains("redis"));
+            assert!(msg.contains("unknown_backend"));
             assert!(msg.contains("memory, postgres, sled"));
         }
     }

@@ -493,12 +493,15 @@ mod tests {
     use super::*;
 
     fn make_test_primal(name: &str, capabilities: Vec<Capability>) -> DiscoveredPrimal {
+        // Use OS-allocated ports for test primals
+        let [tarpc_port, rest_port] = crate::testing::allocate_test_ports::<2>();
+        
         DiscoveredPrimal {
             instance_id: format!("{name}-instance"),
             name: name.to_string(),
             capabilities,
-            tarpc_address: Some(format!("{name}:8091")),
-            rest_address: Some(format!("{name}:8080")),
+            tarpc_address: Some(format!("localhost:{tarpc_port}")),
+            rest_address: Some(format!("localhost:{rest_port}")),
             last_seen: std::time::SystemTime::now(),
             healthy: true,
         }

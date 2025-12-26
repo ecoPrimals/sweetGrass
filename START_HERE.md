@@ -2,29 +2,34 @@
 
 **W3C PROV-O Compliant Attribution Layer for ecoPrimals**
 
-**Version**: 0.4.1  
+**Version**: v0.5.0-dev (Infant Discovery Complete)  
 **Status**: ✅ Production Ready  
-**Grade**: A+ (100/100)  
-**Last Updated**: December 24, 2025
+**Grade**: A+ (94/100)  
+**Last Updated**: December 25, 2025
 
 ---
 
 ## 🎯 Quick Navigation
 
 ### New to SweetGrass?
-1. **Read**: [`README.md`](README.md) - Project overview
-2. **Try**: [`showcase/00-local-primal/`](showcase/00-local-primal/) - 50-minute hands-on tour
-3. **Review**: [`STATUS.md`](STATUS.md) - Current state and metrics
+1. **[README.md](README.md)** - Project overview, quick start, features
+2. **[showcase/00-local-primal/](showcase/00-local-primal/)** - 50-minute hands-on tour
+3. **[STATUS.md](STATUS.md)** - Current state and metrics
+
+### Complete Documentation
+📚 **[DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** - Complete navigation guide for all docs
 
 ### Developers
-1. **Architecture**: [`specs/ARCHITECTURE.md`](specs/ARCHITECTURE.md)
-2. **API Docs**: [`specs/API_SPECIFICATION.md`](specs/API_SPECIFICATION.md)
-3. **Integration**: [`specs/INTEGRATION_SPECIFICATION.md`](specs/INTEGRATION_SPECIFICATION.md)
+1. **[specs/ARCHITECTURE.md](specs/ARCHITECTURE.md)** - System architecture
+2. **[specs/API_SPECIFICATION.md](specs/API_SPECIFICATION.md)** - REST & tarpc APIs
+3. **[specs/INTEGRATION_SPECIFICATION.md](specs/INTEGRATION_SPECIFICATION.md)** - Primal integration
+4. **[env.example](env.example)** - Environment configuration
 
 ### Evaluators
-1. **Quality Report**: [`reports/archive/HANDOFF_DEC_24_2025.md`](reports/archive/HANDOFF_DEC_24_2025.md)
-2. **Showcase Index**: [`showcase/00_SHOWCASE_INDEX.md`](showcase/00_SHOWCASE_INDEX.md)
-3. **Roadmap**: [`ROADMAP.md`](ROADMAP.md)
+1. **[reports/dec-25-evolution/EXECUTIVE_SUMMARY.md](reports/dec-25-evolution/EXECUTIVE_SUMMARY.md)** - Dec 25 audit summary ⭐
+2. **[reports/dec-25-evolution/FINAL_HANDOFF_DEC_25_2025.md](reports/dec-25-evolution/FINAL_HANDOFF_DEC_25_2025.md)** - Complete audit report
+3. **[showcase/00_SHOWCASE_INDEX.md](showcase/00_SHOWCASE_INDEX.md)** - 37 interactive demos
+4. **[ROADMAP.md](ROADMAP.md)** - Future development plans
 
 ---
 
@@ -55,11 +60,13 @@ cargo run --bin sweet-grass-service
 
 | Metric | Status |
 |--------|--------|
-| **Build** | ✅ Zero warnings |
-| **Tests** | ✅ 489/489 passing |
-| **Coverage** | ✅ ~82% function, ~92% region |
-| **Grade** | **A+ (100/100)** |
-| **Technical Debt** | ✅ Zero |
+| **Version** | v0.5.0-dev (Infant Discovery) |
+| **Build** | ✅ Zero errors |
+| **Tests** | ✅ 489/489 passing (100%) |
+| **Coverage** | ✅ 78.34% function, 88.71% line |
+| **Hardcoding** | ✅ 0 violations (was 8) |
+| **Grade** | **A+ (94/100)** |
+| **Status** | **Production Ready** |
 
 ---
 
@@ -78,10 +85,11 @@ cargo run --bin sweet-grass-service
 - ✅ Industry-standard attribution
 
 ### Primal Sovereignty
-- ✅ Zero-knowledge bootstrap
-- ✅ Environment-driven configuration
-- ✅ Capability-based service discovery
-- ✅ No centralized orchestration required
+- ✅ **100% Infant Discovery** - Zero hardcoding (Dec 25 evolution)
+- ✅ **Zero-knowledge bootstrap** - Each primal knows only itself
+- ✅ **Environment-driven** - Configuration via env vars
+- ✅ **Capability-based discovery** - Universal adapter (Songbird)
+- ✅ **No centralized orchestration** - Fully decentralized
 
 ---
 
@@ -91,24 +99,28 @@ cargo run --bin sweet-grass-service
 sweetGrass/
 ├── START_HERE.md                         ← You are here!
 ├── README.md                             ← Project overview
+├── DOCUMENTATION_INDEX.md                ← Complete doc navigation ⭐
 ├── STATUS.md                             ← Build status, metrics
 ├── ROADMAP.md                            ← Future plans
+├── EXECUTIVE_SUMMARY.md                  ← Dec 25 audit summary
 │
-├── specs/                                ← Technical specifications
+├── specs/                                ← Technical specifications (10 docs)
 │   ├── 00_SPECIFICATIONS_INDEX.md        ← Spec index
 │   ├── ARCHITECTURE.md                   ← System design
 │   ├── API_SPECIFICATION.md              ← REST/RPC APIs
 │   └── ...                               ← More specs
 │
-├── showcase/                             ← Interactive demos
+├── showcase/                             ← Interactive demos (37 scripts)
 │   ├── 00_SHOWCASE_INDEX.md              ← Demo index
 │   ├── 00-local-primal/                  ← Start here (50 min)
 │   ├── 01-primal-coordination/           ← Integration demos
-│   └── ...                               ← More showcases
+│   └── 03-real-world/                    ← Business value demos
 │
-└── reports/                              ← Quality reports
-    ├── SHOWCASE_COMPLETION_REPORT_DEC_24_2025.md
-    └── INTEGRATION_GAPS_DISCOVERED.md
+└── reports/                              ← Quality reports & audits
+    ├── FINAL_HANDOFF_DEC_25_2025.md      ← Complete Dec 25 audit
+    ├── HARDCODING_EVOLUTION_PLAN.md      ← Infant Discovery strategy
+    ├── COMPREHENSIVE_AUDIT_REPORT_DEC_24_2025.md
+    └── archive/                          ← Historical reports
 ```
 
 ---
@@ -127,9 +139,9 @@ sweetGrass/
 4. Explore integration demos - 30 min
 
 ### Path 3: Evaluator (30 minutes)
-1. Review [`reports/archive/HANDOFF_DEC_24_2025.md`](reports/archive/HANDOFF_DEC_24_2025.md) - 15 min
-2. Run verification commands - 10 min
-3. Review [`showcase/00_SHOWCASE_INDEX.md`](showcase/00_SHOWCASE_INDEX.md) - 5 min
+1. Review **[reports/dec-25-evolution/EXECUTIVE_SUMMARY.md](reports/dec-25-evolution/EXECUTIVE_SUMMARY.md)** - 10 min ⭐
+2. Review **[reports/dec-25-evolution/FINAL_HANDOFF_DEC_25_2025.md](reports/dec-25-evolution/FINAL_HANDOFF_DEC_25_2025.md)** - 15 min
+3. Run verification commands - 5 min
 
 ---
 
