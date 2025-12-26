@@ -1,260 +1,218 @@
-# 🌾🐿️ SweetGrass + Squirrel Integration
+# 🌾🐿️ SweetGrass + Squirrel: AI Attribution
 
-**"AI Agent Provenance & Attribution"**
+**REVOLUTIONARY Fair Attribution for AI**
 
-**Time**: ~15 minutes  
-**Binary**: `../../../../bins/squirrel` (12MB, real ELF)  
-**Status**: ✅ Ready to implement
+## The Problem
+
+AI today is unfair:
+- Data providers get **nothing** (scraped without compensation)
+- Model creators lose **credit** (plagiarism rampant)
+- Users have **zero transparency** (black box decisions)
+- Everyone loses except platform monopolies
+
+## The Solution: SweetGrass + Squirrel
+
+**Complete attribution chain** from data → model → inference → result.
+
+Everyone who contributes gets **fair credit** and **fair compensation**.
 
 ---
 
-## 🎯 PURPOSE
+## What This Demo Shows
 
-Demonstrate how SweetGrass tracks AI agent decisions, multi-agent collaboration, and calculates fair attribution for AI-generated content.
+### 1. Real Integration
+- ✅ Real Squirrel binary (from `../../../bins/`)
+- ✅ Real SweetGrass service
+- ✅ NO MOCKS - actual primal coordination
 
-**Philosophy**: "Every AI decision has a story. Every contributor deserves credit."
+### 2. Complete Attribution Chain
+
+```
+Training Data → AI Model → Inference Request → AI Result
+   (Provider)    (Engineer)     (User)          (Service)
+      30%           25%            20%              25%
+```
+
+Every contributor tracked. Fair shares for everyone.
+
+### 3. Revolutionary Impact
+
+**Data Providers:**
+- Get paid for quality datasets
+- Incentivizes contribution
+- Solves data scarcity
+
+**ML Engineers:**
+- Proper credit for models
+- IP protection built-in
+- Fair compensation
+
+**AI Users:**
+- Complete transparency
+- Trust through provenance
+- Control their contributions
+
+**AI Services:**
+- Fair compensation for execution
+- Clear licensing
+- Regulatory compliance
 
 ---
 
-## 🚀 WHAT YOU'LL SEE
+## How to Run
 
-### 1. AI Agent Decision Tracking
-- Agent creates content
-- Decision provenance captured
-- Training data attribution
+```bash
+./demo-ai-attribution-live.sh
+```
+
+**Time:** ~10 minutes
+
+**Prerequisites:**
+- Squirrel binary in `../../../bins/squirrel`
+- SweetGrass built (`cargo build --release`)
+
+---
+
+## What You'll See
+
+1. **Services Start**
+   - SweetGrass (provenance tracking)
+   - Squirrel (AI service)
+
+2. **Attribution Chain Created**
+   - Training data Braid (Provider contribution)
+   - AI model Braid (Engineer training)
+   - Inference request Braid (User request)
+   - AI result Braid (Service execution)
+
+3. **Fair Credit Calculated**
+   - Data Provider: 30%
+   - ML Engineer: 25%
+   - AI Service: 25%
+   - User: 20%
+
+4. **Complete Provenance**
+   - Full chain queryable
+   - All contributors visible
+   - Transparent attribution
+
+---
+
+## Revolutionary Features
+
+### 🎯 **Fair Data Compensation**
+Data providers get paid for their contributions. This incentivizes quality datasets and solves the data scarcity problem that plagues AI development.
+
+### 🔍 **Transparent AI**
+No more black boxes. Every AI decision has complete lineage: what data trained it, who built it, who requested it.
+
+### ⚖️ **Fair Credit for All**
+Everyone in the chain gets recognition and compensation:
+- Data contributors
+- Model builders
+- Service providers
+- End users
+
+### 🛡️ **Built-in IP Protection**
+Models and data are properly attributed. No more plagiarism. Clear licensing from the start.
+
+### 📜 **Regulatory Compliance**
+EU AI Act requires AI transparency. SweetGrass + Squirrel provides complete provenance out of the box.
+
+---
+
+## Real-World Use Cases
+
+### **Medical AI**
+- Patient data contributors compensated
+- Model builders credited
+- Doctors get transparent diagnoses
+- Everyone benefits fairly
+
+### **Creative AI**
+- Artists compensated when their work trains models
+- Style attribution preserved
+- Fair licensing for all
+
+### **Financial AI**
+- Data providers rewarded
 - Model lineage tracked
-
-### 2. Multi-Agent Collaboration
-- Multiple agents work together
-- Each agent's contribution tracked
-- Fair credit distribution
-- Collaboration graph
-
-### 3. Agent Genealogy
-- Agent creation provenance
-- Training data sources
-- Model evolution
-- Capability inheritance
+- Audit trails for compliance
+- Trust through transparency
 
 ---
 
-## 📋 DEMOS
+## Technical Details
 
-### `demo-ai-agent-provenance.sh`
-**Time**: 10 minutes  
-**What it shows**:
-- Start real Squirrel service
-- Agent generates content
-- Track decision provenance
-- Calculate attribution
-- Export to PROV-O
+### Architecture
 
-### `demo-multi-agent-collaboration.sh` (planned)
-**Time**: 10 minutes  
-**What it shows**:
-- Multiple Squirrel agents
-- Collaborative task
-- Attribution across agents
-- Conflict resolution tracking
-
----
-
-## 🔍 INTEGRATION PATTERNS
-
-### Pattern 1: Single Agent Provenance
-
-```rust
-// Track AI agent decision with full provenance
-
-// 1. Create Braid for agent's training data
-let training_data_braid = factory.from_data(
-    &training_corpus,
-    "application/json",
-    Some("did:key:data_curator"),
-)?;
-
-// 2. Create Braid for trained model
-let model_braid = factory.derive_from(
-    &training_data_braid,
-    &model_hash,
-    DerivationType::MLTraining,
-)?;
-
-// 3. Agent generates content
-let agent = SquirrelClient::discover().await?;
-let content = agent.generate("Write a poem").await?;
-
-// 4. Create Braid for AI-generated content
-let content_braid = factory
-    .from_data(&content.text, "text/plain", None)?
-    .with_attribution(Attribution::creator("did:agent:squirrel_v1"))
-    .with_attribution(Attribution::contributor("did:key:data_curator"))
-    .with_derivation(&model_braid.id, DerivationType::Generation)
-    .build()?;
-
-// Now we have complete provenance:
-// training_data → model → agent_decision → content
+```
+User → Squirrel AI Service
+           ↓
+    (creates inference)
+           ↓
+    SweetGrass Braid
+           ↓
+   (tracks provenance)
+           ↓
+  Complete Attribution Chain
 ```
 
-### Pattern 2: Multi-Agent Attribution
+### Provenance Fields
 
-```rust
-// Track collaboration between multiple AI agents
+Each Braid tracks:
+- `was_attributed_to`: Who created/contributed
+- `derived_from`: Dependencies (data, models)
+- `activity`: What happened (training, inference)
+- `used`: Resources consumed
 
-let agents = vec![
-    SquirrelClient::connect("agent_researcher").await?,
-    SquirrelClient::connect("agent_writer").await?,
-    SquirrelClient::connect("agent_editor").await?,
-];
+### Fair Shares (Customizable)
 
-// Research phase
-let research = agents[0].research("quantum computing").await?;
-let research_braid = factory.from_agent_output(&research)?;
+Example split (adjustable per use case):
+- 30% Data Provider
+- 25% ML Engineer
+- 25% AI Service
+- 20% User
 
-// Writing phase (derived from research)
-let draft = agents[1].write_from(&research).await?;
-let draft_braid = factory
-    .derive_from(&research_braid, &draft.hash, DerivationType::Transformation)?
-    .with_attribution(Attribution::contributor("did:agent:researcher"))
-    .with_attribution(Attribution::creator("did:agent:writer"))
-    .build()?;
+---
 
-// Editing phase (derived from draft)
-let final_doc = agents[2].edit(&draft).await?;
-let final_braid = factory
-    .derive_from(&draft_braid, &final_doc.hash, DerivationType::Revision)?
-    .with_attribution(Attribution::contributor("did:agent:researcher"))
-    .with_attribution(Attribution::contributor("did:agent:writer"))
-    .with_attribution(Attribution::creator("did:agent:editor"))
-    .build()?;
+## Why This Changes Everything
 
-// Calculate fair attribution
-let attribution = store.calculate_attribution(&final_braid.id).await?;
-// Researcher: 25% (data provider)
-// Writer: 50% (primary creator)
-// Editor: 25% (refiner)
+### Current AI: Unfair
+
+```
+Data scraped → Black box model → Opaque result
+     ❌             ❌               ❌
+ No credit     No transparency   No control
+```
+
+### SweetGrass + Squirrel: Fair
+
+```
+Data tracked → Attributed model → Transparent result
+     ✅              ✅                  ✅
+ Fair credit   Full provenance     User control
 ```
 
 ---
 
-## 💡 KEY INSIGHTS
+## Next Steps
 
-### Why AI Agent Provenance Matters
-
-**Problem**: AI-generated content lacks attribution
-- Who trained the model?
-- What data was used?
-- Who deserves credit?
-- How to verify authenticity?
-
-**Solution**: SweetGrass + Squirrel
-- ✅ Complete agent genealogy
-- ✅ Training data attribution
-- ✅ Decision provenance
-- ✅ Fair credit distribution
-
-### Real-World Value
-
-**For Content Creators**:
-- Prove AI assistance vs plagiarism
-- Track training data sources
-- Fair compensation for data providers
-- Transparent AI usage
-
-**For AI Developers**:
-- Model lineage tracking
-- Training data provenance
-- Performance attribution
-- Reproducible results
-
-**For Organizations**:
-- AI audit trails
-- Compliance (EU AI Act)
-- IP protection
-- Quality assurance
+1. **Run the demo** to see revolutionary AI attribution in action
+2. **Review outputs** in `outputs/ai-attribution-*/`
+3. **Explore** how this enables fair AI for your use case
+4. **Build** your own fair AI system with SweetGrass + Squirrel
 
 ---
 
-## 🎓 LEARNING OBJECTIVES
+## The Future: Fair AI for Everyone
 
-After this demo, you'll understand:
+This is not just better attribution. This is **revolutionary change** in how AI works.
 
-- [ ] How to track AI agent decisions
-- [ ] Multi-agent collaboration provenance
-- [ ] Fair attribution for AI-generated content
-- [ ] Agent genealogy and lineage
-- [ ] Training data attribution
-- [ ] Real Squirrel integration (no mocks!)
+When everyone gets fair credit, we unlock:
+- **Better data** (incentivized contributions)
+- **Better models** (proper credit drives quality)
+- **Better AI** (transparency builds trust)
+- **Better world** (fairness for all)
 
----
-
-## 🔧 PREREQUISITES
-
-```bash
-# Verify Squirrel binary exists
-ls -lh ../../../../bins/squirrel
-
-# Should see: 12MB ELF executable
-```
-
----
-
-## 🚀 QUICK START
-
-```bash
-# Run the main demo
-./demo-ai-agent-provenance.sh
-
-# Or test integration
-./demo-ai-agent-integration-test.sh
-```
-
----
-
-## 📊 EXPECTED RESULTS
-
-```
-✅ Squirrel service started (PID: XXXXX)
-✅ Agent generated content
-✅ Provenance Braid created
-✅ Attribution calculated
-✅ Training data credited
-✅ PROV-O export created
-```
-
----
-
-## 🌟 SUCCESS CRITERIA
-
-Integration is successful when:
-
-- [ ] Real Squirrel binary starts and responds
-- [ ] Agent decisions tracked in SweetGrass
-- [ ] Attribution includes training data sources
-- [ ] Multi-agent collaboration works
-- [ ] PROV-O export validates
-- [ ] NO MOCKS used anywhere
-
----
-
-## ⏭️ WHAT'S NEXT
-
-After Squirrel integration:
-
-**Multi-Primal Workflows**:
-```bash
-cd ../07-multi-primal-workflows
-# See Squirrel + NestGate + SweetGrass working together
-```
-
-**Federation**:
-```bash
-cd ../../02-federation
-# Multi-tower AI agent provenance
-```
-
----
-
-🌾🐿️ **Fair attribution for AI agents!** 🌾🐿️
-
-*Following patterns from mature primals: Real binaries, NO MOCKS*
+🌾🐿️ **Welcome to Fair AI** 🐿️🌾

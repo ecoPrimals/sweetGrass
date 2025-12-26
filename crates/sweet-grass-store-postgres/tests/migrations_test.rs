@@ -3,7 +3,7 @@
 //! Ensures migrations are idempotent and schema is correct.
 
 use sqlx::postgres::PgPoolOptions;
-use sqlx::{PgPool, Postgres};
+use sqlx::PgPool;
 
 /// Test helper to create a test database
 async fn create_test_db() -> PgPool {
