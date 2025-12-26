@@ -615,19 +615,19 @@ mod tests {
     #[test]
     fn test_from_self_knowledge() {
         use sweet_grass_core::primal_info::SelfKnowledge;
-        
-        let mut self_knowledge = SelfKnowledge::default();
-        self_knowledge.name = "test-primal".to_string();
-        
-        let factory = BraidFactory::from_self_knowledge(
-            Did::new("did:key:z6MkTest"),
-            &self_knowledge
-        );
-        
+
+        let self_knowledge = SelfKnowledge {
+            name: "test-primal".to_string(),
+            ..Default::default()
+        };
+
+        let factory =
+            BraidFactory::from_self_knowledge(Did::new("did:key:z6MkTest"), &self_knowledge);
+
         let braid = factory
             .from_data(b"test", "text/plain", None)
             .expect("should create");
-        
+
         assert_eq!(braid.ecop.source_primal, Some("test-primal".to_string()));
     }
 }

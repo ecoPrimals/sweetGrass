@@ -495,7 +495,7 @@ mod tests {
     fn make_test_primal(name: &str, capabilities: Vec<Capability>) -> DiscoveredPrimal {
         // Use OS-allocated ports for test primals
         let [tarpc_port, rest_port] = crate::testing::allocate_test_ports::<2>();
-        
+
         DiscoveredPrimal {
             instance_id: format!("{name}-instance"),
             name: name.to_string(),
