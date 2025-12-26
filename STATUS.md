@@ -1,7 +1,7 @@
 # 🌾 SweetGrass — Status
 
-**Last Updated**: December 25, 2025 (Hardcoding Evolution Complete)  
-**Version**: 0.5.0-dev (Phase 2 Evolution + Infant Discovery)  
+**Last Updated**: December 26, 2025 (Evolution Complete + Tagged)  
+**Version**: v0.5.0-evolution  
 **Status**: ✅ **PRODUCTION READY** (Grade: A+ 94/100)
 
 ---
