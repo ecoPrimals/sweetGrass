@@ -5,6 +5,7 @@
 //! among contributors to a piece of data.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 use sweet_grass_core::{
     agent::{AgentRole, Did},
     entity::EntityReference,
@@ -175,6 +176,7 @@ impl AttributionConfig {
 }
 
 /// Calculator for attribution chains.
+#[derive(Clone)]
 pub struct AttributionCalculator {
     config: AttributionConfig,
 }
@@ -254,6 +256,41 @@ impl AttributionCalculator {
             .retain(|c| c.share >= self.config.min_share);
         chain.normalize();
         chain
+    }
+
+    /// Calculate attribution for multiple Braids in parallel.
+    ///
+    /// Returns attribution chains for each Braid, calculated concurrently.
+    /// This method spawns parallel tasks for each Braid to maximize throughput.
+    pub async fn calculate_batch<F>(
+        self: Arc<Self>,
+        braids: Vec<Braid>,
+        resolve: Arc<F>,
+    ) -> Vec<AttributionChain>
+    where
+        F: Fn(&ContentHash) -> Option<Braid> + Send + Sync + 'static,
+    {
+        use futures::stream::{FuturesUnordered, StreamExt};
+
+        let mut futures = FuturesUnordered::new();
+
+        for braid in braids {
+            let resolve = Arc::clone(&resolve);
+            let calculator = Arc::clone(&self);
+
+            futures.push(tokio::spawn(async move {
+                calculator.calculate_with_derivations(&braid, |hash| resolve(hash))
+            }));
+        }
+
+        let mut results = Vec::new();
+        while let Some(result) = futures.next().await {
+            if let Ok(chain) = result {
+                results.push(chain);
+            }
+        }
+
+        results
     }
 
     fn calculate_recursive<F>(

@@ -49,7 +49,7 @@ impl BraidFactory {
     pub fn from_self_knowledge(default_agent: Did, self_knowledge: &SelfKnowledge) -> Self {
         Self {
             default_agent,
-            source_primal: self_knowledge.name.clone(),
+            source_primal: self_knowledge.name.to_string(),
             niche: None,
         }
     }
@@ -171,14 +171,12 @@ impl BraidFactory {
         // Build the activity with used entities
         let mut activity_with_uses = activity;
         for source in &sources {
-            activity_with_uses
-                .used
-                .push(UsedEntity::new(source.clone()));
+            activity_with_uses.used.push(UsedEntity::new(source.clone()));
         }
 
         let ecop = EcoPrimalsAttributes {
-            source_primal: Some(self.source_primal.clone()),
-            niche: self.niche.clone(),
+            source_primal: Some(self.source_primal.to_string()),
+            niche: self.niche.as_ref().map(ToString::to_string),
             ..Default::default()
         };
 
