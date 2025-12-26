@@ -93,19 +93,19 @@ let engine = CompressionEngine::new(factory).with_source(&session_primal.name);
 ## 📈 Metrics
 
 ```
-Version:          v0.5.0-dev (Infant Discovery Complete)
+Version:          v0.5.0-evolution (Dec 26, 2025)
 Crates:           9
 LOC:              ~22,500
-Tests:            489 (100% passing, +7 from v0.4.1)
-Coverage:         ~78% function, ~89% region
+Tests:            489 (100% passing)
+Coverage:         78.39% line, 78.84% function, 88.74% region (verified)
 unsafe:           0 (forbidden in all crates)
 Unwraps:          0 in production
 Hardcoded:        0 (production + tests) ⭐
 Deprecated:       28 aliases (v0.6.0 removal)
-Clippy:           6 warnings (non-blocking)
+Clippy:           0 warnings (passes -D warnings) ⭐
 Max file:         800 LOC (all under 1000 limit)
 Showcase:         44 scripts
-Grade:            A+ (94/100, +2 from v0.4.1)
+Grade:            A+ (94/100)
 Infant Discovery: 100% ✅
 ```
 
@@ -209,15 +209,11 @@ let addr = format!("localhost:{port}");
 - **[ROADMAP.md](./ROADMAP.md)** — Future development plans
 - **[CHANGELOG.md](./CHANGELOG.md)** — Version history
 
-### Evolution Documentation ⭐ NEW
-- **[HARDCODING_EVOLUTION_PLAN.md](./HARDCODING_EVOLUTION_PLAN.md)** — Strategy and patterns
-- **[HARDCODING_FIXES_COMPLETED_DEC_25_2025.md](./HARDCODING_FIXES_COMPLETED_DEC_25_2025.md)** — Execution report
-- **[HARDCODING_EVOLUTION_COMPLETE.md](./HARDCODING_EVOLUTION_COMPLETE.md)** — Final summary
-
-### Integration Reports
-- **[reports/COMPREHENSIVE_AUDIT_REPORT_DEC_24_2025.md](./reports/COMPREHENSIVE_AUDIT_REPORT_DEC_24_2025.md)** — Initial audit
-- **[reports/INTEGRATION_GAPS_DISCOVERED.md](./reports/INTEGRATION_GAPS_DISCOVERED.md)** — Gap tracking
-- **[reports/DEPRECATED_ALIASES_REMOVAL_PLAN.md](./reports/DEPRECATED_ALIASES_REMOVAL_PLAN.md)** — v0.6.0 plan
+### Evolution Documentation ⭐
+- **[reports/dec-25-evolution/](./reports/dec-25-evolution/)** — Infant Discovery evolution (Dec 25)
+- **[reports/dec-26-evolution/](./reports/dec-26-evolution/)** — Code evolution & audit (Dec 26)
+- **[ROOT_DOCS_INDEX.md](./ROOT_DOCS_INDEX.md)** — Comprehensive navigation
+- **[DOCUMENTATION_INDEX.md](./DOCUMENTATION_INDEX.md)** — Documentation map
 
 ### Specifications
 - **[specs/PRIMAL_SOVEREIGNTY.md](./specs/PRIMAL_SOVEREIGNTY.md)** — Core principles
@@ -274,7 +270,9 @@ let addr = format!("localhost:{port}");
 
 ### Testing ✅
 - 489 tests passing (100% pass rate)
-- ~78% function coverage
+- **78.39% line coverage** (verified with llvm-cov) ⭐
+- **78.84% function coverage** (verified with llvm-cov) ⭐
+- **88.74% region coverage** (verified with llvm-cov) ⭐
 - 20 integration tests (full pipeline)
 - 8 chaos tests (fault injection)
 - **Dynamic port allocation** — no conflicts ⭐
@@ -343,6 +341,7 @@ Ready for Phase 3 multi-primal federation and v0.6.0 evolution. 🌾
 
 **🌾 Each primal knows only itself. Network effects through universal adapter. 🌾**
 
-*For evolution details, see [HARDCODING_EVOLUTION_COMPLETE.md](HARDCODING_EVOLUTION_COMPLETE.md)*  
+*For evolution details, see [reports/dec-26-evolution/](reports/dec-26-evolution/)*  
+*For comprehensive audit, see [reports/dec-26-evolution/COMPREHENSIVE_AUDIT_DEC_25_2025.md](reports/dec-26-evolution/COMPREHENSIVE_AUDIT_DEC_25_2025.md)*  
 *For integration patterns, see [specs/INTEGRATION_SPECIFICATION.md](specs/INTEGRATION_SPECIFICATION.md)*  
 *For future plans, see [ROADMAP.md](./ROADMAP.md)*
