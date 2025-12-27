@@ -223,7 +223,7 @@ impl BraidSignature {
     }
 }
 
-/// `LoamSpine` anchor information.
+/// Anchoring provider anchor information.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LoamAnchor {
     /// Spine where anchored.
@@ -366,7 +366,7 @@ pub struct Braid {
     /// Cryptographic signature.
     pub signature: BraidSignature,
 
-    /// `LoamSpine` anchor (if committed).
+    /// Anchoring provider anchor (if committed).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loam_anchor: Option<LoamAnchor>,
 }
@@ -378,7 +378,7 @@ impl Braid {
         BraidBuilder::default()
     }
 
-    /// Check if this Braid is anchored to `LoamSpine`.
+    /// Check if this Braid is anchored to permanent storage.
     #[must_use]
     pub const fn is_anchored(&self) -> bool {
         self.loam_anchor.is_some()

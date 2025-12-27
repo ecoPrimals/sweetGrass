@@ -9,7 +9,7 @@ use crate::config::Capability;
 /// What a primal knows about itself at startup (Infant Discovery).
 ///
 /// A primal is born knowing only itself - everything else is discovered
-/// at runtime through the universal adapter (Songbird).
+/// at runtime through the universal adapter (e.g., service mesh).
 ///
 /// ## Infant Discovery Pattern
 ///
@@ -98,7 +98,7 @@ impl SelfKnowledge {
                 .unwrap_or_else(|_| uuid::Uuid::new_v4().to_string()),
             capabilities: Self::parse_capabilities(),
             tarpc_port: Self::parse_port("TARPC_PORT", 0)?,
-            rest_port: Self::parse_port("REST_PORT", 8080)?,
+            rest_port: Self::parse_port("REST_PORT", 0)?, // Dynamic allocation
             established_at: SystemTime::now(),
         })
     }
@@ -152,8 +152,8 @@ impl Default for SelfKnowledge {
             name: "sweetgrass".to_string(),
             instance_id: uuid::Uuid::new_v4().to_string(),
             capabilities: Vec::new(),
-            tarpc_port: 0,
-            rest_port: 8080,
+            tarpc_port: 0, // Dynamic allocation
+            rest_port: 0,  // Dynamic allocation
             established_at: SystemTime::now(),
         }
     }
@@ -211,8 +211,8 @@ mod tests {
             assert_eq!(sk.name, "sweetgrass");
             assert!(!sk.instance_id.is_empty());
             assert_eq!(sk.capabilities.len(), 0);
-            assert_eq!(sk.tarpc_port, 0); // Auto-allocate
-            assert_eq!(sk.rest_port, 8080);
+            assert_eq!(sk.tarpc_port, 0); // Dynamic allocation
+            assert_eq!(sk.rest_port, 0); // Dynamic allocation (was 8080)
         });
     }
 

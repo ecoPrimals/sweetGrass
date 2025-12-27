@@ -1,6 +1,6 @@
 //! Session data types.
 //!
-//! These types represent `RhizoCrypt` session data that gets compressed
+//! These types represent session events data that gets compressed
 //! into Braids. They are protocol-agnostic representations.
 
 use serde::{Deserialize, Serialize};
@@ -147,7 +147,7 @@ impl Default for CompressionHint {
     }
 }
 
-/// A `RhizoCrypt` session ready for compression.
+/// A session from session events provider ready for compression.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Session {
     /// Session identifier.

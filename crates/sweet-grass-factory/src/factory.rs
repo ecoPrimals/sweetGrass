@@ -171,7 +171,9 @@ impl BraidFactory {
         // Build the activity with used entities
         let mut activity_with_uses = activity;
         for source in &sources {
-            activity_with_uses.used.push(UsedEntity::new(source.clone()));
+            activity_with_uses
+                .used
+                .push(UsedEntity::new(source.clone()));
         }
 
         let ecop = EcoPrimalsAttributes {
@@ -294,7 +296,7 @@ impl BraidFactory {
         self.meta_braid(braids, summary_type, metadata)
     }
 
-    /// Create a Braid from a `LoamSpine` entry reference.
+    /// Create a Braid from an anchoring provider entry reference.
     ///
     /// # Errors
     ///
@@ -334,7 +336,7 @@ impl BraidFactory {
             .build()
             .map_err(FactoryError::Core)?;
 
-        // Add derivation from `LoamSpine` entry
+        // Add derivation from anchoring provider entry
         braid
             .was_derived_from
             .push(EntityReference::by_loam_entry(spine_id, entry_hash));
@@ -345,12 +347,12 @@ impl BraidFactory {
     /// Sign a Braid with agent credentials.
     ///
     /// Note: This creates a placeholder signature. Real signing requires
-    /// integration with `BearDog`.
+    /// integration with signing capability provider.
     pub fn sign(&self, braid: &mut Braid, key_id: &str) {
         // Compute signing hash
         let signing_hash = braid.compute_signing_hash();
 
-        // Create placeholder signature (real implementation would use BearDog)
+        // Create placeholder signature (real implementation discovers signing capability provider)
         let placeholder_sig = signing_hash.as_bytes();
         braid.signature =
             BraidSignature::new_ed25519(&braid.was_attributed_to, key_id, placeholder_sig);

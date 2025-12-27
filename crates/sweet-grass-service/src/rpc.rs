@@ -204,7 +204,7 @@ pub trait SweetGrassRpc {
 
     // ==================== Compression ====================
 
-    /// Compress RhizoCrypt session to Braids.
+    /// Compress session events to Braids.
     async fn compress_session(session: Session) -> Result<CompressionResult, RpcError>;
 
     /// Create meta-Braid (summary).

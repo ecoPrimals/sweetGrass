@@ -112,7 +112,7 @@ pub enum ActivityType {
     /// Publication/release.
     Publication,
 
-    // === RhizoCrypt-specific ===
+    // === Session events provider-specific ===
     /// Session start.
     SessionStart,
     /// Session commit.
@@ -124,7 +124,7 @@ pub enum ActivityType {
     /// Slice return.
     SliceReturn,
 
-    // === LoamSpine-specific ===
+    // === Anchoring provider-specific ===
     /// Certificate minting.
     CertificateMint,
     /// Certificate transfer.
@@ -270,7 +270,7 @@ pub struct ActivityEcoPrimals {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub duration_ns: Option<u64>,
 
-    /// `RhizoCrypt` session ID.
+    /// Session events provider session ID.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rhizo_session: Option<String>,
 
@@ -430,7 +430,7 @@ impl ActivityBuilder {
         self
     }
 
-    /// Set the `RhizoCrypt` session.
+    /// Set the session events provider session.
     #[must_use]
     pub fn rhizo_session(mut self, session_id: impl Into<String>) -> Self {
         self.ecop.rhizo_session = Some(session_id.into());

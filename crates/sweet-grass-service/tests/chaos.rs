@@ -3,6 +3,8 @@
 //! These tests verify the system's behavior under failure conditions:
 //! - Store failures during operations
 //! - Concurrent failure scenarios
+
+#![allow(clippy::unwrap_used, clippy::expect_used)] // Test code may use unwrap/expect for clarity
 //! - Recovery and consistency checks
 //! - Resource exhaustion handling
 

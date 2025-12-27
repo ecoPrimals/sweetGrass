@@ -1,6 +1,6 @@
 //! Compression Engine implementation.
 //!
-//! Compresses `RhizoCrypt` sessions into Braids using the 0/1/Many model.
+//! Compresses session events into Braids using the 0/1/Many model.
 
 use std::sync::Arc;
 use sweet_grass_core::{

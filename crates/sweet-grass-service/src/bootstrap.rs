@@ -57,7 +57,7 @@ pub struct BootstrapResult {
 /// - `PRIMAL_INSTANCE_ID`: Unique ID (default: random UUID)
 /// - `PRIMAL_CAPABILITIES`: Comma-separated capabilities offered
 /// - `TARPC_PORT`: tarpc endpoint port (0 = auto-allocate)
-/// - `REST_PORT`: REST endpoint port (default: 8080)
+/// - `REST_PORT`: REST endpoint port (default: 0 - dynamic allocation)
 ///
 /// ### Storage
 /// - `DATABASE_URL`: PostgreSQL connection string

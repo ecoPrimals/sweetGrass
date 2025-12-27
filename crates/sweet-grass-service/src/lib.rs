@@ -9,7 +9,7 @@
 //! | tarpc | `SWEETGRASS_TARPC_ADDRESS` | ~50μs | Primal-to-primal |
 //! | REST | `SWEETGRASS_REST_ADDRESS` | ~10ms | Debug, admin |
 //!
-//! Addresses are discovered at runtime via Songbird or environment variables.
+//! Addresses are discovered at runtime via discovery service or environment variables.
 //!
 //! ## tarpc API (Primary)
 //!

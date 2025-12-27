@@ -21,7 +21,8 @@ use tracing::info;
 #[command(version, about = "SweetGrass Attribution Service", long_about = None)]
 struct Cli {
     /// REST API port
-    #[arg(short, long, default_value = "8080")]
+    /// REST API port (0 for dynamic allocation)
+    #[arg(short, long, default_value = "0")]
     port: u16,
 
     /// Storage backend: memory, postgres, sled

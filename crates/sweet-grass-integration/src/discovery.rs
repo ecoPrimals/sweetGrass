@@ -372,17 +372,25 @@ impl SongbirdDiscovery {
 
     /// Create from environment configuration.
     ///
-    /// Looks for `SONGBIRD_ADDRESS` environment variable.
+    /// Looks for discovery address in environment variables (in order of preference):
+    /// 1. `DISCOVERY_ADDRESS` - Generic discovery service
+    /// 2. `UNIVERSAL_ADAPTER_ADDRESS` - Universal adapter (e.g., service mesh)
+    /// 3. `DISCOVERY_BOOTSTRAP` - Bootstrap node address
+    /// 4. `SONGBIRD_ADDRESS` - Legacy (deprecated, for backward compatibility)
     ///
     /// # Errors
     ///
     /// Returns an error if the environment variable is not set or connection fails.
     pub async fn from_env() -> Result<Self, DiscoveryError> {
-        let addr = std::env::var("SONGBIRD_ADDRESS").map_err(|_| {
-            DiscoveryError::ServiceUnavailable(
-                "SONGBIRD_ADDRESS environment variable not set".to_string(),
-            )
-        })?;
+        let addr = std::env::var("DISCOVERY_ADDRESS")
+            .or_else(|_| std::env::var("UNIVERSAL_ADAPTER_ADDRESS"))
+            .or_else(|_| std::env::var("DISCOVERY_BOOTSTRAP"))
+            .or_else(|_| std::env::var("SONGBIRD_ADDRESS"))  // Legacy fallback
+            .map_err(|_| {
+                DiscoveryError::ServiceUnavailable(
+                    "No discovery address found. Set DISCOVERY_ADDRESS, UNIVERSAL_ADAPTER_ADDRESS, or DISCOVERY_BOOTSTRAP environment variable".to_string(),
+                )
+            })?;
         Self::connect(&addr).await
     }
 
@@ -472,16 +480,20 @@ impl PrimalDiscovery for SongbirdDiscovery {
 
 /// Create a discovery client based on environment.
 ///
-/// If `SONGBIRD_ADDRESS` is set, connects to Songbird.
+/// If discovery address is set (via `DISCOVERY_ADDRESS`, `UNIVERSAL_ADAPTER_ADDRESS`,
+/// `DISCOVERY_BOOTSTRAP`, or legacy `SONGBIRD_ADDRESS`), connects to that service.
 /// Otherwise, returns a local discovery instance.
 pub async fn create_discovery() -> Arc<dyn PrimalDiscovery> {
     match SongbirdDiscovery::from_env().await {
-        Ok(songbird) => {
-            tracing::info!("Using Songbird for primal discovery");
-            Arc::new(songbird)
+        Ok(discovery) => {
+            tracing::info!("Using network discovery service for primal discovery");
+            Arc::new(discovery)
         },
         Err(e) => {
-            tracing::info!("Using local discovery (Songbird unavailable: {})", e);
+            tracing::info!(
+                "Using local discovery (network discovery unavailable: {})",
+                e
+            );
             Arc::new(LocalDiscovery::new())
         },
     }
