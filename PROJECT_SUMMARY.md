@@ -51,13 +51,15 @@ Every piece of data has a story. Every contributor deserves credit. SweetGrass m
 - ✅ Automated tour (RUN_ME_FIRST.sh)
 - ✅ Health check (health-check.sh)
 - ✅ Honest gap documentation
+- ✅ RootPulse emergence showcase (2 demos, 8-level plan) ⭐ NEW
 
 ### Documentation
-- ✅ 15 root documentation files
-- ✅ 6 showcase documentation files
+- ✅ 17 root documentation files (including RootPulse session report) ⭐
+- ✅ 9 showcase documentation files (including RootPulse plan) ⭐
 - ✅ 2 automation scripts
 - ✅ API documentation (cargo doc)
 - ✅ Integration guides
+- ✅ Whitepaper contribution (08_SEMANTIC_ATTRIBUTION.md, 850 lines) ⭐ NEW
 
 ---
 
@@ -99,13 +101,16 @@ Grade: A (95/100), following Phase 1 best practices:
 - ✅ 88 total showcase files
 
 ### 5. **Documentation Depth**
-21 major documentation files:
+26+ major documentation files:
 - ✅ 6,500+ line audit report
 - ✅ Comprehensive evolution report
 - ✅ Deployment checklist
 - ✅ Quick reference guide
 - ✅ Showcase final status
 - ✅ Integration gaps report
+- ✅ RootPulse emergence plan (8 levels) ⭐ NEW
+- ✅ RootPulse session complete report ⭐ NEW
+- ✅ Whitepaper contribution (850 lines) ⭐ NEW
 
 ---
 
@@ -180,8 +185,17 @@ cargo test
 3. **ToadStool** - Compute provenance tracking
 4. **Squirrel** - AI agent attribution
 5. **BearDog** - Cryptographic signing (needs verification)
-6. **LoamSpine** - Commit anchoring (future primal)
-7. **RhizoCrypt** - Session encryption (future primal)
+6. **LoamSpine** - Commit anchoring (future primal, RootPulse) ⭐
+7. **RhizoCrypt** - Session encryption (future primal, RootPulse) ⭐
+
+### RootPulse Emergence ⭐ NEW
+SweetGrass provides **semantic attribution** for the emergent RootPulse version control system:
+- **Fair attribution** (weighted by contribution type, not line counts)
+- **Provable contributions** (cryptographic proofs)
+- **Query-able history** (semantic questions answered)
+- **Three-primal workflow**: rhizoCrypt (fast) → SweetGrass (fair) → LoamSpine (forever)
+
+See: [showcase/02-rootpulse-emergence/](showcase/02-rootpulse-emergence/) and [../whitePaper/08_SEMANTIC_ATTRIBUTION.md](../whitePaper/08_SEMANTIC_ATTRIBUTION.md)
 
 ---
 
@@ -269,16 +283,18 @@ W3C PROV-O compliance ensures global interoperability.
 ### Showcase
 - 8 local levels
 - 6 primal integrations
-- 88 files
+- 2 RootPulse emergence demos ⭐ NEW
+- 90+ files ⭐
 - 60-minute tour
 - 0 mocks
 
 ### Documentation
-- 21 major files
-- 8,000+ lines total
-- 6 showcase reports
+- 26+ major files ⭐
+- 10,000+ lines total ⭐
+- 9 showcase reports ⭐
 - API documentation
 - Integration guides
+- Whitepaper contribution ⭐ NEW
 
 ---
 
@@ -334,6 +350,7 @@ let signer = discovery.find_one(&Capability::Signing).await?;
 - ✅ Honest gap documentation → 2 future primals marked
 - ✅ Automated tour → RUN_ME_FIRST.sh created
 - ✅ Health check → health-check.sh created
+- ✅ RootPulse emergence → Vision + demos + plan created ⭐ NEW
 
 ---
 
