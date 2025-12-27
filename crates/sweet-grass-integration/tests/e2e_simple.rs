@@ -1,11 +1,9 @@
 //! Simplified E2E test for SweetGrass pipeline.
 
+#![allow(clippy::unwrap_used, clippy::expect_used)] // Test code may use unwrap/expect for clarity
+
 use std::sync::Arc;
-use sweet_grass_core::{
-    agent::Did,
-    config::Capability,
-    primal_info::SelfKnowledge,
-};
+use sweet_grass_core::{agent::Did, config::Capability, primal_info::SelfKnowledge};
 use sweet_grass_factory::BraidFactory;
 use sweet_grass_query::QueryEngine;
 use sweet_grass_store::memory::MemoryStore;
@@ -19,7 +17,7 @@ async fn test_basic_braid_workflow() {
         instance_id: "test-001".to_string(),
         capabilities: vec![Capability::Custom("provenance".to_string())],
         tarpc_port: 0,
-        rest_port: 8080,
+        rest_port: 0, // Dynamic allocation
         established_at: std::time::SystemTime::now(),
     };
 
@@ -32,16 +30,16 @@ async fn test_basic_braid_workflow() {
     let data = b"Test data for provenance tracking";
     let braid = factory
         .from_data(data, "text/plain", None)
-        .expect("should create braid");
+        .unwrap_or_else(|e| panic!("Failed to create braid: {e}"));
 
     // Store it
-    store.put(&braid).await.expect("should store braid");
+    store.put(&braid).await.unwrap();
 
     // Retrieve it
     let retrieved = store
         .get(&braid.id)
         .await
-        .expect("should get braid")
+        .unwrap()
         .expect("braid should exist");
 
     assert_eq!(retrieved.id, braid.id);
@@ -52,7 +50,7 @@ async fn test_basic_braid_workflow() {
     let graph = query_engine
         .provenance_graph(braid_ref, Some(10))
         .await
-        .expect("should query provenance");
+        .unwrap();
 
     assert!(!graph.entities.is_empty(), "should have entities in graph");
 }
@@ -73,11 +71,8 @@ async fn test_concurrent_braid_creation() {
 
         let handle = tokio::spawn(async move {
             let data = format!("Concurrent data {i}").into_bytes();
-            let braid = factory_clone
-                .from_data(&data, "text/plain", None)
-                .expect("should create braid");
-
-            store.put(&braid).await.expect("should store braid");
+            let braid = factory_clone.from_data(&data, "text/plain", None).unwrap();
+            store.put(&braid).await.unwrap();
             braid.id
         });
 
@@ -88,14 +83,14 @@ async fn test_concurrent_braid_creation() {
     let braid_ids: Vec<_> = futures::future::join_all(handles)
         .await
         .into_iter()
-        .map(|r| r.expect("task should succeed"))
+        .map(|r| r.unwrap())
         .collect();
 
     assert_eq!(braid_ids.len(), 10, "should create 10 braids");
 
     // Verify all are stored
     for braid_id in &braid_ids {
-        let retrieved = store.get(braid_id).await.expect("should get braid");
+        let retrieved = store.get(braid_id).await.unwrap();
         assert!(retrieved.is_some(), "braid should be stored");
     }
 }
@@ -112,16 +107,15 @@ async fn test_provenance_graph_query() {
     // Create source Braid
     let source = factory
         .from_data(b"Source data", "text/plain", None)
-        .expect("should create source");
-    store.put(&source).await.expect("should store");
+        .unwrap();
+    store.put(&source).await.unwrap();
 
     // Query provenance graph
     let source_ref = sweet_grass_core::entity::EntityReference::by_hash(&source.data_hash);
     let graph = query_engine
         .provenance_graph(source_ref, Some(10))
         .await
-        .expect("should query provenance");
+        .unwrap();
 
     assert!(!graph.entities.is_empty(), "should have entities");
 }
-

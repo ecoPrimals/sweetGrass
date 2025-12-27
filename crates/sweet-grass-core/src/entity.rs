@@ -26,7 +26,7 @@ pub enum EntityReference {
         mime_type: Option<String>,
     },
 
-    /// Reference by `LoamSpine` location.
+    /// Reference by anchoring provider location.
     ByLoamEntry {
         /// The spine ID.
         spine_id: String,
@@ -72,7 +72,7 @@ impl EntityReference {
         }
     }
 
-    /// Create a reference by `LoamSpine` entry.
+    /// Create a reference by anchoring provider entry.
     #[must_use]
     pub fn by_loam_entry(spine_id: impl Into<String>, entry_hash: impl Into<ContentHash>) -> Self {
         Self::ByLoamEntry {

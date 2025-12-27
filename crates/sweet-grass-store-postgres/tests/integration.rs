@@ -3,6 +3,8 @@
 //! These tests require Docker to be running and will spin up a real `PostgreSQL`
 //! instance for testing. Run with:
 //!
+
+#![allow(clippy::unwrap_used, clippy::expect_used)] // Test code may use unwrap/expect for clarity
 //! ```bash
 //! cargo test -p sweet-grass-store-postgres --features integration-tests -- --ignored
 //! ```

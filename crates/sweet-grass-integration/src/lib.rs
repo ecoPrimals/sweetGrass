@@ -16,10 +16,10 @@
 //!
 //! | Capability | Purpose | Example Primal |
 //! |------------|---------|----------------|
-//! | `Signing` | Braid signatures, DID resolution | BearDog |
-//! | `SessionEvents` | Session activity tracking | RhizoCrypt |
-//! | `Anchoring` | Permanent storage anchoring | LoamSpine |
-//! | `Compute` | Task execution events | ToadStool |
+//! | `Signing` | Braid signatures, DID resolution | Identity primal |
+//! | `SessionEvents` | Session activity tracking | Activity primal |
+//! | `Anchoring` | Permanent storage anchoring | Persistence primal |
+//! | `Compute` | Task execution events | Compute primal |
 //!
 //! ## Integration Patterns
 //!
@@ -125,9 +125,9 @@ pub type Result<T> = std::result::Result<T, IntegrationError>;
 ///
 /// Capability-based integration patterns (modern approach)
 ///
-/// Use `Capability::Signing` instead of "BearDog"
-/// Use `Capability::SessionEvents` instead of "RhizoCrypt"
-/// Use `Capability::Anchoring` instead of "LoamSpine"
+/// Use `Capability::Signing` instead of specific primal names
+/// Use `Capability::SessionEvents` instead of specific primal names
+/// Use `Capability::Anchoring` instead of specific primal names
 pub mod capability_based {
 
     pub use super::{

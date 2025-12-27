@@ -102,48 +102,44 @@ impl QueryEngine {
         depth: Option<u32>,
     ) -> Result<Vec<Braid>> {
         use futures::future::try_join_all;
-        
+
         let max_depth = depth.unwrap_or(self.max_depth);
         let mut all_braids = Vec::new();
         let mut current_hashes = vec![hash.clone()];
-        
+
         for _ in 0..max_depth {
             if current_hashes.is_empty() {
                 break;
             }
-            
+
             // Spawn concurrent queries for all current level hashes
             let store = Arc::clone(&self.store);
             let mut handles = Vec::new();
-            
-            for hash in current_hashes.drain(..) {
+
+            for hash in current_hashes {
                 let store = Arc::clone(&store);
-                handles.push(tokio::spawn(async move {
-                    store.get_by_hash(&hash).await
-                }));
+                handles.push(tokio::spawn(async move { store.get_by_hash(&hash).await }));
             }
-            
+
             // Collect results
             let results = try_join_all(handles)
                 .await
                 .map_err(|e| QueryError::Internal(format!("Task join error: {e}")))?;
-            
+
             let mut next_hashes = Vec::new();
-            for result in results {
-                if let Ok(Some(braid)) = result {
-                    // Extract parent hashes for next level
-                    for deriv in &braid.was_derived_from {
-                        if let EntityReference::ByHash { data_hash, .. } = deriv {
-                            next_hashes.push(data_hash.clone());
-                        }
+            for braid in results.into_iter().flatten().flatten() {
+                // Extract parent hashes for next level
+                for deriv in &braid.was_derived_from {
+                    if let EntityReference::ByHash { data_hash, .. } = deriv {
+                        next_hashes.push(data_hash.clone());
                     }
-                    all_braids.push(braid);
                 }
+                all_braids.push(braid);
             }
-            
+
             current_hashes = next_hashes;
         }
-        
+
         Ok(all_braids)
     }
 

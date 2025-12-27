@@ -2,8 +2,8 @@
 //!
 //! The factory handles:
 //! - Creating Braids from data with computed hashes
-//! - Creating Braids from `RhizoCrypt` session summaries
-//! - Creating Braids from `LoamSpine` entries
+//! - Creating Braids from session events provider (session summaries)
+//! - Creating Braids from anchoring provider entries
 //! - Creating meta-Braids that summarize other Braids
 //! - Signing Braids with agent credentials
 

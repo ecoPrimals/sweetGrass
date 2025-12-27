@@ -3,6 +3,7 @@
 //! These tests verify the complete attribution pipeline from
 //! data creation through querying and export.
 
+#![allow(clippy::unwrap_used, clippy::expect_used)] // Test code may use unwrap/expect for clarity
 #![allow(
     clippy::float_cmp,
     clippy::expect_used,

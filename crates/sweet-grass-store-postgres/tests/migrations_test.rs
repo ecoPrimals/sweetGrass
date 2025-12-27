@@ -2,6 +2,8 @@
 //!
 //! Ensures migrations are idempotent and schema is correct.
 
+#![allow(clippy::unwrap_used, clippy::expect_used)] // Test code may use unwrap/expect for clarity
+
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 
@@ -154,7 +156,10 @@ async fn test_jsonb_operations() {
     .expect("Failed to query JSONB columns");
 
     // Should have at least one JSONB column for Braid content
-    assert!(result.is_some(), "Should have JSONB columns for flexibility");
+    assert!(
+        result.is_some(),
+        "Should have JSONB columns for flexibility"
+    );
 }
 
 /// Test migration rollback (if supported)
@@ -171,7 +176,7 @@ async fn test_migration_rollback() {
 
     // Note: sqlx migrations don't have built-in rollback
     // This test verifies we can drop and recreate cleanly
-    
+
     sqlx::query("DROP TABLE IF EXISTS braids CASCADE")
         .execute(&pool)
         .await
@@ -235,11 +240,7 @@ async fn test_concurrent_migrations() {
     let handles: Vec<_> = (0..3)
         .map(|_| {
             let pool = pool.clone();
-            tokio::spawn(async move {
-                sqlx::migrate!("./migrations")
-                    .run(&pool)
-                    .await
-            })
+            tokio::spawn(async move { sqlx::migrate!("./migrations").run(&pool).await })
         })
         .collect();
 
@@ -249,4 +250,3 @@ async fn test_concurrent_migrations() {
         assert!(result.is_ok(), "Concurrent migrations should not conflict");
     }
 }
-

@@ -11,7 +11,7 @@
 //! `SweetGrass` answers the fundamental question: **"What is the story of this data?"**
 //!
 //! - **Braids** — Provenance records tracking what created data, who contributed
-//! - **Attribution** — Fair credit assignment for sunCloud economic distribution
+//! - **Attribution** — Fair credit assignment for economic distribution
 //! - **PROV-O Compatible** — W3C standard interoperability
 //!
 //! ## Quick Start
