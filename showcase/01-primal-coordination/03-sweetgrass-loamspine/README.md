@@ -1,163 +1,147 @@
-# 🌾 Demo: SweetGrass + LoamSpine
+# ⏳ SweetGrass + LoamSpine (FUTURE INTEGRATION)
 
-**Goal**: Anchor Braid commits for immutability  
-**Time**: 15 minutes  
-**Complexity**: Intermediate  
-**Prerequisites**: LoamSpine running (or mock mode)
-
----
-
-## 🎯 What This Demo Shows
-
-1. Discover LoamSpine via capability
-2. Create a Braid
-3. Anchor to a spine
-4. Verify anchor proof
+**Status**: ⏳ **PRIMAL NOT YET BUILT**  
+**Type**: Forward-looking integration design  
+**ETA**: When LoamSpine primal is available
 
 ---
 
-## 🚀 Run the Demo
+## 🔍 WHY THIS EXISTS
 
-```bash
-./demo-anchor.sh
-```
+This directory shows how SweetGrass **will** integrate with LoamSpine for immutable anchoring when the LoamSpine primal is built.
+
+**Current Reality**:
+- ❌ LoamSpine primal doesn't exist in Phase 1 yet
+- ✅ SweetGrass integration API designed and ready
+- ✅ Capability-based discovery pattern works
+- ⏳ Waiting for LoamSpine implementation
 
 ---
 
-## 📖 Concepts
+## 🎯 WHAT LOAMSPINE WILL PROVIDE
 
-### What is Anchoring?
+**Capability**: `Anchoring`
 
-Anchoring commits a Braid's hash to an immutable log (spine):
-- Creates tamper-proof timestamp
-- Establishes ordering
-- Enables audit trails
+**Purpose**: Immutable timestamping and blockchain integration
 
-### AnchorInfo
+**Use Cases**:
+1. **Legal Proof**: Immutable timestamp for provenance
+2. **Cross-Org Trust**: Shared ledger without central authority
+3. **Commit Anchoring**: Git-like distributed ledger
+4. **Supply Chain**: Immutable product history
 
-Information about an anchor:
+---
 
+## 🌾 HOW INTEGRATION WILL WORK
+
+### Discovery (Pattern Ready ✅)
 ```rust
-pub struct AnchorInfo {
-    pub braid_id: BraidId,
-    pub spine_id: String,
-    pub entry_hash: String,
-    pub index: u64,
-    pub anchored_at: Timestamp,
-    pub verified: bool,
-}
+use sweet_grass_integration::{create_discovery, Capability};
+
+let discovery = create_discovery().await;
+let anchor_service = discovery
+    .find_one(&Capability::Anchoring)
+    .await?;
 ```
 
-### AnchorReceipt
-
-Receipt from an anchor operation:
-
+### Anchoring (API Designed ✅)
 ```rust
-pub struct AnchorReceipt {
-    pub anchor: AnchorInfo,
-    pub transaction_id: Option<String>,
-    pub confirmations: u32,
-}
+let client = create_anchoring_client(&anchor_service).await?;
+
+// Anchor braid to blockchain
+let receipt = client.anchor_braid(&braid).await?;
+
+println!("Anchored: tx {}", receipt.tx_hash);
+println!("Timestamp: {}", receipt.timestamp);
 ```
 
----
-
-## 📊 Expected Output
-
-```
-🌾 SweetGrass + LoamSpine Demo
-==============================
-
-Step 1: Discovering LoamSpine...
-  Looking for capability: Anchoring
-  ✅ Found LoamSpine at localhost:8093
-
-Step 2: Creating Braid...
-  Data: "Critical audit record"
-  ✅ Braid created: urn:braid:xyz789
-
-Step 3: Anchoring to spine...
-  Spine ID: spine-main
-  ✅ Anchor created
-
-Anchor Receipt:
-  Braid ID: urn:braid:xyz789
-  Spine ID: spine-main
-  Entry Hash: sha256:abc123...
-  Index: 42
-  Anchored At: 2025-12-23T12:00:00Z
-  Confirmations: 1
-
-Step 4: Verifying anchor...
-  ✅ Anchor verified!
-
-✅ Braid anchored for immutability!
-```
-
----
-
-## 🔧 Code Walkthrough
-
-### Discovering LoamSpine
-
+### Verification (Pattern Ready ✅)
 ```rust
-use sweet_grass_integration::anchor::{AnchorManager, LoamSpineClient};
-
-let manager = AnchorManager::new(discovery, store, |primal| {
-    Arc::new(TarpcLoamSpineClient::from_primal(primal))
-}).await?;
+// Verify anchor exists on chain
+let proof = client.verify_anchor(&braid.id).await?;
+assert!(proof.is_valid);
 ```
 
-### Anchoring a Braid
+---
 
+## 📊 READINESS STATUS
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| SweetGrass Integration API | ✅ Ready | Code structure defined |
+| Capability Discovery | ✅ Ready | `Capability::Anchoring` works |
+| tarpc Interface Design | ✅ Ready | RPC protocol specified |
+| **LoamSpine Primal** | ❌ **Not Built** | **Waiting** |
+| Blockchain Backend | ❌ Not Built | TBD (Ethereum? Custom?) |
+
+---
+
+## 🚧 CURRENT STATUS
+
+### What Exists
+- API design in `sweet-grass-integration` crate
+- Capability enum includes `Anchoring`
+- Discovery pattern proven with other primals
+- Integration tests skeleton ready
+
+### What's Missing
+- LoamSpine primal implementation
+- Actual blockchain integration
+- Real anchoring service
+- Working binaries in `../../bins/`
+
+---
+
+## 💡 USING THIS DEMO TODAY
+
+### Option A: Wait for LoamSpine
+Be patient - when LoamSpine is built, this will work automatically!
+
+### Option B: External Timestamping
+Use external services for now:
 ```rust
-let receipt = manager.anchor(&braid, "spine-main").await?;
+// Manual external timestamp
+use opentimestamps::*;
 
-println!("Anchored at index: {}", receipt.anchor.index);
-println!("Entry hash: {}", receipt.anchor.entry_hash);
+let ots = OpenTimestamps::new();
+let timestamp = ots.stamp(&braid.content_hash)?;
+
+// Store in Braid metadata
+braid.custom_metadata.insert(
+    "external_timestamp".to_string(),
+    serde_json::to_value(timestamp)?
+);
 ```
 
-### Verifying an Anchor
-
-```rust
-let anchor_info = manager.verify(&braid.id).await?;
-
-if let Some(info) = anchor_info {
-    if info.verified {
-        println!("Anchor verified!");
-    }
-}
-```
+### Option C: Study the Pattern
+Learn how SweetGrass will integrate:
+1. See working examples: `../04-sweetgrass-songbird/`
+2. Understand capability discovery
+3. Study tarpc RPC patterns
+4. Apply to your own integrations
 
 ---
 
-## 💡 Key Insights
+## 📖 DOCUMENTATION
 
-### Immutability via Anchoring
-Once anchored, the Braid's hash is committed to an append-only log.
+**Working Integration Examples**:
+- `../04-sweetgrass-songbird/` - Discovery (WORKING)
+- `../02-sweetgrass-nestgate/` - Storage (WORKING)
+- `../05-sweetgrass-toadstool/` - Compute (WORKING)
 
-### Multiple Spines
-A Braid can be anchored to multiple spines for redundancy.
+**Gap Documentation**:
+- `../INTEGRATION_GAPS_REPORT.md` - Honest assessment
+- `../SHOWCASE_ENHANCEMENT_PLAN.md` - Future roadmap
 
-### Audit Trails
-Anchoring creates a tamper-proof audit trail with timestamps.
-
----
-
-## 🎯 Success Criteria
-
-- [ ] Discovered LoamSpine by capability
-- [ ] Anchored a Braid
-- [ ] Verified the anchor
-- [ ] Understood anchor proofs
+**When LoamSpine Arrives**:
+- This demo will use real binary from `../../bins/loamspine`
+- No mocks, real blockchain anchoring
+- Full end-to-end demonstration
 
 ---
 
-## 📚 Next Steps
+⏳ **Status**: Forward-looking design, honest about current gaps  
+✅ **Pattern**: Matches working integrations (Songbird, NestGate, etc.)  
+🔮 **Future**: Ready to integrate when LoamSpine is available
 
-You've completed Level 1! Proceed to:
-
-**Level 2**: `../../02-full-ecosystem/`
-
-Experience the complete attribution pipeline!
-
+🌾 **SweetGrass**: Design ready, waiting for primal!
