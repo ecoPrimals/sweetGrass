@@ -120,6 +120,7 @@ SweetGrass is a **semantic provenance and attribution layer** for the ecoPrimals
 - **Zero mocks** (all real binaries)
 - **Automated 60-min guided tour**
 - **Honest gap documentation**
+- **RootPulse emergence** (2 demos, 8-level plan) ⭐ NEW
 
 ---
 
@@ -151,7 +152,7 @@ SweetGrass is a **semantic provenance and attribution layer** for the ecoPrimals
 **Indexes**:
 - [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) - Complete doc index
 
-### Showcase Documentation (7 files)
+### Showcase Documentation (9 files)
 
 **Location**: `showcase/`
 
@@ -162,6 +163,8 @@ SweetGrass is a **semantic provenance and attribution layer** for the ecoPrimals
 - [INTEGRATION_GAPS_REPORT.md](showcase/INTEGRATION_GAPS_REPORT.md) - Honest assessment
 - [SHOWCASE_REVIEW_COMPLETE.md](showcase/SHOWCASE_REVIEW_COMPLETE.md) - Quality review
 - [00_SHOWCASE_INDEX.md](showcase/00_SHOWCASE_INDEX.md) - Complete showcase index
+- [ROOTPULSE_EMERGENCE_PLAN.md](showcase/ROOTPULSE_EMERGENCE_PLAN.md) - RootPulse buildout ⭐ NEW
+- [02-rootpulse-emergence/README.md](showcase/02-rootpulse-emergence/README.md) - RootPulse showcase ⭐ NEW
 
 ### Specifications (10 files)
 
@@ -263,15 +266,16 @@ open target/llvm-cov/html/index.html
 - **Binary Size**: 4.0 MB
 
 ### Documentation
-- **Root Docs**: 14 files
-- **Showcase Docs**: 7 files
+- **Root Docs**: 17 files ⭐
+- **Showcase Docs**: 9 files ⭐
 - **Specifications**: 10 files
-- **Total**: 31+ major documents
+- **Total**: 36+ major documents ⭐
 
 ### Showcase
 - **Local Levels**: 8 working
 - **Integrations**: 6 (5 verified, 1 future verification)
-- **Demo Scripts**: 25+
+- **RootPulse Emergence**: 2 demos, 8-level plan ⭐ NEW
+- **Demo Scripts**: 27+ ⭐
 - **Grade**: A (95/100)
 
 ---

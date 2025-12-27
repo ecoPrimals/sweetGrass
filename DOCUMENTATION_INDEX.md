@@ -1,8 +1,8 @@
 # 📚 SweetGrass — Documentation Index
 
-**Last Updated**: December 27, 2025  
+**Last Updated**: December 27, 2025 (Post-RootPulse Showcase)  
 **Status**: ✅ Complete & Current  
-**Total Documents**: 31+ files
+**Total Documents**: 36+ files
 
 ---
 
@@ -20,14 +20,15 @@ New to SweetGrass? Start with these documents in order:
 
 ---
 
-## 📊 ROOT DOCUMENTATION (14 files)
+## 📊 ROOT DOCUMENTATION (17 files) ⭐ UPDATED
 
 ### Essential Documents
-- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** (15K) ⭐ **READ FIRST**
+- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** (16K) ⭐ **READ FIRST**
   - Complete project overview
   - Final metrics and grades
   - All achievements summarized
   - Production authorization
+  - RootPulse emergence summary ⭐ NEW
 
 - **[DEPLOYMENT_READINESS_FINAL.md](DEPLOYMENT_READINESS_FINAL.md)** (18K) ⭐ **DEPLOYMENT CERTIFICATION**
   - Official production certification
@@ -35,11 +36,12 @@ New to SweetGrass? Start with these documents in order:
   - Deployment authorization
   - Pre-deployment checklist
 
-- **[STATUS.md](STATUS.md)** (12K)
-  - Current project status (updated)
+- **[STATUS.md](STATUS.md)** (13K) ⭐ UPDATED
+  - Current project status
   - Build/test/coverage metrics
   - Comparison with Phase 1 primals
   - Showcase grade included
+  - RootPulse achievements ⭐ NEW
 
 - **[README.md](README.md)** (10K)
   - Project overview (updated)
@@ -47,11 +49,12 @@ New to SweetGrass? Start with these documents in order:
   - Key features
   - Demonstrated value
 
-- **[START_HERE.md](START_HERE.md)** (8K)
-  - Navigation hub (completely rewritten)
+- **[START_HERE.md](START_HERE.md)** (8K) ⭐ UPDATED
+  - Navigation hub
   - Learning paths
   - Quick links
   - Common tasks
+  - RootPulse showcase links ⭐ NEW
 
 ### Deployment & Operations
 - **[DEPLOY.md](DEPLOY.md)** (8K)
@@ -101,6 +104,13 @@ New to SweetGrass? Start with these documents in order:
   - Before/after metrics
   - Final assessment
 
+- **[ROOTPULSE_SHOWCASE_SESSION_COMPLETE.md](ROOTPULSE_SHOWCASE_SESSION_COMPLETE.md)** (22K) ⭐ NEW
+  - RootPulse emergence showcase session
+  - Whitepaper contribution documented
+  - Showcase buildout complete
+  - Gap discovery and analysis
+  - Phase 3 readiness assessment
+
 ### Navigation
 - **[DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** (This file)
   - Complete documentation index
@@ -109,7 +119,7 @@ New to SweetGrass? Start with these documents in order:
 
 ---
 
-## 🎭 SHOWCASE DOCUMENTATION (7 files)
+## 🎭 SHOWCASE DOCUMENTATION (9 files) ⭐ UPDATED
 
 **Location**: `showcase/`
 
@@ -132,7 +142,7 @@ New to SweetGrass? Start with these documents in order:
   - Grade: A (95/100)
   - All 8 local levels verified
   - 5 inter-primal integrations verified
-  - 88 total files
+  - 90+ total files ⭐
 
 - **[INTEGRATION_GAPS_REPORT.md](showcase/INTEGRATION_GAPS_REPORT.md)** (6K)
   - Honest integration assessment
@@ -155,6 +165,21 @@ New to SweetGrass? Start with these documents in order:
   - Complete showcase file index
   - Level descriptions
   - Demo inventory
+
+### RootPulse Emergence ⭐ NEW
+- **[ROOTPULSE_EMERGENCE_PLAN.md](showcase/ROOTPULSE_EMERGENCE_PLAN.md)** (12K) ⭐
+  - 8-level RootPulse showcase structure
+  - 13 demo specifications
+  - "Work backwards" methodology
+  - Gap analysis and timeline
+  - Phase 3 integration roadmap
+
+- **[02-rootpulse-emergence/README.md](showcase/02-rootpulse-emergence/README.md)** (4K) ⭐
+  - RootPulse emergence showcase entry point
+  - Vision demo (complete workflow)
+  - Semantic tracking demo (module level)
+  - Test framework structure
+  - Learning paths
 
 ### Automation Scripts (2 files)
 - **[00-local-primal/RUN_ME_FIRST.sh](showcase/00-local-primal/RUN_ME_FIRST.sh)** ⭐
@@ -347,15 +372,15 @@ Superseded evolution reports and interim documents:
 ### Total Documentation
 
 ```
-Root Documents:        14 essential     (170K)
-Showcase Docs:          7 files          (62K)
+Root Documents:        17 essential     (200K) ⭐
+Showcase Docs:          9 files          (78K) ⭐
 Specifications:        10 documents      (80K)
-Showcase Examples:     88 files          (demos + READMEs)
+Showcase Examples:     90+ files         (demos + READMEs) ⭐
 Guides:                 2 documents      (15K)
 Code Documentation:   100% coverage      (inline)
 ────────────────────────────────────────────
-Total:                 31+ major docs   (327K)
-                       121+ total files  (with demos)
+Total:                 36+ major docs   (373K) ⭐
+                       126+ total files  (with demos) ⭐
 ```
 
 ### Quality Indicators
