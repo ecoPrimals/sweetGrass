@@ -746,10 +746,7 @@ async fn test_migration_trigger_functionality() {
 
     assert_eq!(created_at, updated_at, "Initially timestamps should match");
 
-    // Wait a bit to ensure timestamp difference
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-
-    // Update the braid
+    // Update the braid (PostgreSQL trigger will update updated_at automatically)
     sqlx::query("UPDATE braids SET size = size + 1 WHERE braid_id = $1")
         .bind(braid.id.as_str())
         .execute(pool)
@@ -799,4 +796,419 @@ async fn test_migration_uuid_extension() {
         uuid.len() == 36,
         "UUID should be 36 characters (with hyphens)"
     );
+}
+
+// ============================================================================
+// NEW COMPREHENSIVE TESTS (Dec 27, 2025) - Coverage Expansion
+// ============================================================================
+
+/// Test concurrent writes don't cause deadlocks or data corruption
+#[tokio::test]
+#[ignore = "Requires Docker"]
+async fn test_concurrent_writes() {
+    let (_container, store) = setup_postgres().await;
+    let store = Arc::new(store);
+
+    // Spawn 20 concurrent write operations
+    let mut handles = vec![];
+    for i in 0..20 {
+        let store_clone = Arc::clone(&store);
+        let handle = tokio::spawn(async move {
+            let braid = create_test_braid(&format!("concurrent_{i:03}"));
+            store_clone.put(&braid).await
+        });
+        handles.push(handle);
+    }
+
+    // Wait for all writes to complete
+    let results: Vec<_> = futures::future::join_all(handles).await;
+
+    // All should succeed
+    for result in results {
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_ok());
+    }
+
+    // Verify count
+    let count = store.count().await.expect("count");
+    assert_eq!(count, 20);
+}
+
+/// Test query with invalid filter doesn't crash
+#[tokio::test]
+#[ignore = "Requires Docker"]
+async fn test_query_empty_results() {
+    let (_container, store) = setup_postgres().await;
+
+    // Query with filter that matches nothing
+    let filter = QueryFilter::new().with_tag("nonexistent_tag_xyz");
+    let result = store
+        .query(&filter, QueryOrder::NewestFirst)
+        .await
+        .expect("query should succeed");
+
+    assert_eq!(result.braids.len(), 0);
+    assert_eq!(result.total_count, 0);
+}
+
+/// Test delete nonexistent braid returns false
+#[tokio::test]
+#[ignore = "Requires Docker"]
+async fn test_delete_nonexistent() {
+    let (_container, store) = setup_postgres().await;
+
+    let nonexistent_id = sweet_grass_core::braid::BraidId::new();
+    let deleted = store.delete(&nonexistent_id).await.expect("delete");
+
+    assert!(!deleted, "Deleting nonexistent should return false");
+}
+
+/// Test get_by_hash with nonexistent hash
+#[tokio::test]
+#[ignore = "Requires Docker"]
+async fn test_get_by_hash_nonexistent() {
+    let (_container, store) = setup_postgres().await;
+
+    let result = store
+        .get_by_hash(&"sha256:nonexistent".parse().unwrap())
+        .await
+        .expect("get_by_hash");
+
+    assert!(result.is_none());
+}
+
+/// Test query pagination works correctly
+#[tokio::test]
+#[ignore = "Requires Docker"]
+async fn test_query_pagination() {
+    let (_container, store) = setup_postgres().await;
+
+    // Create 15 braids
+    for i in 0..15 {
+        let braid = create_test_braid(&format!("page_{i:03}"));
+        store.put(&braid).await.expect("put");
+    }
+
+    // Page 1: limit 5, offset 0
+    let page1 = store
+        .query(
+            &QueryFilter::new().with_limit(5).with_offset(0),
+            QueryOrder::NewestFirst,
+        )
+        .await
+        .expect("query page 1");
+
+    assert_eq!(page1.braids.len(), 5);
+    assert_eq!(page1.total_count, 15);
+
+    // Page 2: limit 5, offset 5
+    let page2 = store
+        .query(
+            &QueryFilter::new().with_limit(5).with_offset(5),
+            QueryOrder::NewestFirst,
+        )
+        .await
+        .expect("query page 2");
+
+    assert_eq!(page2.braids.len(), 5);
+    assert_eq!(page2.total_count, 15);
+
+    // Page 3: limit 5, offset 10
+    let page3 = store
+        .query(
+            &QueryFilter::new().with_limit(5).with_offset(10),
+            QueryOrder::NewestFirst,
+        )
+        .await
+        .expect("query page 3");
+
+    assert_eq!(page3.braids.len(), 5);
+    assert_eq!(page3.total_count, 15);
+
+    // Verify no duplicates across pages
+    let mut all_ids = std::collections::HashSet::new();
+    all_ids.extend(page1.braids.iter().map(|b| &b.id));
+    all_ids.extend(page2.braids.iter().map(|b| &b.id));
+    all_ids.extend(page3.braids.iter().map(|b| &b.id));
+    assert_eq!(all_ids.len(), 15, "Should have no duplicates");
+}
+
+/// Test count method accuracy
+#[tokio::test]
+#[ignore = "Requires Docker"]
+async fn test_count_accuracy() {
+    let (_container, store) = setup_postgres().await;
+
+    // Initially empty
+    assert_eq!(store.count().await.expect("count"), 0);
+
+    // Add 3 braids
+    for i in 0..3 {
+        let braid = create_test_braid(&format!("count_{i}"));
+        store.put(&braid).await.expect("put");
+    }
+
+    assert_eq!(store.count().await.expect("count"), 3);
+
+    // Delete 1
+    let braid = create_test_braid("count_0");
+    store.delete(&braid.id).await.expect("delete");
+
+    assert_eq!(store.count().await.expect("count"), 2);
+}
+
+/// Test exists returns correct boolean
+#[tokio::test]
+#[ignore = "Requires Docker"]
+async fn test_exists_correctness() {
+    let (_container, store) = setup_postgres().await;
+
+    let braid = create_test_braid("exists_test");
+
+    // Should not exist initially
+    assert!(!store.exists(&braid.id).await.expect("exists"));
+
+    // Store it
+    store.put(&braid).await.expect("put");
+
+    // Should exist now
+    assert!(store.exists(&braid.id).await.expect("exists"));
+
+    // Delete it
+    store.delete(&braid.id).await.expect("delete");
+
+    // Should not exist anymore
+    assert!(!store.exists(&braid.id).await.expect("exists"));
+}
+
+/// Test derived_from relationships
+#[tokio::test]
+#[ignore = "Requires Docker"]
+async fn test_derived_from_relationships() {
+    let (_container, store) = setup_postgres().await;
+
+    // Create parent braid
+    let parent = create_test_braid("parent_001");
+    store.put(&parent).await.expect("put parent");
+
+    // Create child derived from parent
+    let child = Braid::builder()
+        .data_hash("sha256:child_001")
+        .mime_type("text/plain")
+        .size(100)
+        .attributed_to(Did::new("did:key:z6MkTestAgent"))
+        .was_derived_from(vec![EntityReference::by_hash(&parent.data_hash)])
+        .build()
+        .expect("build child");
+
+    store.put(&child).await.expect("put child");
+
+    // Query derived_from
+    let derived = store
+        .derived_from(&parent.data_hash)
+        .await
+        .expect("derived_from");
+
+    assert_eq!(derived.len(), 1);
+    assert_eq!(derived[0].id, child.id);
+}
+
+/// Test by_agent filters correctly
+#[tokio::test]
+#[ignore = "Requires Docker"]
+async fn test_by_agent_filtering() {
+    let (_container, store) = setup_postgres().await;
+
+    let agent1 = Did::new("did:key:z6MkAgent1");
+    let agent2 = Did::new("did:key:z6MkAgent2");
+
+    // Create 3 braids for agent1, 2 for agent2
+    for i in 0..3 {
+        let braid = Braid::builder()
+            .data_hash(format!("sha256:agent1_{i}"))
+            .mime_type("text/plain")
+            .size(100)
+            .attributed_to(agent1.clone())
+            .build()
+            .expect("build");
+        store.put(&braid).await.expect("put");
+    }
+
+    for i in 0..2 {
+        let braid = Braid::builder()
+            .data_hash(format!("sha256:agent2_{i}"))
+            .mime_type("text/plain")
+            .size(100)
+            .attributed_to(agent2.clone())
+            .build()
+            .expect("build");
+        store.put(&braid).await.expect("put");
+    }
+
+    // Query agent1
+    let agent1_braids = store.by_agent(&agent1).await.expect("by_agent");
+    assert_eq!(agent1_braids.len(), 3);
+
+    // Query agent2
+    let agent2_braids = store.by_agent(&agent2).await.expect("by_agent");
+    assert_eq!(agent2_braids.len(), 2);
+
+    // Query nonexistent agent
+    let nonexistent = Did::new("did:key:z6MkNonexistent");
+    let no_braids = store.by_agent(&nonexistent).await.expect("by_agent");
+    assert_eq!(no_braids.len(), 0);
+}
+
+/// Test activity CRUD operations
+#[tokio::test]
+#[ignore = "Requires Docker"]
+async fn test_activity_crud_complete() {
+    let (_container, store) = setup_postgres().await;
+
+    let activity = create_test_activity();
+
+    // Create
+    store
+        .put_activity(&activity)
+        .await
+        .expect("put_activity");
+
+    // Read
+    let retrieved = store
+        .get_activity(&activity.id)
+        .await
+        .expect("get_activity");
+    assert!(retrieved.is_some());
+
+    // Get nonexistent
+    let nonexistent_id = sweet_grass_core::activity::ActivityId::new();
+    let none = store
+        .get_activity(&nonexistent_id)
+        .await
+        .expect("get_activity");
+    assert!(none.is_none());
+}
+
+/// Test activities_for_braid
+#[tokio::test]
+#[ignore = "Requires Docker"]
+async fn test_activities_for_braid() {
+    let (_container, store) = setup_postgres().await;
+
+    let braid = create_test_braid("activities_test");
+    store.put(&braid).await.expect("put");
+
+    // Create 3 activities for this braid
+    for i in 0..3 {
+        let activity = Activity::builder(ActivityType::Computation)
+            .associated_with(AgentAssociation::new(
+                Did::new(&format!("did:key:z6MkAgent{i}")),
+                AgentRole::Creator,
+            ))
+            .used(EntityReference::by_hash(&braid.data_hash))
+            .compute_units(1.0 + i as f64)
+            .build();
+
+        store.put_activity(&activity).await.expect("put_activity");
+    }
+
+    // Query activities for this braid
+    let activities = store
+        .activities_for_braid(&braid.id)
+        .await
+        .expect("activities_for_braid");
+
+    assert_eq!(activities.len(), 3);
+}
+
+/// Test update existing braid (put with same ID)
+#[tokio::test]
+#[ignore = "Requires Docker"]
+async fn test_update_existing_braid() {
+    let (_container, store) = setup_postgres().await;
+
+    let mut braid = create_test_braid("update_test");
+    braid.size = 100;
+
+    // Initial put
+    store.put(&braid).await.expect("initial put");
+
+    // Update size
+    braid.size = 200;
+    store.put(&braid).await.expect("update put");
+
+    // Verify updated
+    let retrieved = store.get(&braid.id).await.expect("get");
+    assert!(retrieved.is_some());
+    assert_eq!(retrieved.unwrap().size, 200);
+}
+
+/// Test query with multiple tags
+#[tokio::test]
+#[ignore = "Requires Docker"]
+async fn test_query_multiple_tags() {
+    let (_container, store) = setup_postgres().await;
+
+    // Braid with tags: [rust, test]
+    let braid1 = create_braid_with_metadata("multi_tag_1", vec!["rust", "test"]);
+    store.put(&braid1).await.expect("put");
+
+    // Braid with tags: [rust, production]
+    let braid2 = create_braid_with_metadata("multi_tag_2", vec!["rust", "production"]);
+    store.put(&braid2).await.expect("put");
+
+    // Query for "rust" tag
+    let rust_results = store
+        .query(&QueryFilter::new().with_tag("rust"), QueryOrder::NewestFirst)
+        .await
+        .expect("query");
+
+    assert_eq!(rust_results.braids.len(), 2);
+
+    // Query for "test" tag
+    let test_results = store
+        .query(&QueryFilter::new().with_tag("test"), QueryOrder::NewestFirst)
+        .await
+        .expect("query");
+
+    assert_eq!(test_results.braids.len(), 1);
+}
+
+/// Test query ordering (OldestFirst vs NewestFirst)
+#[tokio::test]
+#[ignore = "Requires Docker"]
+async fn test_query_ordering() {
+    let (_container, store) = setup_postgres().await;
+
+    // Create 3 braids with delays to ensure different timestamps
+    let braid1 = create_test_braid("order_1");
+    store.put(&braid1).await.expect("put 1");
+
+    tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+
+    let braid2 = create_test_braid("order_2");
+    store.put(&braid2).await.expect("put 2");
+
+    tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+
+    let braid3 = create_test_braid("order_3");
+    store.put(&braid3).await.expect("put 3");
+
+    // Query newest first
+    let newest = store
+        .query(&QueryFilter::new(), QueryOrder::NewestFirst)
+        .await
+        .expect("query newest");
+
+    assert_eq!(newest.braids[0].id, braid3.id);
+    assert_eq!(newest.braids[2].id, braid1.id);
+
+    // Query oldest first
+    let oldest = store
+        .query(&QueryFilter::new(), QueryOrder::OldestFirst)
+        .await
+        .expect("query oldest");
+
+    assert_eq!(oldest.braids[0].id, braid1.id);
+    assert_eq!(oldest.braids[2].id, braid3.id);
 }

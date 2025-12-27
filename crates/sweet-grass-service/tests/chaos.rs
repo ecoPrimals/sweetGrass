@@ -393,3 +393,303 @@ async fn test_operation_counting() {
     let final_count = store.op_count();
     assert_eq!(final_count - initial_count, 4, "Should count 4 operations");
 }
+
+// ============================================================================
+// NEW COMPREHENSIVE CHAOS TESTS (Dec 27, 2025) - Expanded Fault Scenarios
+// ============================================================================
+
+#[tokio::test]
+async fn test_cascading_failures() {
+    let (store, factory) = setup_faulty();
+    
+    // Pre-populate store
+    let mut braids = Vec::new();
+    for i in 0..5 {
+        let braid = factory
+            .from_data(format!("cascade {i}").as_bytes(), "text/plain", None)
+            .expect("create");
+        store.put(&braid).await.expect("seed");
+        braids.push(braid);
+    }
+    
+    // Set high failure rate
+    store.set_fail_rate(80);
+    
+    // Attempt multiple operations - most should fail
+    let mut total_ops = 0;
+    let mut failed_ops = 0;
+    
+    for braid in &braids {
+        total_ops += 1;
+        if store.get(&braid.id).await.is_err() {
+            failed_ops += 1;
+        }
+    }
+    
+    // With 80% failure rate, most should fail
+    assert!(failed_ops > 0, "Should have cascading failures");
+    assert!(total_ops - failed_ops > 0, "Should have some successes");
+}
+
+#[tokio::test]
+async fn test_partial_batch_failure() {
+    let (store, factory) = setup_faulty();
+    
+    // Create batch of braids
+    let mut braids = Vec::new();
+    for i in 0..10 {
+        let braid = factory
+            .from_data(format!("batch {i}").as_bytes(), "text/plain", None)
+            .expect("create");
+        braids.push(braid);
+    }
+    
+    // Set moderate failure rate
+    store.set_fail_rate(40);
+    
+    // Try to store all
+    let mut stored_ids = Vec::new();
+    for braid in &braids {
+        if store.put(braid).await.is_ok() {
+            stored_ids.push(braid.id.clone());
+        }
+    }
+    
+    // Verify only successful ones are retrievable
+    for id in &stored_ids {
+        assert!(store.get(id).await.expect("get").is_some());
+    }
+    
+    // Count should match
+    let count = store.count(&QueryFilter::new()).await.expect("count");
+    assert_eq!(count, stored_ids.len());
+}
+
+#[tokio::test]
+async fn test_failure_during_concurrent_reads() {
+    let (store, factory) = setup_faulty();
+    
+    // Pre-populate
+    let braid = factory
+        .from_data(b"concurrent read test", "text/plain", None)
+        .expect("create");
+    let id = braid.id.clone();
+    store.put(&braid).await.expect("put");
+    
+    // Set moderate failure rate
+    store.set_fail_rate(30);
+    
+    // Spawn many concurrent reads
+    let mut handles = vec![];
+    for _ in 0..20 {
+        let store = Arc::clone(&store);
+        let id = id.clone();
+        handles.push(tokio::spawn(async move {
+            store.get(&id).await.is_ok()
+        }));
+    }
+    
+    // Collect results
+    let mut successes = 0;
+    for handle in handles {
+        if handle.await.expect("join") {
+            successes += 1;
+        }
+    }
+    
+    // Some should succeed despite failures
+    assert!(successes > 0, "Should have some successful reads");
+}
+
+#[tokio::test]
+async fn test_query_consistency_under_failures() {
+    let (store, factory) = setup_faulty();
+    
+    // Store 10 braids successfully first
+    for i in 0..10 {
+        let braid = factory
+            .from_data(format!("consistent {i}").as_bytes(), "text/plain", None)
+            .expect("create");
+        store.put(&braid).await.expect("put");
+    }
+    
+    // Now set failure rate
+    store.set_fail_rate(50);
+    
+    // Multiple queries should return consistent results when they succeed
+    let filter = QueryFilter::new().with_limit(10);
+    
+    let mut successful_results = Vec::new();
+    for _ in 0..5 {
+        if let Ok(result) = store.query(&filter, QueryOrder::NewestFirst).await {
+            successful_results.push(result.total_count);
+        }
+    }
+    
+    // All successful queries should return same count
+    if successful_results.len() > 1 {
+        let first = successful_results[0];
+        for count in &successful_results {
+            assert_eq!(*count, first, "Query results should be consistent");
+        }
+    }
+}
+
+#[tokio::test]
+async fn test_delete_under_failures() {
+    let (store, factory) = setup_faulty();
+    
+    let braid = factory
+        .from_data(b"delete test", "text/plain", None)
+        .expect("create");
+    let id = braid.id.clone();
+    
+    store.put(&braid).await.expect("put");
+    
+    // Fail delete
+    store.fail_next();
+    assert!(store.delete(&id).await.is_err());
+    
+    // Braid should still exist
+    assert!(store.exists(&id).await.expect("exists"));
+    
+    // Successful delete
+    store.delete(&id).await.expect("delete");
+    
+    // Now it should be gone
+    assert!(!store.exists(&id).await.expect("exists"));
+}
+
+#[tokio::test]
+async fn test_activity_storage_failures() {
+    use sweet_grass_core::{
+        activity::{Activity, ActivityType},
+        agent::{AgentAssociation, AgentRole},
+    };
+    
+    let (store, _) = setup_faulty();
+    
+    let activity = Activity::builder(ActivityType::Computation)
+        .associated_with(AgentAssociation::new(
+            Did::new("did:key:z6MkAgent"),
+            AgentRole::Creator,
+        ))
+        .build();
+    
+    // Fail activity storage
+    store.fail_next();
+    assert!(store.put_activity(&activity).await.is_err());
+    
+    // Activity should not be retrievable
+    let result = store.get_activity(&activity.id).await.expect("get");
+    assert!(result.is_none());
+    
+    // Successful store
+    store.put_activity(&activity).await.expect("put");
+    
+    // Now retrievable
+    let retrieved = store.get_activity(&activity.id).await.expect("get");
+    assert!(retrieved.is_some());
+}
+
+#[tokio::test]
+async fn test_by_agent_query_failures() {
+    let (store, factory) = setup_faulty();
+    
+    let agent = Did::new("did:key:z6MkQueryAgent");
+    
+    // Store braids for this agent
+    let factory_with_agent = BraidFactory::new(agent.clone());
+    for i in 0..5 {
+        let braid = factory_with_agent
+            .from_data(format!("agent data {i}").as_bytes(), "text/plain", None)
+            .expect("create");
+        store.put(&braid).await.expect("put");
+    }
+    
+    // Query should work
+    let braids = store.by_agent(&agent).await.expect("query");
+    assert_eq!(braids.len(), 5);
+    
+    // Fail query
+    store.fail_next();
+    assert!(store.by_agent(&agent).await.is_err());
+    
+    // Subsequent query should work
+    let braids = store.by_agent(&agent).await.expect("query");
+    assert_eq!(braids.len(), 5);
+}
+
+#[tokio::test]
+async fn test_derived_from_query_failures() {
+    let (store, factory) = setup_faulty();
+    
+    // Create parent-child relationship
+    let parent = factory
+        .from_data(b"parent", "text/plain", None)
+        .expect("create");
+    store.put(&parent).await.expect("put parent");
+    
+    let child = factory
+        .from_data_with_derivation(
+            b"child",
+            "text/plain",
+            None,
+            vec![sweet_grass_core::entity::EntityReference::by_hash(
+                &parent.data_hash,
+            )],
+        )
+        .expect("create");
+    store.put(&child).await.expect("put child");
+    
+    // Query should work
+    let derived = store.derived_from(&parent.data_hash).await.expect("query");
+    assert_eq!(derived.len(), 1);
+    
+    // Fail query
+    store.fail_next();
+    assert!(store.derived_from(&parent.data_hash).await.is_err());
+}
+
+#[tokio::test]
+async fn test_mixed_operation_failures() {
+    let (store, factory) = setup_faulty();
+    
+    store.set_fail_rate(40);
+    
+    // Mix of different operations
+    let mut successes = 0;
+    let mut failures = 0;
+    
+    for i in 0..20 {
+        let braid = factory
+            .from_data(format!("mixed {i}").as_bytes(), "text/plain", None)
+            .expect("create");
+        
+        // Try put
+        if store.put(&braid).await.is_ok() {
+            successes += 1;
+            
+            // Try get
+            if store.get(&braid.id).await.is_ok() {
+                successes += 1;
+            } else {
+                failures += 1;
+            }
+            
+            // Try exists
+            if store.exists(&braid.id).await.is_ok() {
+                successes += 1;
+            } else {
+                failures += 1;
+            }
+        } else {
+            failures += 1;
+        }
+    }
+    
+    // Both successes and failures expected
+    assert!(successes > 0);
+    assert!(failures > 0);
+    println!("Mixed operations: {successes} successes, {failures} failures");
+}
