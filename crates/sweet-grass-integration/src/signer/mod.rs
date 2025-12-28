@@ -110,7 +110,7 @@ mod tests {
             instance_id: "signing-service-001".to_string(),
             name: "signing-service".to_string(),
             capabilities: vec![Capability::Signing],
-            tarpc_address: Some("discovered-address:9999".to_string()),
+            tarpc_address: Some("discovered-address:0".to_string()), // :0 = mock address
             rest_address: None,
             last_seen: std::time::SystemTime::now(),
             healthy: true,
@@ -194,7 +194,7 @@ mod tests {
             instance_id: "signing-001".to_string(),
             name: "signing-service".to_string(),
             capabilities: vec![Capability::Signing],
-            tarpc_address: Some("discovered:9999".to_string()),
+            tarpc_address: Some("discovered:0".to_string()), // :0 = mock address
             rest_address: None,
             last_seen: std::time::SystemTime::now(),
             healthy: true,

@@ -376,19 +376,30 @@ impl SongbirdDiscovery {
     /// 1. `DISCOVERY_ADDRESS` - Generic discovery service
     /// 2. `UNIVERSAL_ADAPTER_ADDRESS` - Universal adapter (e.g., service mesh)
     /// 3. `DISCOVERY_BOOTSTRAP` - Bootstrap node address
-    /// 4. `SONGBIRD_ADDRESS` - Legacy (deprecated, for backward compatibility)
+    /// 4. `SONGBIRD_ADDRESS` - **DEPRECATED** (legacy, use UNIVERSAL_ADAPTER_ADDRESS)
     ///
     /// # Errors
     ///
     /// Returns an error if the environment variable is not set or connection fails.
     pub async fn from_env() -> Result<Self, DiscoveryError> {
+        // Try modern environment variables first
         let addr = std::env::var("DISCOVERY_ADDRESS")
             .or_else(|_| std::env::var("UNIVERSAL_ADAPTER_ADDRESS"))
             .or_else(|_| std::env::var("DISCOVERY_BOOTSTRAP"))
-            .or_else(|_| std::env::var("SONGBIRD_ADDRESS"))  // Legacy fallback
+            .or_else(|_| {
+                // Legacy support with deprecation warning
+                if let Ok(addr) = std::env::var("SONGBIRD_ADDRESS") {
+                    tracing::warn!(
+                        "SONGBIRD_ADDRESS is deprecated. Use UNIVERSAL_ADAPTER_ADDRESS for vendor-agnostic discovery"
+                    );
+                    Ok(addr)
+                } else {
+                    Err(std::env::VarError::NotPresent)
+                }
+            })
             .map_err(|_| {
                 DiscoveryError::ServiceUnavailable(
-                    "No discovery address found. Set DISCOVERY_ADDRESS, UNIVERSAL_ADAPTER_ADDRESS, or DISCOVERY_BOOTSTRAP environment variable".to_string(),
+                    "No discovery address found. Set DISCOVERY_ADDRESS or UNIVERSAL_ADAPTER_ADDRESS environment variable".to_string(),
                 )
             })?;
         Self::connect(&addr).await
@@ -481,17 +492,19 @@ impl PrimalDiscovery for SongbirdDiscovery {
 /// Create a discovery client based on environment.
 ///
 /// If discovery address is set (via `DISCOVERY_ADDRESS`, `UNIVERSAL_ADAPTER_ADDRESS`,
-/// `DISCOVERY_BOOTSTRAP`, or legacy `SONGBIRD_ADDRESS`), connects to that service.
-/// Otherwise, returns a local discovery instance.
+/// or `DISCOVERY_BOOTSTRAP`), connects to that service. Legacy `SONGBIRD_ADDRESS` also
+/// supported with deprecation warning.
+///
+/// Otherwise, returns a local discovery instance for single-node deployments.
 pub async fn create_discovery() -> Arc<dyn PrimalDiscovery> {
     match SongbirdDiscovery::from_env().await {
         Ok(discovery) => {
-            tracing::info!("Using network discovery service for primal discovery");
+            tracing::info!("Using network discovery service (universal adapter) for primal coordination");
             Arc::new(discovery)
         },
         Err(e) => {
             tracing::info!(
-                "Using local discovery (network discovery unavailable: {})",
+                "Using local discovery for single-node deployment (network discovery unavailable: {})",
                 e
             );
             Arc::new(LocalDiscovery::new())
