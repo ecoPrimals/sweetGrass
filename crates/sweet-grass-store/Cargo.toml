@@ -13,6 +13,7 @@ workspace = true
 [dependencies]
 sweet-grass-core = { path = "../sweet-grass-core" }
 tokio = { workspace = true }
+futures = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
