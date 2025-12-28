@@ -98,31 +98,37 @@ impl SledStore {
         serde_json::from_slice(bytes).map_err(SledError::from)
     }
 
-    /// Update secondary indexes for a braid.
-    fn update_indexes(&self, braid: &Braid) -> Result<()> {
+    /// Static helper for updating indexes in spawn_blocking context.
+    fn update_indexes_blocking(
+        braid: &Braid,
+        by_hash: &Tree,
+        by_agent: &Tree,
+        by_time: &Tree,
+        by_tag: &Tree,
+    ) -> Result<()> {
         let braid_id = braid.id.as_str().as_bytes();
 
         // Index by hash
-        self.by_hash
+        by_hash
             .insert(braid.data_hash.as_bytes(), braid_id)
             .map_err(|e| SledError::Write(e.to_string()))?;
 
         // Index by agent (prefix with agent DID for range queries)
         let agent_key = format!("{}:{}", braid.was_attributed_to.as_str(), braid.id.as_str());
-        self.by_agent
+        by_agent
             .insert(agent_key.as_bytes(), braid_id)
             .map_err(|e| SledError::Write(e.to_string()))?;
 
         // Index by time (big-endian for proper sorting)
         let time_key = format!("{:020}:{}", braid.generated_at_time, braid.id.as_str());
-        self.by_time
+        by_time
             .insert(time_key.as_bytes(), braid_id)
             .map_err(|e| SledError::Write(e.to_string()))?;
 
         // Index by tags
         for tag in &braid.metadata.tags {
             let tag_key = format!("{tag}:{}", braid.id.as_str());
-            self.by_tag
+            by_tag
                 .insert(tag_key.as_bytes(), braid_id)
                 .map_err(|e| SledError::Write(e.to_string()))?;
         }
@@ -130,29 +136,35 @@ impl SledStore {
         Ok(())
     }
 
-    /// Remove secondary indexes for a braid.
-    fn remove_indexes(&self, braid: &Braid) -> Result<()> {
+    /// Static helper for removing indexes in spawn_blocking context.
+    fn remove_indexes_blocking(
+        braid: &Braid,
+        by_hash: &Tree,
+        by_agent: &Tree,
+        by_time: &Tree,
+        by_tag: &Tree,
+    ) -> Result<()> {
         // Remove hash index
-        self.by_hash
+        by_hash
             .remove(braid.data_hash.as_bytes())
             .map_err(|e| SledError::Delete(e.to_string()))?;
 
         // Remove agent index
         let agent_key = format!("{}:{}", braid.was_attributed_to.as_str(), braid.id.as_str());
-        self.by_agent
+        by_agent
             .remove(agent_key.as_bytes())
             .map_err(|e| SledError::Delete(e.to_string()))?;
 
         // Remove time index
         let time_key = format!("{:020}:{}", braid.generated_at_time, braid.id.as_str());
-        self.by_time
+        by_time
             .remove(time_key.as_bytes())
             .map_err(|e| SledError::Delete(e.to_string()))?;
 
         // Remove tag indexes
         for tag in &braid.metadata.tags {
             let tag_key = format!("{tag}:{}", braid.id.as_str());
-            self.by_tag
+            by_tag
                 .remove(tag_key.as_bytes())
                 .map_err(|e| SledError::Delete(e.to_string()))?;
         }
@@ -196,49 +208,92 @@ impl BraidStore for SledStore {
 
     #[instrument(skip(self))]
     async fn get(&self, id: &BraidId) -> sweet_grass_store::Result<Option<Braid>> {
-        match self.braids.get(id.as_str().as_bytes()) {
-            Ok(Some(bytes)) => {
-                let braid = Self::deserialize_braid(&bytes)
-                    .map_err(|e| StoreError::Internal(e.to_string()))?;
-                Ok(Some(braid))
-            },
-            Ok(None) => Ok(None),
-            Err(e) => Err(StoreError::Internal(e.to_string())),
-        }
+        let braids = self.braids.clone();
+        let id = id.clone();
+
+        tokio::task::spawn_blocking(move || {
+            match braids.get(id.as_str().as_bytes()) {
+                Ok(Some(bytes)) => {
+                    let braid = Self::deserialize_braid(&bytes)
+                        .map_err(|e| StoreError::Internal(e.to_string()))?;
+                    Ok(Some(braid))
+                },
+                Ok(None) => Ok(None),
+                Err(e) => Err(StoreError::Internal(e.to_string())),
+            }
+        })
+        .await
+        .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?
     }
 
     #[instrument(skip(self))]
     async fn get_by_hash(&self, hash: &ContentHash) -> sweet_grass_store::Result<Option<Braid>> {
-        match self.by_hash.get(hash.as_bytes()) {
-            Ok(Some(braid_id_bytes)) => {
-                let braid_id = String::from_utf8_lossy(&braid_id_bytes);
-                self.get(&BraidId::from_string(braid_id.to_string())).await
-            },
-            Ok(None) => Ok(None),
-            Err(e) => Err(StoreError::Internal(e.to_string())),
+        let by_hash = self.by_hash.clone();
+        let hash = hash.clone();
+
+        let braid_id_opt = tokio::task::spawn_blocking(move || {
+            match by_hash.get(hash.as_bytes()) {
+                Ok(Some(braid_id_bytes)) => {
+                    let braid_id = String::from_utf8_lossy(&braid_id_bytes);
+                    Ok(Some(BraidId::from_string(braid_id.to_string())))
+                },
+                Ok(None) => Ok(None),
+                Err(e) => Err(StoreError::Internal(e.to_string())),
+            }
+        })
+        .await
+        .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?;
+
+        match braid_id_opt? {
+            Some(braid_id) => self.get(&braid_id).await,
+            None => Ok(None),
         }
     }
 
     #[instrument(skip(self))]
     async fn delete(&self, id: &BraidId) -> sweet_grass_store::Result<bool> {
         // First get the braid to remove indexes
-        if let Some(braid) = self.get(id).await? {
-            self.remove_indexes(&braid)
-                .map_err(|e| StoreError::Internal(e.to_string()))?;
+        let braid_opt = self.get(id).await?;
+        
+        if let Some(braid) = braid_opt {
+            let braids = self.braids.clone();
+            let by_hash = self.by_hash.clone();
+            let by_agent = self.by_agent.clone();
+            let by_time = self.by_time.clone();
+            let by_tag = self.by_tag.clone();
+            let id = id.clone();
+
+            tokio::task::spawn_blocking(move || {
+                // Remove indexes
+                Self::remove_indexes_blocking(&braid, &by_hash, &by_agent, &by_time, &by_tag)
+                    .map_err(|e| StoreError::Internal(e.to_string()))?;
+
+                // Remove braid
+                braids
+                    .remove(id.as_str().as_bytes())
+                    .map_err(|e| StoreError::Internal(e.to_string()))?;
+
+                Ok(true)
+            })
+            .await
+            .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?
+        } else {
+            Ok(true)
         }
-
-        self.braids
-            .remove(id.as_str().as_bytes())
-            .map_err(|e| StoreError::Internal(e.to_string()))?;
-
-        Ok(true)
     }
 
     #[instrument(skip(self))]
     async fn exists(&self, id: &BraidId) -> sweet_grass_store::Result<bool> {
-        self.braids
-            .contains_key(id.as_str().as_bytes())
-            .map_err(|e| StoreError::Internal(e.to_string()))
+        let braids = self.braids.clone();
+        let id = id.clone();
+
+        tokio::task::spawn_blocking(move || {
+            braids
+                .contains_key(id.as_str().as_bytes())
+                .map_err(|e| StoreError::Internal(e.to_string()))
+        })
+        .await
+        .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?
     }
 
     #[instrument(skip(self, filter))]
@@ -247,66 +302,73 @@ impl BraidStore for SledStore {
         filter: &QueryFilter,
         order: QueryOrder,
     ) -> sweet_grass_store::Result<QueryResult> {
-        let mut braids = Vec::new();
+        let braids_tree = self.braids.clone();
+        let filter = filter.clone();
 
-        for item in &self.braids {
-            let (_, value) = item.map_err(|e| StoreError::Internal(e.to_string()))?;
+        tokio::task::spawn_blocking(move || {
+            let mut braids = Vec::new();
 
-            if let Ok(braid) = Self::deserialize_braid(&value) {
-                // Apply filters
-                if let Some(hash) = &filter.data_hash {
-                    if &braid.data_hash != hash {
-                        continue;
+            for item in &braids_tree {
+                let (_, value) = item.map_err(|e| StoreError::Internal(e.to_string()))?;
+
+                if let Ok(braid) = Self::deserialize_braid(&value) {
+                    // Apply filters
+                    if let Some(hash) = &filter.data_hash {
+                        if &braid.data_hash != hash {
+                            continue;
+                        }
                     }
-                }
 
-                if let Some(agent) = &filter.attributed_to {
-                    if &braid.was_attributed_to != agent {
-                        continue;
+                    if let Some(agent) = &filter.attributed_to {
+                        if &braid.was_attributed_to != agent {
+                            continue;
+                        }
                     }
-                }
 
-                if let Some(mime) = &filter.mime_type {
-                    if &braid.mime_type != mime {
-                        continue;
+                    if let Some(mime) = &filter.mime_type {
+                        if &braid.mime_type != mime {
+                            continue;
+                        }
                     }
-                }
 
-                if let Some(tag) = &filter.tag {
-                    if !braid.metadata.tags.contains(tag) {
-                        continue;
+                    if let Some(tag) = &filter.tag {
+                        if !braid.metadata.tags.contains(tag) {
+                            continue;
+                        }
                     }
-                }
 
-                braids.push(braid);
+                    braids.push(braid);
+                }
             }
-        }
 
-        // Sort
-        match order {
-            QueryOrder::NewestFirst => {
-                braids.sort_by(|a, b| b.generated_at_time.cmp(&a.generated_at_time));
-            },
-            QueryOrder::OldestFirst => {
-                braids.sort_by(|a, b| a.generated_at_time.cmp(&b.generated_at_time));
-            },
-            QueryOrder::LargestFirst => {
-                braids.sort_by(|a, b| b.size.cmp(&a.size));
-            },
-            QueryOrder::SmallestFirst => {
-                braids.sort_by(|a, b| a.size.cmp(&b.size));
-            },
-        }
+            // Sort
+            match order {
+                QueryOrder::NewestFirst => {
+                    braids.sort_by(|a, b| b.generated_at_time.cmp(&a.generated_at_time));
+                },
+                QueryOrder::OldestFirst => {
+                    braids.sort_by(|a, b| a.generated_at_time.cmp(&b.generated_at_time));
+                },
+                QueryOrder::LargestFirst => {
+                    braids.sort_by(|a, b| b.size.cmp(&a.size));
+                },
+                QueryOrder::SmallestFirst => {
+                    braids.sort_by(|a, b| a.size.cmp(&b.size));
+                },
+            }
 
-        let total = braids.len();
-        let offset = filter.offset.unwrap_or(0);
-        let limit = filter.limit.unwrap_or(100);
+            let total = braids.len();
+            let offset = filter.offset.unwrap_or(0);
+            let limit = filter.limit.unwrap_or(100);
 
-        // Apply pagination
-        let braids: Vec<Braid> = braids.into_iter().skip(offset).take(limit).collect();
-        let has_more = offset + braids.len() < total;
+            // Apply pagination
+            let braids: Vec<Braid> = braids.into_iter().skip(offset).take(limit).collect();
+            let has_more = offset + braids.len() < total;
 
-        Ok(QueryResult::new(braids, total, has_more))
+            Ok(QueryResult::new(braids, total, has_more))
+        })
+        .await
+        .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?
     }
 
     #[instrument(skip(self))]
@@ -342,28 +404,42 @@ impl BraidStore for SledStore {
 
     #[instrument(skip(self, activity))]
     async fn put_activity(&self, activity: &Activity) -> sweet_grass_store::Result<()> {
-        let key = activity.id.as_str().as_bytes();
-        let value =
-            serde_json::to_vec(activity).map_err(|e| StoreError::Serialization(e.to_string()))?;
+        let activities = self.activities.clone();
+        let activity = activity.clone();
 
-        self.activities
-            .insert(key, value)
-            .map_err(|e| StoreError::Internal(e.to_string()))?;
+        tokio::task::spawn_blocking(move || {
+            let key = activity.id.as_str().as_bytes();
+            let value = serde_json::to_vec(&activity)
+                .map_err(|e| StoreError::Serialization(e.to_string()))?;
 
-        Ok(())
+            activities
+                .insert(key, value)
+                .map_err(|e| StoreError::Internal(e.to_string()))?;
+
+            Ok(())
+        })
+        .await
+        .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?
     }
 
     #[instrument(skip(self))]
     async fn get_activity(&self, id: &ActivityId) -> sweet_grass_store::Result<Option<Activity>> {
-        match self.activities.get(id.as_str().as_bytes()) {
-            Ok(Some(bytes)) => {
-                let activity = serde_json::from_slice(&bytes)
-                    .map_err(|e| StoreError::Serialization(e.to_string()))?;
-                Ok(Some(activity))
-            },
-            Ok(None) => Ok(None),
-            Err(e) => Err(StoreError::Internal(e.to_string())),
-        }
+        let activities = self.activities.clone();
+        let id = id.clone();
+
+        tokio::task::spawn_blocking(move || {
+            match activities.get(id.as_str().as_bytes()) {
+                Ok(Some(bytes)) => {
+                    let activity = serde_json::from_slice(&bytes)
+                        .map_err(|e| StoreError::Serialization(e.to_string()))?;
+                    Ok(Some(activity))
+                },
+                Ok(None) => Ok(None),
+                Err(e) => Err(StoreError::Internal(e.to_string())),
+            }
+        })
+        .await
+        .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?
     }
 
     #[instrument(skip(self))]
