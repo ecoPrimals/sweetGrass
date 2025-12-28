@@ -222,21 +222,43 @@ impl SweetGrassRpc for SweetGrassServer {
             all_braids
         };
 
-        let mut total_share = 0.0;
         let braid_ids: Vec<BraidId> = braids.iter().map(|b| b.id.clone()).collect();
 
-        for braid in &braids {
-            let chain = self.attribution.calculate_single(braid);
-            for c in &chain.contributors {
-                if c.agent == agent {
-                    total_share += c.share;
+        // Parallelize attribution chain calculations for better performance
+        // Each calculation is CPU-bound and independent
+        use futures::stream::{self, StreamExt};
+        
+        let calculator = Arc::new(self.attribution);
+        let agent_clone = agent.clone();
+        
+        let shares: Vec<f64> = stream::iter(braids) // Move braids instead of iterating references
+            .map(|braid| {
+                let calc = Arc::clone(&calculator);
+                let agent = agent_clone.clone();
+                async move {
+                    // Spawn blocking since attribution calculation is CPU-intensive
+                    tokio::task::spawn_blocking(move || {
+                        let chain = calc.calculate_single(&braid);
+                        chain
+                            .contributors
+                            .iter()
+                            .find(|c| c.agent == agent)
+                            .map(|c| c.share)
+                            .unwrap_or(0.0)
+                    })
+                    .await
+                    .unwrap_or(0.0)
                 }
-            }
-        }
+            })
+            .buffer_unordered(10) // Process up to 10 braids concurrently
+            .collect()
+            .await;
+
+        let total_share = shares.iter().sum();
 
         Ok(AgentContributions {
             agent,
-            total_count: braids.len(),
+            total_count: braid_ids.len(),
             total_share,
             braids: braid_ids,
         })
