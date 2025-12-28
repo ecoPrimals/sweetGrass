@@ -72,7 +72,7 @@ impl SelfKnowledge {
     /// - `PRIMAL_INSTANCE_ID`: Instance ID (default: random UUID)
     /// - `PRIMAL_CAPABILITIES`: Comma-separated capabilities (default: empty)
     /// - `TARPC_PORT`: tarpc port (default: 0 = auto-allocate)
-    /// - `REST_PORT`: REST port (default: 8080)
+    /// - `REST_PORT`: REST port (default: 0 = auto-allocate)
     ///
     /// # Errors
     ///
