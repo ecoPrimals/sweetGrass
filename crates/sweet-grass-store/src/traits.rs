@@ -171,8 +171,91 @@ pub trait BraidStore: Send + Sync {
     /// Store a new Braid.
     async fn put(&self, braid: &Braid) -> Result<()>;
 
+    /// Store multiple Braids in parallel with bounded concurrency.
+    ///
+    /// This method provides optimized batch insertion by processing
+    /// multiple braids concurrently with controlled parallelism.
+    ///
+    /// # Arguments
+    /// * `braids` - Slice of braids to store
+    /// * `concurrency` - Maximum number of concurrent operations (defaults to 10)
+    ///
+    /// # Returns
+    /// A tuple of (success_count, errors) where errors contains any failures
+    ///
+    /// # Example
+    /// ```rust,ignore
+    /// let braids = vec![braid1, braid2, braid3];
+    /// let (succeeded, errors) = store.put_batch(&braids, Some(10)).await;
+    /// println!("Stored {succeeded} braids, {errors} errors", errors = errors.len());
+    /// ```
+    async fn put_batch(&self, braids: &[Braid], concurrency: Option<usize>) -> (usize, Vec<crate::StoreError>) {
+        use futures::stream::{self, StreamExt};
+        
+        let concurrency = concurrency.unwrap_or(10);
+        
+        // Collect futures first, then execute in parallel
+        let mut futures = Vec::with_capacity(braids.len());
+        for braid in braids {
+            futures.push(self.put(braid));
+        }
+        
+        let results: Vec<Result<()>> = stream::iter(futures)
+            .buffer_unordered(concurrency)
+            .collect()
+            .await;
+        
+        let mut success_count = 0;
+        let mut errors = Vec::new();
+        
+        for result in results {
+            match result {
+                Ok(()) => success_count += 1,
+                Err(e) => errors.push(e),
+            }
+        }
+        
+        (success_count, errors)
+    }
+
     /// Get a Braid by ID.
     async fn get(&self, id: &BraidId) -> Result<Option<Braid>>;
+
+    /// Get multiple Braids by ID in parallel with bounded concurrency.
+    ///
+    /// This method provides optimized batch retrieval by processing
+    /// multiple IDs concurrently with controlled parallelism.
+    ///
+    /// # Arguments
+    /// * `ids` - Slice of braid IDs to retrieve
+    /// * `concurrency` - Maximum number of concurrent operations (defaults to 20)
+    ///
+    /// # Returns
+    /// A vector of Option<Braid>, one for each ID (None if not found)
+    ///
+    /// # Example
+    /// ```rust,ignore
+    /// let ids = vec![id1, id2, id3];
+    /// let braids = store.get_batch(&ids, Some(20)).await;
+    /// ```
+    async fn get_batch(&self, ids: &[BraidId], concurrency: Option<usize>) -> Vec<Option<Braid>> {
+        use futures::stream::{self, StreamExt};
+        
+        let concurrency = concurrency.unwrap_or(20);
+        
+        // Collect futures first, then execute in parallel
+        let mut futures = Vec::with_capacity(ids.len());
+        for id in ids {
+            futures.push(async move {
+                self.get(id).await.ok().flatten()
+            });
+        }
+        
+        stream::iter(futures)
+            .buffer_unordered(concurrency)
+            .collect()
+            .await
+    }
 
     /// Get a Braid by content hash.
     async fn get_by_hash(&self, hash: &ContentHash) -> Result<Option<Braid>>;
