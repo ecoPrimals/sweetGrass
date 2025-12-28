@@ -1068,10 +1068,7 @@ async fn test_activity_crud_complete() {
     let activity = create_test_activity();
 
     // Create
-    store
-        .put_activity(&activity)
-        .await
-        .expect("put_activity");
+    store.put_activity(&activity).await.expect("put_activity");
 
     // Read
     let retrieved = store
@@ -1159,7 +1156,10 @@ async fn test_query_multiple_tags() {
 
     // Query for "rust" tag
     let rust_results = store
-        .query(&QueryFilter::new().with_tag("rust"), QueryOrder::NewestFirst)
+        .query(
+            &QueryFilter::new().with_tag("rust"),
+            QueryOrder::NewestFirst,
+        )
         .await
         .expect("query");
 
@@ -1167,7 +1167,10 @@ async fn test_query_multiple_tags() {
 
     // Query for "test" tag
     let test_results = store
-        .query(&QueryFilter::new().with_tag("test"), QueryOrder::NewestFirst)
+        .query(
+            &QueryFilter::new().with_tag("test"),
+            QueryOrder::NewestFirst,
+        )
         .await
         .expect("query");
 

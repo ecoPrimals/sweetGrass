@@ -546,13 +546,16 @@ mod tests {
 
         // Solo braid with no derivation has itself as result (or empty depending on implementation)
         // The current implementation returns the braid itself
-        assert!(ancestors.len() <= 1, "Solo braid should have 0 or 1 results");
+        assert!(
+            ancestors.len() <= 1,
+            "Solo braid should have 0 or 1 results"
+        );
     }
 
     #[tokio::test]
     async fn test_deep_provenance_chain() {
         let store = Arc::new(MemoryStore::new());
-        
+
         // Create chain: A -> B -> C -> D -> E (5 levels)
         let mut previous_hash = "sha256:level_0".to_string();
         let level_0 = make_test_braid(&previous_hash, "did:key:z6Mk0");
@@ -573,7 +576,10 @@ mod tests {
             .await
             .expect("should build graph");
 
-        assert!(graph.entity_count() >= 1, "Should have entities in deep chain");
+        assert!(
+            graph.entity_count() >= 1,
+            "Should have entities in deep chain"
+        );
     }
 
     #[tokio::test]
@@ -596,7 +602,10 @@ mod tests {
     #[tokio::test]
     async fn test_query_with_zero_limit() {
         let store = Arc::new(MemoryStore::new());
-        store.put(&make_test_braid("sha256:z1", "did:key:z6MkA")).await.expect("store");
+        store
+            .put(&make_test_braid("sha256:z1", "did:key:z6MkA"))
+            .await
+            .expect("store");
 
         let engine = QueryEngine::new(store);
         let filter = QueryFilter::new().with_limit(0);
@@ -611,7 +620,10 @@ mod tests {
     #[tokio::test]
     async fn test_query_with_large_offset() {
         let store = Arc::new(MemoryStore::new());
-        store.put(&make_test_braid("sha256:o1", "did:key:z6MkA")).await.expect("store");
+        store
+            .put(&make_test_braid("sha256:o1", "did:key:z6MkA"))
+            .await
+            .expect("store");
 
         let engine = QueryEngine::new(store);
         let filter = QueryFilter::new().with_limit(10).with_offset(1000);
@@ -646,10 +658,7 @@ mod tests {
         let engine = QueryEngine::new(store);
 
         let did = Did::new("did:key:z6MkNonexistent");
-        let braids = engine
-            .by_agent(&did)
-            .await
-            .expect("should query");
+        let braids = engine.by_agent(&did).await.expect("should query");
 
         assert_eq!(braids.len(), 0);
     }
@@ -663,7 +672,8 @@ mod tests {
 
         // Create 3 children derived from same parent
         for i in 0..3 {
-            let mut child = make_test_braid(&format!("sha256:child_multi_{i}"), "did:key:z6MkChild");
+            let mut child =
+                make_test_braid(&format!("sha256:child_multi_{i}"), "did:key:z6MkChild");
             child.was_derived_from = vec![EntityReference::by_hash(&parent_hash)];
             store.put(&child).await.expect("store");
         }
@@ -680,17 +690,17 @@ mod tests {
     #[tokio::test]
     async fn test_provenance_graph_with_cycle_detection() {
         let store = Arc::new(MemoryStore::new());
-        
+
         // Create A -> B -> A (cycle)
         let hash_a = "sha256:cycle_a".to_string();
         let hash_b = "sha256:cycle_b".to_string();
-        
+
         let braid_a = make_test_braid(&hash_a, "did:key:z6MkA");
         let mut braid_b = make_test_braid(&hash_b, "did:key:z6MkB");
-        
+
         braid_b.was_derived_from = vec![EntityReference::by_hash(&hash_a)];
         // Note: In real scenario, would need more complex cycle
-        
+
         store.put(&braid_a).await.expect("store");
         store.put(&braid_b).await.expect("store");
 
@@ -734,7 +744,7 @@ mod tests {
     #[tokio::test]
     async fn test_concurrent_different_queries() {
         let store = Arc::new(MemoryStore::new());
-        
+
         // Populate store
         for i in 0..10 {
             let braid = make_test_braid(&format!("sha256:conc_{i}"), &format!("did:key:z6Mk{i}"));
@@ -749,12 +759,11 @@ mod tests {
         let e3 = Arc::clone(&engine);
 
         let h1 = tokio::spawn(async move {
-            e1.query(&QueryFilter::new().with_limit(5), QueryOrder::NewestFirst).await
+            e1.query(&QueryFilter::new().with_limit(5), QueryOrder::NewestFirst)
+                .await
         });
 
-        let h2 = tokio::spawn(async move {
-            e2.get_by_hash(&"sha256:conc_0".to_string()).await
-        });
+        let h2 = tokio::spawn(async move { e2.get_by_hash(&"sha256:conc_0".to_string()).await });
 
         let h3 = tokio::spawn(async move {
             let did = Did::new("did:key:z6Mk1");
@@ -771,7 +780,7 @@ mod tests {
     #[tokio::test]
     async fn test_query_ordering_consistency() {
         let store = Arc::new(MemoryStore::new());
-        
+
         // Add braids with slight delays
         for i in 0..5 {
             let braid = make_test_braid(&format!("sha256:order_{i}"), "did:key:z6MkOrder");
