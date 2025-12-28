@@ -165,19 +165,33 @@ impl SledStore {
 impl BraidStore for SledStore {
     #[instrument(skip(self, braid), fields(braid_id = %braid.id))]
     async fn put(&self, braid: &Braid) -> sweet_grass_store::Result<()> {
-        let key = braid.id.as_str().as_bytes();
-        let value =
-            Self::serialize_braid(braid).map_err(|e| StoreError::Internal(e.to_string()))?;
+        // Clone for moving into spawn_blocking (Arc clones are cheap)
+        let braids = self.braids.clone();
+        let by_hash = self.by_hash.clone();
+        let by_agent = self.by_agent.clone();
+        let by_time = self.by_time.clone();
+        let by_tag = self.by_tag.clone();
+        let braid = braid.clone();
 
-        self.braids
-            .insert(key, value)
-            .map_err(|e| StoreError::Internal(e.to_string()))?;
+        // Wrap blocking Sled operations in spawn_blocking
+        tokio::task::spawn_blocking(move || {
+            let key = braid.id.as_str().as_bytes();
+            let value =
+                Self::serialize_braid(&braid).map_err(|e| StoreError::Internal(e.to_string()))?;
 
-        self.update_indexes(braid)
-            .map_err(|e| StoreError::Internal(e.to_string()))?;
+            braids
+                .insert(key, value)
+                .map_err(|e| StoreError::Internal(e.to_string()))?;
 
-        debug!("Stored braid {}", braid.id);
-        Ok(())
+            // Update indexes (blocking operations)
+            Self::update_indexes_blocking(&braid, &by_hash, &by_agent, &by_time, &by_tag)
+                .map_err(|e| StoreError::Internal(e.to_string()))?;
+
+            debug!("Stored braid {}", braid.id);
+            Ok(())
+        })
+        .await
+        .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?
     }
 
     #[instrument(skip(self))]
