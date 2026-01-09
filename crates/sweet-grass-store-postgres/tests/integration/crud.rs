@@ -3,8 +3,6 @@
 //! Tests basic create, read, update, delete operations and data integrity.
 
 use super::common::{create_test_braid, setup_postgres};
-use sweet_grass_core::agent::Did;
-use sweet_grass_core::Braid;
 use sweet_grass_store::BraidStore;
 
 #[tokio::test]
