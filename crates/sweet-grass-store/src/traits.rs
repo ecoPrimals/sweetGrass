@@ -235,7 +235,7 @@ pub trait BraidStore: Send + Sync {
     /// * `concurrency` - Maximum number of concurrent operations (defaults to 20)
     ///
     /// # Returns
-    /// A vector of Option<Braid>, one for each ID (None if not found)
+    /// A vector of `Option<Braid>`, one for each ID (None if not found)
     ///
     /// # Example
     /// ```rust,ignore
