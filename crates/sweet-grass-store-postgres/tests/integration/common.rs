@@ -92,4 +92,3 @@ pub fn create_test_activity() -> Activity {
         .compute_units(1.5)
         .build()
 }
-

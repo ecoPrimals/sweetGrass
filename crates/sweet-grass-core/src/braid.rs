@@ -63,10 +63,11 @@ impl std::fmt::Display for BraidId {
 }
 
 /// Types of Braids.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum BraidType {
     /// Standard entity Braid (most common).
+    #[default]
     Entity,
 
     /// Activity Braid.
@@ -98,12 +99,6 @@ pub enum BraidType {
         /// Origin spine ID.
         origin_spine: String,
     },
-}
-
-impl Default for BraidType {
-    fn default() -> Self {
-        Self::Entity
-    }
 }
 
 /// Summary types for meta-Braids.
