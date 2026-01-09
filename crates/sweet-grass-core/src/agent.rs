@@ -101,12 +101,13 @@ impl Default for AgentType {
 }
 
 /// Roles agents can play in activities.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AgentRole {
     /// Primary creator/author.
     Creator,
 
     /// Contributor (partial contribution).
+    #[default]
     Contributor,
 
     /// Publisher/distributor.
@@ -138,12 +139,6 @@ pub enum AgentRole {
 
     /// Custom role.
     Custom(String),
-}
-
-impl Default for AgentRole {
-    fn default() -> Self {
-        Self::Contributor
-    }
 }
 
 impl std::fmt::Display for AgentRole {

@@ -31,14 +31,13 @@
 //! - Containers auto-cleanup after tests
 
 #![cfg(feature = "integration-tests")]
-#![allow(clippy::expect_used, clippy::unwrap_used)] // Test code clarity
+#![allow(clippy::expect_used, clippy::unwrap_used)]
+// Test code clarity
 
-// Include legacy comprehensive test file until full migration
-// This ensures no test coverage is lost during refactoring
-#![allow(dead_code)]
-include!("integration_old.rs.bak");
+// Note: Legacy tests from integration_old.rs.bak have been fully migrated
+// to the modular structure below. See migration history in git log.
 
-// New modular organization (being migrated incrementally)
+// New modular organization (fully migrated)
 mod integration {
     pub mod common;
     pub mod crud;

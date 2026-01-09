@@ -53,11 +53,12 @@ impl std::fmt::Display for ActivityId {
 }
 
 /// Standard activity types following PROV-O.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum ActivityType {
     // === Data Creation ===
     /// Original data creation.
+    #[default]
     Creation,
     /// Import from external source.
     Import,
@@ -142,12 +143,6 @@ pub enum ActivityType {
     },
 }
 
-impl Default for ActivityType {
-    fn default() -> Self {
-        Self::Creation
-    }
-}
-
 impl std::fmt::Display for ActivityType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -158,9 +153,10 @@ impl std::fmt::Display for ActivityType {
 }
 
 /// Role an entity plays in an activity.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EntityRole {
     /// Primary input.
+    #[default]
     Input,
     /// Template/pattern.
     Template,
@@ -174,12 +170,6 @@ pub enum EntityRole {
     Validation,
     /// Custom role.
     Custom(String),
-}
-
-impl Default for EntityRole {
-    fn default() -> Self {
-        Self::Input
-    }
 }
 
 /// Extent of entity usage.

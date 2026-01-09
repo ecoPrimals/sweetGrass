@@ -102,7 +102,7 @@ async fn test_delete_nonexistent() {
 
     let braid = create_test_braid("nonexistent");
     let deleted = store.delete(&braid.id).await.expect("delete");
-    
+
     // Deleting nonexistent should return false
     assert!(!deleted);
 }
@@ -116,7 +116,7 @@ async fn test_get_by_hash_nonexistent() {
         .get_by_hash(&"sha256:nonexistent".into())
         .await
         .expect("query");
-    
+
     assert!(result.is_none());
 }
 
@@ -126,19 +126,19 @@ async fn test_exists_correctness() {
     let (_container, store) = setup_postgres().await;
 
     let braid = create_test_braid("exists001");
-    
+
     // Should not exist initially
     assert!(!store.exists(&braid.id).await.expect("exists check"));
-    
+
     // Put it
     store.put(&braid).await.expect("put");
-    
+
     // Should exist now
     assert!(store.exists(&braid.id).await.expect("exists check"));
-    
+
     // Delete it
     store.delete(&braid.id).await.expect("delete");
-    
+
     // Should not exist again
     assert!(!store.exists(&braid.id).await.expect("exists check"));
 }
@@ -155,7 +155,6 @@ async fn test_health_check() {
         .count(&sweet_grass_store::QueryFilter::default())
         .await
         .expect("count");
-    
+
     assert_eq!(count, 0);
 }
-

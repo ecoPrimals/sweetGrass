@@ -131,21 +131,16 @@ impl EntityReference {
 }
 
 /// Encoding for inline entity data.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Encoding {
     /// Base64 encoding.
+    #[default]
     Base64,
     /// UTF-8 text.
     Utf8,
     /// Hexadecimal encoding.
     Hex,
-}
-
-impl Default for Encoding {
-    fn default() -> Self {
-        Self::Base64
-    }
 }
 
 /// Inline entity for small data.
@@ -288,7 +283,7 @@ fn hex_encode(bytes: &[u8]) -> String {
 
 /// Hex decode string.
 fn hex_decode(s: &str) -> Result<Vec<u8>, String> {
-    if s.len() % 2 != 0 {
+    if !s.len().is_multiple_of(2) {
         return Err("odd length hex string".to_string());
     }
     (0..s.len())

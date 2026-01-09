@@ -49,7 +49,7 @@ impl BraidFactory {
     pub fn from_self_knowledge(default_agent: Did, self_knowledge: &SelfKnowledge) -> Self {
         Self {
             default_agent,
-            source_primal: self_knowledge.name.to_string(),
+            source_primal: self_knowledge.name.clone(),
             niche: None,
         }
     }
@@ -177,7 +177,7 @@ impl BraidFactory {
         }
 
         let ecop = EcoPrimalsAttributes {
-            source_primal: Some(self.source_primal.to_string()),
+            source_primal: Some(self.source_primal.clone()),
             niche: self.niche.as_ref().map(ToString::to_string),
             ..Default::default()
         };
