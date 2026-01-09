@@ -227,10 +227,10 @@ impl SweetGrassRpc for SweetGrassServer {
         // Parallelize attribution chain calculations for better performance
         // Each calculation is CPU-bound and independent
         use futures::stream::{self, StreamExt};
-        
+
         let calculator = Arc::new(self.attribution);
         let agent_clone = agent.clone();
-        
+
         let shares: Vec<f64> = stream::iter(braids) // Move braids instead of iterating references
             .map(|braid| {
                 let calc = Arc::clone(&calculator);
