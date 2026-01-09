@@ -21,7 +21,7 @@ async fn create_test_db() -> PgPool {
 
 /// Test that migrations can be applied successfully
 #[tokio::test]
-#[ignore] // Requires PostgreSQL running
+#[ignore = "requires PostgreSQL running (Docker)"]
 async fn test_migrations_apply() {
     let pool = create_test_db().await;
 
@@ -42,7 +42,7 @@ async fn test_migrations_apply() {
 
 /// Test that migrations are idempotent (can be run multiple times)
 #[tokio::test]
-#[ignore] // Requires PostgreSQL running
+#[ignore = "requires PostgreSQL running (Docker)"]
 async fn test_migrations_idempotent() {
     let pool = create_test_db().await;
 
@@ -60,7 +60,7 @@ async fn test_migrations_idempotent() {
 
 /// Test that braids table has correct schema
 #[tokio::test]
-#[ignore] // Requires PostgreSQL running
+#[ignore = "requires PostgreSQL running (Docker)"]
 async fn test_braids_table_schema() {
     let pool = create_test_db().await;
 
@@ -85,7 +85,7 @@ async fn test_braids_table_schema() {
 
 /// Test that indexes are created correctly
 #[tokio::test]
-#[ignore] // Requires PostgreSQL running
+#[ignore = "requires PostgreSQL running (Docker)"]
 async fn test_indexes_created() {
     let pool = create_test_db().await;
 
@@ -110,7 +110,7 @@ async fn test_indexes_created() {
 
 /// Test that foreign key constraints are correct
 #[tokio::test]
-#[ignore] // Requires PostgreSQL running
+#[ignore = "requires PostgreSQL running (Docker)"]
 async fn test_foreign_key_constraints() {
     let pool = create_test_db().await;
 
@@ -135,7 +135,7 @@ async fn test_foreign_key_constraints() {
 
 /// Test that JSON columns support JSONB operations
 #[tokio::test]
-#[ignore] // Requires PostgreSQL running
+#[ignore = "requires PostgreSQL running (Docker)"]
 async fn test_jsonb_operations() {
     let pool = create_test_db().await;
 
@@ -164,7 +164,7 @@ async fn test_jsonb_operations() {
 
 /// Test migration rollback (if supported)
 #[tokio::test]
-#[ignore] // Requires PostgreSQL running and rollback support
+#[ignore = "requires PostgreSQL running (Docker) with rollback support"]
 async fn test_migration_rollback() {
     let pool = create_test_db().await;
 
@@ -191,7 +191,7 @@ async fn test_migration_rollback() {
 
 /// Test that database can handle UTF-8 content
 #[tokio::test]
-#[ignore] // Requires PostgreSQL running
+#[ignore = "requires PostgreSQL running (Docker)"]
 async fn test_utf8_support() {
     let pool = create_test_db().await;
 
@@ -214,7 +214,7 @@ async fn test_utf8_support() {
 
 /// Test that required extensions are available
 #[tokio::test]
-#[ignore] // Requires PostgreSQL running
+#[ignore = "requires PostgreSQL running (Docker)"]
 async fn test_required_extensions() {
     let pool = create_test_db().await;
 
@@ -232,7 +232,7 @@ async fn test_required_extensions() {
 
 /// Test concurrent migration attempts (race condition safety)
 #[tokio::test]
-#[ignore] // Requires PostgreSQL running
+#[ignore = "requires PostgreSQL running (Docker)"]
 async fn test_concurrent_migrations() {
     let pool = create_test_db().await;
 

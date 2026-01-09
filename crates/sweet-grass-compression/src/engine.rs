@@ -154,7 +154,7 @@ impl CompressionEngine {
                 // Full implementation would create per-branch Braids
                 let braid = self.compress_single(session, &analysis)?;
                 let summary = if self.config.generate_summaries {
-                    Some(self.create_meta_braid(&[braid.clone()], &session.id)?)
+                    Some(self.create_meta_braid(std::slice::from_ref(&braid), &session.id)?)
                 } else {
                     None
                 };
@@ -168,7 +168,7 @@ impl CompressionEngine {
                 // For now, fall back to single with summary
                 let braid = self.compress_single(session, &analysis)?;
                 let summary = if self.config.generate_summaries {
-                    Some(self.create_meta_braid(&[braid.clone()], &session.id)?)
+                    Some(self.create_meta_braid(std::slice::from_ref(&braid), &session.id)?)
                 } else {
                     None
                 };
