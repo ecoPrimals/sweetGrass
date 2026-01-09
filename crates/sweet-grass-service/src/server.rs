@@ -243,8 +243,7 @@ impl SweetGrassRpc for SweetGrassServer {
                             .contributors
                             .iter()
                             .find(|c| c.agent == agent)
-                            .map(|c| c.share)
-                            .unwrap_or(0.0)
+                            .map_or(0.0, |c| c.share)
                     })
                     .await
                     .unwrap_or(0.0)
