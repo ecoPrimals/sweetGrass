@@ -101,7 +101,7 @@ impl SessionVertex {
 }
 
 /// Session outcome.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SessionOutcome {
     /// Session completed successfully with commits.
     Committed,
@@ -110,25 +110,21 @@ pub enum SessionOutcome {
     Rollback,
 
     /// Session is still in progress.
+    #[default]
     InProgress,
 
     /// Session had no changes.
     NoOp,
 }
 
-impl Default for SessionOutcome {
-    fn default() -> Self {
-        Self::InProgress
-    }
-}
-
 /// Compression hint from the session.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CompressionHint {
     /// Force single Braid.
     Single,
 
     /// Allow any compression.
+    #[default]
     Auto,
 
     /// Treat as atomic unit.
@@ -139,12 +135,6 @@ pub enum CompressionHint {
 
     /// Important: prioritize preservation.
     Important,
-}
-
-impl Default for CompressionHint {
-    fn default() -> Self {
-        Self::Auto
-    }
 }
 
 /// A session from session events provider ready for compression.

@@ -1,4 +1,9 @@
 //! Common test utilities for PostgreSQL integration tests.
+//!
+//! Note: Some helpers may be unused during incremental test refactoring.
+//! They are kept for future test modules being migrated.
+
+#![allow(dead_code)] // Test utilities for incremental migration
 
 use sweet_grass_core::{
     activity::{Activity, ActivityType},
