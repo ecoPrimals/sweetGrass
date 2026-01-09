@@ -388,14 +388,12 @@ impl SongbirdDiscovery {
             .or_else(|_| std::env::var("DISCOVERY_BOOTSTRAP"))
             .or_else(|_| {
                 // Legacy support with deprecation warning
-                if let Ok(addr) = std::env::var("SONGBIRD_ADDRESS") {
+                std::env::var("SONGBIRD_ADDRESS").map_or(Err(std::env::VarError::NotPresent), |addr| {
                     tracing::warn!(
                         "SONGBIRD_ADDRESS is deprecated. Use UNIVERSAL_ADAPTER_ADDRESS for vendor-agnostic discovery"
                     );
                     Ok(addr)
-                } else {
-                    Err(std::env::VarError::NotPresent)
-                }
+                })
             })
             .map_err(|_| {
                 DiscoveryError::ServiceUnavailable(
