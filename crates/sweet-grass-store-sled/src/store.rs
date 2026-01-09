@@ -211,16 +211,14 @@ impl BraidStore for SledStore {
         let braids = self.braids.clone();
         let id = id.clone();
 
-        tokio::task::spawn_blocking(move || {
-            match braids.get(id.as_str().as_bytes()) {
-                Ok(Some(bytes)) => {
-                    let braid = Self::deserialize_braid(&bytes)
-                        .map_err(|e| StoreError::Internal(e.to_string()))?;
-                    Ok(Some(braid))
-                },
-                Ok(None) => Ok(None),
-                Err(e) => Err(StoreError::Internal(e.to_string())),
-            }
+        tokio::task::spawn_blocking(move || match braids.get(id.as_str().as_bytes()) {
+            Ok(Some(bytes)) => {
+                let braid = Self::deserialize_braid(&bytes)
+                    .map_err(|e| StoreError::Internal(e.to_string()))?;
+                Ok(Some(braid))
+            },
+            Ok(None) => Ok(None),
+            Err(e) => Err(StoreError::Internal(e.to_string())),
         })
         .await
         .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?
@@ -231,18 +229,17 @@ impl BraidStore for SledStore {
         let by_hash = self.by_hash.clone();
         let hash = hash.clone();
 
-        let braid_id_opt = tokio::task::spawn_blocking(move || {
-            match by_hash.get(hash.as_bytes()) {
+        let braid_id_opt =
+            tokio::task::spawn_blocking(move || match by_hash.get(hash.as_bytes()) {
                 Ok(Some(braid_id_bytes)) => {
                     let braid_id = String::from_utf8_lossy(&braid_id_bytes);
                     Ok(Some(BraidId::from_string(braid_id.to_string())))
                 },
                 Ok(None) => Ok(None),
                 Err(e) => Err(StoreError::Internal(e.to_string())),
-            }
-        })
-        .await
-        .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?;
+            })
+            .await
+            .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?;
 
         match braid_id_opt? {
             Some(braid_id) => self.get(&braid_id).await,
@@ -254,7 +251,7 @@ impl BraidStore for SledStore {
     async fn delete(&self, id: &BraidId) -> sweet_grass_store::Result<bool> {
         // First get the braid to remove indexes
         let braid_opt = self.get(id).await?;
-        
+
         if let Some(braid) = braid_opt {
             let braids = self.braids.clone();
             let by_hash = self.by_hash.clone();
@@ -427,16 +424,14 @@ impl BraidStore for SledStore {
         let activities = self.activities.clone();
         let id = id.clone();
 
-        tokio::task::spawn_blocking(move || {
-            match activities.get(id.as_str().as_bytes()) {
-                Ok(Some(bytes)) => {
-                    let activity = serde_json::from_slice(&bytes)
-                        .map_err(|e| StoreError::Serialization(e.to_string()))?;
-                    Ok(Some(activity))
-                },
-                Ok(None) => Ok(None),
-                Err(e) => Err(StoreError::Internal(e.to_string())),
-            }
+        tokio::task::spawn_blocking(move || match activities.get(id.as_str().as_bytes()) {
+            Ok(Some(bytes)) => {
+                let activity = serde_json::from_slice(&bytes)
+                    .map_err(|e| StoreError::Serialization(e.to_string()))?;
+                Ok(Some(activity))
+            },
+            Ok(None) => Ok(None),
+            Err(e) => Err(StoreError::Internal(e.to_string())),
         })
         .await
         .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?

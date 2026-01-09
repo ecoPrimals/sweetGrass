@@ -189,32 +189,36 @@ pub trait BraidStore: Send + Sync {
     /// let (succeeded, errors) = store.put_batch(&braids, Some(10)).await;
     /// println!("Stored {succeeded} braids, {errors} errors", errors = errors.len());
     /// ```
-    async fn put_batch(&self, braids: &[Braid], concurrency: Option<usize>) -> (usize, Vec<crate::StoreError>) {
+    async fn put_batch(
+        &self,
+        braids: &[Braid],
+        concurrency: Option<usize>,
+    ) -> (usize, Vec<crate::StoreError>) {
         use futures::stream::{self, StreamExt};
-        
+
         let concurrency = concurrency.unwrap_or(10);
-        
+
         // Collect futures first, then execute in parallel
         let mut futures = Vec::with_capacity(braids.len());
         for braid in braids {
             futures.push(self.put(braid));
         }
-        
+
         let results: Vec<Result<()>> = stream::iter(futures)
             .buffer_unordered(concurrency)
             .collect()
             .await;
-        
+
         let mut success_count = 0;
         let mut errors = Vec::new();
-        
+
         for result in results {
             match result {
                 Ok(()) => success_count += 1,
                 Err(e) => errors.push(e),
             }
         }
-        
+
         (success_count, errors)
     }
 
@@ -240,17 +244,15 @@ pub trait BraidStore: Send + Sync {
     /// ```
     async fn get_batch(&self, ids: &[BraidId], concurrency: Option<usize>) -> Vec<Option<Braid>> {
         use futures::stream::{self, StreamExt};
-        
+
         let concurrency = concurrency.unwrap_or(20);
-        
+
         // Collect futures first, then execute in parallel
         let mut futures = Vec::with_capacity(ids.len());
         for id in ids {
-            futures.push(async move {
-                self.get(id).await.ok().flatten()
-            });
+            futures.push(async move { self.get(id).await.ok().flatten() });
         }
-        
+
         stream::iter(futures)
             .buffer_unordered(concurrency)
             .collect()

@@ -499,7 +499,9 @@ impl PrimalDiscovery for SongbirdDiscovery {
 pub async fn create_discovery() -> Arc<dyn PrimalDiscovery> {
     match SongbirdDiscovery::from_env().await {
         Ok(discovery) => {
-            tracing::info!("Using network discovery service (universal adapter) for primal coordination");
+            tracing::info!(
+                "Using network discovery service (universal adapter) for primal coordination"
+            );
             Arc::new(discovery)
         },
         Err(e) => {
