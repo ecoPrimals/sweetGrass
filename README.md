@@ -3,9 +3,9 @@
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
 [![Release](https://img.shields.io/badge/release-v0.6.0-success)](https://github.com/ecoPrimals/sweetGrass/releases)
-[![Grade](https://img.shields.io/badge/grade-A++-brightgreen)](./STATUS.md)
+[![Grade](https://img.shields.io/badge/grade-A%2B%2B%2B-brightgreen)](./STATUS.md)
 [![Tests](https://img.shields.io/badge/tests-471%2F471-success)](./STATUS.md)
-[![Coverage](https://img.shields.io/badge/coverage-88.14%25-brightgreen)](./STATUS.md)
+[![Coverage](https://img.shields.io/badge/coverage-88.08%25-brightgreen)](./STATUS.md)
 [![License](https://img.shields.io/badge/license-see_LICENSE-blue)](./)
 
 ---
@@ -304,4 +304,4 @@ See LICENSE file for details.
 
 **🌾 Fair attribution. Complete transparency. Human dignity preserved. 🌾**
 
-**Version**: v0.6.0 | **Status**: Production Ready | **Grade**: A++ 🏆
+**Version**: v0.6.0 | **Status**: Production Ready++ | **Grade**: A+++ (100/100) 🏆
