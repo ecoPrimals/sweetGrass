@@ -302,6 +302,119 @@ async fn e2e_jsonrpc_delete_braid() {
     assert_eq!(get_body["error"]["code"], -32001);
 }
 
+// ==================== Contribution Recording ====================
+
+#[tokio::test]
+async fn e2e_jsonrpc_record_contribution() {
+    let server = test_server();
+
+    let resp = server
+        .post("/jsonrpc")
+        .json(&jsonrpc(
+            "sweetgrass.recordContribution",
+            json!({
+                "agent": "did:key:z6MkContributor1",
+                "role": "Creator",
+                "content_hash": "sha256:contrib001",
+                "mime_type": "application/json",
+                "size": 2048,
+                "description": "Initial data creation",
+                "source_primal": "rhizoCrypt",
+                "session_id": "session-42",
+                "domain": {
+                    "chemistry.molecule": "caffeine",
+                    "chemistry.basis_set": "6-31G*"
+                }
+            }),
+            20,
+        ))
+        .await;
+
+    resp.assert_status_ok();
+    let body: serde_json::Value = resp.json();
+    assert!(body["error"].is_null(), "Expected no error: {body}");
+    let braid = &body["result"];
+    assert!(braid["@id"].is_string());
+    assert_eq!(braid["data_hash"], "sha256:contrib001");
+}
+
+#[tokio::test]
+async fn e2e_jsonrpc_record_session() {
+    let server = test_server();
+
+    let resp = server
+        .post("/jsonrpc")
+        .json(&jsonrpc(
+            "sweetgrass.recordSession",
+            json!({
+                "session_id": "rhizo-session-99",
+                "source_primal": "rhizoCrypt",
+                "niche": "rootpulse",
+                "session_start": 1_000_000,
+                "session_end": 2_000_000,
+                "contributions": [
+                    {
+                        "agent": "did:key:z6MkAlice",
+                        "role": "Creator",
+                        "content_hash": "sha256:alice-change",
+                        "size": 512
+                    },
+                    {
+                        "agent": "did:key:z6MkBob",
+                        "role": "Contributor",
+                        "content_hash": "sha256:bob-review",
+                        "size": 128
+                    }
+                ]
+            }),
+            30,
+        ))
+        .await;
+
+    resp.assert_status_ok();
+    let body: serde_json::Value = resp.json();
+    assert!(body["error"].is_null(), "Expected no error: {body}");
+    let result = &body["result"];
+    assert_eq!(result["session_id"], "rhizo-session-99");
+    assert_eq!(result["braids_created"], 2);
+    assert_eq!(result["braid_ids"].as_array().unwrap().len(), 2);
+}
+
+#[tokio::test]
+async fn e2e_jsonrpc_record_contribution_then_query() {
+    let server = test_server();
+
+    // Record a contribution
+    let create_body: serde_json::Value = server
+        .post("/jsonrpc")
+        .json(&jsonrpc(
+            "sweetgrass.recordContribution",
+            json!({
+                "agent": "did:key:z6MkQueryTest",
+                "role": "Creator",
+                "content_hash": "sha256:queryable",
+                "size": 64
+            }),
+            1,
+        ))
+        .await
+        .json();
+    assert!(create_body["error"].is_null());
+
+    // Verify it's queryable via getBraidByHash
+    let query_body: serde_json::Value = server
+        .post("/jsonrpc")
+        .json(&jsonrpc(
+            "sweetgrass.getBraidByHash",
+            json!({"hash": "sha256:queryable"}),
+            2,
+        ))
+        .await
+        .json();
+    assert!(query_body["error"].is_null());
+    assert_eq!(query_body["result"]["data_hash"], "sha256:queryable");
+}
+
 // ==================== Cross-Protocol Consistency ====================
 
 #[tokio::test]

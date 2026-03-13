@@ -35,8 +35,6 @@
 #![allow(clippy::expect_used, clippy::unwrap_used)]
 // Test code clarity
 
-
-
 // New modular organization (fully migrated)
 mod integration {
     pub mod common;

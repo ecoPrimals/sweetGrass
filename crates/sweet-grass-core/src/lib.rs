@@ -32,6 +32,7 @@ pub mod activity;
 pub mod agent;
 pub mod braid;
 pub mod config;
+pub mod contribution;
 pub mod entity;
 pub mod error;
 pub mod primal;
