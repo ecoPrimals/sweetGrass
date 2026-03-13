@@ -6,10 +6,26 @@
 
 use tracing::{debug, info, instrument};
 
-use crate::factory::BraidStoreFactory;
+use crate::factory::{BraidStoreFactory, StorageConfig};
 use crate::state::AppState;
 use sweet_grass_core::agent::Did;
 use sweet_grass_core::SelfKnowledge;
+
+/// Explicit bootstrap configuration (avoids env var mutation).
+///
+/// Use with `infant_bootstrap_with_config()` to bootstrap without mutating
+/// process environment variables. Safe for multi-threaded contexts.
+#[derive(Clone, Debug, Default)]
+pub struct BootstrapConfig {
+    /// Storage configuration.
+    pub storage: StorageConfig,
+
+    /// Override primal name (otherwise read from PRIMAL_NAME env var).
+    pub primal_name: Option<String>,
+
+    /// Override instance ID (otherwise read from PRIMAL_INSTANCE_ID env var).
+    pub instance_id: Option<String>,
+}
 
 /// Bootstrap error.
 #[derive(Debug, thiserror::Error)]
@@ -151,6 +167,71 @@ pub async fn infant_bootstrap() -> Result<BootstrapResult, BootstrapError> {
     })
 }
 
+/// Infant Bootstrap with explicit configuration (no env var mutation).
+///
+/// Use this instead of `infant_bootstrap()` when storage config is known at
+/// call site (e.g. CLI args). Primal identity still comes from environment.
+///
+/// # Errors
+///
+/// Returns error if self-knowledge or storage initialization fails.
+#[instrument(skip(config))]
+pub async fn infant_bootstrap_with_config(
+    config: BootstrapConfig,
+) -> Result<BootstrapResult, BootstrapError> {
+    info!("🌱 Infant Bootstrap: Starting with explicit configuration");
+
+    // Phase 1: Establish self-knowledge from environment
+    // (primal identity still comes from env — only storage is config-driven)
+    debug!("Phase 1: Establishing self-knowledge from environment");
+    let self_knowledge = SelfKnowledge::from_env().map_err(BootstrapError::SelfKnowledge)?;
+
+    info!(
+        primal_name = %self_knowledge.name,
+        instance_id = %self_knowledge.instance_id,
+        capabilities = ?self_knowledge.capabilities,
+        "Self-knowledge established"
+    );
+
+    // Phase 2: Initialize storage from explicit config (no env mutation)
+    debug!("Phase 2: Initializing storage from explicit config");
+    let (store, backend_type) = BraidStoreFactory::from_config_with_name(&config.storage).await?;
+
+    info!(backend = backend_type, "Storage backend initialized");
+
+    // Phase 3: Establish default agent identity
+    debug!("Phase 3: Establishing default agent identity");
+    let default_agent = Did::new(format!("did:primal:{}", self_knowledge.instance_id));
+
+    // Phase 4: Create application state
+    debug!("Phase 4: Creating application state");
+    let app_state = AppState::with_self_knowledge(
+        store,
+        default_agent.clone(),
+        self_knowledge.clone(),
+        &backend_type,
+    );
+
+    if !self_knowledge.capabilities.is_empty() {
+        debug!(
+            capabilities = ?self_knowledge.capabilities,
+            "Capabilities offered (discovery integration pending)"
+        );
+    }
+
+    info!(
+        primal_name = %self_knowledge.name,
+        default_agent = %default_agent,
+        "🌾 Infant Bootstrap complete"
+    );
+
+    Ok(BootstrapResult {
+        self_knowledge,
+        app_state,
+        default_agent,
+    })
+}
+
 /// Create application state with runtime-discovered storage.
 ///
 /// This is a convenience function for tests and examples that don't need
@@ -237,5 +318,115 @@ mod tests {
 
         // Verify app state has a store
         assert!(Arc::strong_count(&app_state.store) >= 1);
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn test_infant_bootstrap_with_explicit_config_memory() {
+        clear_env();
+        let config = BootstrapConfig {
+            storage: crate::factory::StorageConfig {
+                backend: "memory".to_string(),
+                ..Default::default()
+            },
+            primal_name: None,
+            instance_id: None,
+        };
+
+        let result = infant_bootstrap_with_config(config)
+            .await
+            .expect("should bootstrap with config");
+
+        assert_eq!(result.self_knowledge.name, "sweetgrass");
+        assert_eq!(result.app_state.store_backend, "memory");
+        assert!(Arc::strong_count(&result.app_state.store) >= 1);
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn test_infant_bootstrap_with_explicit_config_primal_identity() {
+        clear_env();
+        std::env::set_var("PRIMAL_NAME", "sg-config-test");
+        std::env::set_var("PRIMAL_INSTANCE_ID", "cfg-instance-42");
+
+        let config = BootstrapConfig {
+            storage: crate::factory::StorageConfig {
+                backend: "memory".to_string(),
+                ..Default::default()
+            },
+            primal_name: None,
+            instance_id: None,
+        };
+
+        let result = infant_bootstrap_with_config(config)
+            .await
+            .expect("bootstrap");
+        assert_eq!(result.self_knowledge.name, "sg-config-test");
+        assert_eq!(result.self_knowledge.instance_id, "cfg-instance-42");
+        assert_eq!(result.default_agent.as_str(), "did:primal:cfg-instance-42");
+        assert!(result.app_state.self_knowledge.is_some());
+
+        clear_env();
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn test_infant_bootstrap_with_config_capabilities() {
+        clear_env();
+        std::env::set_var("PRIMAL_CAPABILITIES", "signing,anchoring,session_events");
+
+        let config = BootstrapConfig {
+            storage: crate::factory::StorageConfig {
+                backend: "memory".to_string(),
+                ..Default::default()
+            },
+            primal_name: None,
+            instance_id: None,
+        };
+
+        let result = infant_bootstrap_with_config(config)
+            .await
+            .expect("bootstrap");
+        assert_eq!(result.self_knowledge.capabilities.len(), 3);
+
+        clear_env();
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn test_infant_bootstrap_with_config_invalid_storage() {
+        clear_env();
+
+        let config = BootstrapConfig {
+            storage: crate::factory::StorageConfig {
+                backend: "invalid_backend".to_string(),
+                ..Default::default()
+            },
+            primal_name: None,
+            instance_id: None,
+        };
+
+        let result = infant_bootstrap_with_config(config).await;
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert!(err.to_string().contains("Unknown storage backend"));
+        }
+    }
+
+    #[test]
+    fn test_bootstrap_config_default() {
+        let config = BootstrapConfig::default();
+        assert!(config.storage.backend.is_empty());
+        assert!(config.primal_name.is_none());
+        assert!(config.instance_id.is_none());
+    }
+
+    #[test]
+    fn test_bootstrap_error_display() {
+        let err = BootstrapError::SelfKnowledge("bad config".to_string());
+        assert!(err.to_string().contains("bad config"));
+
+        let err = BootstrapError::Discovery("no service".to_string());
+        assert!(err.to_string().contains("no service"));
     }
 }

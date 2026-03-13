@@ -235,6 +235,18 @@ mod tests {
     }
 
     #[test]
+    fn test_discard_reason_all_variants() {
+        assert!(DiscardReason::ExploratoryOnly
+            .to_string()
+            .contains("exploratory"));
+        assert!(DiscardReason::BelowThreshold
+            .to_string()
+            .contains("threshold"));
+        assert!(DiscardReason::Duplicate.to_string().contains("duplicate"));
+        assert!(DiscardReason::Ephemeral.to_string().contains("ephemeral"));
+    }
+
+    #[test]
     fn test_branch_spec() {
         let spec = BranchSpec::new("branch-1", "root-v")
             .with_tip("tip-1")
@@ -248,11 +260,24 @@ mod tests {
     }
 
     #[test]
+    fn test_branch_spec_empty_vertices() {
+        let spec = BranchSpec::new("empty-branch", "root").with_vertices(vec![]);
+        assert!(spec.vertices.is_empty());
+        assert_eq!(spec.tips.len(), 0);
+    }
+
+    #[test]
     fn test_compression_level() {
         let level = CompressionLevel::new(1, GroupingStrategy::Branch).with_max_size(20);
 
         assert_eq!(level.level, 1);
         assert_eq!(level.max_group_size, 20);
+    }
+
+    #[test]
+    fn test_compression_level_default_max_size() {
+        let level = CompressionLevel::new(0, GroupingStrategy::ActivityType);
+        assert_eq!(level.max_group_size, 10);
     }
 
     #[test]
@@ -262,5 +287,57 @@ mod tests {
         assert_eq!(config.min_vertices, 1);
         assert_eq!(config.split_threshold, 100);
         assert!(config.generate_summaries);
+    }
+
+    #[test]
+    fn test_config_all_fields() {
+        let config = CompressionConfig::default();
+        assert_eq!(config.hierarchical_threshold, 1000);
+        assert!((config.coherence_threshold - 0.7).abs() < 1e-9);
+        assert_eq!(config.max_braids_per_session, 100);
+        assert_eq!(config.max_summary_depth, 3);
+        assert!(config.honor_hints);
+    }
+
+    #[test]
+    fn test_grouping_strategy_temporal() {
+        let g = GroupingStrategy::temporal(std::time::Duration::from_secs(3600));
+        match &g {
+            GroupingStrategy::Temporal { window_secs } => assert_eq!(*window_secs, 3600),
+            _ => panic!("expected Temporal"),
+        }
+    }
+
+    #[test]
+    fn test_grouping_strategy_fixed_size() {
+        let g = GroupingStrategy::fixed_size(25);
+        match &g {
+            GroupingStrategy::FixedSize { size } => assert_eq!(*size, 25),
+            _ => panic!("expected FixedSize"),
+        }
+    }
+
+    #[test]
+    fn test_grouping_strategy_variants() {
+        let _ = GroupingStrategy::ActivityType;
+        let _ = GroupingStrategy::Contributor;
+        let _ = GroupingStrategy::Branch;
+    }
+
+    #[test]
+    fn test_compression_strategy_variants() {
+        let _ = CompressionStrategy::Discard(DiscardReason::Rollback);
+        let _ = CompressionStrategy::Single;
+        let _ = CompressionStrategy::Split(vec![BranchSpec::new("b1", "r1")]);
+        let _ = CompressionStrategy::Hierarchical(vec![CompressionLevel::new(
+            0,
+            GroupingStrategy::Branch,
+        )]);
+    }
+
+    #[test]
+    fn test_discard_reason_equality() {
+        assert_eq!(DiscardReason::Rollback, DiscardReason::Rollback);
+        assert_ne!(DiscardReason::Rollback, DiscardReason::EmptySession);
     }
 }

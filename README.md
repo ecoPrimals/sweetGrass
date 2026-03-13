@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.2 | 570 tests | AGPL-3.0-only | Pure Rust | ecoBin compliant
+v0.7.3 | 746 tests | 94% line coverage | AGPL-3.0-only | Pure Rust | ecoBin compliant
 
 ---
 
@@ -167,12 +167,14 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.2 |
-| Tests | 570 passing |
+| Version | v0.7.3 |
+| Tests | 746 passing |
+| Line coverage | 94% (`cargo llvm-cov`) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates) |
 | Production unwraps | 0 |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
-| Max file size | 885 lines (limit: 1000) |
+| Max file size | 824 lines (limit: 1000) |
+| TODOs in source | 0 |
 | SPDX headers | All .rs files |
 | License | AGPL-3.0-only |
 

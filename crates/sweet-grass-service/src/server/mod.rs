@@ -7,6 +7,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Instant;
 
+use base64::Engine;
 use futures::prelude::*;
 use tarpc::context::Context;
 use tarpc::server::{BaseChannel, Channel};
@@ -204,6 +205,42 @@ impl SweetGrassRpc for SweetGrassServer {
     }
 
     #[instrument(skip(self, _ctx))]
+    async fn top_contributors(
+        self,
+        _ctx: Context,
+        hash: ContentHash,
+        limit: u32,
+    ) -> Result<Vec<RewardShare>, RpcError> {
+        let braid = self
+            .store
+            .get_by_hash(&hash)
+            .await
+            .map_err(|e| RpcError::Store(e.to_string()))?
+            .ok_or_else(|| RpcError::NotFound(format!("Braid not found: {hash}")))?;
+
+        let chain = self.attribution.calculate_single(&braid);
+
+        let mut contributors: Vec<RewardShare> = chain
+            .contributors
+            .iter()
+            .map(|c| RewardShare {
+                agent: c.agent.clone(),
+                share: c.share,
+                amount: 0.0,
+                role: c.role.clone(),
+            })
+            .collect();
+
+        contributors.sort_by(|a, b| {
+            b.share
+                .partial_cmp(&a.share)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        contributors.truncate(limit as usize);
+        Ok(contributors)
+    }
+
+    #[instrument(skip(self, _ctx))]
     async fn agent_contributions(
         self,
         _ctx: Context,
@@ -332,6 +369,86 @@ impl SweetGrassRpc for SweetGrassServer {
                 "@graph": json_ld.graph,
             }),
         })
+    }
+
+    #[instrument(skip(self, _ctx))]
+    async fn export_graph_provo(
+        self,
+        _ctx: Context,
+        entity: EntityReference,
+        depth: u32,
+    ) -> Result<JsonLdDocument, RpcError> {
+        let json_ld = self
+            .query
+            .export_graph_provo(entity, Some(depth))
+            .await
+            .map_err(|e| RpcError::Query(e.to_string()))?;
+
+        Ok(JsonLdDocument {
+            content: serde_json::json!({
+                "@context": json_ld.context,
+                "@graph": json_ld.graph,
+            }),
+        })
+    }
+
+    #[instrument(skip(self, _ctx))]
+    async fn anchor_braid(
+        self,
+        _ctx: Context,
+        braid_id: BraidId,
+        spine_id: String,
+    ) -> Result<serde_json::Value, RpcError> {
+        let braid = self
+            .store
+            .get(&braid_id)
+            .await
+            .map_err(|e| RpcError::Store(e.to_string()))?
+            .ok_or_else(|| RpcError::NotFound(format!("Braid not found: {braid_id}")))?;
+
+        let hash_bytes = braid
+            .data_hash
+            .to_bytes32()
+            .map(|b| base64::engine::general_purpose::STANDARD.encode(b))
+            .ok_or_else(|| {
+                RpcError::InvalidInput("Content hash must be sha256 (32 bytes)".to_string())
+            })?;
+
+        let uuid_str = braid_id
+            .as_str()
+            .strip_prefix("urn:braid:")
+            .unwrap_or(braid_id.as_str());
+
+        Ok(serde_json::json!({
+            "braid_id": uuid_str,
+            "spine_id": spine_id,
+            "content_hash": hash_bytes,
+            "anchored": false,
+            "status": "prepared",
+        }))
+    }
+
+    #[instrument(skip(self, _ctx))]
+    async fn verify_anchor(
+        self,
+        _ctx: Context,
+        braid_id: BraidId,
+    ) -> Result<serde_json::Value, RpcError> {
+        let exists = self
+            .store
+            .exists(&braid_id)
+            .await
+            .map_err(|e| RpcError::Store(e.to_string()))?;
+
+        if !exists {
+            return Err(RpcError::NotFound(format!("Braid not found: {braid_id}")));
+        }
+
+        Ok(serde_json::json!({
+            "braid_id": braid_id.as_str(),
+            "anchored": false,
+            "verification_status": "pending_integration",
+        }))
     }
 
     async fn health_check(self, _ctx: Context) -> Result<HealthStatus, RpcError> {

@@ -10,6 +10,34 @@ use sweet_grass_store::{BraidStore, MemoryStore, StoreError};
 
 type Result<T> = std::result::Result<T, StoreError>;
 
+/// Explicit storage configuration (no env var mutation needed).
+///
+/// Use with `BraidStoreFactory::from_config()` to initialize storage without
+/// mutating process environment variables. Safe for multi-threaded contexts.
+#[derive(Clone, Debug, Default)]
+pub struct StorageConfig {
+    /// Backend type: "memory", "postgres", "sled".
+    pub backend: String,
+
+    /// PostgreSQL connection URL.
+    pub database_url: Option<String>,
+
+    /// Sled database path.
+    pub sled_path: Option<String>,
+
+    /// PostgreSQL max connections.
+    pub pg_max_connections: Option<u32>,
+
+    /// PostgreSQL min connections.
+    pub pg_min_connections: Option<u32>,
+
+    /// Sled cache size in MB.
+    pub sled_cache_size_mb: Option<u64>,
+
+    /// Sled flush interval in ms.
+    pub sled_flush_ms: Option<u64>,
+}
+
 /// Factory for creating storage backends from environment configuration.
 ///
 /// ## Infant Discovery Pattern
@@ -101,6 +129,99 @@ impl BraidStoreFactory {
                 "Unknown storage backend: '{other}'. Valid options: memory, postgres, sled"
             ))),
         }
+    }
+
+    /// Create a storage backend from explicit configuration.
+    ///
+    /// Use this instead of `from_env()` when config is known at call site (e.g. CLI args)
+    /// to avoid mutating process environment variables.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if backend initialization fails.
+    pub async fn from_config(config: &StorageConfig) -> Result<Arc<dyn BraidStore>> {
+        Self::from_config_with_name(config)
+            .await
+            .map(|(store, _)| store)
+    }
+
+    /// Create a storage backend from explicit config, returning the backend name.
+    ///
+    /// Use this instead of `from_env_with_name()` when config is known at call site.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if backend initialization fails.
+    pub async fn from_config_with_name(
+        config: &StorageConfig,
+    ) -> Result<(Arc<dyn BraidStore>, String)> {
+        let backend = if config.backend.is_empty() {
+            "memory"
+        } else {
+            config.backend.as_str()
+        };
+
+        tracing::info!(backend = %backend, "Initializing storage backend from config");
+
+        match backend {
+            "memory" => {
+                tracing::info!("Using in-memory storage backend");
+                Ok((
+                    Arc::new(MemoryStore::new()) as Arc<dyn BraidStore>,
+                    "memory".to_string(),
+                ))
+            },
+            "postgres" => Self::create_postgres_from_config(config)
+                .await
+                .map(|s| (s, "postgres".to_string())),
+            "sled" => Self::create_sled_from_config(config).map(|s| (s, "sled".to_string())),
+            other => Err(StoreError::Internal(format!(
+                "Unknown storage backend: '{other}'. Valid options: memory, postgres, sled"
+            ))),
+        }
+    }
+
+    /// Create PostgreSQL backend from explicit config.
+    async fn create_postgres_from_config(config: &StorageConfig) -> Result<Arc<dyn BraidStore>> {
+        use sweet_grass_store_postgres::PostgresStore;
+
+        let url = config.database_url.as_deref().ok_or_else(|| {
+            StoreError::Internal("PostgreSQL backend requires database_url".to_string())
+        })?;
+
+        let mut pg_config = sweet_grass_store_postgres::PostgresConfig::new(url);
+        if let Some(max) = config.pg_max_connections {
+            pg_config = pg_config.max_connections(max);
+        }
+        if let Some(min) = config.pg_min_connections {
+            pg_config = pg_config.min_connections(min);
+        }
+
+        tracing::info!("Connecting to PostgreSQL database");
+        let store = PostgresStore::connect(&pg_config).await?;
+        tracing::info!("Running database migrations");
+        store.run_migrations().await?;
+        tracing::info!("PostgreSQL backend initialized");
+        Ok(Arc::new(store) as Arc<dyn BraidStore>)
+    }
+
+    /// Create Sled backend from explicit config.
+    fn create_sled_from_config(config: &StorageConfig) -> Result<Arc<dyn BraidStore>> {
+        use sweet_grass_store_sled::{SledConfig, SledStore};
+
+        let path = config.sled_path.as_deref().unwrap_or("./data/sweetgrass");
+        let mut sled_config = SledConfig::new(path);
+        if let Some(cache_mb) = config.sled_cache_size_mb {
+            sled_config = sled_config.cache_capacity(cache_mb * 1024 * 1024);
+        }
+        if let Some(flush_ms) = config.sled_flush_ms {
+            sled_config = sled_config.flush_every_ms(Some(flush_ms));
+        }
+
+        tracing::info!(path = %path, "Opening Sled database");
+        let store = SledStore::open(&sled_config)?;
+        tracing::info!("Sled backend initialized");
+        Ok(Arc::new(store) as Arc<dyn BraidStore>)
     }
 
     /// Create PostgreSQL backend from environment.
@@ -428,5 +549,131 @@ mod tests {
         std::env::set_var("FLOAT_VAR", "42.5");
         let result: Option<f64> = BraidStoreFactory::parse_env_var("FLOAT_VAR");
         assert_eq!(result, Some(42.5));
+    }
+
+    // ==================== Config-based factory ====================
+
+    #[tokio::test]
+    async fn test_from_config_memory() {
+        let config = StorageConfig {
+            backend: "memory".to_string(),
+            ..StorageConfig::default()
+        };
+        let store = BraidStoreFactory::from_config(&config).await;
+        assert!(store.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_from_config_empty_backend_defaults_to_memory() {
+        let config = StorageConfig::default();
+        let (store, name) = BraidStoreFactory::from_config_with_name(&config)
+            .await
+            .unwrap();
+        assert_eq!(name, "memory");
+        assert!(Arc::strong_count(&store) >= 1);
+    }
+
+    #[tokio::test]
+    async fn test_from_config_unknown_backend() {
+        let config = StorageConfig {
+            backend: "redis".to_string(),
+            ..StorageConfig::default()
+        };
+        let result = BraidStoreFactory::from_config(&config).await;
+        assert!(result.is_err());
+        if let Err(err) = result {
+            let msg = err.to_string();
+            assert!(msg.contains("Unknown storage backend"));
+            assert!(msg.contains("redis"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_from_config_postgres_missing_url() {
+        let config = StorageConfig {
+            backend: "postgres".to_string(),
+            ..StorageConfig::default()
+        };
+        let result = BraidStoreFactory::from_config(&config).await;
+        assert!(result.is_err());
+        if let Err(err) = result {
+            assert!(err.to_string().contains("database_url"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_from_config_sled() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = StorageConfig {
+            backend: "sled".to_string(),
+            sled_path: Some(dir.path().to_str().unwrap().to_string()),
+            sled_cache_size_mb: Some(64),
+            sled_flush_ms: Some(500),
+            ..StorageConfig::default()
+        };
+        let (store, name) = BraidStoreFactory::from_config_with_name(&config)
+            .await
+            .unwrap();
+        assert_eq!(name, "sled");
+        assert!(Arc::strong_count(&store) >= 1);
+    }
+
+    #[tokio::test]
+    async fn test_from_config_sled_default_path() {
+        let config = StorageConfig {
+            backend: "sled".to_string(),
+            ..StorageConfig::default()
+        };
+        let result = BraidStoreFactory::from_config_with_name(&config).await;
+        assert!(result.is_ok());
+        let (_, name) = result.unwrap();
+        assert_eq!(name, "sled");
+        // Clean up default sled directory
+        let _ = std::fs::remove_dir_all("./data/sweetgrass");
+    }
+
+    #[tokio::test]
+    async fn test_from_config_with_name_memory() {
+        let config = StorageConfig {
+            backend: "memory".to_string(),
+            ..StorageConfig::default()
+        };
+        let (store, name) = BraidStoreFactory::from_config_with_name(&config)
+            .await
+            .unwrap();
+        assert_eq!(name, "memory");
+        assert!(Arc::strong_count(&store) >= 1);
+    }
+
+    // ==================== StorageConfig defaults ====================
+
+    #[test]
+    fn test_storage_config_default() {
+        let config = StorageConfig::default();
+        assert!(config.backend.is_empty());
+        assert!(config.database_url.is_none());
+        assert!(config.sled_path.is_none());
+        assert!(config.pg_max_connections.is_none());
+        assert!(config.pg_min_connections.is_none());
+        assert!(config.sled_cache_size_mb.is_none());
+        assert!(config.sled_flush_ms.is_none());
+    }
+
+    #[test]
+    fn test_storage_config_clone() {
+        let original = StorageConfig {
+            backend: "postgres".to_string(),
+            database_url: Some("postgresql://localhost/test".to_string()),
+            pg_max_connections: Some(20),
+            ..StorageConfig::default()
+        };
+        let cloned = original.clone();
+        assert_eq!(cloned.backend, "postgres");
+        assert_eq!(
+            cloned.database_url,
+            Some("postgresql://localhost/test".to_string())
+        );
+        assert_eq!(cloned.pg_max_connections, Some(20));
+        assert_eq!(original.backend, cloned.backend);
     }
 }

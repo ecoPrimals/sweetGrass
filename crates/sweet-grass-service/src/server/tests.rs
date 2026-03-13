@@ -363,3 +363,168 @@ async fn test_export_provo_not_found() {
 
     assert!(result.is_err());
 }
+
+#[tokio::test]
+async fn test_top_contributors() {
+    let server = make_server();
+    let braid = create_test_braid(&server).await;
+
+    let contributors = server
+        .clone()
+        .top_contributors(context::current(), braid.data_hash.clone(), 5)
+        .await
+        .unwrap();
+
+    assert!(!contributors.is_empty());
+    // Shares should be descending
+    for w in contributors.windows(2) {
+        assert!(w[0].share >= w[1].share);
+    }
+}
+
+#[tokio::test]
+async fn test_top_contributors_not_found() {
+    let server = make_server();
+    let result = server
+        .top_contributors(
+            context::current(),
+            "sha256:nonexistent".to_string().into(),
+            10,
+        )
+        .await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_top_contributors_limit() {
+    let server = make_server();
+    let braid = create_test_braid(&server).await;
+
+    let contributors = server
+        .top_contributors(context::current(), braid.data_hash.clone(), 1)
+        .await
+        .unwrap();
+
+    assert!(contributors.len() <= 1);
+}
+
+#[tokio::test]
+async fn test_export_graph_provo() {
+    let server = make_server();
+    let braid = create_test_braid(&server).await;
+
+    let entity = EntityReference::by_hash(&braid.data_hash);
+    let doc = server
+        .export_graph_provo(context::current(), entity, 5)
+        .await
+        .unwrap();
+
+    assert!(doc.content.get("@context").is_some());
+    assert!(doc.content.get("@graph").is_some());
+}
+
+#[tokio::test]
+async fn test_anchor_braid() {
+    let server = make_server();
+    let hex = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+    let request = CreateBraidRequest {
+        data_hash: format!("sha256:{hex}").into(),
+        mime_type: "application/octet-stream".to_string(),
+        size: 0,
+        attributed_to: Did::new("did:key:z6MkTest"),
+        activity: None,
+        derived_from: vec![],
+        metadata: None,
+    };
+    let braid = server
+        .clone()
+        .create_braid(context::current(), request)
+        .await
+        .unwrap();
+
+    let result = server
+        .anchor_braid(context::current(), braid.id.clone(), "main".to_string())
+        .await
+        .unwrap();
+
+    assert_eq!(result["spine_id"], "main");
+    assert_eq!(result["anchored"], false);
+    assert_eq!(result["status"], "prepared");
+    assert!(result["content_hash"].is_string());
+}
+
+#[tokio::test]
+async fn test_anchor_braid_not_found() {
+    let server = make_server();
+    let result = server
+        .anchor_braid(context::current(), BraidId::new(), "main".to_string())
+        .await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_anchor_braid_non_sha256_hash() {
+    let server = make_server();
+    let braid = create_test_braid(&server).await;
+
+    let result = server
+        .anchor_braid(context::current(), braid.id.clone(), "main".to_string())
+        .await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_verify_anchor_exists() {
+    let server = make_server();
+    let braid = create_test_braid(&server).await;
+
+    let result = server
+        .verify_anchor(context::current(), braid.id.clone())
+        .await
+        .unwrap();
+
+    assert_eq!(result["anchored"], false);
+    assert_eq!(result["verification_status"], "pending_integration");
+}
+
+#[tokio::test]
+async fn test_verify_anchor_not_found() {
+    let server = make_server();
+    let result = server
+        .verify_anchor(context::current(), BraidId::new())
+        .await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_agent_contributions_with_time_range() {
+    let server = make_server();
+    create_test_braid(&server).await;
+
+    let agent = Did::new("did:key:z6MkTest");
+    let range = TimeRange {
+        start: 0,
+        end: u64::MAX,
+    };
+    let contributions = server
+        .agent_contributions(context::current(), agent, Some(range))
+        .await
+        .unwrap();
+
+    assert_eq!(contributions.total_count, 1);
+}
+
+#[tokio::test]
+async fn test_agent_contributions_empty_time_range() {
+    let server = make_server();
+    create_test_braid(&server).await;
+
+    let agent = Did::new("did:key:z6MkTest");
+    let range = TimeRange { start: 0, end: 0 };
+    let contributions = server
+        .agent_contributions(context::current(), agent, Some(range))
+        .await
+        .unwrap();
+
+    assert_eq!(contributions.total_count, 0);
+}

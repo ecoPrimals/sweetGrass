@@ -257,10 +257,7 @@ pub trait BraidStore: Send + Sync {
             futures.push(async move { self.get(id).await.ok().flatten() });
         }
 
-        stream::iter(futures)
-            .buffer_unordered(concurrency)
-            .collect()
-            .await
+        stream::iter(futures).buffered(concurrency).collect().await
     }
 
     /// Get a Braid by content hash.

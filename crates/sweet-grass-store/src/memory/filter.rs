@@ -259,4 +259,128 @@ mod tests {
         assert_eq!(result.len(), 3);
         assert!(!has_more);
     }
+
+    #[test]
+    fn test_matches_time_range() {
+        let mut braid = make_braid("sha256:time", "did:key:z6Mk", 100);
+        braid.generated_at_time = 500;
+
+        let in_range = QueryFilter::new().with_time_range(100, 900);
+        assert!(matches(&braid, &in_range));
+
+        let too_early = QueryFilter {
+            created_after: Some(600),
+            ..QueryFilter::new()
+        };
+        assert!(!matches(&braid, &too_early));
+
+        let too_late = QueryFilter {
+            created_before: Some(400),
+            ..QueryFilter::new()
+        };
+        assert!(!matches(&braid, &too_late));
+    }
+
+    #[test]
+    fn test_matches_braid_type() {
+        let braid = make_braid("sha256:type", "did:key:z6Mk", 100);
+        let matching = QueryFilter::new().with_type(sweet_grass_core::braid::BraidType::default());
+        assert!(matches(&braid, &matching));
+    }
+
+    #[test]
+    fn test_matches_tag() {
+        let mut braid = make_braid("sha256:tag", "did:key:z6Mk", 100);
+        braid.metadata.tags.push("important".to_string());
+
+        let matching = QueryFilter::new().with_tag("important");
+        assert!(matches(&braid, &matching));
+
+        let not_matching = QueryFilter::new().with_tag("unrelated");
+        assert!(!matches(&braid, &not_matching));
+    }
+
+    #[test]
+    fn test_matches_ecop_source_primal() {
+        let mut braid = make_braid("sha256:ecop", "did:key:z6Mk", 100);
+        braid.ecop.source_primal = Some("sweetGrass".to_string());
+
+        let matching = QueryFilter {
+            source_primal: Some("sweetGrass".to_string()),
+            ..QueryFilter::new()
+        };
+        assert!(matches(&braid, &matching));
+
+        let not_matching = QueryFilter {
+            source_primal: Some("other".to_string()),
+            ..QueryFilter::new()
+        };
+        assert!(!matches(&braid, &not_matching));
+    }
+
+    #[test]
+    fn test_matches_ecop_niche() {
+        let mut braid = make_braid("sha256:niche", "did:key:z6Mk", 100);
+        braid.ecop.niche = Some("chemistry".to_string());
+
+        let matching = QueryFilter {
+            niche: Some("chemistry".to_string()),
+            ..QueryFilter::new()
+        };
+        assert!(matches(&braid, &matching));
+
+        let not_matching = QueryFilter {
+            niche: Some("biology".to_string()),
+            ..QueryFilter::new()
+        };
+        assert!(!matches(&braid, &not_matching));
+    }
+
+    #[test]
+    fn test_sort_oldest_first() {
+        let mut braids = vec![
+            make_braid("sha256:a", "did:key:z6Mk", 100),
+            make_braid("sha256:b", "did:key:z6Mk", 100),
+        ];
+        braids[0].generated_at_time = 300;
+        braids[1].generated_at_time = 100;
+
+        sort(&mut braids, &QueryOrder::OldestFirst);
+        assert_eq!(braids[0].generated_at_time, 100);
+        assert_eq!(braids[1].generated_at_time, 300);
+    }
+
+    #[test]
+    fn test_sort_smallest_first() {
+        let mut braids = vec![
+            make_braid("sha256:a", "did:key:z6Mk", 500),
+            make_braid("sha256:b", "did:key:z6Mk", 100),
+            make_braid("sha256:c", "did:key:z6Mk", 300),
+        ];
+
+        sort(&mut braids, &QueryOrder::SmallestFirst);
+        assert_eq!(braids[0].size, 100);
+        assert_eq!(braids[1].size, 300);
+        assert_eq!(braids[2].size, 500);
+    }
+
+    #[test]
+    fn test_matches_ecop_source_primal_none() {
+        let braid = make_braid("sha256:no-ecop", "did:key:z6Mk", 100);
+        let filter = QueryFilter {
+            source_primal: Some("sweetGrass".to_string()),
+            ..QueryFilter::new()
+        };
+        assert!(!matches(&braid, &filter));
+    }
+
+    #[test]
+    fn test_matches_ecop_niche_none() {
+        let braid = make_braid("sha256:no-niche", "did:key:z6Mk", 100);
+        let filter = QueryFilter {
+            niche: Some("chemistry".to_string()),
+            ..QueryFilter::new()
+        };
+        assert!(!matches(&braid, &filter));
+    }
 }

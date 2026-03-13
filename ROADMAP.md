@@ -1,10 +1,20 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.2 (March 2026)
+**Current Version**: v0.7.3 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.3 — Comprehensive Audit + 94% Coverage (March 2026)
+
+- [x] 176 new tests (570 → 746), 94% line coverage achieved
+- [x] JSON-RPC dispatch coverage for all 20 methods
+- [x] Server RPC, factory config, discovery, core model, store filter coverage
+- [x] JSON-RPC test extraction (mod.rs 1103→280 LOC + tests.rs 824 LOC)
+- [x] `get_batch` ordering bug fix (`buffer_unordered` → `buffered`)
+- [x] Zero TODOs/FIXMEs in source
+- [x] Root docs updated with current metrics
 
 ### v0.7.2 — Provenance Trio Coordination + biomeOS IPC + Tower Atomic (March 2026)
 
@@ -89,7 +99,7 @@
 - [ ] End-to-end multi-primal integration testing
 - [ ] Chemistry entity types for wetSpring (Molecule, BasisSet, DftCampaign)
 - [ ] Chemistry braid relations (DependsOn, ValidatedBy, ComputedWith, TrainedOn)
-- [ ] Coverage target: 90%+ with llvm-cov
+- [x] Coverage target: 90%+ with llvm-cov *(done in v0.7.3 — 94%)*
 
 ### v0.9.0 — sunCloud Integration (Q3 2026)
 
@@ -115,7 +125,7 @@
 ## Ongoing
 
 ### Testing
-- [ ] Coverage to 90%+ (currently ~85%)
+- [x] Coverage to 90%+ *(done in v0.7.3 — 94%)*
 - [ ] Expand chaos testing scenarios
 - [ ] Property-based testing expansion (proptest)
 - [ ] Fuzz testing campaigns
@@ -163,7 +173,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.2 | **March 2026** | Provenance Trio + biomeOS IPC (DONE) |
+| v0.7.3 | **March 2026** | Audit + 94% Coverage (DONE) |
+| v0.7.2 | March 2026 | Provenance Trio + biomeOS IPC (DONE) |
 | v0.7.1 | March 2026 | Standards + Zero-Copy Evolution (DONE) |
 | v0.7.0 | March 2026 | Deep Remediation (DONE) |
 | v0.8.0 | Q2 2026 | Real Deployment |

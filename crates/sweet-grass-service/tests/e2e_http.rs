@@ -13,6 +13,7 @@
 use axum_test::TestServer;
 use serde_json::json;
 use sweet_grass_core::agent::Did;
+use sweet_grass_core::test_fixtures::TEST_SOURCE_PRIMAL;
 use sweet_grass_service::{create_router, AppState};
 
 fn test_server() -> TestServer {
@@ -307,7 +308,7 @@ async fn e2e_jsonrpc_record_contribution() {
                 "mime_type": "application/json",
                 "size": 2048,
                 "description": "Initial data creation",
-                "source_primal": "rhizoCrypt",
+                "source_primal": TEST_SOURCE_PRIMAL,
                 "session_id": "session-42",
                 "domain": {
                     "chemistry.molecule": "caffeine",
@@ -336,7 +337,7 @@ async fn e2e_jsonrpc_record_session() {
             "contribution.recordSession",
             json!({
                 "session_id": "rhizo-session-99",
-                "source_primal": "rhizoCrypt",
+                "source_primal": TEST_SOURCE_PRIMAL,
                 "niche": "rootpulse",
                 "session_start": 1_000_000,
                 "session_end": 2_000_000,

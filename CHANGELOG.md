@@ -5,6 +5,59 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.3] - 2026-03-13
+
+### Comprehensive Audit + Coverage Push + Doc Cleanup
+
+Full codebase audit and test coverage drive. 94% line coverage achieved
+(target: 90%). JSON-RPC test module extracted to separate file for 1000 LOC
+compliance. Zero TODOs/FIXMEs in source. Pre-existing `get_batch` ordering
+bug fixed.
+
+### Added
+
+- **176 new tests** — Coverage expanded from 570 to 746 tests across all crates
+- **JSON-RPC handler tests** — Full dispatch coverage for all 20 RPC methods
+  including anchoring, attribution, provenance, compression, contribution domains
+- **Server RPC tests** — `top_contributors`, `export_graph_provo`, `anchor_braid`,
+  `verify_anchor`, `agent_contributions` with time ranges
+- **Factory config tests** — `StorageConfig` and `BootstrapConfig` explicit paths,
+  sled/memory/unknown/postgres backends, config clone/default
+- **Discovery tests** — `CachedDiscovery` expiration, announcement, invalidation;
+  `create_discovery` fallback to local when env vars absent
+- **Core model tests** — `ActivityId` constructors/Display, `ActivityType::Display`,
+  `UsedEntity` builder, `BraidBuilder::generated_by/derived_from/metadata/ecop`,
+  `PrivacyLevel` variants (Authenticated/Encrypted/AnonymizedPublic),
+  `RetentionPolicy` variants (Until/UntilOrphaned/LegalHold),
+  `DataSubjectRequest` variants (Rectification/Portability/Objection),
+  `ErasureReason` variants, `ConsentDetails`, `ExportFormat`
+- **Store filter tests** — Time range, braid type, tag, ecoPrimals source_primal/niche
+  filtering, `OldestFirst`/`SmallestFirst` sorting
+- **Contribution factory tests** — `parse_loam_entry` valid/invalid paths,
+  `from_session` with `loam_entry` producing `LoamCommitRef`
+- **Attribution tests** — `AttributionCalculator::with_config`, `calculate_batch`,
+  `infer_role_from_derived_braid`, derivation cycle protection, max depth
+
+### Changed
+
+- **JSON-RPC test extraction** — `handlers/jsonrpc/mod.rs` (1103 LOC) split into
+  `mod.rs` (280 LOC) + `tests.rs` (824 LOC) for 1000 LOC compliance
+- **`get_batch` ordering fix** — Changed `buffer_unordered` to `buffered` in
+  `sweet-grass-store/src/traits.rs` default implementation to preserve result
+  order matching input ID order (pre-existing bug)
+
+### Metrics
+
+```
+Version:       0.7.3
+Tests:         746 passing (was 570)
+Line coverage: 94.22% (was ~85%)
+Region coverage: 92.87%
+Clippy:        0 warnings (pedantic + nursery, -D warnings)
+Max file:      824 lines (was 1103)
+TODOs:         0 in source
+```
+
 ## [0.7.2] - 2026-03-13
 
 ### Provenance Trio Coordination + biomeOS IPC + Tower Atomic Enforcement

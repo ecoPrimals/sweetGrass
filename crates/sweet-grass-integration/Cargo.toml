@@ -49,6 +49,9 @@ async-trait = "0.1"
 # Futures for async streams
 futures = { workspace = true }
 
+# Zero-copy byte buffers (wateringHole standards)
+bytes = { workspace = true }
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util", "macros"] }
 sweet-grass-factory = { path = "../sweet-grass-factory" }

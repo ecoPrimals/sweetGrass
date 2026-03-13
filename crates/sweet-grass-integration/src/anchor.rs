@@ -169,14 +169,16 @@ impl AnchorManager {
 #[tarpc::service]
 pub trait AnchoringRpc {
     /// Anchor a braid (serialized as JSON bytes).
-    async fn anchor(braid_bytes: Vec<u8>, spine_id: String)
-        -> std::result::Result<Vec<u8>, String>;
+    async fn anchor(
+        braid_bytes: bytes::Bytes,
+        spine_id: String,
+    ) -> std::result::Result<bytes::Bytes, String>;
 
     /// Verify an anchor.
-    async fn verify(braid_id: String) -> std::result::Result<Option<Vec<u8>>, String>;
+    async fn verify(braid_id: String) -> std::result::Result<Option<bytes::Bytes>, String>;
 
     /// Get all anchors for a braid.
-    async fn get_anchors(braid_id: String) -> std::result::Result<Vec<u8>, String>;
+    async fn get_anchors(braid_id: String) -> std::result::Result<bytes::Bytes, String>;
 
     /// Health check.
     async fn health() -> std::result::Result<bool, String>;
@@ -221,8 +223,10 @@ impl TarpcAnchoringClient {
 #[async_trait]
 impl AnchoringClient for TarpcAnchoringClient {
     async fn anchor(&self, braid: &Braid, spine_id: &str) -> Result<AnchorReceipt> {
-        let braid_bytes = serde_json::to_vec(braid)
-            .map_err(|e| IntegrationError::Serialization(e.to_string()))?;
+        let braid_bytes = bytes::Bytes::from(
+            serde_json::to_vec(braid)
+                .map_err(|e| IntegrationError::Serialization(e.to_string()))?,
+        );
 
         let receipt_bytes = self
             .client

@@ -60,6 +60,7 @@ async-trait = "0.1"
 clap = { version = "4", features = ["derive", "env"] }
 
 [dev-dependencies]
+sweet-grass-core = { path = "../sweet-grass-core", features = ["test-support"] }
 tokio = { workspace = true, features = ["test-util", "macros"] }
 axum-test = "19"
 serial_test = "3"

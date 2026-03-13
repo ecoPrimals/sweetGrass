@@ -130,4 +130,27 @@ mod tests {
         assert!(Arc::ptr_eq(&original.factory, &cloned.factory));
         assert!(Arc::ptr_eq(&original.compression, &cloned.compression));
     }
+
+    #[test]
+    fn test_app_state_with_self_knowledge() {
+        let store: Arc<dyn BraidStore> = Arc::new(MemoryStore::new());
+        let sk = SelfKnowledge::default();
+        let state = AppState::with_self_knowledge(store, Did::new("did:key:z6MkSK"), sk, "memory");
+        assert!(state.self_knowledge.is_some());
+        assert_eq!(state.store_backend, "memory");
+    }
+
+    #[test]
+    fn test_app_state_default_store_backend() {
+        let store: Arc<dyn BraidStore> = Arc::new(MemoryStore::new());
+        let state = AppState::with_store(store, Did::new("did:key:z6MkTest"));
+        assert_eq!(state.store_backend, "unknown");
+        assert!(state.self_knowledge.is_none());
+    }
+
+    #[test]
+    fn test_app_state_new_memory_backend() {
+        let state = AppState::new_memory(Did::new("did:key:z6MkMemTest"));
+        assert_eq!(state.store_backend, "memory");
+    }
 }

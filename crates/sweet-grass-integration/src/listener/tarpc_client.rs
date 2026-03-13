@@ -20,10 +20,10 @@ use crate::Result;
 #[tarpc::service]
 pub trait SessionEventsRpc {
     /// Subscribe to session events (returns serialized events).
-    async fn subscribe() -> std::result::Result<Vec<u8>, String>;
+    async fn subscribe() -> std::result::Result<bytes::Bytes, String>;
 
     /// Get a session by ID.
-    async fn get_session(session_id: String) -> std::result::Result<Option<Vec<u8>>, String>;
+    async fn get_session(session_id: String) -> std::result::Result<Option<bytes::Bytes>, String>;
 
     /// Health check.
     async fn health() -> std::result::Result<bool, String>;

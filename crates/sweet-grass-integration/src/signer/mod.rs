@@ -248,4 +248,111 @@ mod tests {
         assert_eq!(sig.sig_type, "CustomType");
         assert_eq!(sig.proof_value, "custom-proof");
     }
+
+    #[tokio::test]
+    async fn test_discovery_signer_no_signer_available() {
+        let discovery = Arc::new(LocalDiscovery::new());
+        // No primals registered - discovery will fail
+
+        let result = DiscoverySigner::new(discovery, |_primal| {
+            Arc::new(testing::MockSigningClient::new()) as Arc<dyn SigningClient>
+        })
+        .await;
+
+        assert!(result.is_err());
+        let err_msg = result.err().unwrap().to_string();
+        assert!(
+            err_msg.to_lowercase().contains("discovery"),
+            "expected discovery error, got: {err_msg}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_discovery_signer_multiple_signers() {
+        let discovery = Arc::new(LocalDiscovery::new());
+
+        let primal1 = DiscoveredPrimal {
+            instance_id: "signer-1".to_string(),
+            name: "signer-one".to_string(),
+            capabilities: vec![Capability::Signing],
+            tarpc_address: Some("localhost:0".to_string()),
+            rest_address: None,
+            last_seen: std::time::SystemTime::now(),
+            healthy: true,
+        };
+        let primal2 = DiscoveredPrimal {
+            instance_id: "signer-2".to_string(),
+            name: "signer-two".to_string(),
+            capabilities: vec![Capability::Signing],
+            tarpc_address: Some("localhost:0".to_string()),
+            rest_address: None,
+            last_seen: std::time::SystemTime::now(),
+            healthy: true,
+        };
+        discovery.register(primal1).await;
+        discovery.register(primal2).await;
+
+        let signer = DiscoverySigner::new(discovery, |primal| {
+            Arc::new(
+                testing::MockSigningClient::new().with_did(sweet_grass_core::agent::Did::new(
+                    format!("did:key:z6Mk{}", primal.name.replace('-', "")),
+                )),
+            ) as Arc<dyn SigningClient>
+        })
+        .await
+        .expect("create signer");
+
+        // Should get one of the signers (first healthy one)
+        assert!(signer.signer_did().as_str().starts_with("did:key:z6Mk"));
+    }
+
+    #[tokio::test]
+    async fn test_discovery_signer_with_client() {
+        let client = Arc::new(testing::MockSigningClient::new());
+        let signer = DiscoverySigner::with_client(client).await.expect("create");
+
+        assert_eq!(signer.signer_did().as_str(), "did:key:z6MkTestSigner");
+    }
+
+    #[tokio::test]
+    async fn test_discovery_signer_reconnect() {
+        let discovery = Arc::new(LocalDiscovery::new());
+        let primal = DiscoveredPrimal {
+            instance_id: "signer-reconnect".to_string(),
+            name: "reconnect-service".to_string(),
+            capabilities: vec![Capability::Signing],
+            tarpc_address: Some("localhost:0".to_string()),
+            rest_address: None,
+            last_seen: std::time::SystemTime::now(),
+            healthy: true,
+        };
+        discovery.register(primal).await;
+
+        let disc: Arc<dyn crate::PrimalDiscovery> = discovery;
+        let mut signer = DiscoverySigner::new(Arc::clone(&disc), |_primal| {
+            Arc::new(testing::MockSigningClient::new()) as Arc<dyn SigningClient>
+        })
+        .await
+        .expect("create signer");
+
+        let new_did = sweet_grass_core::agent::Did::new("did:key:z6MkReconnected");
+        signer
+            .reconnect(|_primal| {
+                Arc::new(testing::MockSigningClient::new().with_did(new_did.clone()))
+                    as Arc<dyn SigningClient>
+            })
+            .await
+            .expect("reconnect");
+
+        assert_eq!(signer.signer_did(), &new_did);
+    }
+
+    #[tokio::test]
+    async fn test_discovery_signer_client_accessor() {
+        let client = Arc::new(testing::MockSigningClient::new());
+        let signer = DiscoverySigner::with_client(client).await.expect("create");
+
+        let client_ref = signer.client();
+        assert!(client_ref.health().await.expect("health"));
+    }
 }

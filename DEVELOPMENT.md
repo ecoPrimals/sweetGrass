@@ -1,7 +1,7 @@
 # 🌾 SweetGrass — Development Guide
 
 **Last Updated**: March 13, 2026  
-**Version**: v0.7.2
+**Version**: v0.7.3
 
 ---
 
@@ -185,22 +185,22 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 88.14%
-- **Target**: 90%+
+- **Overall**: 94% line coverage
+- **Target**: 90%+ (achieved)
 
 ### Per-Crate Coverage
 
 | Crate | Current | Target | Status |
 |-------|---------|--------|--------|
-| sweet-grass-core | 88% | 90% | ⚠️ Close |
+| sweet-grass-core | 97% | 90% | ✅ Excellent |
 | sweet-grass-factory | 96% | 90% | ✅ Excellent |
 | sweet-grass-compression | 96% | 90% | ✅ Excellent |
-| sweet-grass-query | 94-98% | 90% | ✅ Excellent |
-| sweet-grass-service | 87-100% | 90% | ⚠️ Close |
-| sweet-grass-store | 100% | 90% | ✅ Perfect |
-| sweet-grass-store-postgres | 22% | 80% | ❌ Needs CI |
-| sweet-grass-integration | 10-85% | 80% | ❌ Needs services |
-| sweet-grass-store-sled | 87% | 90% | ⚠️ Close |
+| sweet-grass-query | 94% | 90% | ✅ Excellent |
+| sweet-grass-service | 92% | 90% | ✅ Above target |
+| sweet-grass-store | 96% | 90% | ✅ Excellent |
+| sweet-grass-store-postgres | 5% | 80% | ❌ Needs CI/Docker |
+| sweet-grass-integration | 80% | 80% | ✅ At target |
+| sweet-grass-store-sled | 80% | 90% | ⚠️ Close |
 
 ### Improving Coverage
 
@@ -421,7 +421,7 @@ SELECT * FROM braids LIMIT 10;
 
 ```bash
 # Update Cargo.toml versions
-cargo set-version 0.7.2
+cargo set-version 0.7.3
 
 # Update CHANGELOG.md and ROADMAP.md
 ```

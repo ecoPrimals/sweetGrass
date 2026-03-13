@@ -374,4 +374,95 @@ mod tests {
         let parsed: Agent = serde_json::from_str(&json).expect("should deserialize");
         assert_eq!(parsed.name, Some("Bob".to_string()));
     }
+
+    #[test]
+    fn test_did_as_str() {
+        let did = Did::new("did:key:z6MkHello");
+        assert_eq!(did.as_str(), "did:key:z6MkHello");
+    }
+
+    #[test]
+    fn test_did_display() {
+        let did = Did::new("did:key:z6MkDisplay");
+        assert_eq!(format!("{did}"), "did:key:z6MkDisplay");
+    }
+
+    #[test]
+    fn test_did_from_owned_string() {
+        let did = Did::from("did:web:example.com".to_string());
+        assert!(did.is_valid());
+        assert_eq!(did.as_str(), "did:web:example.com");
+    }
+
+    #[test]
+    fn test_did_roundtrip_json() {
+        let did = Did::new("did:key:z6MkRoundtrip");
+        let json = serde_json::to_string(&did).expect("serialize");
+        let parsed: Did = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(parsed, did);
+    }
+
+    #[test]
+    fn test_agent_type_default() {
+        let default = AgentType::default();
+        assert!(matches!(default, AgentType::Person { name: None }));
+    }
+
+    #[test]
+    fn test_agent_role_display_custom() {
+        let custom = AgentRole::Custom("MyRole".to_string());
+        assert_eq!(format!("{custom}"), "MyRole");
+    }
+
+    #[test]
+    fn test_agent_role_display_standard() {
+        assert_eq!(format!("{}", AgentRole::Creator), "Creator");
+        assert_eq!(format!("{}", AgentRole::Contributor), "Contributor");
+        assert_eq!(format!("{}", AgentRole::Publisher), "Publisher");
+    }
+
+    #[test]
+    fn test_agent_role_all_weights() {
+        assert!((AgentRole::Publisher.default_weight() - 0.1).abs() < f64::EPSILON);
+        assert!((AgentRole::Validator.default_weight() - 0.1).abs() < f64::EPSILON);
+        assert!((AgentRole::DataProvider.default_weight() - 0.4).abs() < f64::EPSILON);
+        assert!((AgentRole::Transformer.default_weight() - 0.3).abs() < f64::EPSILON);
+        assert!((AgentRole::StorageProvider.default_weight() - 0.2).abs() < f64::EPSILON);
+        assert!((AgentRole::Curator.default_weight() - 0.2).abs() < f64::EPSILON);
+        assert!((AgentRole::Orchestrator.default_weight() - 0.15).abs() < f64::EPSILON);
+        assert!((AgentRole::Owner.default_weight() - 0.8).abs() < f64::EPSILON);
+        assert!((AgentRole::Custom("x".to_string()).default_weight() - 0.2).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_agent_association_with_plan() {
+        let did = Did::new("did:key:z6MkPlanner");
+        let assoc = AgentAssociation::new(did, AgentRole::Orchestrator).with_plan("protocol-v2");
+        assert_eq!(assoc.had_plan, Some("protocol-v2".to_string()));
+        assert!(!assoc.is_delegated());
+    }
+
+    #[test]
+    fn test_agent_organization() {
+        let did = Did::new("did:web:orgexample.com");
+        let agent = Agent::organization(did.clone(), "Test Org");
+        assert_eq!(agent.id, did);
+        assert_eq!(agent.name, Some("Test Org".to_string()));
+        assert!(matches!(
+            agent.agent_type,
+            AgentType::Organization { name, org_type: None } if name == "Test Org"
+        ));
+    }
+
+    #[test]
+    fn test_agent_type_device() {
+        let agent_type = AgentType::Device {
+            device_type: "sensor".to_string(),
+            device_id: Some("sensor-42".to_string()),
+        };
+        let json = serde_json::to_string(&agent_type).expect("serialize");
+        assert!(json.contains("Device"));
+        let parsed: AgentType = serde_json::from_str(&json).expect("deserialize");
+        assert!(matches!(parsed, AgentType::Device { .. }));
+    }
 }
