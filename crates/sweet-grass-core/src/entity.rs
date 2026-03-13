@@ -211,7 +211,7 @@ impl InlineEntity {
                     .decode(&self.data)
                     .map_err(|e| DecodeError::Base64(e.to_string()))
             },
-            Encoding::Hex => hex_decode(&self.data).map_err(DecodeError::Hex),
+            Encoding::Hex => hex_decode_strict(&self.data).map_err(DecodeError::Hex),
         }
     }
 
@@ -236,7 +236,7 @@ impl InlineEntity {
                 Ok(Cow::Owned(decoded))
             },
             Encoding::Hex => {
-                let decoded = hex_decode(&self.data).map_err(DecodeError::Hex)?;
+                let decoded = hex_decode_strict(&self.data).map_err(DecodeError::Hex)?;
                 Ok(Cow::Owned(decoded))
             },
         }
@@ -266,32 +266,7 @@ pub enum DecodeError {
     Hex(String),
 }
 
-/// Compute SHA-256 hash of data.
-fn compute_sha256(data: &[u8]) -> ContentHash {
-    use sha2::{Digest, Sha256};
-    let result = Sha256::digest(data);
-    format!("sha256:{}", hex_encode(&result))
-}
-
-/// Hex encode bytes.
-fn hex_encode(bytes: &[u8]) -> String {
-    use std::fmt::Write;
-    bytes.iter().fold(String::new(), |mut output, b| {
-        let _ = write!(output, "{b:02x}");
-        output
-    })
-}
-
-/// Hex decode string.
-fn hex_decode(s: &str) -> Result<Vec<u8>, String> {
-    if !s.len().is_multiple_of(2) {
-        return Err("odd length hex string".to_string());
-    }
-    (0..s.len())
-        .step_by(2)
-        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).map_err(|e| format!("invalid hex: {e}")))
-        .collect()
-}
+use crate::hash::{hex_decode_strict, sha256 as compute_sha256};
 
 #[cfg(test)]
 #[allow(clippy::float_cmp, clippy::expect_used, clippy::unwrap_used)]
@@ -301,7 +276,10 @@ mod tests {
     #[test]
     fn test_entity_reference_by_hash() {
         let entity = EntityReference::by_hash("sha256:abc123");
-        assert_eq!(entity.content_hash(), Some(&"sha256:abc123".to_string()));
+        assert_eq!(
+            entity.content_hash().map(ContentHash::as_str),
+            Some("sha256:abc123")
+        );
         assert!(!entity.is_inline());
         assert!(!entity.is_external());
     }
@@ -318,7 +296,10 @@ mod tests {
         let entity =
             EntityReference::external_verified("https://example.com/data.json", "sha256:abc123");
         assert!(entity.is_external());
-        assert_eq!(entity.content_hash(), Some(&"sha256:abc123".to_string()));
+        assert_eq!(
+            entity.content_hash().map(ContentHash::as_str),
+            Some("sha256:abc123")
+        );
     }
 
     #[test]
@@ -326,7 +307,7 @@ mod tests {
         let entity = InlineEntity::text("Hello, World!", "text/plain");
         assert_eq!(entity.encoding, Encoding::Utf8);
         assert_eq!(entity.data, "Hello, World!");
-        assert!(entity.hash.starts_with("sha256:"));
+        assert!(entity.hash.as_str().starts_with("sha256:"));
         assert!(entity.verify().expect("should verify"));
     }
 

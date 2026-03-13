@@ -211,7 +211,7 @@ outputs/
 
 ## 🔗 Related Showcases
 
-- **[00-standalone](../../00-standalone/)** - SweetGrass by itself
+- **[00-local-primal](../../00-local-primal/)** - SweetGrass by itself
 - **[01-primal-coordination](../)** - Two-primal integrations
 - **Phase 1 Primals** - Mature implementations in `../../../../phase1/`
 

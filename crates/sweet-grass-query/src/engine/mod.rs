@@ -175,7 +175,7 @@ impl QueryEngine {
         let braid = self
             .get_by_hash(hash)
             .await?
-            .ok_or_else(|| QueryError::NotFound(hash.clone()))?;
+            .ok_or_else(|| QueryError::NotFound(hash.as_str().to_string()))?;
 
         let calculator = AttributionCalculator::new();
 
@@ -200,10 +200,10 @@ impl QueryEngine {
         // Get the root braid
         let braid = graph
             .root_braid()
-            .ok_or_else(|| QueryError::NotFound(hash.clone()))?;
+            .ok_or_else(|| QueryError::NotFound(hash.as_str().to_string()))?;
 
         // Build a synchronous resolver from the graph
-        let resolver = |h: &ContentHash| graph.entities.get(h).cloned();
+        let resolver = |h: &ContentHash| graph.entities.get(h.as_str()).cloned();
 
         let calculator = AttributionCalculator::new();
         Ok(calculator.calculate_with_derivations(braid, resolver))
@@ -239,7 +239,7 @@ impl QueryEngine {
         let braid = self
             .get_by_hash(hash)
             .await?
-            .ok_or_else(|| QueryError::NotFound(hash.clone()))?;
+            .ok_or_else(|| QueryError::NotFound(hash.as_str().to_string()))?;
 
         let exporter = ProvoExport::new();
         exporter.export_braid(&braid)

@@ -79,12 +79,8 @@ enum Commands {
 
     /// Check status of a running SweetGrass instance.
     Status {
-        /// Address of the running instance.
-        #[arg(
-            long,
-            env = "SWEETGRASS_HTTP_ADDRESS",
-            default_value = "127.0.0.1:8080"
-        )]
+        /// Address of the running instance (discovered from env or explicit).
+        #[arg(long, env = "SWEETGRASS_HTTP_ADDRESS")]
         address: String,
     },
 }
@@ -194,15 +190,30 @@ async fn run_server(config: ServerConfig) -> i32 {
         spawn_tarpc_server(tarpc_addr, bootstrap.default_agent);
     }
 
+    // Start Unix domain socket listener for biomeOS IPC
+    #[cfg(unix)]
+    {
+        let uds_state = state.clone();
+        tokio::spawn(async move {
+            if let Err(e) = sweet_grass_service::uds::start_uds_listener(uds_state).await {
+                tracing::warn!("UDS listener error: {e}");
+            }
+        });
+    }
+
     axum::serve(http_listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
         .map_or_else(
             |e| {
                 tracing::error!("Server error: {e}");
+                #[cfg(unix)]
+                sweet_grass_service::uds::cleanup_socket();
                 exit_code::GENERAL_ERROR
             },
             |()| {
+                #[cfg(unix)]
+                sweet_grass_service::uds::cleanup_socket();
                 info!("SweetGrass shut down cleanly");
                 exit_code::SUCCESS
             },

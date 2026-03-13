@@ -177,7 +177,7 @@ impl BraidStore for PostgresStore {
             ",
         )
         .bind(braid_id)
-        .bind(&braid.data_hash)
+        .bind(braid.data_hash.as_str())
         .bind(&braid.mime_type)
         .bind(u64_to_i64(braid.size)?)
         .bind(braid.was_attributed_to.as_str())
@@ -242,7 +242,7 @@ impl BraidStore for PostgresStore {
             FROM braids WHERE data_hash = $1
             ",
         )
-        .bind(hash)
+        .bind(hash.as_str())
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| StoreError::Internal(e.to_string()))?;
@@ -286,7 +286,7 @@ impl BraidStore for PostgresStore {
         let mut params: Vec<String> = vec![];
 
         if let Some(hash) = &filter.data_hash {
-            params.push(hash.clone());
+            params.push(hash.as_str().to_string());
             conditions.push(format!("data_hash = ${}", params.len()));
         }
 
@@ -612,7 +612,7 @@ fn row_to_braid(row: &sqlx::postgres::PgRow) -> sweet_grass_store::Result<Braid>
 
     // Build braid using builder
     let mut builder = Braid::builder()
-        .data_hash(&data_hash)
+        .data_hash(data_hash.as_str())
         .mime_type(&mime_type)
         .size(i64_to_u64(size))
         .attributed_to(Did::new(attributed_to));

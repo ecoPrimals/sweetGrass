@@ -87,8 +87,8 @@ pub use anchor::{
 pub use discovery::{DiscoveredPrimal, LocalDiscovery, PrimalDiscovery};
 pub use error::IntegrationError;
 pub use listener::{
-    create_session_events_client_async, SessionEventStream, SessionEventsClient,
-    TarpcSessionEventsClient,
+    create_session_events_client_async, tarpc_client::TarpcSessionEventsClient, SessionEventStream,
+    SessionEventsClient,
 };
 pub use signer::{create_signing_client_async, SignatureInfo, SigningClient};
 pub use sweet_grass_core::config::Capability;

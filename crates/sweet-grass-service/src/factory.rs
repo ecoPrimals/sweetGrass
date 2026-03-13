@@ -66,6 +66,18 @@ impl BraidStoreFactory {
     /// - Required environment variables missing
     /// - Backend initialization fails
     pub async fn from_env() -> Result<Arc<dyn BraidStore>> {
+        Self::from_env_with_name().await.map(|(store, _)| store)
+    }
+
+    /// Create a storage backend from environment, returning the backend name.
+    ///
+    /// This is the single authoritative path for storage discovery. Both
+    /// `infant_bootstrap` and direct callers use this — no redundant env checks.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if backend initialization fails.
+    pub async fn from_env_with_name() -> Result<(Arc<dyn BraidStore>, String)> {
         let backend = std::env::var("STORAGE_BACKEND").unwrap_or_else(|_| "memory".to_string());
 
         tracing::info!(backend = %backend, "Initializing storage backend from environment");
@@ -73,12 +85,17 @@ impl BraidStoreFactory {
         match backend.as_str() {
             "memory" => {
                 tracing::info!("Using in-memory storage backend");
-                Ok(Arc::new(MemoryStore::new()) as Arc<dyn BraidStore>)
+                Ok((
+                    Arc::new(MemoryStore::new()) as Arc<dyn BraidStore>,
+                    "memory".to_string(),
+                ))
             },
 
-            "postgres" => Self::create_postgres_backend().await,
+            "postgres" => Self::create_postgres_backend()
+                .await
+                .map(|s| (s, "postgres".to_string())),
 
-            "sled" => Self::create_sled_backend(),
+            "sled" => Self::create_sled_backend().map(|s| (s, "sled".to_string())),
 
             other => Err(StoreError::Internal(format!(
                 "Unknown storage backend: '{other}'. Valid options: memory, postgres, sled"

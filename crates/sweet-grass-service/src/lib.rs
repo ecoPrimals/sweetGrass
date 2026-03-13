@@ -61,6 +61,8 @@ pub mod router;
 pub mod rpc;
 pub mod server;
 pub mod state;
+#[cfg(unix)]
+pub mod uds;
 
 pub use bootstrap::{create_app_state_from_env, infant_bootstrap, BootstrapError, BootstrapResult};
 pub use error::ServiceError;

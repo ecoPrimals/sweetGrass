@@ -18,7 +18,7 @@ pub use attribution::{
     AttributionCalculator, AttributionChain, AttributionConfig, ContributorShare,
 };
 pub use error::FactoryError;
-pub use factory::BraidFactory;
+pub use factory::{BraidFactory, LoamEntryParams};
 
 /// Result type for factory operations.
 pub type Result<T> = std::result::Result<T, FactoryError>;

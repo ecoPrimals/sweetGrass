@@ -114,7 +114,7 @@ impl SledStore {
 
         // Index by hash
         by_hash
-            .insert(braid.data_hash.as_bytes(), braid_id)
+            .insert(braid.data_hash.as_str().as_bytes(), braid_id)
             .map_err(|e| SledError::Write(e.to_string()))?;
 
         // Index by agent (prefix with agent DID for range queries)
@@ -150,7 +150,7 @@ impl SledStore {
     ) -> Result<()> {
         // Remove hash index
         by_hash
-            .remove(braid.data_hash.as_bytes())
+            .remove(braid.data_hash.as_str().as_bytes())
             .map_err(|e| SledError::Delete(e.to_string()))?;
 
         // Remove agent index
@@ -234,7 +234,7 @@ impl BraidStore for SledStore {
         let hash = hash.clone();
 
         let braid_id_opt =
-            tokio::task::spawn_blocking(move || match by_hash.get(hash.as_bytes()) {
+            tokio::task::spawn_blocking(move || match by_hash.get(hash.as_str().as_bytes()) {
                 Ok(Some(braid_id_bytes)) => {
                     let braid_id = String::from_utf8_lossy(&braid_id_bytes);
                     Ok(Some(BraidId::from_string(braid_id.to_string())))

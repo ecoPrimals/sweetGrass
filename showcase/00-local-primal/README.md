@@ -380,10 +380,10 @@ rm -rf */outputs/
 - Some levels have additional README.md
 
 ### **Main Documentation**:
-- `../../STATUS.md` - Project status and metrics
+- `../../README.md` - Project overview
 - `../../ROADMAP.md` - Future development
+- `../../CHANGELOG.md` - Version history
 - `../../specs/` - Technical specifications
-- `../../COMPREHENSIVE_AUDIT_REPORT_DEC_24_2025.md` - Full audit
 
 ### **API Documentation**:
 ```bash

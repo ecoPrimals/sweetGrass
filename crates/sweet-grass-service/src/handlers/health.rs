@@ -219,7 +219,7 @@ pub async fn health_detailed(
         .map(|sk| sk.uptime().as_secs());
 
     // Check integrations if discovery is available
-    let integrations = check_integrations().await;
+    let integrations = check_integrations();
     let status = determine_status(store.available, Some(&integrations));
 
     Ok(Json(HealthResponse {
@@ -236,9 +236,9 @@ pub async fn health_detailed(
 ///
 /// Uses capability-based discovery to check integration status.
 /// No primal names are hardcoded - only capabilities.
-async fn check_integrations() -> IntegrationStatus {
+fn check_integrations() -> IntegrationStatus {
     // Check discovery capability (required for other checks)
-    let discovery = check_capability_env("DISCOVERY_ADDRESS").await;
+    let discovery = check_capability_env("DISCOVERY_ADDRESS");
 
     IntegrationStatus {
         signing: None,        // Discovered via Capability::Signing
@@ -252,8 +252,7 @@ async fn check_integrations() -> IntegrationStatus {
 /// Check a capability via environment variable.
 ///
 /// Environment variables follow the pattern: `{CAPABILITY}_ADDRESS`
-#[allow(clippy::unused_async)] // Will use await when real connection check is added
-async fn check_capability_env(env_var: &str) -> PrimalStatus {
+fn check_capability_env(env_var: &str) -> PrimalStatus {
     std::env::var(env_var).map_or_else(
         |_| PrimalStatus::unknown(),
         |addr| PrimalStatus {
@@ -265,7 +264,8 @@ async fn check_capability_env(env_var: &str) -> PrimalStatus {
     )
 }
 
-/// Liveness probe.
+/// Liveness probe (async required by axum handler trait).
+#[allow(clippy::unused_async)]
 pub async fn liveness() -> StatusCode {
     StatusCode::OK
 }

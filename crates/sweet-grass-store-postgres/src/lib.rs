@@ -68,12 +68,23 @@ pub struct PostgresConfig {
     pub idle_timeout_secs: u64,
 }
 
+impl PostgresConfig {
+    /// Sentinel value indicating no URL was configured.
+    const UNCONFIGURED: &str = "";
+
+    /// Check whether a database URL has been explicitly provided.
+    #[must_use]
+    pub fn is_configured(&self) -> bool {
+        !self.database_url.is_empty()
+    }
+}
+
 impl Default for PostgresConfig {
     fn default() -> Self {
         Self {
-            // Prefer environment variable for 12-factor app compatibility
+            // No hardcoded fallback — require explicit configuration.
             database_url: std::env::var("DATABASE_URL")
-                .unwrap_or_else(|_| "postgresql://localhost/sweetgrass".to_string()),
+                .unwrap_or_else(|_| Self::UNCONFIGURED.to_string()),
             max_connections: DEFAULT_MAX_CONNECTIONS,
             min_connections: 1,
             connect_timeout_secs: DEFAULT_CONNECT_TIMEOUT_SECS,

@@ -1,14 +1,41 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.0 (March 2026)
+**Current Version**: v0.7.2 (March 2026)
 
 ---
 
 ## Completed
 
+### v0.7.2 — Provenance Trio Coordination + biomeOS IPC + Tower Atomic (March 2026)
+
+- [x] `DehydrationSummary` shared contract for rhizoCrypt dehydration handoff
+- [x] `braid.commit` JSON-RPC method for LoamSpine anchoring (BraidId → UUID, ContentHash → `[u8; 32]`)
+- [x] `contribution.recordDehydration` JSON-RPC method for rhizoCrypt session import
+- [x] Unix domain socket transport for biomeOS IPC (XDG-compliant path resolution)
+- [x] Centralized `hash` module (hex encode/decode/sha256 — eliminates 3x duplication)
+- [x] Smart module refactoring: `attribution/` (chain.rs + mod.rs) and `listener/` (tarpc_client.rs + mod.rs)
+- [x] `source_primal` field replaces hardcoded primal names in dehydration flow
+- [x] Tower Atomic enforcement: `cargo deny` wrappers for ring/rustls dev-dependency exemption
+- [x] `serial_test` for environment-dependent test isolation
+- [x] 570 tests passing, zero clippy warnings
+
+### v0.7.1 — Standards Compliance + Zero-Copy Evolution (March 2026)
+
+- [x] JSON-RPC semantic naming aligned to wateringHole `{domain}.{operation}` standard
+- [x] Dispatch table architecture (replaces giant match statement)
+- [x] ContentHash evolved to zero-copy `Arc<str>` newtype (O(1) clone)
+- [x] Bootstrap single-path through `BraidStoreFactory` (no dual env logic)
+- [x] Primal lifecycle methods evolved from async to sync (no unnecessary runtime overhead)
+- [x] `LoamEntryParams` struct replaces 7 positional arguments
+- [x] Hardcoded postgres default URL removed (require explicit config)
+- [x] Bootstrap test isolation fixed (8 env vars cleared)
+- [x] 8 `unused_async` suppressions eliminated
+- [x] `native-tls` banned in `deny.toml`
+- [x] 554 tests passing, zero clippy warnings
+
 ### v0.7.0 — Deep Remediation + Contribution API (March 2026)
 
-- [x] Inter-primal contribution recording API (`sweetgrass.recordContribution`, `sweetgrass.recordSession`)
+- [x] Inter-primal contribution recording API (`contribution.record`, `contribution.recordSession`)
 - [x] ContributionRecord + SessionContribution types for rhizoCrypt/biomeOS integration
 - [x] Extensible domain metadata (chemistry, ML, game domain keys)
 - [x] JSON-RPC 2.0 handler with semantic method names
@@ -88,14 +115,15 @@
 ## Ongoing
 
 ### Testing
-- [ ] Coverage to 90%+ (currently ~88%)
+- [ ] Coverage to 90%+ (currently ~85%)
 - [ ] Expand chaos testing scenarios
 - [ ] Property-based testing expansion (proptest)
 - [ ] Fuzz testing campaigns
 - [ ] Load testing for production scenarios
 
 ### Performance
-- [ ] Zero-copy expansion (ContentHash to newtype with Arc<str>)
+- [x] Zero-copy expansion (ContentHash to newtype with Arc<str>) *(done in v0.7.1)*
+- [ ] Zero-copy: tarpc `Vec<u8>` → `bytes::Bytes` (wire protocol change, needs cross-primal coordination)
 - [ ] Query performance benchmarks
 - [ ] PostgreSQL index tuning
 - [ ] Lazy loading for large provenance graphs
@@ -135,7 +163,9 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.0 | **March 2026** | Deep Remediation (DONE) |
+| v0.7.2 | **March 2026** | Provenance Trio + biomeOS IPC (DONE) |
+| v0.7.1 | March 2026 | Standards + Zero-Copy Evolution (DONE) |
+| v0.7.0 | March 2026 | Deep Remediation (DONE) |
 | v0.8.0 | Q2 2026 | Real Deployment |
 | v0.9.0 | Q3 2026 | sunCloud Integration |
 | v1.0.0 | Q4 2026 | Production GA |

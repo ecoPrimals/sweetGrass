@@ -4,15 +4,12 @@
 //! The entry point for zero-knowledge startup. A primal is born knowing
 //! only itself and discovers all other services at runtime.
 
-use std::sync::Arc;
 use tracing::{debug, info, instrument};
-
-use sweet_grass_core::agent::Did;
-use sweet_grass_core::SelfKnowledge;
-use sweet_grass_store::BraidStore;
 
 use crate::factory::BraidStoreFactory;
 use crate::state::AppState;
+use sweet_grass_core::agent::Did;
+use sweet_grass_core::SelfKnowledge;
 
 /// Bootstrap error.
 #[derive(Debug, thiserror::Error)]
@@ -112,19 +109,10 @@ pub async fn infant_bootstrap() -> Result<BootstrapResult, BootstrapError> {
         "Self-knowledge established"
     );
 
-    // Phase 2: Discover and initialize storage backend
+    // Phase 2: Discover and initialize storage backend via factory
+    // Single path through BraidStoreFactory — no redundant env checks here.
     debug!("Phase 2: Discovering storage backend from environment");
-    let (store, backend_type): (Arc<dyn BraidStore>, &str) =
-        if std::env::var("DATABASE_URL").ok().is_some() {
-            info!("Initializing PostgreSQL backend");
-            (BraidStoreFactory::from_env().await?, "postgres")
-        } else if std::env::var("SLED_PATH").is_ok() {
-            info!("Initializing Sled backend");
-            (BraidStoreFactory::from_env().await?, "sled")
-        } else {
-            info!("Initializing Memory backend (no DATABASE_URL or SLED_PATH)");
-            (BraidStoreFactory::from_env().await?, "memory")
-        };
+    let (store, backend_type) = BraidStoreFactory::from_env_with_name().await?;
 
     info!(backend = backend_type, "Storage backend initialized");
 
@@ -138,7 +126,7 @@ pub async fn infant_bootstrap() -> Result<BootstrapResult, BootstrapError> {
         store,
         default_agent.clone(),
         self_knowledge.clone(),
-        backend_type,
+        &backend_type,
     );
 
     // Phase 5: Capability discovery (future enhancement)
@@ -180,20 +168,35 @@ pub async fn create_app_state_from_env() -> Result<AppState, BootstrapError> {
 #[cfg(test)]
 #[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
+    use std::sync::Arc;
+
     use super::*;
     use sweet_grass_core::Capability;
 
     // NOTE: These tests modify environment variables and should be run with --test-threads=1
 
+    /// All storage-related env vars that must be cleared for test isolation.
+    const STORAGE_ENV_VARS: &[&str] = &[
+        "PRIMAL_NAME",
+        "PRIMAL_INSTANCE_ID",
+        "PRIMAL_CAPABILITIES",
+        "DATABASE_URL",
+        "STORAGE_URL",
+        "STORAGE_BACKEND",
+        "STORAGE_PATH",
+        "SLED_PATH",
+    ];
+
+    fn clear_env() {
+        for var in STORAGE_ENV_VARS {
+            std::env::remove_var(var);
+        }
+    }
+
     #[tokio::test]
     #[serial_test::serial]
     async fn test_infant_bootstrap_defaults() {
-        // Clear environment for clean test
-        std::env::remove_var("PRIMAL_NAME");
-        std::env::remove_var("PRIMAL_INSTANCE_ID");
-        std::env::remove_var("PRIMAL_CAPABILITIES");
-        std::env::remove_var("DATABASE_URL");
-        std::env::remove_var("SLED_PATH");
+        clear_env();
 
         let result = infant_bootstrap().await.expect("should bootstrap");
 
@@ -207,6 +210,7 @@ mod tests {
     #[tokio::test]
     #[serial_test::serial]
     async fn test_infant_bootstrap_with_config() {
+        clear_env();
         std::env::set_var("PRIMAL_NAME", "sweetgrass-test");
         std::env::set_var("PRIMAL_INSTANCE_ID", "test-123");
         std::env::set_var("PRIMAL_CAPABILITIES", "signing,anchoring");
@@ -219,17 +223,13 @@ mod tests {
         assert!(result.self_knowledge.offers(&Capability::Signing));
         assert_eq!(result.default_agent.as_str(), "did:primal:test-123");
 
-        // Cleanup
-        std::env::remove_var("PRIMAL_NAME");
-        std::env::remove_var("PRIMAL_INSTANCE_ID");
-        std::env::remove_var("PRIMAL_CAPABILITIES");
+        clear_env();
     }
 
     #[tokio::test]
     #[serial_test::serial]
     async fn test_create_app_state_from_env() {
-        std::env::remove_var("DATABASE_URL");
-        std::env::remove_var("SLED_PATH");
+        clear_env();
 
         let app_state = create_app_state_from_env()
             .await

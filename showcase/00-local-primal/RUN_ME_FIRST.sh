@@ -463,7 +463,7 @@ Every contributor deserves credit.
 SweetGrass makes it possible.
 
 ${BLUE}Ready for production: cargo build --release${NC}
-${BLUE}Documentation: ../../STATUS.md${NC}
+${BLUE}Documentation: ../../README.md${NC}
 ${BLUE}API docs: cargo doc --no-deps --open${NC}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

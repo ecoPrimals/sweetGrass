@@ -13,7 +13,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.7.0"
+version = "0.7.2"
 edition = "2021"
 license = "AGPL-3.0-only"
 repository = "https://github.com/ecoPrimals/sweetGrass"
@@ -67,6 +67,7 @@ tower-http = { version = "0.6", features = ["cors", "trace"] }
 
 # Property-based testing
 proptest = "1.4"
+serial_test = "3"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

@@ -335,7 +335,7 @@ bincode = "1.3"
 
 # HTTP fallback
 axum = "0.7"
-tower-http = { version = "0.5", features = ["trace", "cors"] }
+tower-http = { version = "0.6", features = ["trace", "cors"] }
 
 # Async runtime
 tokio = { version = "1.40", features = ["full"] }

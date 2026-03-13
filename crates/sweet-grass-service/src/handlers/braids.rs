@@ -126,9 +126,10 @@ pub async fn get_braid_by_hash(
     State(state): State<AppState>,
     Path(hash): Path<String>,
 ) -> Result<Json<Braid>, ServiceError> {
+    let content_hash = sweet_grass_core::ContentHash::new(&hash);
     let braid = state
         .store
-        .get_by_hash(&hash)
+        .get_by_hash(&content_hash)
         .await?
         .ok_or_else(|| ServiceError::NotFound(format!("Braid not found for hash: {hash}")))?;
 
@@ -166,7 +167,7 @@ pub async fn create_braid(
         StatusCode::CREATED,
         Json(CreateBraidResponse {
             id: braid.id.to_string(),
-            hash: braid.data_hash.clone(),
+            hash: braid.data_hash.as_str().to_string(),
         }),
     ))
 }
@@ -194,7 +195,7 @@ pub async fn create_provenance_braid(
 
     // Create the Braid from hash
     let mut braid = state.factory.from_hash(
-        request.data_hash.clone(),
+        request.data_hash.clone().into(),
         request.mime_type,
         request.size,
         Some(metadata),
@@ -211,7 +212,7 @@ pub async fn create_provenance_braid(
         StatusCode::CREATED,
         Json(CreateBraidResponse {
             id: braid.id.to_string(),
-            hash: braid.data_hash.clone(),
+            hash: braid.data_hash.as_str().to_string(),
         }),
     ))
 }
@@ -333,7 +334,8 @@ mod tests {
         let state = make_state();
         let braid = create_test_braid(&state).await;
 
-        let result = get_braid_by_hash(State(state), Path(braid.data_hash.clone())).await;
+        let result =
+            get_braid_by_hash(State(state), Path(braid.data_hash.as_str().to_string())).await;
 
         assert!(result.is_ok());
         let Json(returned) = result.unwrap();
@@ -371,7 +373,11 @@ mod tests {
         assert!(!response.hash.is_empty());
 
         // Verify it was stored
-        let stored = state.store.get_by_hash(&response.hash).await.unwrap();
+        let stored = state
+            .store
+            .get_by_hash(&sweet_grass_core::ContentHash::new(&response.hash))
+            .await
+            .unwrap();
         assert!(stored.is_some());
     }
 

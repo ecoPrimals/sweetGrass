@@ -48,7 +48,7 @@ impl SessionVertex {
     #[must_use]
     pub fn new(
         id: impl Into<String>,
-        data_hash: impl Into<String>,
+        data_hash: impl Into<ContentHash>,
         mime_type: impl Into<String>,
         agent: Did,
     ) -> Self {

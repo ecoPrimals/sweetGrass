@@ -54,8 +54,8 @@ if [[ $ERRORS -eq 0 ]]; then
     echo "✅ Setup complete! Ready for demos."
     echo ""
     echo "Start with:"
-    echo "  cd showcase/00-standalone/01-braid-basics"
-    echo "  ./demo-create-braid.sh"
+    echo "  cd showcase/00-local-primal/01-hello-provenance"
+    echo "  ./demo-hello-provenance.sh"
 else
     echo "❌ Setup incomplete. Fix $ERRORS error(s) above."
     exit 1

@@ -5,6 +5,10 @@
 //! that determines how credit/rewards should be distributed
 //! among contributors to a piece of data.
 
+mod chain;
+
+pub use chain::{AttributionChain, ContributorShare};
+
 use std::collections::HashMap;
 use std::sync::Arc;
 use sweet_grass_core::{
@@ -21,124 +25,6 @@ pub const DEFAULT_CURATOR_ROLE_WEIGHT: f64 = 0.10;
 
 /// Default maximum derivation depth to consider in attribution chains.
 pub const DEFAULT_ATTRIBUTION_MAX_DEPTH: u32 = 10;
-
-/// A share of attribution for a contributor.
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-pub struct ContributorShare {
-    /// The agent receiving the share.
-    pub agent: Did,
-
-    /// The share amount (0.0 to 1.0).
-    pub share: f64,
-
-    /// The role that earned this share.
-    pub role: AgentRole,
-
-    /// Whether this is a direct contribution or inherited.
-    pub direct: bool,
-
-    /// Depth in the derivation chain (0 = direct).
-    pub depth: u32,
-}
-
-impl ContributorShare {
-    /// Create a new contributor share.
-    #[must_use]
-    pub fn new(agent: Did, share: f64, role: AgentRole, direct: bool) -> Self {
-        Self {
-            agent,
-            share,
-            role,
-            direct,
-            depth: u32::from(!direct),
-        }
-    }
-
-    /// Create with explicit depth.
-    #[must_use]
-    pub const fn with_depth(mut self, depth: u32) -> Self {
-        self.depth = depth;
-        self
-    }
-}
-
-/// Attribution chain for an entity.
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-pub struct AttributionChain {
-    /// The entity being attributed.
-    pub entity: EntityReference,
-
-    /// All contributors and their shares.
-    pub contributors: Vec<ContributorShare>,
-
-    /// Total compute units involved.
-    pub total_compute: f64,
-
-    /// Maximum depth of derivation chain.
-    pub max_depth: u32,
-}
-
-impl AttributionChain {
-    /// Create a new attribution chain for an entity.
-    #[must_use]
-    pub const fn new(entity: EntityReference) -> Self {
-        Self {
-            entity,
-            contributors: Vec::new(),
-            total_compute: 0.0,
-            max_depth: 0,
-        }
-    }
-
-    /// Add a contributor share.
-    pub fn add_contributor(&mut self, share: ContributorShare) {
-        if share.depth > self.max_depth {
-            self.max_depth = share.depth;
-        }
-        self.contributors.push(share);
-    }
-
-    /// Normalize shares to sum to 1.0.
-    pub fn normalize(&mut self) {
-        let total: f64 = self.contributors.iter().map(|c| c.share).sum();
-        if total > 0.0 {
-            for contributor in &mut self.contributors {
-                contributor.share /= total;
-            }
-        }
-    }
-
-    /// Aggregate shares by agent.
-    #[must_use]
-    pub fn aggregate_by_agent(&self) -> HashMap<String, f64> {
-        let mut aggregated = HashMap::new();
-        for contributor in &self.contributors {
-            *aggregated
-                .entry(contributor.agent.as_str().to_string())
-                .or_insert(0.0) += contributor.share;
-        }
-        aggregated
-    }
-
-    /// Get direct contributors only.
-    #[must_use]
-    pub fn direct_contributors(&self) -> Vec<&ContributorShare> {
-        self.contributors.iter().filter(|c| c.direct).collect()
-    }
-
-    /// Get inherited contributors only.
-    #[must_use]
-    pub fn inherited_contributors(&self) -> Vec<&ContributorShare> {
-        self.contributors.iter().filter(|c| !c.direct).collect()
-    }
-
-    /// Check if the chain is valid (shares sum to ~1.0).
-    #[must_use]
-    pub fn is_valid(&self) -> bool {
-        let total: f64 = self.contributors.iter().map(|c| c.share).sum();
-        (total - 1.0).abs() < 0.001
-    }
-}
 
 /// Configuration for attribution calculation.
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -206,10 +92,9 @@ impl AttributionCalculator {
     /// Calculate attribution for a single Braid.
     #[must_use]
     pub fn calculate_single(&self, braid: &Braid) -> AttributionChain {
-        let entity = EntityReference::by_hash(&braid.data_hash);
+        let entity = EntityReference::by_hash(braid.data_hash.clone());
         let mut chain = AttributionChain::new(entity);
 
-        // Add direct attribution
         let role = Self::infer_role_from_braid(braid);
         let weight = self.config.weight_for_role(&role);
 
@@ -220,7 +105,6 @@ impl AttributionCalculator {
             true,
         ));
 
-        // Add activity associations
         if let Some(activity) = &braid.was_generated_by {
             for assoc in &activity.was_associated_with {
                 if assoc.agent != braid.was_attributed_to {
@@ -234,7 +118,6 @@ impl AttributionCalculator {
                 }
             }
 
-            // Track compute units
             if let Some(compute) = activity.ecop.compute_units {
                 chain.total_compute = compute;
             }
@@ -251,13 +134,12 @@ impl AttributionCalculator {
     where
         F: Fn(&ContentHash) -> Option<Braid>,
     {
-        let entity = EntityReference::by_hash(&braid.data_hash);
+        let entity = EntityReference::by_hash(braid.data_hash.clone());
         let mut chain = AttributionChain::new(entity);
-        let mut visited = std::collections::HashSet::new();
+        let mut visited = std::collections::HashSet::<ContentHash>::new();
 
         self.calculate_recursive(braid, &mut chain, &resolve, 0, &mut visited, 1.0);
 
-        // Filter out tiny shares
         chain
             .contributors
             .retain(|c| c.share >= self.config.min_share);
@@ -306,7 +188,7 @@ impl AttributionCalculator {
         chain: &mut AttributionChain,
         resolve: &F,
         depth: u32,
-        visited: &mut std::collections::HashSet<String>,
+        visited: &mut std::collections::HashSet<ContentHash>,
         weight_multiplier: f64,
     ) where
         F: Fn(&ContentHash) -> Option<Braid>,
@@ -321,12 +203,10 @@ impl AttributionCalculator {
         }
         visited.insert(hash);
 
-        // Calculate decay for this depth
         #[allow(clippy::cast_possible_wrap)]
         let decay = self.config.decay_factor.powi(depth as i32);
         let effective_weight = weight_multiplier * decay;
 
-        // Add direct attribution with decay
         let role = Self::infer_role_from_braid(braid);
         let base_weight = self.config.weight_for_role(&role);
 
@@ -340,7 +220,6 @@ impl AttributionCalculator {
             .with_depth(depth),
         );
 
-        // Add activity associations
         if let Some(activity) = &braid.was_generated_by {
             for assoc in &activity.was_associated_with {
                 if assoc.agent != braid.was_attributed_to {
@@ -357,13 +236,11 @@ impl AttributionCalculator {
                 }
             }
 
-            // Track compute units
             if let Some(compute) = activity.ecop.compute_units {
                 chain.total_compute += compute * effective_weight;
             }
         }
 
-        // Recursively process derivations
         #[allow(clippy::cast_precision_loss)]
         let derivation_weight = effective_weight / braid.was_derived_from.len().max(1) as f64;
         for derived in &braid.was_derived_from {
@@ -383,14 +260,12 @@ impl AttributionCalculator {
     }
 
     fn infer_role_from_braid(braid: &Braid) -> AgentRole {
-        // If there's an activity, use the first association's role
         if let Some(activity) = &braid.was_generated_by {
             if let Some(assoc) = activity.was_associated_with.first() {
                 return assoc.role.clone();
             }
         }
 
-        // Default based on whether it's derived
         if braid.was_derived_from.is_empty() {
             AgentRole::Creator
         } else {
@@ -519,7 +394,6 @@ mod tests {
         assert!(chain.is_valid());
         assert_eq!(chain.max_depth, 1);
 
-        // Should have both child and parent attributions
         let agents: Vec<_> = chain
             .contributors
             .iter()
@@ -597,17 +471,14 @@ mod proptests {
     use super::*;
     use proptest::prelude::*;
 
-    /// Generate a valid DID string.
     fn arb_did() -> impl Strategy<Value = Did> {
         "[a-zA-Z0-9]{8,20}".prop_map(|s| Did::new(format!("did:key:z6Mk{s}")))
     }
 
-    /// Generate a valid share (0.0 to 1.0).
     fn arb_share() -> impl Strategy<Value = f64> {
-        (0.0..=1.0_f64).prop_map(|f| (f * 1000.0).round() / 1000.0) // Round to 3 decimal places
+        (0.0..=1.0_f64).prop_map(|f| (f * 1000.0).round() / 1000.0)
     }
 
-    /// Generate an agent role.
     fn arb_role() -> impl Strategy<Value = AgentRole> {
         prop_oneof![
             Just(AgentRole::Creator),
@@ -620,7 +491,6 @@ mod proptests {
     }
 
     proptest! {
-        /// Normalized attribution chains always sum to 1.0.
         #[test]
         fn prop_normalized_chain_sums_to_one(
             shares in proptest::collection::vec((arb_did(), arb_share(), arb_role()), 1..10)
@@ -640,7 +510,6 @@ mod proptests {
             }
         }
 
-        /// All shares are non-negative after normalization.
         #[test]
         fn prop_all_shares_non_negative(
             shares in proptest::collection::vec((arb_did(), arb_share()), 1..5)
@@ -658,7 +527,6 @@ mod proptests {
             }
         }
 
-        /// Aggregate by agent produces same total share.
         #[test]
         fn prop_aggregation_preserves_total(
             shares in proptest::collection::vec((arb_did(), arb_share()), 1..10)
@@ -681,7 +549,6 @@ mod proptests {
             );
         }
 
-        /// Reward calculation distributes full value.
         #[test]
         fn prop_rewards_distribute_full_value(
             total_value in 1.0..10000.0_f64,
@@ -689,7 +556,6 @@ mod proptests {
         ) {
             let mut chain = AttributionChain::new(EntityReference::by_hash("sha256:test"));
 
-            // Only add contributors with non-zero shares
             for (i, share) in shares.iter().enumerate() {
                 if *share > 0.0 {
                     let did = Did::new(format!("did:key:z6MkAgent{i}"));
@@ -697,7 +563,6 @@ mod proptests {
                 }
             }
 
-            // Skip if no valid contributors
             if chain.contributors.is_empty() {
                 return Ok(());
             }
@@ -716,7 +581,6 @@ mod proptests {
             );
         }
 
-        /// Role weights are always between 0 and 1.
         #[test]
         fn prop_role_weights_in_range(role in arb_role()) {
             let config = AttributionConfig::default();

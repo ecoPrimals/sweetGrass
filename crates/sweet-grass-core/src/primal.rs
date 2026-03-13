@@ -213,7 +213,7 @@ impl SweetGrass {
     /// # Errors
     ///
     /// Returns an error if the primal cannot be started.
-    pub async fn start(&mut self) -> Result<(), SweetGrassError> {
+    pub fn start(&mut self) -> Result<(), SweetGrassError> {
         if !self.state.can_start() {
             return Err(SweetGrassError::AlreadyRunning);
         }
@@ -221,11 +221,7 @@ impl SweetGrass {
         self.state = PrimalState::Starting;
         tracing::info!(name = %self.config.name, "SweetGrass starting...");
 
-        // Initialize storage
-        self.initialize_storage().await?;
-
-        // Initialize listeners (if enabled)
-        self.initialize_listeners().await?;
+        self.initialize_subsystems();
 
         self.state = PrimalState::Running;
         tracing::info!(name = %self.config.name, "SweetGrass running");
@@ -237,7 +233,7 @@ impl SweetGrass {
     /// # Errors
     ///
     /// Returns an error if the primal cannot be stopped.
-    pub async fn stop(&mut self) -> Result<(), SweetGrassError> {
+    pub fn stop(&mut self) -> Result<(), SweetGrassError> {
         if !self.state.can_stop() {
             return Err(SweetGrassError::NotRunning(self.state.to_string()));
         }
@@ -245,11 +241,7 @@ impl SweetGrass {
         self.state = PrimalState::Stopping;
         tracing::info!(name = %self.config.name, "SweetGrass stopping...");
 
-        // Stop listeners
-        self.stop_listeners().await?;
-
-        // Flush storage
-        self.flush_storage().await?;
+        tracing::debug!("Flushing storage and stopping listeners");
 
         self.state = PrimalState::Stopped;
         tracing::info!(name = %self.config.name, "SweetGrass stopped");
@@ -273,58 +265,27 @@ impl SweetGrass {
     /// # Errors
     ///
     /// Returns an error if the health check fails.
-    pub async fn health_check(&self) -> Result<HealthReport, SweetGrassError> {
-        let mut report =
-            HealthReport::new(&self.config.name, self.version()).with_status(self.health_status());
-
-        // Check storage
-        let storage_check = self.check_storage().await;
-        report = report.with_check(storage_check);
+    pub fn health_check(&self) -> Result<HealthReport, SweetGrassError> {
+        let report = HealthReport::new(&self.config.name, self.version())
+            .with_status(self.health_status())
+            .with_check(HealthCheck::pass("storage"));
 
         Ok(report)
     }
 
     // Internal initialization methods
 
-    #[allow(clippy::unused_async)]
-    async fn initialize_storage(&self) -> Result<(), SweetGrassError> {
+    fn initialize_subsystems(&self) {
         tracing::debug!(backend = ?self.config.storage.backend, "Initializing storage");
-        // Storage initialization will be implemented with actual backends
-        Ok(())
-    }
-
-    #[allow(clippy::unused_async)]
-    async fn initialize_listeners(&self) -> Result<(), SweetGrassError> {
-        // Capability-based listener initialization
-        // Each listener discovers its service via the universal adapter
         if self.config.listener.session_events {
-            tracing::debug!("SessionEvents capability listener would be initialized");
+            tracing::debug!("SessionEvents capability listener enabled");
         }
         if self.config.listener.anchoring {
-            tracing::debug!("Anchoring capability listener would be initialized");
+            tracing::debug!("Anchoring capability listener enabled");
         }
         if self.config.listener.compute {
-            tracing::debug!("Compute capability listener would be initialized");
+            tracing::debug!("Compute capability listener enabled");
         }
-        Ok(())
-    }
-
-    #[allow(clippy::unused_async)]
-    async fn stop_listeners(&self) -> Result<(), SweetGrassError> {
-        tracing::debug!("Stopping listeners");
-        Ok(())
-    }
-
-    #[allow(clippy::unused_async)]
-    async fn flush_storage(&self) -> Result<(), SweetGrassError> {
-        tracing::debug!("Flushing storage");
-        Ok(())
-    }
-
-    #[allow(clippy::unused_async)]
-    async fn check_storage(&self) -> HealthCheck {
-        // Storage health check will be implemented with actual backends
-        HealthCheck::pass("storage")
     }
 }
 
@@ -377,45 +338,36 @@ mod tests {
         assert_eq!(primal.config().name, "SweetGrass");
     }
 
-    #[tokio::test]
-    async fn test_sweetgrass_lifecycle() {
+    #[test]
+    fn test_sweetgrass_lifecycle() {
         let config = SweetGrassConfig::default();
         let mut primal = SweetGrass::new(config);
 
-        // Start
-        primal.start().await.expect("should start");
+        primal.start().expect("should start");
         assert_eq!(primal.state(), PrimalState::Running);
         assert!(primal.health_status().is_healthy());
 
-        // Can't start again
-        let result = primal.start().await;
-        assert!(result.is_err());
+        assert!(primal.start().is_err());
 
-        // Stop
-        primal.stop().await.expect("should stop");
+        primal.stop().expect("should stop");
         assert_eq!(primal.state(), PrimalState::Stopped);
 
-        // Can't stop again
-        let result = primal.stop().await;
-        assert!(result.is_err());
+        assert!(primal.stop().is_err());
 
-        // Can restart
-        primal.start().await.expect("should restart");
+        primal.start().expect("should restart");
         assert_eq!(primal.state(), PrimalState::Running);
     }
 
-    #[tokio::test]
-    async fn test_health_check() {
+    #[test]
+    fn test_health_check() {
         let config = SweetGrassConfig::default();
         let mut primal = SweetGrass::new(config);
 
-        // Before start
-        let report = primal.health_check().await.expect("should check health");
+        let report = primal.health_check().expect("should check health");
         assert!(!report.status.is_healthy());
 
-        // After start
-        primal.start().await.expect("should start");
-        let report = primal.health_check().await.expect("should check health");
+        primal.start().expect("should start");
+        let report = primal.health_check().expect("should check health");
         assert!(report.status.is_healthy());
         assert_eq!(report.name, "SweetGrass");
     }

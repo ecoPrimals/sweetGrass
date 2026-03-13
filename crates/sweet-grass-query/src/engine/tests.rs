@@ -4,6 +4,7 @@
 
 use super::*;
 use std::sync::Arc;
+use sweet_grass_core::ContentHash;
 use sweet_grass_store::{MemoryStore, QueryFilter, QueryOrder};
 
 fn make_test_braid(hash: &str, agent: &str) -> Braid {
@@ -24,13 +25,11 @@ async fn test_basic_query() {
     store.put(&braid).await.expect("should store");
 
     let engine = QueryEngine::new(store);
-    let result = engine
-        .get_by_hash(&"sha256:test1".to_string())
-        .await
-        .expect("should query");
+    let hash = ContentHash::new("sha256:test1");
+    let result = engine.get_by_hash(&hash).await.expect("should query");
 
     assert!(result.is_some());
-    assert_eq!(result.unwrap().data_hash, "sha256:test1");
+    assert_eq!(result.unwrap().data_hash.as_str(), "sha256:test1");
 }
 
 #[tokio::test]
@@ -87,8 +86,9 @@ async fn test_attribution_chain() {
     store.put(&braid).await.expect("store");
 
     let engine = QueryEngine::new(store);
+    let hash = ContentHash::new("sha256:test");
     let chain = engine
-        .attribution_chain(&"sha256:test".to_string())
+        .attribution_chain(&hash)
         .await
         .expect("should calculate");
 
@@ -129,7 +129,7 @@ async fn test_export_provo() {
 
     let engine = QueryEngine::new(store);
     let doc = engine
-        .export_braid_provo(&"sha256:test".to_string())
+        .export_braid_provo(&ContentHash::new("sha256:test"))
         .await
         .expect("should export");
 
@@ -156,7 +156,7 @@ async fn test_get_nonexistent() {
     let store = Arc::new(MemoryStore::new());
     let engine = QueryEngine::new(store);
     let result = engine
-        .get_by_hash(&"sha256:nonexistent".to_string())
+        .get_by_hash(&ContentHash::new("sha256:nonexistent"))
         .await
         .expect("should query");
     assert!(result.is_none());
@@ -188,11 +188,11 @@ async fn test_derived_from() {
 
     let engine = QueryEngine::new(store);
     let derived = engine
-        .derived_from(&"sha256:parent-df".to_string())
+        .derived_from(&ContentHash::new("sha256:parent-df"))
         .await
         .expect("should query");
     assert_eq!(derived.len(), 1);
-    assert_eq!(derived[0].data_hash, "sha256:child-df");
+    assert_eq!(derived[0].data_hash.as_str(), "sha256:child-df");
 }
 
 #[tokio::test]
@@ -235,7 +235,7 @@ async fn test_attribution_chain_not_found() {
     let store = Arc::new(MemoryStore::new());
     let engine = QueryEngine::new(store);
     let result = engine
-        .attribution_chain(&"sha256:nonexistent".to_string())
+        .attribution_chain(&ContentHash::new("sha256:nonexistent"))
         .await;
     assert!(result.is_err());
 }
@@ -410,7 +410,7 @@ async fn test_derived_from_multiple_children() {
 
     let engine = QueryEngine::new(store);
     let children = engine
-        .derived_from(&parent_hash)
+        .derived_from(&ContentHash::new(&parent_hash))
         .await
         .expect("should query");
 
@@ -465,7 +465,7 @@ async fn test_export_nonexistent_braid() {
     let engine = QueryEngine::new(store);
 
     let result = engine
-        .export_braid_provo(&"sha256:nonexistent".to_string())
+        .export_braid_provo(&ContentHash::new("sha256:nonexistent"))
         .await;
 
     assert!(result.is_err());
@@ -493,7 +493,7 @@ async fn test_concurrent_different_queries() {
             .await
     });
 
-    let h2 = tokio::spawn(async move { e2.get_by_hash(&"sha256:conc_0".to_string()).await });
+    let h2 = tokio::spawn(async move { e2.get_by_hash(&ContentHash::new("sha256:conc_0")).await });
 
     let h3 = tokio::spawn(async move {
         let did = Did::new("did:key:z6Mk1");

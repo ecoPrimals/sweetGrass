@@ -49,7 +49,8 @@ pub async fn get_attribution(
     State(state): State<AppState>,
     Path(hash): Path<String>,
 ) -> Result<Json<AttributionResponse>, ServiceError> {
-    let chain = state.query.attribution_chain(&hash).await?;
+    let content_hash = sweet_grass_core::ContentHash::new(&hash);
+    let chain = state.query.attribution_chain(&content_hash).await?;
 
     let contributors: Vec<ContributorInfo> = chain
         .contributors
@@ -112,7 +113,8 @@ pub async fn calculate_rewards(
     Path(hash): Path<String>,
     Json(request): Json<RewardRequest>,
 ) -> Result<Json<RewardResponse>, ServiceError> {
-    let chain = state.query.attribution_chain(&hash).await?;
+    let content_hash = sweet_grass_core::ContentHash::new(&hash);
+    let chain = state.query.attribution_chain(&content_hash).await?;
 
     let rewards: Vec<AgentReward> = chain
         .contributors
@@ -150,7 +152,7 @@ mod tests {
         let state = create_test_state();
         let factory = Arc::new(BraidFactory::new(Did::new("did:key:z6MkCreator")));
         let braid = factory.from_data(b"test data", "text/plain", None).unwrap();
-        let hash = braid.data_hash.clone();
+        let hash = braid.data_hash.as_str().to_string();
         state.store.put(&braid).await.unwrap();
         (state, hash)
     }
@@ -226,7 +228,12 @@ mod tests {
 
         // Get attribution for child
         let request = RewardRequest { total_value: 100.0 };
-        let result = calculate_rewards(State(state), Path(child_hash.clone()), Json(request)).await;
+        let result = calculate_rewards(
+            State(state),
+            Path(child_hash.as_str().to_string()),
+            Json(request),
+        )
+        .await;
         assert!(result.is_ok());
 
         let response = result.unwrap();

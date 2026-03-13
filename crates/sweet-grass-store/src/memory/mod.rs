@@ -129,7 +129,7 @@ impl BraidStore for MemoryStore {
     }
 
     async fn get_by_hash(&self, hash: &ContentHash) -> Result<Option<Braid>> {
-        let id = self.indexes.get_by_hash(hash)?;
+        let id = self.indexes.get_by_hash(hash.as_str())?;
 
         match id {
             Some(id) => {
@@ -218,7 +218,7 @@ impl BraidStore for MemoryStore {
     }
 
     async fn derived_from(&self, hash: &ContentHash) -> Result<Vec<Braid>> {
-        let ids = self.indexes.get_by_derivation(hash)?;
+        let ids = self.indexes.get_by_derivation(hash.as_str())?;
 
         let braids = self
             .braids
@@ -361,7 +361,7 @@ mod tests {
 
         let retrieved = store.get(&braid.id).await.expect("should get");
         assert!(retrieved.is_some());
-        assert_eq!(retrieved.unwrap().data_hash, "sha256:test1");
+        assert_eq!(retrieved.unwrap().data_hash.as_str(), "sha256:test1");
     }
 
     #[tokio::test]
@@ -371,10 +371,8 @@ mod tests {
 
         store.put(&braid).await.expect("should store");
 
-        let retrieved = store
-            .get_by_hash(&"sha256:hashtest".to_string())
-            .await
-            .expect("should get");
+        let hash = ContentHash::new("sha256:hashtest");
+        let retrieved = store.get_by_hash(&hash).await.expect("should get");
         assert!(retrieved.is_some());
     }
 
@@ -520,14 +518,15 @@ mod tests {
         store.indexes.clear();
 
         // Verify lookup fails
-        let by_hash = store.get_by_hash(&"sha256:rebuild".to_string()).await;
+        let hash = ContentHash::new("sha256:rebuild");
+        let by_hash = store.get_by_hash(&hash).await;
         assert!(by_hash.expect("should work").is_none());
 
         // Rebuild indexes
         store.rebuild().await.expect("should rebuild");
 
         // Verify lookup works again
-        let by_hash = store.get_by_hash(&"sha256:rebuild".to_string()).await;
+        let by_hash = store.get_by_hash(&hash).await;
         assert!(by_hash.expect("should work").is_some());
     }
 

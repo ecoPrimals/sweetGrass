@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.0 | 553 tests | AGPL-3.0-only | Pure Rust | ecoBin compliant
+v0.7.2 | 570 tests | AGPL-3.0-only | Pure Rust | ecoBin compliant
 
 ---
 
@@ -26,7 +26,7 @@ Standards: W3C PROV-O | JSON-RPC 2.0 | tarpc binary RPC | REST | Pure Rust | No 
 cargo build --release
 
 # Start the server
-./target/release/sweetgrass server --http-addr 127.0.0.1:8080
+./target/release/sweet-grass-service server
 
 # Health check
 curl http://localhost:8080/health
@@ -34,7 +34,7 @@ curl http://localhost:8080/health
 # Create a braid via JSON-RPC
 curl -X POST http://localhost:8080/jsonrpc \
   -H 'Content-Type: application/json' \
-  -d '{"jsonrpc":"2.0","method":"sweetgrass.health","id":1}'
+  -d '{"jsonrpc":"2.0","method":"health.check","params":{},"id":1}'
 
 # Or use REST
 curl http://localhost:8080/api/v1/braids
@@ -60,7 +60,7 @@ curl http://localhost:8080/api/v1/braids
 
 | Crate | Purpose |
 |-------|---------|
-| `sweet-grass-core` | Braid, Agent, Activity, Entity, Contribution, Config |
+| `sweet-grass-core` | Braid, Agent, Activity, Entity, Contribution, DehydrationSummary, Config |
 | `sweet-grass-store` | BraidStore trait + MemoryStore |
 | `sweet-grass-store-postgres` | PostgreSQL backend |
 | `sweet-grass-store-sled` | Embedded pure Rust backend |
@@ -68,11 +68,12 @@ curl http://localhost:8080/api/v1/braids
 | `sweet-grass-query` | Graph traversal, PROV-O export |
 | `sweet-grass-compression` | 0/1/Many session compression |
 | `sweet-grass-integration` | Primal discovery + capability clients |
-| `sweet-grass-service` | UniBin server (REST + JSON-RPC + tarpc) |
+| `sweet-grass-service` | UniBin server (REST + JSON-RPC + tarpc + UDS) |
 
 ### Protocol Stack
 
-- **JSON-RPC 2.0** (primary): `POST /jsonrpc` with semantic methods (`sweetgrass.createBraid`, `sweetgrass.recordContribution`, `sweetgrass.recordSession`, etc.)
+- **JSON-RPC 2.0** (primary): `POST /jsonrpc` with semantic methods (`braid.create`, `braid.commit`, `contribution.record`, `contribution.recordDehydration`, `health.check`, etc.)
+- **Unix domain socket** (biomeOS IPC): Newline-delimited JSON-RPC 2.0 over UDS with XDG-compliant path resolution
 - **tarpc** (high-performance binary): Pure Rust RPC, no gRPC/protobuf
 - **REST** (HTTP/JSON): `/api/v1/braids` for debugging and admin
 
@@ -113,7 +114,7 @@ Single binary with subcommands (`sweetgrass server`, `sweetgrass status`), grace
 ## Building
 
 ### Prerequisites
-- Rust 1.83+ (stable)
+- Rust 1.92+ (stable)
 - Docker (optional, for PostgreSQL)
 
 ### From Source
@@ -144,7 +145,7 @@ HTTP_LISTEN=0.0.0.0:8080
 TARPC_LISTEN=0.0.0.0:8091
 ```
 
-See [env.example](./env.example) for all options.
+See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 ---
 
@@ -166,20 +167,20 @@ See [env.example](./env.example) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.0 |
-| Tests | 553 passing |
+| Version | v0.7.2 |
+| Tests | 570 passing |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates) |
 | Production unwraps | 0 |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
-| Max file size | 757 lines (limit: 1000) |
-| SPDX headers | 80/80 .rs files |
+| Max file size | 885 lines (limit: 1000) |
+| SPDX headers | All .rs files |
 | License | AGPL-3.0-only |
 
 ### ecoBin Compliance
 
 - Pure Rust (zero C/C++ dependencies in production)
 - Cross-compilation ready (ARM64, musl, RISC-V targets documented)
-- Platform-agnostic IPC (JSON-RPC + tarpc, no gRPC/protobuf)
+- Platform-agnostic IPC (JSON-RPC + tarpc + UDS, no gRPC/protobuf)
 - `cargo-deny` enforced (tonic, prost, openssl banned)
 
 ### Zero-Copy

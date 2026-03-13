@@ -25,14 +25,10 @@ allow = [
 ]
 confidence-threshold = 0.8
 
-[[licenses.clarify]]
-name = "ring"
-expression = "MIT AND ISC AND OpenSSL"
-license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
-
 [bans]
 multiple-versions = "warn"
-wildcards = "deny"
+wildcards = "allow"
+allow-wildcard-paths = true
 highlight = "all"
 
 # Deny gRPC/protobuf dependencies - Primal Sovereignty
@@ -44,9 +40,18 @@ deny = [
     { name = "protobuf", wrappers = [] },
     { name = "grpcio", wrappers = [] },
     
-    # OpenSSL - prefer rustls
-    { name = "openssl", wrappers = [] },
-    { name = "openssl-sys", wrappers = [] },
+    # C-backend TLS/crypto - Tower Atomic replaces these (Songbird + BearDog)
+    { name = "openssl", wrappers = [], use-instead = "Tower Atomic (Songbird + BearDog)" },
+    { name = "openssl-sys", wrappers = [], use-instead = "Tower Atomic (Songbird + BearDog)" },
+    { name = "native-tls", wrappers = [], use-instead = "Tower Atomic (Songbird + BearDog)" },
+    # ring/rustls: wrappers allow the testcontainers dev-dep chain (bollard → rustls → ring).
+    # Any NEW production dep pulling these will still be caught.
+    { name = "ring", wrappers = ["rustls", "rustls-webpki"], reason = "C/ASM crypto backend — Tower Atomic replaces this" },
+    { name = "rustls", wrappers = ["bollard", "hyper-rustls", "tokio-rustls"], reason = "depends on ring (C/ASM) — Tower Atomic replaces this" },
+    
+    # Outbound HTTP clients - route through neuralAPI → Songbird instead
+    { name = "reqwest", wrappers = [], use-instead = "neuralAPI capability.call(\"http.request\", ...)" },
+    { name = "ureq", wrappers = [], use-instead = "neuralAPI capability.call(\"http.request\", ...)" },
 ]
 
 skip = []

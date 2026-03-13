@@ -5,6 +5,118 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.2] - 2026-03-13
+
+### Provenance Trio Coordination + biomeOS IPC + Tower Atomic Enforcement
+
+Provenance trio integration with rhizoCrypt and LoamSpine. Unix domain socket
+transport for biomeOS Neural API coordination. Tower Atomic enforcement in
+`deny.toml`. DehydrationSummary shared contract for ephemeral→permanent flow.
+
+### Added
+
+- **`DehydrationSummary` type** — Shared contract in `sweet-grass-core` for
+  rhizoCrypt→sweetGrass coordination. Captures Merkle root, agents, attestations,
+  operations, frontier hashes, and compression metadata from DAG dehydration
+- **`braid.commit` JSON-RPC method** — Packages a Braid for LoamSpine anchoring
+  with UUID extraction from BraidId and ContentHash→`[u8;32]` conversion
+- **`contribution.recordDehydration` JSON-RPC method** — Accepts a full
+  `DehydrationSummary` from rhizoCrypt and creates provenance Braids with
+  DAG metadata (vertex count, branches, compression ratio)
+- **`BraidId::extract_uuid()`** — Extracts UUID from `urn:braid:uuid:{uuid}`
+  format for LoamSpine wire compatibility
+- **`ContentHash::to_bytes32()`** — Converts `sha256:{hex}` to `[u8; 32]` for
+  LoamSpine anchoring payloads
+- **Unix domain socket transport** (`uds` module) — XDG-compliant socket path
+  resolution and newline-delimited JSON-RPC 2.0 over UDS for biomeOS IPC.
+  Resolution order: `SWEETGRASS_SOCKET` → `BIOMEOS_SOCKET_DIR` →
+  `XDG_RUNTIME_DIR/biomeos/` → `/tmp/biomeos-{user}/` → `/tmp/`
+- **Tower Atomic enforcement** — `deny.toml` now bans `ring`, `rustls`, `reqwest`,
+  `ureq` with `wrappers` exemption for testcontainers dev-dep chain
+
+### Changed
+
+- **`deny.toml`** — Corrected comment from "prefer rustls" to "Tower Atomic
+  replaces these (Songbird + BearDog)". Removed stale `ring` license clarification.
+  Wildcards changed to `allow` for workspace path dependencies
+- **Status subcommand** — Removed hardcoded `127.0.0.1:8080` default; address
+  now requires explicit `SWEETGRASS_HTTP_ADDRESS` or `--address` flag
+- **Service binary** — UDS listener auto-starts alongside HTTP and tarpc servers;
+  socket cleanup on shutdown
+- **Hex encode/decode consolidation** — Eliminated 3 duplicate hex encoders and
+  2 duplicate decoders across `braid.rs`, `entity.rs`, and `factory.rs`. All now
+  use `sweet_grass_core::hash::{hex_encode, hex_decode, hex_decode_strict, sha256}`
+- **Attribution module refactored** — `attribution.rs` (727 LOC) split into
+  `attribution/mod.rs` (591 LOC, calculator + config) and `attribution/chain.rs`
+  (131 LOC, `ContributorShare` and `AttributionChain` types)
+- **Listener module refactored** — `listener.rs` (742 LOC) split into
+  `listener/mod.rs` (580 LOC, types/traits/handler/mocks) and
+  `listener/tarpc_client.rs` (155 LOC, tarpc transport layer)
+- **`DehydrationSummary` sovereignty** — `source_primal` field added to struct
+  rather than hardcoding `"rhizoCrypt"` in the handler; any primal can provide
+  dehydration summaries
+- **`liveness()` handler** — Marked `#[allow(clippy::unused_async)]` with
+  documentation that axum handler trait requires async
+
+### Fixed
+
+- **`primal_info` test race condition** — Replaced `with_clean_env` save/restore
+  pattern with `#[serial_test::serial]` + `clear_env()` to prevent parallel test
+  environment pollution causing flaky `TARPC_PORT` assertion failures
+- **`serial_test` added** as workspace dev-dependency for `sweet-grass-core`
+
+## [0.7.1] - 2026-03-13
+
+### Standards Compliance + Zero-Copy Evolution + Tech Debt Resolution
+
+Comprehensive audit-driven remediation. JSON-RPC semantic naming aligned with
+wateringHole `SEMANTIC_METHOD_NAMING_STANDARD.md`. ContentHash evolved to
+zero-copy `Arc<str>` newtype. Bootstrap and dispatch architecture hardened.
+
+### Changed
+
+- **JSON-RPC semantic naming** — All methods migrated from `sweetgrass.{op}` to
+  `{domain}.{operation}` per wateringHole standard: `braid.create`, `braid.get`,
+  `provenance.graph`, `attribution.chain`, `contribution.record`, `health.check`, etc.
+- **Dispatch table architecture** — Giant match statement replaced with a static
+  dispatch table (`METHODS` array), making method routing scannable and extendable
+- **ContentHash zero-copy** — Evolved from `type ContentHash = String` to a proper
+  newtype with `Arc<str>` backing, matching `BraidId` and `Did` zero-copy strategy.
+  `.clone()` is now O(1) atomic refcount increment across all content hash hot paths
+- **Bootstrap single-path** — `infant_bootstrap` now delegates entirely to
+  `BraidStoreFactory::from_env_with_name()`, eliminating redundant env var checks
+- **Primal lifecycle** — `SweetGrass::start()`, `stop()`, `health_check()` evolved
+  from needlessly-async to sync (no runtime overhead for non-async operations)
+- **LoamEntryParams** — `from_loam_entry()` refactored from 7 positional args to
+  a params struct for clarity and extensibility
+- **PostgresConfig** — Removed hardcoded `postgresql://localhost/sweetgrass` default;
+  now requires explicit configuration (no silent localhost fallback)
+
+### Fixed
+
+- **Bootstrap test isolation** — `test_infant_bootstrap_defaults` now clears all
+  8 storage-related env vars (`STORAGE_BACKEND`, `STORAGE_URL`, etc.), preventing
+  test pollution under parallel execution or llvm-cov instrumentation
+- **`dead_code` lint** — Removed `#[allow(dead_code)]` from `AppState::self_knowledge`
+  (field IS used by health handler)
+- **`unused_async`** — Eliminated 8 needlessly-async functions across `primal.rs`,
+  `health.rs`, and `jsonrpc.rs`
+
+### Added
+
+- **Dispatch table completeness test** — Verifies all 14 JSON-RPC methods are
+  registered in the dispatch table
+- **`native-tls` ban** — Added to `deny.toml` banned list alongside openssl
+
+### Quality
+
+- 554 tests passing (0 failures)
+- Zero clippy warnings (pedantic + nursery, `-D warnings`)
+- Zero formatting issues
+- Zero doc warnings
+- 100% SPDX header coverage
+- All files under 1000 LOC
+
 ## [0.7.0] - 2026-03-12
 
 ### Deep Remediation — ecoBin + UniBin + Zero-Copy + Contribution API
@@ -378,6 +490,6 @@ Documentation:      340K+ (73+ docs)
 
 - [Repository](https://github.com/ecoPrimals/sweetGrass)
 - [Documentation](./README.md)
-- [Status](./STATUS.md)
 - [Roadmap](./ROADMAP.md)
+- [Development](./DEVELOPMENT.md)
 

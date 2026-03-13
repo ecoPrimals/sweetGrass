@@ -2,7 +2,7 @@
 
 **The Attribution Layer for ecoPrimals**
 
-**Version**: 0.5.0 | **Status**: ✅ Production Ready | **Grade**: A (95/100) | **Tests**: 381 passing
+**Version**: 0.7.2 | **Status**: Production Ready | **Tests**: 570 passing
 
 ---
 
@@ -211,18 +211,16 @@ cd ../01-primal-coordination
 ## 📖 Documentation
 
 ### In This Showcase
-- **START_HERE.md** (this file) - Navigation
+- **00_START_HERE.md** (this file) - Navigation
 - **00-local-primal/README.md** - Local showcase guide
 - **01-primal-coordination/README.md** - Integration guide
 - **INTEGRATION_GAPS_REPORT.md** - Honest assessment
-- **SHOWCASE_ENHANCEMENT_PLAN.md** - Future roadmap
-- **SHOWCASE_REVIEW_COMPLETE.md** - Quality evaluation
 
 ### In Repository Root
-- `../STATUS.md` - Project status (A++ 100/100)
 - `../ROADMAP.md` - Future development
-- `../DEPLOY.md` - Deployment guide
-- `../COMPREHENSIVE_AUDIT_REPORT_DEC_27_2025.md` - Full audit
+- `../CHANGELOG.md` - Version history
+- `../README.md` - Project overview
+- `../specs/` - Technical specifications
 
 ---
 
@@ -301,7 +299,7 @@ Step 2: Level 0 demo 4 (10 min) → PROV-O Export
 Step 3: Level 2 demo 1 (20 min) → Multi-contributor chains
 ```
 
-**Start**: `00-standalone/02-attribution-engine/`
+**Start**: `00-local-primal/02-attribution-basics/`
 
 ---
 
@@ -311,8 +309,8 @@ Step 3: Level 2 demo 1 (20 min) → Multi-contributor chains
 **Why it matters**: Every piece of data becomes traceable
 
 ```bash
-cd 00-standalone/01-braid-basics
-./demo-create-braid.sh
+cd 00-local-primal/01-hello-provenance
+./demo-hello-provenance.sh
 ```
 
 ---
@@ -321,8 +319,8 @@ cd 00-standalone/01-braid-basics
 **Why it matters**: Fair credit for all contributors
 
 ```bash
-cd 00-standalone/02-attribution-engine
-./demo-attribution.sh
+cd 00-local-primal/02-attribution-basics
+./demo-attribution-basics.sh
 ```
 
 **Example**:
@@ -407,7 +405,7 @@ cd 02-full-ecosystem/01-complete-pipeline
 
 ### Recommended: Level 0 Complete
 ```bash
-cd 00-standalone
+cd 00-local-primal
 cat README.md
 ```
 
@@ -434,13 +432,13 @@ cat README.md
 
 ### In This Showcase
 - `README.md` - Complete navigation
-- `00-standalone/` - Standalone demos
+- `00-local-primal/` - Local demos
 - `01-primal-coordination/` - Integration demos
 - `02-full-ecosystem/` - Production demos
 
 ### In Repository Root
-- `../STATUS.md` - Project status
 - `../ROADMAP.md` - Future development
+- `../CHANGELOG.md` - Version history
 - `../specs/` - Technical specifications
 
 ### Ecosystem Showcases
@@ -455,7 +453,7 @@ cat README.md
 **Choose your starting point**:
 
 1. **Quick Demo** → `./scripts/quick-demo.sh`
-2. **Level 0** → `cd 00-standalone`
+2. **Level 0** → `cd 00-local-primal`
 3. **Full Navigation** → `cat README.md`
 
 ---

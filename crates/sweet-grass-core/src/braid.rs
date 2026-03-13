@@ -16,8 +16,103 @@ use crate::activity::Activity;
 use crate::agent::Did;
 use crate::entity::EntityReference;
 
-/// Content-addressed hash (e.g., "sha256:abc123...")
-pub type ContentHash = String;
+/// Content-addressed hash (e.g., "sha256:abc123...").
+///
+/// Uses `Arc<str>` internally so `.clone()` is O(1) (atomic refcount increment),
+/// matching the zero-copy strategy used by `BraidId` and `Did`.
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
+pub struct ContentHash(Arc<str>);
+
+impl ContentHash {
+    /// Create from any string-like value.
+    #[must_use]
+    pub fn new(s: impl Into<String>) -> Self {
+        let s = s.into();
+        Self(Arc::from(s.into_boxed_str()))
+    }
+
+    /// View as a string slice.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    /// Extract the raw hash bytes from a prefixed hash (e.g., `"sha256:abcdef..."`).
+    ///
+    /// Returns `None` if the hash is not in `{algorithm}:{hex}` format or
+    /// the hex portion doesn't decode to exactly 32 bytes.
+    /// This is used for LoamSpine anchoring which expects `[u8; 32]`.
+    #[must_use]
+    pub fn to_bytes32(&self) -> Option<[u8; 32]> {
+        let hex_str = self.0.split_once(':').map(|(_, h)| h)?;
+        let bytes = hex_decode(hex_str)?;
+        <[u8; 32]>::try_from(bytes.as_slice()).ok()
+    }
+}
+
+impl std::fmt::Display for ContentHash {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl<'de> Deserialize<'de> for ContentHash {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(Self(Arc::from(s.into_boxed_str())))
+    }
+}
+
+impl From<&str> for ContentHash {
+    fn from(s: &str) -> Self {
+        Self(Arc::from(s))
+    }
+}
+
+impl From<String> for ContentHash {
+    fn from(s: String) -> Self {
+        Self(Arc::from(s.into_boxed_str()))
+    }
+}
+
+impl From<&Self> for ContentHash {
+    fn from(s: &Self) -> Self {
+        s.clone()
+    }
+}
+
+impl From<&String> for ContentHash {
+    fn from(s: &String) -> Self {
+        Self(Arc::from(s.as_str()))
+    }
+}
+
+impl PartialEq<str> for ContentHash {
+    fn eq(&self, other: &str) -> bool {
+        self.0.as_ref() == other
+    }
+}
+
+impl AsRef<str> for ContentHash {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl std::borrow::Borrow<str> for ContentHash {
+    fn borrow(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Default for ContentHash {
+    fn default() -> Self {
+        Self(Arc::from(""))
+    }
+}
 
 /// Timestamp in nanoseconds since Unix epoch.
 pub type Timestamp = u64;
@@ -52,6 +147,16 @@ impl BraidId {
     pub fn from_string(s: impl Into<String>) -> Self {
         let s = s.into();
         Self(Arc::from(s.into_boxed_str()))
+    }
+
+    /// Extract the UUID from a `urn:braid:uuid:{uuid}` format BraidId.
+    ///
+    /// Returns `None` if the BraidId is not in UUID format (e.g., hash-based IDs).
+    #[must_use]
+    pub fn extract_uuid(&self) -> Option<Uuid> {
+        self.0
+            .strip_prefix("urn:braid:uuid:")
+            .and_then(|s| s.parse::<Uuid>().ok())
     }
 }
 
@@ -416,17 +521,16 @@ impl Braid {
     pub fn compute_signing_hash(&self) -> ContentHash {
         use sha2::{Digest, Sha256};
 
-        // Create a copy without signature for hashing
         let mut hasher = Sha256::new();
         hasher.update(self.id.as_str().as_bytes());
-        hasher.update(self.data_hash.as_bytes());
+        hasher.update(self.data_hash.as_str().as_bytes());
         hasher.update(self.mime_type.as_bytes());
         hasher.update(self.size.to_le_bytes());
         hasher.update(self.was_attributed_to.as_str().as_bytes());
         hasher.update(self.generated_at_time.to_le_bytes());
 
         let result = hasher.finalize();
-        format!("sha256:{}", hex::encode(result))
+        ContentHash::new(format!("sha256:{}", hex_encode(result)))
     }
 }
 
@@ -557,17 +661,7 @@ pub fn current_timestamp_nanos() -> Timestamp {
         .unwrap_or(0)
 }
 
-// Hex encoding helper (avoiding additional dependency)
-mod hex {
-    use std::fmt::Write;
-
-    pub fn encode(bytes: impl AsRef<[u8]>) -> String {
-        bytes.as_ref().iter().fold(String::new(), |mut output, b| {
-            let _ = write!(output, "{b:02x}");
-            output
-        })
-    }
-}
+use crate::hash::{hex_decode, hex_encode};
 
 #[cfg(test)]
 #[allow(clippy::float_cmp, clippy::expect_used, clippy::unwrap_used)]
@@ -585,8 +679,40 @@ mod tests {
 
     #[test]
     fn test_braid_id_from_hash() {
-        let id = BraidId::from_hash(&"sha256:abc123".to_string());
+        let hash = ContentHash::new("sha256:abc123");
+        let id = BraidId::from_hash(&hash);
         assert_eq!(id.as_str(), "urn:braid:sha256:abc123");
+    }
+
+    #[test]
+    fn test_braid_id_extract_uuid() {
+        let id = BraidId::new();
+        let uuid = id.extract_uuid();
+        assert!(
+            uuid.is_some(),
+            "random BraidId should have extractable UUID"
+        );
+
+        let hash_id = BraidId::from_hash(&ContentHash::new("sha256:abc123"));
+        assert!(
+            hash_id.extract_uuid().is_none(),
+            "hash-based BraidId should not extract as UUID"
+        );
+    }
+
+    #[test]
+    fn test_content_hash_to_bytes32() {
+        let hex_64 = "a".repeat(64);
+        let hash = ContentHash::new(format!("sha256:{hex_64}"));
+        let bytes = hash.to_bytes32();
+        assert!(bytes.is_some());
+        assert_eq!(bytes.unwrap(), [0xaa; 32]);
+
+        let short = ContentHash::new("sha256:abcd");
+        assert!(short.to_bytes32().is_none(), "too short should be None");
+
+        let no_prefix = ContentHash::new("nocolon");
+        assert!(no_prefix.to_bytes32().is_none());
     }
 
     #[test]
@@ -600,7 +726,7 @@ mod tests {
             .build()
             .expect("should build");
 
-        assert_eq!(braid.data_hash, "sha256:abc123");
+        assert_eq!(braid.data_hash.as_str(), "sha256:abc123");
         assert_eq!(braid.mime_type, "application/json");
         assert_eq!(braid.size, 1024);
         assert_eq!(braid.was_attributed_to, did);
@@ -684,8 +810,9 @@ mod proptests {
         /// BraidId from hash is deterministic
         #[test]
         fn prop_braid_id_from_hash_deterministic(hash in arb_sha256_hash()) {
-            let id1 = BraidId::from_hash(&hash);
-            let id2 = BraidId::from_hash(&hash);
+            let ch = ContentHash::new(hash);
+            let id1 = BraidId::from_hash(&ch);
+            let id2 = BraidId::from_hash(&ch);
             prop_assert_eq!(id1, id2);
         }
 
@@ -734,7 +861,8 @@ mod proptests {
         /// BraidId string format is always valid
         #[test]
         fn prop_braid_id_format(hash in arb_sha256_hash()) {
-            let id = BraidId::from_hash(&hash);
+            let ch = ContentHash::new(hash);
+            let id = BraidId::from_hash(&ch);
             let id_str = id.as_str();
             prop_assert!(id_str.starts_with("urn:braid:"));
             prop_assert!(id_str.contains("sha256:"));
@@ -751,7 +879,7 @@ mod proptests {
                 .build()
                 .expect("should build");
 
-            prop_assert_eq!(braid.data_hash, hash);
+            prop_assert_eq!(braid.data_hash.as_str(), hash.as_str());
         }
     }
 }

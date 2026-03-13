@@ -40,7 +40,9 @@ impl ProvenanceGraph {
     /// Get the root Braid if available.
     #[must_use]
     pub fn root_braid(&self) -> Option<&Braid> {
-        self.root.content_hash().and_then(|h| self.entities.get(h))
+        self.root
+            .content_hash()
+            .and_then(|h| self.entities.get(h.as_str()))
     }
 
     /// Get all entity hashes.
@@ -89,7 +91,7 @@ impl ProvenanceGraph {
             .filter(|b| {
                 b.was_derived_from
                     .iter()
-                    .any(|e| e.content_hash() == Some(&hash.to_string()))
+                    .any(|e| e.content_hash().map(ContentHash::as_str) == Some(hash))
             })
             .collect()
     }
@@ -181,10 +183,11 @@ impl ProvenanceGraphBuilder {
             }
 
             // Check for cycles
-            if visited.contains(hash) {
+            let hash_str = hash.as_str().to_string();
+            if visited.contains(&hash_str) {
                 return Ok(());
             }
-            visited.insert(hash.clone());
+            visited.insert(hash_str.clone());
 
             // Update max depth
             if depth > graph.depth {
@@ -197,7 +200,7 @@ impl ProvenanceGraphBuilder {
             };
 
             // Add to graph
-            graph.entities.insert(hash.clone(), braid.clone());
+            graph.entities.insert(hash_str.clone(), braid.clone());
 
             // Add activity if present
             if self.include_activities {
@@ -206,7 +209,7 @@ impl ProvenanceGraphBuilder {
                     graph
                         .activities
                         .insert(activity_id.clone(), activity.clone());
-                    graph.generation_edges.insert(hash.clone(), activity_id);
+                    graph.generation_edges.insert(hash_str.clone(), activity_id);
                 }
             }
 
@@ -214,17 +217,18 @@ impl ProvenanceGraphBuilder {
             let parent_hashes: Vec<String> = braid
                 .was_derived_from
                 .iter()
-                .filter_map(|e| e.content_hash().cloned())
+                .filter_map(|e| e.content_hash().map(|h| h.as_str().to_string()))
                 .collect();
 
             if !parent_hashes.is_empty() {
                 graph
                     .derivation_edges
-                    .insert(hash.clone(), parent_hashes.clone());
+                    .insert(hash_str.clone(), parent_hashes.clone());
 
                 // Recursively traverse parents
                 for parent_hash in parent_hashes {
-                    self.traverse(store, &parent_hash, depth + 1, graph, visited)
+                    let parent_ch = ContentHash::new(parent_hash);
+                    self.traverse(store, &parent_ch, depth + 1, graph, visited)
                         .await?;
                 }
             }
@@ -318,7 +322,7 @@ mod tests {
         // Check derivation edges
         let parents = graph.parents("sha256:child");
         assert_eq!(parents.len(), 1);
-        assert_eq!(parents[0].data_hash, "sha256:parent");
+        assert_eq!(parents[0].data_hash.as_str(), "sha256:parent");
     }
 
     #[tokio::test]
@@ -428,7 +432,7 @@ mod tests {
 
         let root = graph.root_braid();
         assert!(root.is_some());
-        assert_eq!(root.unwrap().data_hash, "sha256:root");
+        assert_eq!(root.unwrap().data_hash.as_str(), "sha256:root");
     }
 
     #[tokio::test]

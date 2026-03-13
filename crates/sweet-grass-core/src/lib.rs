@@ -33,8 +33,10 @@ pub mod agent;
 pub mod braid;
 pub mod config;
 pub mod contribution;
+pub mod dehydration;
 pub mod entity;
 pub mod error;
+pub mod hash;
 pub mod primal;
 pub mod primal_info;
 pub mod privacy;
@@ -46,6 +48,7 @@ pub use braid::{Braid, BraidId, BraidSignature, BraidType, ContentHash, Timestam
 pub use config::{
     Capability, ConfigError, NetworkConfig, SweetGrassConfig, SweetGrassConfigBuilder,
 };
+pub use dehydration::{Attestation, DehydrationSummary, SessionOperation};
 pub use entity::{Encoding, EntityReference, InlineEntity};
 pub use error::SweetGrassError;
 pub use primal::{HealthStatus, PrimalState, SweetGrass};

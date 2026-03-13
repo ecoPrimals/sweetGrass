@@ -1,6 +1,6 @@
 # 03: Reward Distribution (Coming in Phase 4)
 
-**Status**: Planned for v0.6.0 (Q2 2026)  
+**Status**: Planned for v0.9.0 (Q3 2026)  
 **Integration**: Requires sunCloud implementation
 
 ---
@@ -68,9 +68,9 @@ These demos show how SweetGrass integrates with other primals, preparing for sun
 | Milestone | Target | Status |
 |-----------|--------|--------|
 | Attribution engine | v0.4.0 | ✅ Complete |
-| sunCloud Phase 1 | v0.6.0 | ⏳ Planned |
-| Payment API | v0.6.0 | ⏳ Planned |
-| Reward distribution showcase | v0.6.0 | ⏳ Planned |
+| sunCloud Phase 1 | v0.9.0 | Planned |
+| Payment API | v0.9.0 | Planned |
+| Reward distribution showcase | v0.9.0 | Planned |
 
 ---
 

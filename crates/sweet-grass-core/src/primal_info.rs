@@ -163,102 +163,71 @@ impl Default for SelfKnowledge {
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::expect_used)]
 mod tests {
+    use serial_test::serial;
+
     use super::*;
 
-    /// Helper to run tests with isolated environment
-    fn with_clean_env<F>(f: F)
-    where
-        F: FnOnce(),
-    {
-        // Save current values
-        let saved_name = std::env::var("PRIMAL_NAME").ok();
-        let saved_id = std::env::var("PRIMAL_INSTANCE_ID").ok();
-        let saved_caps = std::env::var("PRIMAL_CAPABILITIES").ok();
-        let saved_tarpc = std::env::var("TARPC_PORT").ok();
-        let saved_rest = std::env::var("REST_PORT").ok();
-
-        // Clear environment
+    fn clear_env() {
         std::env::remove_var("PRIMAL_NAME");
         std::env::remove_var("PRIMAL_INSTANCE_ID");
         std::env::remove_var("PRIMAL_CAPABILITIES");
         std::env::remove_var("TARPC_PORT");
         std::env::remove_var("REST_PORT");
-
-        // Run test
-        f();
-
-        // Restore environment
-        if let Some(v) = saved_name {
-            std::env::set_var("PRIMAL_NAME", v);
-        }
-        if let Some(v) = saved_id {
-            std::env::set_var("PRIMAL_INSTANCE_ID", v);
-        }
-        if let Some(v) = saved_caps {
-            std::env::set_var("PRIMAL_CAPABILITIES", v);
-        }
-        if let Some(v) = saved_tarpc {
-            std::env::set_var("TARPC_PORT", v);
-        }
-        if let Some(v) = saved_rest {
-            std::env::set_var("REST_PORT", v);
-        }
     }
 
     #[test]
+    #[serial]
     fn test_self_knowledge_from_env_defaults() {
-        with_clean_env(|| {
-            let sk = SelfKnowledge::from_env().expect("should parse defaults");
-            assert_eq!(sk.name, "sweetgrass");
-            assert!(!sk.instance_id.is_empty());
-            assert_eq!(sk.capabilities.len(), 0);
-            assert_eq!(sk.tarpc_port, 0); // Dynamic allocation
-            assert_eq!(sk.rest_port, 0); // Dynamic allocation (was 8080)
-        });
+        clear_env();
+        let sk = SelfKnowledge::from_env().expect("should parse defaults");
+        assert_eq!(sk.name, "sweetgrass");
+        assert!(!sk.instance_id.is_empty());
+        assert_eq!(sk.capabilities.len(), 0);
+        assert_eq!(sk.tarpc_port, 0);
+        assert_eq!(sk.rest_port, 0);
     }
 
     #[test]
+    #[serial]
     fn test_self_knowledge_from_env_custom() {
-        with_clean_env(|| {
-            std::env::set_var("PRIMAL_NAME", "sweetgrass-test");
-            std::env::set_var("PRIMAL_INSTANCE_ID", "test-123");
-            std::env::set_var("PRIMAL_CAPABILITIES", "signing,anchoring");
-            std::env::set_var("TARPC_PORT", "9091");
-            std::env::set_var("REST_PORT", "9080");
+        clear_env();
+        std::env::set_var("PRIMAL_NAME", "sweetgrass-test");
+        std::env::set_var("PRIMAL_INSTANCE_ID", "test-123");
+        std::env::set_var("PRIMAL_CAPABILITIES", "signing,anchoring");
+        std::env::set_var("TARPC_PORT", "9091");
+        std::env::set_var("REST_PORT", "9080");
 
-            let sk = SelfKnowledge::from_env().expect("should parse custom");
-            assert_eq!(sk.name, "sweetgrass-test");
-            assert_eq!(sk.instance_id, "test-123");
-            assert_eq!(sk.capabilities.len(), 2);
-            assert!(sk.offers(&Capability::Signing));
-            assert!(sk.offers(&Capability::Anchoring));
-            assert_eq!(sk.tarpc_port, 9091);
-            assert_eq!(sk.rest_port, 9080);
-        });
+        let sk = SelfKnowledge::from_env().expect("should parse custom");
+        assert_eq!(sk.name, "sweetgrass-test");
+        assert_eq!(sk.instance_id, "test-123");
+        assert_eq!(sk.capabilities.len(), 2);
+        assert!(sk.offers(&Capability::Signing));
+        assert!(sk.offers(&Capability::Anchoring));
+        assert_eq!(sk.tarpc_port, 9091);
+        assert_eq!(sk.rest_port, 9080);
     }
 
     #[test]
+    #[serial]
     fn test_self_knowledge_custom_capability() {
-        with_clean_env(|| {
-            std::env::set_var("PRIMAL_CAPABILITIES", "signing,custom_feature");
+        clear_env();
+        std::env::set_var("PRIMAL_CAPABILITIES", "signing,custom_feature");
 
-            let sk = SelfKnowledge::from_env().expect("should parse custom capability");
-            assert_eq!(sk.capabilities.len(), 2);
-            assert!(sk.offers(&Capability::Signing));
-            // Custom capabilities are allowed
-            assert!(matches!(sk.capabilities[1], Capability::Custom(_)));
-        });
+        let sk = SelfKnowledge::from_env().expect("should parse custom capability");
+        assert_eq!(sk.capabilities.len(), 2);
+        assert!(sk.offers(&Capability::Signing));
+        assert!(matches!(sk.capabilities[1], Capability::Custom(_)));
     }
 
     #[test]
+    #[serial]
     fn test_self_knowledge_invalid_port() {
-        with_clean_env(|| {
-            std::env::set_var("TARPC_PORT", "not_a_number");
+        clear_env();
+        std::env::set_var("TARPC_PORT", "not_a_number");
 
-            let result = SelfKnowledge::from_env();
-            assert!(result.is_err());
-            assert!(result.unwrap_err().contains("TARPC_PORT"));
-        });
+        let result = SelfKnowledge::from_env();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("TARPC_PORT"));
     }
 
     #[test]
