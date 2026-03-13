@@ -11,6 +11,7 @@ use tracing::instrument;
 use sweet_grass_compression::Session;
 use sweet_grass_core::{
     braid::{BraidId, BraidMetadata, ContentHash, SummaryType},
+    contribution::{ContributionRecord, SessionContribution},
     entity::EntityReference,
 };
 use sweet_grass_store::{QueryFilter, QueryOrder};
@@ -241,6 +242,27 @@ async fn dispatch(
                 .map_err(internal)?;
             state.store.put(&braid).await.map_err(internal)?;
             to_value(&braid)
+        },
+
+        // ==================== Contribution Recording ====================
+        "sweetgrass.recordContribution" => {
+            let record: ContributionRecord = parse_params(params)?;
+            let braid = state.factory.from_contribution(&record).map_err(internal)?;
+            state.store.put(&braid).await.map_err(internal)?;
+            to_value(&braid)
+        },
+
+        "sweetgrass.recordSession" => {
+            let session: SessionContribution = parse_params(params)?;
+            let braids = state.factory.from_session(&session).map_err(internal)?;
+            for braid in &braids {
+                state.store.put(braid).await.map_err(internal)?;
+            }
+            to_value(&serde_json::json!({
+                "session_id": session.session_id,
+                "braids_created": braids.len(),
+                "braid_ids": braids.iter().map(|b| b.id.as_str()).collect::<Vec<_>>(),
+            }))
         },
 
         // ==================== Export ====================
@@ -514,5 +536,56 @@ mod tests {
         assert_eq!(error_code::INVALID_PARAMS, -32602);
         assert_eq!(error_code::INTERNAL_ERROR, -32603);
         assert_eq!(error_code::NOT_FOUND, -32001);
+    }
+
+    #[tokio::test]
+    async fn test_record_contribution_dispatch() {
+        let state = test_state();
+        let params = serde_json::json!({
+            "agent": "did:key:z6MkContributor",
+            "role": "Creator",
+            "content_hash": "sha256:rpc-contrib-test",
+            "mime_type": "application/json",
+            "size": 64
+        });
+
+        let result = dispatch(&state, "sweetgrass.recordContribution", params).await;
+        assert!(result.is_ok());
+        let braid = result.unwrap();
+        assert_eq!(braid["data_hash"], "sha256:rpc-contrib-test");
+        assert!(braid["@id"].as_str().unwrap().starts_with("urn:braid:"));
+    }
+
+    #[tokio::test]
+    async fn test_record_session_dispatch() {
+        let state = test_state();
+        let params = serde_json::json!({
+            "session_id": "rpc-session-123",
+            "source_primal": "rhizoCrypt",
+            "contributions": [
+                {
+                    "agent": "did:key:z6MkAgent1",
+                    "role": "Creator",
+                    "content_hash": "sha256:session-hash-1",
+                    "mime_type": "text/plain",
+                    "size": 10
+                },
+                {
+                    "agent": "did:key:z6MkAgent2",
+                    "role": "Contributor",
+                    "content_hash": "sha256:session-hash-2",
+                    "mime_type": "application/json",
+                    "size": 20
+                }
+            ]
+        });
+
+        let result = dispatch(&state, "sweetgrass.recordSession", params).await;
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert_eq!(response["session_id"], "rpc-session-123");
+        assert_eq!(response["braids_created"], 2);
+        let braid_ids = response["braid_ids"].as_array().unwrap();
+        assert_eq!(braid_ids.len(), 2);
     }
 }

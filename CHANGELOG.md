@@ -7,20 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.7.0] - 2026-03-12
 
-### Deep Remediation — ecoBin + UniBin + Zero-Copy
+### Deep Remediation — ecoBin + UniBin + Zero-Copy + Contribution API
 
 Full architectural audit and remediation pass. Every item from the comprehensive
 audit has been resolved — not surface-level fixes, but deep structural evolution.
+Added inter-primal contribution recording API for provenance trio integration.
 
 ### Added
 
+- **Contribution recording API** — `sweetgrass.recordContribution` and
+  `sweetgrass.recordSession` JSON-RPC methods for inter-primal attribution.
+  Other primals (rhizoCrypt, ludoSpring, etc.) can send structured contribution
+  data and sweetGrass creates W3C PROV-O braids automatically.
+- **ContributionRecord + SessionContribution types** — Core data types for
+  inter-primal attribution in `sweet-grass-core::contribution`
+- **Extensible domain metadata** — Well-known domain keys for chemistry
+  (wetSpring), ML, and game (ludoSpring) domains
 - **JSON-RPC 2.0 handler** — `POST /jsonrpc` with semantic method names
   (`sweetgrass.createBraid`, `sweetgrass.getBraid`, `sweetgrass.health`, etc.)
 - **UniBin CLI** — Single binary with `clap` subcommands (`server`, `status`),
   graceful shutdown via SIGTERM/SIGINT
-- **16 HTTP-level E2E tests** — REST and JSON-RPC endpoints tested through full
-  Axum stack (`crates/sweet-grass-service/tests/e2e_http.rs`)
-- **SPDX license headers** — `AGPL-3.0-only` on all 79 `.rs` files
+- **19 HTTP-level E2E tests** — REST and JSON-RPC endpoints tested through full
+  Axum stack, including contribution recording flow
+- **SPDX license headers** — `AGPL-3.0-only` on all 80 `.rs` files
 - **LICENSE file** — Full GNU AGPL v3.0 text
 - **Cross-compilation targets** — ARM64, musl static, RISC-V documented in
   `.cargo/config.toml`
@@ -49,7 +58,7 @@ audit has been resolved — not surface-level fixes, but deep structural evoluti
 
 ```
 Version:       0.7.0
-Tests:         542 passing (was 515)
+Tests:         553 passing (was 515)
 Clippy:        0 warnings (pedantic + nursery, -D warnings)
 Formatting:    100% compliant
 Docs:          Clean build, no warnings
