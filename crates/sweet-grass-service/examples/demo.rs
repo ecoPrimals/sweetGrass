@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! `SweetGrass` Demo - Full Attribution Pipeline
 //!
 //! This example demonstrates the complete `SweetGrass` workflow:

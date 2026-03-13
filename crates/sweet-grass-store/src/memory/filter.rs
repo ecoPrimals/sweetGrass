@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Query filtering and sorting for the in-memory store.
 //!
 //! This module contains the logic for matching Braids against query filters

@@ -25,7 +25,7 @@ NC='\033[0m'
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-BINS_DIR="/home/strandgate/Development/ecoPrimals/primalBins"
+BINS_DIR="${ECOPRIMALS_BINS_DIR:-$PROJECT_ROOT/../../../primalBins}"
 OUTPUT_DIR="$SCRIPT_DIR/outputs/loamspine-$(date +%s)"
 LOAMSPINE_TARPC_PORT=9001
 LOAMSPINE_JSON_PORT=8080

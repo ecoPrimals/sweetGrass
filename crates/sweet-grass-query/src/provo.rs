@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! PROV-O JSON-LD export.
 //!
 //! This module provides W3C PROV-O compliant export of provenance data.

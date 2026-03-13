@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Test-only mock implementations for signing.
 //!
 //! These are isolated from production code and only available in test builds.

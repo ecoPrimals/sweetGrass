@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Anchoring integration.
 //!
 //! Provides capability-based discovery for anchoring Braids to primals

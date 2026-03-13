@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Compression Engine implementation.
 //!
 //! Compresses session events into Braids using the 0/1/Many model.
@@ -17,6 +18,9 @@ use crate::error::CompressionError;
 use crate::session::Session;
 use crate::strategy::{CompressionConfig, CompressionStrategy, DiscardReason};
 use crate::Result;
+
+/// Default source primal name when discovery has not been used.
+pub const DEFAULT_SOURCE_PRIMAL: &str = "unknown";
 
 /// Result of compression.
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -103,7 +107,7 @@ impl CompressionEngine {
             analyzer: SessionAnalyzer::new(config.clone()),
             config,
             factory,
-            source_primal: "unknown".to_string(),
+            source_primal: DEFAULT_SOURCE_PRIMAL.to_string(),
         }
     }
 

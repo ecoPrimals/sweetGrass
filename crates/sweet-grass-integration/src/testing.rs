@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Test utilities for integration testing.
 //!
 //! Provides helpers for creating test fixtures and managing test infrastructure

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Braid Factory - creates Braids from various sources.
 //!
 //! The factory handles:

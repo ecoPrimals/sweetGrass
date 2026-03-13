@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Router configuration.
 
 use axum::{
@@ -6,7 +7,7 @@ use axum::{
 };
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
-use crate::handlers::{attribution, braids, compression, health, provenance};
+use crate::handlers::{attribution, braids, compression, health, jsonrpc, provenance};
 use crate::state::AppState;
 
 /// Create the main router with all routes.
@@ -31,6 +32,9 @@ pub fn create_router(state: AppState) -> Router {
         // Compression endpoints
         .route("/compress", post(compression::compress_session));
 
+    // JSON-RPC 2.0 endpoint (wateringHole required protocol)
+    let jsonrpc_route = Router::new().route("/jsonrpc", post(jsonrpc::handle_jsonrpc));
+
     // Health endpoints
     let health_routes = Router::new()
         .route("/health", get(health::health))
@@ -41,6 +45,7 @@ pub fn create_router(state: AppState) -> Router {
     // Combine all routes
     Router::new()
         .nest("/api/v1", api_v1)
+        .merge(jsonrpc_route)
         .merge(health_routes)
         .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
@@ -65,6 +70,8 @@ pub fn create_test_router(state: AppState) -> Router {
         )
         .route("/compress", post(compression::compress_session));
 
+    let jsonrpc_route = Router::new().route("/jsonrpc", post(jsonrpc::handle_jsonrpc));
+
     let health_routes = Router::new()
         .route("/health", get(health::health))
         .route("/health/detailed", get(health::health_detailed))
@@ -73,6 +80,7 @@ pub fn create_test_router(state: AppState) -> Router {
 
     Router::new()
         .nest("/api/v1", api_v1)
+        .merge(jsonrpc_route)
         .merge(health_routes)
         .with_state(state)
 }

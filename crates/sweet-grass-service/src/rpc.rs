@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Pure Rust RPC service definition using tarpc.
 //!
 //! No gRPC, no protobuf, no vendor lock-in.

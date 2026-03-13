@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! `SweetGrass` error types.
 //!
 //! Comprehensive error handling for all `SweetGrass` operations.

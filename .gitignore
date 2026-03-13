@@ -8,3 +8,4 @@ showcase/**/pids/
 *.swp
 *.swo
 .DS_Store
+.cargo/

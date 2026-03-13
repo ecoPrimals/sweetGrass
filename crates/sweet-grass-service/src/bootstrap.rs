@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Infant Discovery Bootstrap.
 //!
 //! The entry point for zero-knowledge startup. A primal is born knowing

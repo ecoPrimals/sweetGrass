@@ -1,19 +1,23 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Agent data structures - people, software, and organizations that act.
 //!
 //! Agents are the "who" of provenance - the entities that perform activities
 //! and contribute to data creation.
 
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 /// Decentralized Identifier (DID).
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct Did(String);
+///
+/// Uses `Arc<str>` internally so `.clone()` is O(1) (atomic refcount increment).
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
+pub struct Did(Arc<str>);
 
 impl Did {
     /// Create a new DID from a string.
     #[must_use]
-    pub fn new(did: impl Into<String>) -> Self {
-        Self(did.into())
+    pub fn new(did: impl AsRef<str>) -> Self {
+        Self(Arc::from(did.as_ref()))
     }
 
     /// Get the inner string representation.
@@ -38,21 +42,31 @@ impl Did {
     }
 }
 
+impl<'de> Deserialize<'de> for Did {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(Self(Arc::from(s)))
+    }
+}
+
 impl std::fmt::Display for Did {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        self.0.fmt(f)
     }
 }
 
 impl From<&str> for Did {
     fn from(s: &str) -> Self {
-        Self::new(s)
+        Self(Arc::from(s))
     }
 }
 
 impl From<String> for Did {
     fn from(s: String) -> Self {
-        Self::new(s)
+        Self(Arc::from(s.into_boxed_str()))
     }
 }
 

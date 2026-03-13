@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Application state for the service.
 
 use std::sync::Arc;

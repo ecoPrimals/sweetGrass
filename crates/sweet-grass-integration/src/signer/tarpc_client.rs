@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! tarpc signing client implementation.
 //!
 //! Production implementation for connecting to signing services

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Braid Factory implementation.
 //!
 //! Creates Braids from various input sources.
@@ -18,6 +19,9 @@ use sweet_grass_core::{
 
 use crate::error::FactoryError;
 use crate::Result;
+
+/// Default source primal name when self-knowledge is unavailable.
+pub const DEFAULT_SOURCE_PRIMAL: &str = "unknown";
 
 /// Braid Factory - creates Braids from various sources.
 pub struct BraidFactory {
@@ -61,7 +65,7 @@ impl BraidFactory {
     pub fn new(default_agent: Did) -> Self {
         Self {
             default_agent,
-            source_primal: "unknown".to_string(),
+            source_primal: DEFAULT_SOURCE_PRIMAL.to_string(),
             niche: None,
         }
     }

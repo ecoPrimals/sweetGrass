@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Sled store error types.
 
 use thiserror::Error;

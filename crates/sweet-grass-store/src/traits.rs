@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Core storage traits for Braid persistence.
 //!
 //! This module defines the primary interfaces for storing and retrieving
@@ -10,6 +11,9 @@ use sweet_grass_core::{
 };
 
 use crate::Result;
+
+/// Default number of concurrent operations for batch put operations.
+pub const DEFAULT_BATCH_CONCURRENCY: usize = 10;
 
 /// Query filter for searching Braids.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -196,7 +200,7 @@ pub trait BraidStore: Send + Sync {
     ) -> (usize, Vec<crate::StoreError>) {
         use futures::stream::{self, StreamExt};
 
-        let concurrency = concurrency.unwrap_or(10);
+        let concurrency = concurrency.unwrap_or(DEFAULT_BATCH_CONCURRENCY);
 
         // Collect futures first, then execute in parallel
         let mut futures = Vec::with_capacity(braids.len());

@@ -9,7 +9,9 @@ authors.workspace = true
 
 [features]
 default = []
-# Enable test support utilities (mock clients, etc.)
+# Enable test support utilities (mock clients, etc.).
+# WARNING: This feature gates mock implementations. It MUST NOT be enabled
+# in production builds. Mocks bypass real primal discovery and signing.
 test-support = []
 
 [lints]

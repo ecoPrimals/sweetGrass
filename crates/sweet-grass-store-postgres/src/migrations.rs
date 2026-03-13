@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Database migrations for the `PostgreSQL` store.
 //!
 //! Migrations are embedded and run automatically on startup.

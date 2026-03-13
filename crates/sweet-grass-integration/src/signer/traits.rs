@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Core signing traits.
 //!
 //! These traits abstract the signing interface allowing for different

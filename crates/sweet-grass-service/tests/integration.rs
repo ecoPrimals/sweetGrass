@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! End-to-end integration tests for `SweetGrass`.
 //!
 //! These tests verify the complete attribution pipeline from

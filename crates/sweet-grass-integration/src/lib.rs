@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! # SweetGrass Integration
 //!
 //! Integration with other ecoPrimals via pure Rust tarpc (no gRPC).

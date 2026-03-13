@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! In-memory Braid store implementation.
 //!
 //! This is the default store for development and testing.

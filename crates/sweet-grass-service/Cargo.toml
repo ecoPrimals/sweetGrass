@@ -61,7 +61,7 @@ clap = { version = "4", features = ["derive", "env"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util", "macros"] }
-axum-test = "16"
+axum-test = "19"
 serial_test = "3"
 
 [[bin]]

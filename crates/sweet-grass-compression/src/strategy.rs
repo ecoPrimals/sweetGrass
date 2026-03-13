@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Compression strategy types.
 //!
 //! This module defines the different strategies the compression engine

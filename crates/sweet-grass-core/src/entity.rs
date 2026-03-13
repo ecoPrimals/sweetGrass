@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Entity reference data structures - links to data artifacts.
 //!
 //! Entity references allow Braids to link to other data without

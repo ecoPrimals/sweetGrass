@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Primal self-knowledge and identity.
 //!
 //! A primal knows its own name and capabilities, not others.
