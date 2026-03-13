@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Index management for the in-memory store.
 //!
 //! This module handles maintaining secondary indexes for efficient queries.

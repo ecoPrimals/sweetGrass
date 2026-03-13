@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! PostgreSQL integration tests organized by domain.
 //!
 //! This module contains comprehensive integration tests for the PostgreSQL

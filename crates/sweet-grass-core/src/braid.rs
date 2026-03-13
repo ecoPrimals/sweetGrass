@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Braid data structures - the core provenance record.
 //!
 //! A Braid is a PROV-O compatible provenance record that describes:
@@ -8,6 +9,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::activity::Activity;
@@ -21,20 +23,22 @@ pub type ContentHash = String;
 pub type Timestamp = u64;
 
 /// Braid identifier (URN format: "urn:braid:uuid:...")
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct BraidId(String);
+///
+/// Uses `Arc<str>` internally so `.clone()` is O(1) (atomic refcount increment).
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
+pub struct BraidId(Arc<str>);
 
 impl BraidId {
     /// Create a new random Braid ID.
     #[must_use]
     pub fn new() -> Self {
-        Self(format!("urn:braid:uuid:{}", Uuid::new_v4()))
+        Self(format!("urn:braid:uuid:{}", Uuid::new_v4()).into())
     }
 
     /// Create a Braid ID from a content hash.
     #[must_use]
     pub fn from_hash(hash: &ContentHash) -> Self {
-        Self(format!("urn:braid:{hash}"))
+        Self(format!("urn:braid:{hash}").into())
     }
 
     /// Get the inner string representation.
@@ -45,8 +49,19 @@ impl BraidId {
 
     /// Create a Braid ID from an existing string.
     #[must_use]
-    pub const fn from_string(s: String) -> Self {
-        Self(s)
+    pub fn from_string(s: impl Into<String>) -> Self {
+        let s = s.into();
+        Self(Arc::from(s.into_boxed_str()))
+    }
+}
+
+impl<'de> Deserialize<'de> for BraidId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(Self(Arc::from(s)))
     }
 }
 
@@ -58,7 +73,7 @@ impl Default for BraidId {
 
 impl std::fmt::Display for BraidId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        self.0.fmt(f)
     }
 }
 
@@ -133,6 +148,17 @@ pub enum SummaryType {
     },
 }
 
+/// W3C PROV-O vocabulary namespace.
+pub const PROV_VOCAB_URI: &str = "http://www.w3.org/ns/prov#";
+/// W3C XML Schema namespace.
+pub const XSD_VOCAB_URI: &str = "http://www.w3.org/2001/XMLSchema#";
+/// Schema.org namespace.
+pub const SCHEMA_VOCAB_URI: &str = "http://schema.org/";
+/// ecoPrimals vocabulary namespace (discovered at runtime in production).
+pub const ECOP_VOCAB_URI: &str = "https://ecoprimals.io/vocab#";
+/// ecoPrimals base URI (discovered at runtime in production).
+pub const ECOP_BASE_URI: &str = "https://ecoprimals.io/";
+
 /// JSON-LD context for semantic interpretation.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BraidContext {
@@ -152,19 +178,13 @@ pub struct BraidContext {
 impl Default for BraidContext {
     fn default() -> Self {
         let mut imports = HashMap::new();
-        imports.insert("prov".to_string(), "http://www.w3.org/ns/prov#".to_string());
-        imports.insert(
-            "xsd".to_string(),
-            "http://www.w3.org/2001/XMLSchema#".to_string(),
-        );
-        imports.insert("schema".to_string(), "http://schema.org/".to_string());
-        imports.insert(
-            "ecop".to_string(),
-            "https://ecoprimals.io/vocab#".to_string(),
-        );
+        imports.insert("prov".to_string(), PROV_VOCAB_URI.to_string());
+        imports.insert("xsd".to_string(), XSD_VOCAB_URI.to_string());
+        imports.insert("schema".to_string(), SCHEMA_VOCAB_URI.to_string());
+        imports.insert("ecop".to_string(), ECOP_VOCAB_URI.to_string());
 
         Self {
-            base: "https://ecoprimals.io/".to_string(),
+            base: ECOP_BASE_URI.to_string(),
             version: 1.1,
             imports,
         }

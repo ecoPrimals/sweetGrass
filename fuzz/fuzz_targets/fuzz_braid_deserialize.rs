@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Fuzz test for Braid deserialization.
 //!
 //! Tests that arbitrary JSON input doesn't cause panics in Braid deserialization.

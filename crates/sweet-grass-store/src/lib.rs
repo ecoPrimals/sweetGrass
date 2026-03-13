@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Storage backends for `SweetGrass` Braids.
 //!
 //! This crate provides the `BraidStore` trait and implementations

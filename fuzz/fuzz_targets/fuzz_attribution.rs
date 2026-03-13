@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Fuzz test for attribution calculations.
 //!
 //! Tests that arbitrary attribution inputs don't cause panics and produce valid results.

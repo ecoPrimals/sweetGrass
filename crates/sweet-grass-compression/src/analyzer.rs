@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Session analyzer for compression strategy selection.
 //!
 //! Analyzes session structure to determine optimal compression strategy.

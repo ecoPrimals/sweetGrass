@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Query engine error types.
 
 use thiserror::Error;

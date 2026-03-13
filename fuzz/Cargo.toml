@@ -1,4 +1,5 @@
 [package]
+license = "AGPL-3.0-only"
 name = "sweet-grass-fuzz"
 version = "0.0.0"
 authors = ["Automated"]

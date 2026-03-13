@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! `PostgreSQL` storage backend for `SweetGrass`.
 //!
 //! This crate provides a persistent `PostgreSQL` backend implementing
@@ -36,6 +37,15 @@ mod store;
 pub use error::{PostgresError, Result};
 pub use store::PostgresStore;
 
+/// Default maximum number of connections in the pool.
+pub const DEFAULT_MAX_CONNECTIONS: u32 = 10;
+
+/// Default connection timeout in seconds.
+pub const DEFAULT_CONNECT_TIMEOUT_SECS: u64 = 30;
+
+/// Default idle timeout in seconds.
+pub const DEFAULT_IDLE_TIMEOUT_SECS: u64 = 600;
+
 /// Database pool type alias.
 pub type Pool = sqlx::PgPool;
 
@@ -64,10 +74,10 @@ impl Default for PostgresConfig {
             // Prefer environment variable for 12-factor app compatibility
             database_url: std::env::var("DATABASE_URL")
                 .unwrap_or_else(|_| "postgresql://localhost/sweetgrass".to_string()),
-            max_connections: 10,
+            max_connections: DEFAULT_MAX_CONNECTIONS,
             min_connections: 1,
-            connect_timeout_secs: 30,
-            idle_timeout_secs: 600,
+            connect_timeout_secs: DEFAULT_CONNECT_TIMEOUT_SECS,
+            idle_timeout_secs: DEFAULT_IDLE_TIMEOUT_SECS,
         }
     }
 }

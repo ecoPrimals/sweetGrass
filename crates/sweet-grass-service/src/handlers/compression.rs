@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Compression handlers.
 
 use axum::{extract::State, http::StatusCode, Json};

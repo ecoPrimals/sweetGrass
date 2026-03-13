@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! `SweetGrass` Service Layer.
 //!
 //! Pure Rust service providing tarpc (primary) and REST (fallback) APIs.

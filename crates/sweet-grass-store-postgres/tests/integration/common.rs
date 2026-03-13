@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Common test utilities for PostgreSQL integration tests.
 //!
 //! Note: Some helpers may be unused during incremental test refactoring.

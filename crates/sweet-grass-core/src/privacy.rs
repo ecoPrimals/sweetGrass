@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Privacy controls and data subject rights.
 //!
 //! `SweetGrass` respects human dignity through proper privacy controls:

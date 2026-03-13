@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! `SweetGrass` configuration.
 //!
 //! Configuration for the `SweetGrass` primal, including compression settings,

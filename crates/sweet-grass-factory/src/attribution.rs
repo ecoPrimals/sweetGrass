@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Attribution chain calculation.
 //!
 //! This module implements the attribution calculation algorithm
@@ -14,6 +15,12 @@ use sweet_grass_core::{
 
 use crate::error::FactoryError;
 use crate::Result;
+
+/// Default weight for the Curator role in attribution calculation.
+pub const DEFAULT_CURATOR_ROLE_WEIGHT: f64 = 0.10;
+
+/// Default maximum derivation depth to consider in attribution chains.
+pub const DEFAULT_ATTRIBUTION_MAX_DEPTH: u32 = 10;
 
 /// A share of attribution for a contributor.
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -155,13 +162,13 @@ impl Default for AttributionConfig {
         role_weights.insert(AgentRole::Creator, 0.40);
         role_weights.insert(AgentRole::Contributor, 0.25);
         role_weights.insert(AgentRole::Transformer, 0.20);
-        role_weights.insert(AgentRole::Curator, 0.10);
+        role_weights.insert(AgentRole::Curator, DEFAULT_CURATOR_ROLE_WEIGHT);
         role_weights.insert(AgentRole::Publisher, 0.05);
 
         Self {
             role_weights,
             decay_factor: 0.5,
-            max_depth: 10,
+            max_depth: DEFAULT_ATTRIBUTION_MAX_DEPTH,
             min_share: 0.001,
         }
     }

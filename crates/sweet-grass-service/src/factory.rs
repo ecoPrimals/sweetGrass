@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Storage backend factory for infant discovery.
 //!
 //! This module provides runtime selection of storage backends based on
@@ -176,6 +177,7 @@ mod tests {
     // Memory Backend Tests
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn test_memory_backend() {
         std::env::set_var("STORAGE_BACKEND", "memory");
         let store = BraidStoreFactory::from_env().await;
@@ -183,6 +185,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn test_default_backend() {
         std::env::remove_var("STORAGE_BACKEND");
         let store = BraidStoreFactory::from_env().await;
@@ -190,11 +193,11 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn test_memory_backend_explicit() {
         std::env::set_var("STORAGE_BACKEND", "memory");
         let result = BraidStoreFactory::from_env().await;
         assert!(result.is_ok());
-        // Verify it's actually a memory store by checking it works
         let store = result.unwrap();
         assert!(Arc::strong_count(&store) >= 1);
     }
@@ -202,6 +205,7 @@ mod tests {
     // Error Cases
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn test_unknown_backend() {
         std::env::set_var("STORAGE_BACKEND", "unknown");
         let result = BraidStoreFactory::from_env().await;
@@ -213,6 +217,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn test_unknown_backend_specific_message() {
         // Use generic unknown backend, not vendor-specific name
         std::env::set_var("STORAGE_BACKEND", "unknown_backend");

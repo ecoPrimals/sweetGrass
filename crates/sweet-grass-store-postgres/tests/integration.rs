@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! PostgreSQL integration tests.
 //!
 //! Comprehensive tests for the PostgreSQL backend, refactored into logical modules.
@@ -34,8 +35,7 @@
 #![allow(clippy::expect_used, clippy::unwrap_used)]
 // Test code clarity
 
-// Note: Legacy tests from integration_old.rs.bak have been fully migrated
-// to the modular structure below. See migration history in git log.
+
 
 // New modular organization (fully migrated)
 mod integration {

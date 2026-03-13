@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Discovery-based signing services.
 //!
 //! Uses capability-based discovery to find signing primals at runtime.

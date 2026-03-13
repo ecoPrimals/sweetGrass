@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Session events listener.
 //!
 //! Provides capability-based discovery for subscribing to session events

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Compression Engine for `SweetGrass`.
 //!
 //! This crate implements the 0/1/Many compression model:

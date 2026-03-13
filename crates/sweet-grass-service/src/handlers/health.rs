@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Health check handler.
 //!
 //! Provides comprehensive health monitoring including:

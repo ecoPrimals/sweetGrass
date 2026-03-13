@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! `SweetGrass` primal implementation.
 //!
 //! The main entry point for the `SweetGrass` primal, implementing

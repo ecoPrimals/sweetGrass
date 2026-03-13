@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Fuzz test for QueryFilter.
 //!
 //! Tests that arbitrary filter configurations don't cause panics.

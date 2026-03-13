@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Session data types.
 //!
 //! These types represent session events data that gets compressed

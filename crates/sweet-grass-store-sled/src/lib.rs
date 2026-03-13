@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Sled storage backend for `SweetGrass`.
 //!
 //! This crate provides a high-performance embedded storage backend
@@ -43,6 +44,12 @@ mod store;
 pub use error::{Result, SledError};
 pub use store::SledStore;
 
+/// Default cache capacity in bytes (1 GiB).
+pub const DEFAULT_CACHE_CAPACITY: u64 = 1024 * 1024 * 1024;
+
+/// Default flush interval in milliseconds (1 second).
+pub const DEFAULT_FLUSH_EVERY_MS: u64 = 1000;
+
 /// Tree names (similar to column families).
 pub mod trees {
     /// Main Braid storage.
@@ -79,9 +86,9 @@ impl Default for SledConfig {
     fn default() -> Self {
         Self {
             path: "./sweetgrass_sled".to_string(),
-            cache_capacity: 1024 * 1024 * 1024, // 1GB
-            flush_every_ms: Some(1000),         // 1 second
-            use_compression: false,             // Requires 'compression' feature in sled
+            cache_capacity: DEFAULT_CACHE_CAPACITY,
+            flush_every_ms: Some(DEFAULT_FLUSH_EVERY_MS),
+            use_compression: false, // Requires 'compression' feature in sled
         }
     }
 }

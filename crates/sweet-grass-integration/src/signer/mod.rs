@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 //! Signing capability integration.
 //!
 //! Provides traits for signing Braids via capability-based discovery.
