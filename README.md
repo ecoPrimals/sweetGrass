@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.0 | 542 tests | AGPL-3.0-only | Pure Rust | ecoBin compliant
+v0.7.0 | 553 tests | AGPL-3.0-only | Pure Rust | ecoBin compliant
 
 ---
 
@@ -60,7 +60,7 @@ curl http://localhost:8080/api/v1/braids
 
 | Crate | Purpose |
 |-------|---------|
-| `sweet-grass-core` | Braid, Agent, Activity, Entity, Config |
+| `sweet-grass-core` | Braid, Agent, Activity, Entity, Contribution, Config |
 | `sweet-grass-store` | BraidStore trait + MemoryStore |
 | `sweet-grass-store-postgres` | PostgreSQL backend |
 | `sweet-grass-store-sled` | Embedded pure Rust backend |
@@ -72,7 +72,7 @@ curl http://localhost:8080/api/v1/braids
 
 ### Protocol Stack
 
-- **JSON-RPC 2.0** (primary): `POST /jsonrpc` with semantic methods (`sweetgrass.createBraid`, etc.)
+- **JSON-RPC 2.0** (primary): `POST /jsonrpc` with semantic methods (`sweetgrass.createBraid`, `sweetgrass.recordContribution`, `sweetgrass.recordSession`, etc.)
 - **tarpc** (high-performance binary): Pure Rust RPC, no gRPC/protobuf
 - **REST** (HTTP/JSON): `/api/v1/braids` for debugging and admin
 
@@ -167,12 +167,12 @@ See [env.example](./env.example) for all options.
 | Metric | Value |
 |--------|-------|
 | Version | v0.7.0 |
-| Tests | 542 passing |
+| Tests | 553 passing |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates) |
 | Production unwraps | 0 |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
 | Max file size | 757 lines (limit: 1000) |
-| SPDX headers | 79/79 .rs files |
+| SPDX headers | 80/80 .rs files |
 | License | AGPL-3.0-only |
 
 ### ecoBin Compliance

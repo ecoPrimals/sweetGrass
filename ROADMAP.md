@@ -6,8 +6,11 @@
 
 ## Completed
 
-### v0.7.0 — Deep Remediation (March 2026)
+### v0.7.0 — Deep Remediation + Contribution API (March 2026)
 
+- [x] Inter-primal contribution recording API (`sweetgrass.recordContribution`, `sweetgrass.recordSession`)
+- [x] ContributionRecord + SessionContribution types for rhizoCrypt/biomeOS integration
+- [x] Extensible domain metadata (chemistry, ML, game domain keys)
 - [x] JSON-RPC 2.0 handler with semantic method names
 - [x] UniBin CLI (clap subcommands: `server`, `status`)
 - [x] Arc<str> zero-copy for BraidId and Did
@@ -15,7 +18,7 @@
 - [x] Large file refactoring (mod.rs + tests.rs pattern)
 - [x] Magic number elimination (named constants everywhere)
 - [x] PROV-O namespace URIs extracted to constants
-- [x] 16 HTTP-level E2E tests (REST + JSON-RPC)
+- [x] 19 HTTP-level E2E tests (REST + JSON-RPC + contribution flow)
 - [x] Cross-compilation targets documented
 - [x] deny.toml updated for AGPL-3.0-only
 - [x] ecoBin full compliance verified
