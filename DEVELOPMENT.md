@@ -1,7 +1,7 @@
 # 🌾 SweetGrass — Development Guide
 
-**Last Updated**: January 9, 2026  
-**Version**: v0.7.0
+**Last Updated**: March 13, 2026  
+**Version**: v0.7.2
 
 ---
 
@@ -421,10 +421,9 @@ SELECT * FROM braids LIMIT 10;
 
 ```bash
 # Update Cargo.toml versions
-cargo set-version 0.7.0
+cargo set-version 0.7.2
 
-# Update CHANGELOG.md
-# Update STATUS.md
+# Update CHANGELOG.md and ROADMAP.md
 ```
 
 ### 2. Final Checks
@@ -555,7 +554,7 @@ cargo llvm-cov --all-features --workspace
 
 ## 📞 Support
 
-- **Documentation**: See [DOCUMENTATION_INDEX.md](./DOCUMENTATION_INDEX.md)
+- **Documentation**: See [README.md](./README.md) and [specs/](./specs/)
 - **Issues**: Create GitHub issue
 - **Discussions**: GitHub Discussions
 

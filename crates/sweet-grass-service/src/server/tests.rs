@@ -29,7 +29,7 @@ static COUNTER: AtomicU64 = AtomicU64::new(0);
 async fn create_test_braid(server: &SweetGrassServer) -> Braid {
     let id = COUNTER.fetch_add(1, Ordering::SeqCst);
     let request = CreateBraidRequest {
-        data_hash: format!("sha256:test{id}"),
+        data_hash: format!("sha256:test{id}").into(),
         mime_type: "text/plain".to_string(),
         size: 1024,
         attributed_to: Did::new("did:key:z6MkTest"),
@@ -66,7 +66,7 @@ async fn test_create_and_get_braid() {
     let server = make_server();
 
     let request = CreateBraidRequest {
-        data_hash: "sha256:abc123".to_string(),
+        data_hash: "sha256:abc123".to_string().into(),
         mime_type: "text/plain".to_string(),
         size: 1024,
         attributed_to: Did::new("did:key:z6MkTest"),
@@ -81,7 +81,7 @@ async fn test_create_and_get_braid() {
         .await
         .unwrap();
 
-    assert_eq!(braid.data_hash, "sha256:abc123");
+    assert_eq!(braid.data_hash.as_str(), "sha256:abc123");
 
     let retrieved = server
         .get_braid(context::current(), braid.id.clone())
@@ -89,7 +89,7 @@ async fn test_create_and_get_braid() {
         .unwrap();
 
     assert!(retrieved.is_some());
-    assert_eq!(retrieved.unwrap().data_hash, "sha256:abc123");
+    assert_eq!(retrieved.unwrap().data_hash.as_str(), "sha256:abc123");
 }
 
 #[tokio::test]
@@ -121,7 +121,7 @@ async fn test_get_braid_by_hash() {
 async fn test_get_braid_by_hash_not_found() {
     let server = make_server();
     let result = server
-        .get_braid_by_hash(context::current(), "sha256:nonexistent".to_string())
+        .get_braid_by_hash(context::current(), "sha256:nonexistent".to_string().into())
         .await
         .unwrap();
     assert!(result.is_none());
@@ -219,7 +219,7 @@ async fn test_attribution_chain_not_found() {
     let result = server
         .attribution_chain(
             context::current(),
-            "sha256:nonexistent".to_string(),
+            "sha256:nonexistent".to_string().into(),
             AttributionConfig::default(),
         )
         .await;
@@ -249,7 +249,11 @@ async fn test_calculate_rewards_not_found() {
     let server = make_server();
 
     let result = server
-        .calculate_rewards(context::current(), "sha256:nonexistent".to_string(), 100.0)
+        .calculate_rewards(
+            context::current(),
+            "sha256:nonexistent".to_string().into(),
+            100.0,
+        )
         .await;
 
     assert!(result.is_err());
@@ -354,7 +358,7 @@ async fn test_export_provo_not_found() {
     let server = make_server();
 
     let result = server
-        .export_provo(context::current(), "sha256:nonexistent".to_string())
+        .export_provo(context::current(), "sha256:nonexistent".to_string().into())
         .await;
 
     assert!(result.is_err());

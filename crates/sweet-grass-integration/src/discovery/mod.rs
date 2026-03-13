@@ -186,6 +186,9 @@ impl PrimalDiscovery for LocalDiscovery {
 }
 
 /// Discovery client that caches results and handles failover.
+///
+/// Will be constructed by service bootstrap when v0.8.0 connects to live Songbird.
+#[allow(dead_code)]
 pub struct CachedDiscovery {
     /// Underlying discovery implementation.
     inner: Arc<dyn PrimalDiscovery>,
@@ -197,9 +200,9 @@ pub struct CachedDiscovery {
     cache_ttl: Duration,
 }
 
+#[allow(dead_code)]
 impl CachedDiscovery {
     /// Create a new cached discovery client.
-    #[allow(dead_code)]
     #[must_use]
     pub fn new(inner: Arc<dyn PrimalDiscovery>, cache_ttl: Duration) -> Self {
         Self {
@@ -210,14 +213,12 @@ impl CachedDiscovery {
     }
 
     /// Invalidate cache for a capability.
-    #[allow(dead_code)]
     pub async fn invalidate(&self, capability: &Capability) {
         let mut cache = self.cache.write().await;
         cache.remove(capability);
     }
 
     /// Invalidate all cache entries.
-    #[allow(dead_code)]
     pub async fn invalidate_all(&self) {
         let mut cache = self.cache.write().await;
         cache.clear();

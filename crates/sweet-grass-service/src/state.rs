@@ -26,7 +26,6 @@ pub struct AppState {
     pub compression: Arc<CompressionEngine>,
 
     /// Self-knowledge (for health checks, uptime, etc.).
-    #[allow(dead_code)] // Used by health handler
     pub self_knowledge: Option<Arc<SelfKnowledge>>,
 
     /// Store backend type (for health reporting).

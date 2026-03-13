@@ -5,6 +5,10 @@
 //! from primals that offer `Capability::SessionEvents`. No specific primal
 //! names are hardcoded.
 
+pub mod tarpc_client;
+
+pub use tarpc_client::create_session_events_client_async;
+
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -205,155 +209,6 @@ impl EventHandler {
 }
 
 // ============================================================================
-// tarpc Service Definition
-// ============================================================================
-
-/// tarpc service definition for session events.
-///
-/// Generic service interface for any primal offering `Capability::SessionEvents`.
-#[tarpc::service]
-pub trait SessionEventsRpc {
-    /// Subscribe to session events (returns serialized events).
-    async fn subscribe() -> std::result::Result<Vec<u8>, String>;
-
-    /// Get a session by ID.
-    async fn get_session(session_id: String) -> std::result::Result<Option<Vec<u8>>, String>;
-
-    /// Health check.
-    async fn health() -> std::result::Result<bool, String>;
-}
-
-/// Real tarpc client for connecting to a session events service.
-///
-/// This is the production implementation that connects to any primal
-/// offering `Capability::SessionEvents` using tarpc over TCP with bincode serialization.
-pub struct TarpcSessionEventsClient {
-    client: SessionEventsRpcClient,
-}
-
-impl TarpcSessionEventsClient {
-    /// Connect to a session events service at the given address.
-    #[instrument(skip_all, fields(addr = %addr))]
-    pub async fn connect(addr: &str) -> Result<Self> {
-        use tarpc::serde_transport::tcp;
-        use tarpc::tokio_serde::formats::Bincode;
-
-        debug!("Connecting to session events service at {}", addr);
-
-        let transport = tcp::connect(addr, Bincode::default)
-            .await
-            .map_err(|e| IntegrationError::Connection(format!("Failed to connect: {e}")))?;
-
-        let client =
-            SessionEventsRpcClient::new(tarpc::client::Config::default(), transport).spawn();
-
-        debug!("Connected to session events service");
-        Ok(Self { client })
-    }
-
-    /// Create from a discovered primal.
-    pub async fn from_primal(primal: &DiscoveredPrimal) -> Result<Self> {
-        let addr = primal.tarpc_address.as_ref().ok_or_else(|| {
-            IntegrationError::Discovery("Primal has no tarpc address".to_string())
-        })?;
-        Self::connect(addr).await
-    }
-}
-
-#[async_trait]
-impl SessionEventsClient for TarpcSessionEventsClient {
-    async fn subscribe(&self) -> Result<Box<dyn SessionEventStream>> {
-        // Get initial events batch
-        let events_bytes = self
-            .client
-            .subscribe(tarpc::context::current())
-            .await
-            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
-            .map_err(IntegrationError::Subscription)?;
-
-        let events: Vec<SessionEvent> = serde_json::from_slice(&events_bytes)
-            .map_err(|e| IntegrationError::Serialization(e.to_string()))?;
-
-        Ok(Box::new(TarpcEventStream {
-            events: std::collections::VecDeque::from(events),
-        }))
-    }
-
-    async fn get_session(&self, session_id: &str) -> Result<Option<Session>> {
-        let session_bytes = self
-            .client
-            .get_session(tarpc::context::current(), session_id.to_string())
-            .await
-            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
-            .map_err(IntegrationError::Subscription)?;
-
-        match session_bytes {
-            Some(bytes) => {
-                let session: Session = serde_json::from_slice(&bytes)
-                    .map_err(|e| IntegrationError::Serialization(e.to_string()))?;
-                Ok(Some(session))
-            },
-            None => Ok(None),
-        }
-    }
-
-    async fn health(&self) -> Result<bool> {
-        self.client
-            .health(tarpc::context::current())
-            .await
-            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
-            .map_err(IntegrationError::Connection)
-    }
-}
-
-/// tarpc-backed event stream.
-struct TarpcEventStream {
-    events: std::collections::VecDeque<SessionEvent>,
-}
-
-#[async_trait]
-impl SessionEventStream for TarpcEventStream {
-    async fn next(&mut self) -> Option<SessionEvent> {
-        self.events.pop_front()
-    }
-
-    async fn close(&mut self) {
-        self.events.clear();
-    }
-}
-
-/// Async factory function to create a session events client from a discovered primal.
-///
-/// In test mode, returns a mock client. In production, connects via tarpc.
-pub async fn create_session_events_client_async(
-    primal: &DiscoveredPrimal,
-) -> std::result::Result<Arc<dyn SessionEventsClient>, IntegrationError> {
-    #[cfg(any(test, feature = "test-support"))]
-    {
-        let _ = primal;
-        Ok(Arc::new(testing::MockSessionEventsClient::new()))
-    }
-    #[cfg(not(any(test, feature = "test-support")))]
-    {
-        let client = TarpcSessionEventsClient::from_primal(primal).await?;
-        Ok(Arc::new(client))
-    }
-}
-
-// ============================================================================
-// CAPABILITY-BASED ARCHITECTURE (v0.5.0+)
-// ============================================================================
-// Deprecated primal-specific aliases removed (Dec 24, 2025).
-// All code now uses capability-based naming:
-//   - SessionEventsClient (not RhizoCryptClient)
-//   - Any primal can provide session events capability
-//   - Discovery is runtime, not compile-time
-//
-// Migration: Replace RhizoCrypt* → SessionEvents* in your code.
-// See DEPRECATED_ALIASES_REMOVAL_PLAN.md for details.
-// ============================================================================
-
-// ============================================================================
 // Test-only implementations
 // ============================================================================
 
@@ -482,7 +337,6 @@ mod tests {
         let committed = SessionEventType::Committed;
         let rolled_back = SessionEventType::RolledBack;
 
-        // Ensure distinct variants
         assert_ne!(started, committed);
         assert_ne!(committed, rolled_back);
         assert_ne!(started, rolled_back);
@@ -544,7 +398,6 @@ mod tests {
     async fn test_mock_client_subscribe() {
         let client = testing::MockSessionEventsClient::new();
 
-        // Queue an event
         client
             .queue_event(SessionEvent {
                 session_id: "test-session".to_string(),
@@ -555,13 +408,11 @@ mod tests {
             })
             .await;
 
-        // Subscribe and receive
         let mut stream = client.subscribe().await.expect("subscribe");
         let event = stream.next().await;
         assert!(event.is_some());
         assert_eq!(event.unwrap().session_id, "test-session");
 
-        // No more events
         assert!(stream.next().await.is_none());
     }
 
@@ -569,7 +420,6 @@ mod tests {
     async fn test_mock_client_subscribe_multiple_events() {
         let client = testing::MockSessionEventsClient::new();
 
-        // Queue multiple events
         for i in 0..3 {
             client
                 .queue_event(SessionEvent {
@@ -582,7 +432,6 @@ mod tests {
                 .await;
         }
 
-        // Subscribe and receive all
         let mut stream = client.subscribe().await.expect("subscribe");
         let mut count = 0;
         while stream.next().await.is_some() {
@@ -621,7 +470,6 @@ mod tests {
     async fn test_mock_client_multiple_sessions() {
         let client = testing::MockSessionEventsClient::new();
 
-        // Add multiple sessions
         for i in 0..5 {
             let mut session = Session::new(format!("session-{i}"));
             session.add_vertex(SessionVertex::new(
@@ -633,7 +481,6 @@ mod tests {
             client.add_session(session);
         }
 
-        // Retrieve each
         for i in 0..5 {
             let retrieved = client
                 .get_session(&format!("session-{i}"))
@@ -648,7 +495,6 @@ mod tests {
         use crate::discovery::DiscoveredPrimal;
         use sweet_grass_core::config::Capability;
 
-        // Use environment variable or OS-allocated port (zero hardcoding)
         let test_address = std::env::var("TEST_SESSION_EVENTS_ADDR")
             .unwrap_or_else(|_| format!("localhost:{}", crate::testing::allocate_test_port()));
 
@@ -662,7 +508,6 @@ mod tests {
             healthy: true,
         };
 
-        // In test mode, returns a mock client
         let client = create_session_events_client_async(&primal)
             .await
             .expect("create client");
@@ -673,7 +518,6 @@ mod tests {
     async fn test_mock_event_stream_close() {
         let client = testing::MockSessionEventsClient::new();
 
-        // Queue some events
         for i in 0..3 {
             client
                 .queue_event(SessionEvent {
@@ -688,19 +532,15 @@ mod tests {
 
         let mut stream = client.subscribe().await.expect("subscribe");
 
-        // Read one event
         assert!(stream.next().await.is_some());
 
-        // Close should clear remaining events
         stream.close().await;
 
-        // No more events after close
         assert!(stream.next().await.is_none());
     }
 
     #[test]
     fn test_session_event_type_additional_variants() {
-        // Test remaining variants
         let vertex_added = SessionEventType::VertexAdded;
         let branch_created = SessionEventType::BranchCreated;
         let branches_merged = SessionEventType::BranchesMerged;
@@ -709,7 +549,6 @@ mod tests {
         assert_ne!(branch_created, branches_merged);
         assert_ne!(vertex_added, branches_merged);
 
-        // Test debug formatting
         assert!(!format!("{vertex_added:?}").is_empty());
         assert!(!format!("{branch_created:?}").is_empty());
         assert!(!format!("{branches_merged:?}").is_empty());
@@ -736,7 +575,6 @@ mod tests {
     #[tokio::test]
     async fn test_mock_client_default() {
         let client = testing::MockSessionEventsClient::default();
-        // Default should be healthy
         assert!(client.health().await.expect("health"));
     }
 }

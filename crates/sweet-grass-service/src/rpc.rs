@@ -276,7 +276,7 @@ mod tests {
         use sweet_grass_core::agent::Did;
 
         let request = CreateBraidRequest {
-            data_hash: "sha256:abc123".to_string(),
+            data_hash: "sha256:abc123".to_string().into(),
             mime_type: "application/json".to_string(),
             size: 1024,
             attributed_to: Did::new("did:key:z6MkTest"),
@@ -287,7 +287,7 @@ mod tests {
 
         let json = serde_json::to_string(&request).expect("should serialize");
         let parsed: CreateBraidRequest = serde_json::from_str(&json).expect("should deserialize");
-        assert_eq!(parsed.data_hash, "sha256:abc123");
+        assert_eq!(parsed.data_hash.as_str(), "sha256:abc123");
         assert_eq!(parsed.size, 1024);
     }
 

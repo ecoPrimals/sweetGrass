@@ -192,7 +192,7 @@ outputs/
 
 ## 🔗 Related Showcases
 
-- **[00-standalone](../00-standalone/)** - Single tower capabilities
+- **[00-local-primal](../00-local-primal/)** - Single tower capabilities
 - **[01-primal-coordination](../01-primal-coordination/)** - Multi-primal integration
 - **Songbird Federation** - See `../../../../phase1/songbird/showcase/federation/` for mature federation patterns
 

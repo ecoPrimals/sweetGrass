@@ -12,7 +12,7 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::RwLock;
 
-use sweet_grass_core::Braid;
+use sweet_grass_core::{Braid, ContentHash};
 
 use crate::error::StoreError;
 use crate::Result;
@@ -20,13 +20,13 @@ use crate::Result;
 /// Collection of secondary indexes for efficient queries.
 pub(super) struct Indexes {
     /// Index: content hash → Braid ID.
-    pub hash: RwLock<HashMap<String, String>>,
+    pub hash: RwLock<HashMap<ContentHash, String>>,
 
     /// Index: agent DID → Braid IDs.
     pub agent: RwLock<HashMap<String, HashSet<String>>>,
 
     /// Index: derivation source hash → Braid IDs.
-    pub derivation: RwLock<HashMap<String, HashSet<String>>>,
+    pub derivation: RwLock<HashMap<ContentHash, HashSet<String>>>,
 
     /// Index: tag → Braid IDs.
     pub tag: RwLock<HashMap<String, HashSet<String>>>,
@@ -89,7 +89,7 @@ impl Indexes {
             let mut index = self.derivation.write().map_err(lock_error)?;
             for derived in &braid.was_derived_from {
                 if let Some(hash) = derived.content_hash() {
-                    index.entry(hash.clone()).or_default().insert(id.clone());
+                    index.entry((*hash).clone()).or_default().insert(id.clone());
                 }
             }
         }

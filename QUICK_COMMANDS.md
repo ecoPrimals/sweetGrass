@@ -536,32 +536,23 @@ echo "✅ All checks passed!"
 ## 📚 DOCUMENTATION FILES
 
 ```bash
-# Start here
-cat START_HERE.md
+# Project overview
+cat README.md
 
-# Deployment guide
-cat DEPLOY.md
-
-# Deployment checklist
-cat DEPLOYMENT_CHECKLIST.md
-
-# Current status
-cat STATUS.md
+# Development guide
+cat DEVELOPMENT.md
 
 # Roadmap
 cat ROADMAP.md
 
-# Production certification
-cat PRODUCTION_CERTIFICATION.md
+# Version history
+cat CHANGELOG.md
 
-# Comprehensive audit
-cat COMPREHENSIVE_AUDIT_REPORT_DEC_27_2025.md
-
-# Evolution report
-cat EVOLUTION_COMPLETE_FINAL_REPORT.md
-
-# Zero-copy plan
+# Zero-copy opportunities
 cat docs/guides/ZERO_COPY_OPPORTUNITIES.md
+
+# Specifications
+ls specs/
 ```
 
 ---

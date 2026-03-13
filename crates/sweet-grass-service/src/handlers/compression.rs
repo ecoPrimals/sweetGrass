@@ -88,7 +88,7 @@ impl From<&Braid> for BraidSummary {
     fn from(braid: &Braid) -> Self {
         Self {
             id: braid.id.to_string(),
-            hash: braid.data_hash.clone(),
+            hash: braid.data_hash.as_str().to_string(),
             size: braid.size,
         }
     }
@@ -113,8 +113,13 @@ pub async fn compress_session(
 
     // Add vertices
     for v in request.vertices {
-        let mut vertex = SessionVertex::new(&v.id, &v.data_hash, &v.mime_type, Did::new(&v.agent))
-            .with_size(v.size);
+        let mut vertex = SessionVertex::new(
+            &v.id,
+            v.data_hash.as_str(),
+            &v.mime_type,
+            Did::new(&v.agent),
+        )
+        .with_size(v.size);
 
         for parent in v.parents {
             vertex = vertex.with_parent(parent);
@@ -267,7 +272,7 @@ mod tests {
         let summary = BraidSummary::from(&braid);
 
         assert_eq!(summary.id, braid.id.to_string());
-        assert_eq!(summary.hash, braid.data_hash);
+        assert_eq!(summary.hash, braid.data_hash.as_str());
         assert_eq!(summary.size, braid.size);
     }
 

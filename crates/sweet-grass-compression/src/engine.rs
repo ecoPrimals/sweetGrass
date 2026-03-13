@@ -360,7 +360,7 @@ mod tests {
         assert_eq!(result.count(), 1);
 
         if let CompressionResult::Single(braid) = result {
-            assert_eq!(braid.data_hash, "sha256:b");
+            assert_eq!(braid.data_hash.as_str(), "sha256:b");
             assert!(braid.was_generated_by.is_some());
             assert!(!braid.was_derived_from.is_empty());
             assert!(braid.ecop.compression.is_some());

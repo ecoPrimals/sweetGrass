@@ -238,8 +238,8 @@ async fn test_derivation_chain() {
 
     // Should have both entities
     assert_eq!(graph.entities.len(), 2);
-    assert!(graph.entities.contains_key(&derived.data_hash));
-    assert!(graph.entities.contains_key(&source.data_hash));
+    assert!(graph.entities.contains_key(derived.data_hash.as_str()));
+    assert!(graph.entities.contains_key(source.data_hash.as_str()));
 }
 
 #[tokio::test]

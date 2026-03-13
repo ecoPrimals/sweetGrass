@@ -24,7 +24,7 @@ pub async fn get_provenance(
     Path(hash): Path<String>,
     Query(query): Query<ProvenanceQuery>,
 ) -> Result<Json<JsonLdDocument>, ServiceError> {
-    let entity_ref = EntityReference::by_hash(&hash);
+    let entity_ref = EntityReference::by_hash(hash.as_str());
     let graph = state
         .query
         .export_graph_provo(entity_ref, query.depth)
@@ -47,7 +47,7 @@ pub async fn export_prov_o(
     Path(hash): Path<String>,
     Query(query): Query<ProvenanceQuery>,
 ) -> Result<Json<ProvOResponse>, ServiceError> {
-    let entity_ref = EntityReference::by_hash(&hash);
+    let entity_ref = EntityReference::by_hash(hash.as_str());
     let graph = state
         .query
         .export_graph_provo(entity_ref, query.depth)
@@ -73,7 +73,7 @@ mod tests {
         let state = create_test_state();
         let factory = Arc::new(BraidFactory::new(Did::new("did:key:z6MkCreator")));
         let braid = factory.from_data(b"test data", "text/plain", None).unwrap();
-        let hash = braid.data_hash.clone();
+        let hash = braid.data_hash.as_str().to_string();
         state.store.put(&braid).await.unwrap();
         (state, hash)
     }
@@ -165,7 +165,7 @@ mod tests {
         // Get provenance for child
         let result = get_provenance(
             State(state),
-            Path(child_hash),
+            Path(child_hash.as_str().to_string()),
             Query(ProvenanceQuery { depth: Some(10) }),
         )
         .await;

@@ -142,7 +142,7 @@ async fn e2e_jsonrpc_health() {
 
     let resp = server
         .post("/jsonrpc")
-        .json(&jsonrpc("sweetgrass.health", json!({}), 1))
+        .json(&jsonrpc("health.check", json!({}), 1))
         .await;
 
     resp.assert_status_ok();
@@ -161,7 +161,7 @@ async fn e2e_jsonrpc_create_and_get_braid() {
     let create_resp = server
         .post("/jsonrpc")
         .json(&jsonrpc(
-            "sweetgrass.createBraid",
+            "braid.create",
             json!({
                 "data_hash": "sha256:jsonrpctest",
                 "mime_type": "application/json",
@@ -181,7 +181,7 @@ async fn e2e_jsonrpc_create_and_get_braid() {
 
     let get_resp = server
         .post("/jsonrpc")
-        .json(&jsonrpc("sweetgrass.getBraid", json!({"id": braid_id}), 2))
+        .json(&jsonrpc("braid.get", json!({"id": braid_id}), 2))
         .await;
 
     get_resp.assert_status_ok();
@@ -214,11 +214,7 @@ async fn e2e_jsonrpc_invalid_params() {
 
     let resp = server
         .post("/jsonrpc")
-        .json(&jsonrpc(
-            "sweetgrass.createBraid",
-            json!({"wrong": "params"}),
-            5,
-        ))
+        .json(&jsonrpc("braid.create", json!({"wrong": "params"}), 5))
         .await;
 
     resp.assert_status_ok();
@@ -234,7 +230,7 @@ async fn e2e_jsonrpc_invalid_version() {
         .post("/jsonrpc")
         .json(&json!({
             "jsonrpc": "1.0",
-            "method": "sweetgrass.health",
+            "method": "health.check",
             "params": {},
             "id": 1
         }))
@@ -251,11 +247,7 @@ async fn e2e_jsonrpc_query_braids() {
 
     let resp = server
         .post("/jsonrpc")
-        .json(&jsonrpc(
-            "sweetgrass.queryBraids",
-            json!({"filter": {}}),
-            10,
-        ))
+        .json(&jsonrpc("braid.query", json!({"filter": {}}), 10))
         .await;
 
     resp.assert_status_ok();
@@ -271,7 +263,7 @@ async fn e2e_jsonrpc_delete_braid() {
     let create_body: serde_json::Value = server
         .post("/jsonrpc")
         .json(&jsonrpc(
-            "sweetgrass.createBraid",
+            "braid.create",
             json!({
                 "data_hash": "sha256:jsonrpcdelete",
                 "mime_type": "text/plain",
@@ -285,18 +277,14 @@ async fn e2e_jsonrpc_delete_braid() {
 
     let delete_body: serde_json::Value = server
         .post("/jsonrpc")
-        .json(&jsonrpc(
-            "sweetgrass.deleteBraid",
-            json!({"id": braid_id}),
-            2,
-        ))
+        .json(&jsonrpc("braid.delete", json!({"id": braid_id}), 2))
         .await
         .json();
     assert!(delete_body["error"].is_null());
 
     let get_body: serde_json::Value = server
         .post("/jsonrpc")
-        .json(&jsonrpc("sweetgrass.getBraid", json!({"id": braid_id}), 3))
+        .json(&jsonrpc("braid.get", json!({"id": braid_id}), 3))
         .await
         .json();
     assert_eq!(get_body["error"]["code"], -32001);
@@ -311,7 +299,7 @@ async fn e2e_jsonrpc_record_contribution() {
     let resp = server
         .post("/jsonrpc")
         .json(&jsonrpc(
-            "sweetgrass.recordContribution",
+            "contribution.record",
             json!({
                 "agent": "did:key:z6MkContributor1",
                 "role": "Creator",
@@ -345,7 +333,7 @@ async fn e2e_jsonrpc_record_session() {
     let resp = server
         .post("/jsonrpc")
         .json(&jsonrpc(
-            "sweetgrass.recordSession",
+            "contribution.recordSession",
             json!({
                 "session_id": "rhizo-session-99",
                 "source_primal": "rhizoCrypt",
@@ -388,7 +376,7 @@ async fn e2e_jsonrpc_record_contribution_then_query() {
     let create_body: serde_json::Value = server
         .post("/jsonrpc")
         .json(&jsonrpc(
-            "sweetgrass.recordContribution",
+            "contribution.record",
             json!({
                 "agent": "did:key:z6MkQueryTest",
                 "role": "Creator",
@@ -405,7 +393,7 @@ async fn e2e_jsonrpc_record_contribution_then_query() {
     let query_body: serde_json::Value = server
         .post("/jsonrpc")
         .json(&jsonrpc(
-            "sweetgrass.getBraidByHash",
+            "braid.getByHash",
             json!({"hash": "sha256:queryable"}),
             2,
         ))
@@ -437,7 +425,7 @@ async fn e2e_rest_and_jsonrpc_share_state() {
     // Read via JSON-RPC (uses the same store)
     let jsonrpc_get: serde_json::Value = server
         .post("/jsonrpc")
-        .json(&jsonrpc("sweetgrass.getBraid", json!({"id": braid_id}), 1))
+        .json(&jsonrpc("braid.get", json!({"id": braid_id}), 1))
         .await
         .json();
     assert!(jsonrpc_get["error"].is_null());

@@ -4,7 +4,6 @@
 //! Creates Braids from various input sources.
 
 use sha2::{Digest, Sha256};
-use std::fmt::Write;
 use sweet_grass_core::{
     activity::{Activity, ActivityMetadata, ActivityType, UsedEntity},
     agent::{AgentAssociation, AgentRole, Did},
@@ -14,6 +13,7 @@ use sweet_grass_core::{
     },
     contribution::{ContributionRecord, SessionContribution},
     entity::EntityReference,
+    hash::hex_encode,
     primal_info::SelfKnowledge,
     ContentHash,
 };
@@ -23,6 +23,25 @@ use crate::Result;
 
 /// Default source primal name when self-knowledge is unavailable.
 pub const DEFAULT_SOURCE_PRIMAL: &str = "unknown";
+
+/// Parameters for creating a Braid from an anchoring provider (Loam) entry.
+#[derive(Clone, Debug)]
+pub struct LoamEntryParams {
+    /// Spine identifier.
+    pub spine_id: String,
+    /// Entry content hash within the spine.
+    pub entry_hash: ContentHash,
+    /// Entry index.
+    pub index: u64,
+    /// Content hash of the data.
+    pub data_hash: ContentHash,
+    /// MIME type of the data.
+    pub mime_type: String,
+    /// Size in bytes.
+    pub size: u64,
+    /// Optional metadata.
+    pub metadata: Option<BraidMetadata>,
+}
 
 /// Braid Factory - creates Braids from various sources.
 pub struct BraidFactory {
@@ -224,7 +243,7 @@ impl BraidFactory {
             hasher.update(id.as_str().as_bytes());
         }
         let result = hasher.finalize();
-        let hash = format!("sha256:{}", hex_encode(&result));
+        let hash = format!("sha256:{}", hex_encode(result));
 
         #[allow(clippy::cast_precision_loss)]
         let ecop = EcoPrimalsAttributes {
@@ -306,45 +325,32 @@ impl BraidFactory {
     /// # Errors
     ///
     /// Returns an error if Braid construction fails.
-    #[allow(clippy::too_many_arguments)]
-    pub fn from_loam_entry(
-        &self,
-        spine_id: impl Into<String>,
-        entry_hash: impl Into<String>,
-        index: u64,
-        data_hash: ContentHash,
-        mime_type: impl Into<String>,
-        size: u64,
-        metadata: Option<BraidMetadata>,
-    ) -> Result<Braid> {
-        let spine_id = spine_id.into();
-        let entry_hash = entry_hash.into();
-
+    pub fn from_loam_entry(&self, entry: &LoamEntryParams) -> Result<Braid> {
         let ecop = EcoPrimalsAttributes {
             source_primal: Some(self.source_primal.clone()),
             niche: self.niche.clone(),
             loam_commit: Some(LoamCommitRef {
-                spine_id: spine_id.clone(),
-                entry_hash: entry_hash.clone(),
-                index,
+                spine_id: entry.spine_id.clone(),
+                entry_hash: entry.entry_hash.clone(),
+                index: entry.index,
             }),
             ..Default::default()
         };
 
         let mut braid = Braid::builder()
-            .data_hash(data_hash)
-            .mime_type(mime_type)
-            .size(size)
+            .data_hash(entry.data_hash.clone())
+            .mime_type(&entry.mime_type)
+            .size(entry.size)
             .attributed_to(self.default_agent.clone())
-            .metadata(metadata.unwrap_or_default())
+            .metadata(entry.metadata.clone().unwrap_or_default())
             .ecop(ecop)
             .build()
             .map_err(FactoryError::Core)?;
 
-        // Add derivation from anchoring provider entry
-        braid
-            .was_derived_from
-            .push(EntityReference::by_loam_entry(spine_id, entry_hash));
+        braid.was_derived_from.push(EntityReference::by_loam_entry(
+            &entry.spine_id,
+            entry.entry_hash.clone(),
+        ));
 
         Ok(braid)
     }
@@ -459,7 +465,7 @@ impl BraidFactory {
         let signing_hash = braid.compute_signing_hash();
 
         // Create placeholder signature (real implementation discovers signing capability provider)
-        let placeholder_sig = signing_hash.as_bytes();
+        let placeholder_sig = signing_hash.as_str().as_bytes();
         braid.signature =
             BraidSignature::new_ed25519(&braid.was_attributed_to, key_id, placeholder_sig);
     }
@@ -519,23 +525,14 @@ fn parse_loam_entry(s: Option<&str>) -> Option<LoamCommitRef> {
     let index = parts[2].parse::<u64>().ok()?;
     Some(LoamCommitRef {
         spine_id: parts[0].to_string(),
-        entry_hash: parts[1].to_string(),
+        entry_hash: ContentHash::new(parts[1]),
         index,
     })
 }
 
-/// Compute SHA-256 hash of data.
 fn compute_sha256(data: &[u8]) -> ContentHash {
     let result = Sha256::digest(data);
-    format!("sha256:{}", hex_encode(&result))
-}
-
-/// Hex encode bytes.
-fn hex_encode(bytes: &[u8]) -> String {
-    bytes.iter().fold(String::new(), |mut output, b| {
-        let _ = write!(output, "{b:02x}");
-        output
-    })
+    ContentHash::new(format!("sha256:{}", hex_encode(result)))
 }
 
 #[cfg(test)]
@@ -557,7 +554,7 @@ mod tests {
             .from_data(data, "text/plain", None)
             .expect("should create");
 
-        assert!(braid.data_hash.starts_with("sha256:"));
+        assert!(braid.data_hash.as_str().starts_with("sha256:"));
         assert_eq!(braid.mime_type, "text/plain");
         assert_eq!(braid.size, 13);
         assert_eq!(braid.ecop.source_primal, Some("unknown".to_string()));
@@ -659,15 +656,15 @@ mod tests {
         let factory = make_factory();
 
         let braid = factory
-            .from_loam_entry(
-                "spine-1",
-                "sha256:entry123",
-                42,
-                "sha256:data456".to_string(),
-                "application/json",
-                1024,
-                None,
-            )
+            .from_loam_entry(&LoamEntryParams {
+                spine_id: "spine-1".to_string(),
+                entry_hash: ContentHash::new("sha256:entry123"),
+                index: 42,
+                data_hash: ContentHash::new("sha256:data456"),
+                mime_type: "application/json".to_string(),
+                size: 1024,
+                metadata: None,
+            })
             .expect("should create");
 
         assert!(braid.ecop.loam_commit.is_some());
@@ -684,7 +681,7 @@ mod tests {
         let braid = factory
             .certificate_mint(
                 "cert-001",
-                "sha256:certdata".to_string(),
+                ContentHash::new("sha256:certdata"),
                 512,
                 recipient.clone(),
                 None,
@@ -772,7 +769,7 @@ mod tests {
 
         let braid = factory.from_contribution(&record).expect("should create");
 
-        assert_eq!(braid.data_hash, "sha256:contrib123");
+        assert_eq!(braid.data_hash.as_str(), "sha256:contrib123");
         assert_eq!(braid.was_attributed_to.as_str(), "did:key:z6MkContributor");
         assert_eq!(braid.generated_at_time, 1_000_000_000);
         assert_eq!(braid.ecop.source_primal, Some("rhizoCrypt".to_string()));
@@ -832,8 +829,8 @@ mod tests {
         let braids = factory.from_session(&session).expect("should create");
 
         assert_eq!(braids.len(), 2);
-        assert_eq!(braids[0].data_hash, "sha256:hash1");
-        assert_eq!(braids[1].data_hash, "sha256:hash2");
+        assert_eq!(braids[0].data_hash.as_str(), "sha256:hash1");
+        assert_eq!(braids[1].data_hash.as_str(), "sha256:hash2");
         assert_eq!(braids[0].ecop.niche, Some("chemistry".to_string()));
         assert_eq!(braids[1].ecop.niche, Some("chemistry".to_string()));
         assert_eq!(

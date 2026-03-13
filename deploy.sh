@@ -1,7 +1,7 @@
 #!/bin/bash
 # SweetGrass Production Deployment Script
-# Version: v0.5.1
-# Date: January 3, 2026
+# Version: v0.7.2
+# Date: March 13, 2026
 # Status: PRODUCTION READY
 
 set -e  # Exit on error
