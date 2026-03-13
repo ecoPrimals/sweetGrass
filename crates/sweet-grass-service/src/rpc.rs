@@ -192,6 +192,9 @@ pub trait SweetGrassRpc {
         total_value: f64,
     ) -> Result<Vec<RewardShare>, RpcError>;
 
+    /// Get top contributors for an entity by content hash.
+    async fn top_contributors(hash: ContentHash, limit: u32) -> Result<Vec<RewardShare>, RpcError>;
+
     // ==================== Agent Queries ====================
 
     /// Get agent's contributions.
@@ -214,10 +217,27 @@ pub trait SweetGrassRpc {
         summary_type: SummaryType,
     ) -> Result<Braid, RpcError>;
 
+    // ==================== Anchoring ====================
+
+    /// Anchor a Braid to LoamSpine (via integration client).
+    async fn anchor_braid(
+        braid_id: BraidId,
+        spine_id: String,
+    ) -> Result<serde_json::Value, RpcError>;
+
+    /// Verify a Braid's anchor status.
+    async fn verify_anchor(braid_id: BraidId) -> Result<serde_json::Value, RpcError>;
+
     // ==================== Export ====================
 
     /// Export to PROV-O JSON-LD.
     async fn export_provo(hash: ContentHash) -> Result<JsonLdDocument, RpcError>;
+
+    /// Export provenance graph as PROV-O JSON-LD.
+    async fn export_graph_provo(
+        entity: EntityReference,
+        depth: u32,
+    ) -> Result<JsonLdDocument, RpcError>;
 
     // ==================== Health ====================
 

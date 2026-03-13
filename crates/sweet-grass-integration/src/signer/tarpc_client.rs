@@ -30,10 +30,10 @@ use super::traits::{SignatureInfo, SigningClient};
 #[tarpc::service]
 pub trait SigningRpc {
     /// Sign a braid.
-    async fn sign_braid(braid_bytes: Vec<u8>) -> std::result::Result<Vec<u8>, String>;
+    async fn sign_braid(braid_bytes: bytes::Bytes) -> std::result::Result<bytes::Bytes, String>;
 
     /// Verify a braid signature.
-    async fn verify_braid(braid_bytes: Vec<u8>) -> std::result::Result<bool, String>;
+    async fn verify_braid(braid_bytes: bytes::Bytes) -> std::result::Result<bool, String>;
 
     /// Get the current signer DID.
     async fn current_did() -> std::result::Result<String, String>;
@@ -110,8 +110,10 @@ impl TarpcSigningClient {
 #[async_trait]
 impl SigningClient for TarpcSigningClient {
     async fn sign(&self, braid: &Braid) -> Result<BraidSignature> {
-        let braid_bytes = serde_json::to_vec(braid)
-            .map_err(|e| IntegrationError::Serialization(e.to_string()))?;
+        let braid_bytes = bytes::Bytes::from(
+            serde_json::to_vec(braid)
+                .map_err(|e| IntegrationError::Serialization(e.to_string()))?,
+        );
 
         let result = self
             .client
@@ -127,8 +129,10 @@ impl SigningClient for TarpcSigningClient {
     }
 
     async fn verify(&self, braid: &Braid) -> Result<SignatureInfo> {
-        let braid_bytes = serde_json::to_vec(braid)
-            .map_err(|e| IntegrationError::Serialization(e.to_string()))?;
+        let braid_bytes = bytes::Bytes::from(
+            serde_json::to_vec(braid)
+                .map_err(|e| IntegrationError::Serialization(e.to_string()))?,
+        );
 
         let valid = self
             .client

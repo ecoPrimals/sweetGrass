@@ -22,7 +22,10 @@ use clap::{Parser, Subcommand};
 use sweet_grass_compression::CompressionEngine;
 use sweet_grass_factory::{AttributionCalculator, BraidFactory};
 use sweet_grass_query::QueryEngine;
-use sweet_grass_service::{create_router, infant_bootstrap, start_tarpc_server, SweetGrassServer};
+use sweet_grass_service::{
+    create_router, infant_bootstrap_with_config, start_tarpc_server, BootstrapConfig,
+    StorageConfig, SweetGrassServer,
+};
 use sweet_grass_store::MemoryStore;
 use tracing::info;
 
@@ -138,15 +141,19 @@ async fn run_server(config: ServerConfig) -> i32 {
 
     info!("SweetGrass starting — semantic provenance and attribution layer");
 
-    if let Some(url) = &config.database_url {
-        std::env::set_var("DATABASE_URL", url);
-    }
-    if let Some(path) = &config.sled_path {
-        std::env::set_var("STORAGE_PATH", path);
-    }
-    std::env::set_var("STORAGE_BACKEND", &config.storage);
+    let storage_config = StorageConfig {
+        backend: config.storage.clone(),
+        database_url: config.database_url.clone(),
+        sled_path: config.sled_path.clone(),
+        ..Default::default()
+    };
 
-    let bootstrap = match infant_bootstrap().await {
+    let bootstrap_config = BootstrapConfig {
+        storage: storage_config,
+        ..Default::default()
+    };
+
+    let bootstrap = match infant_bootstrap_with_config(bootstrap_config).await {
         Ok(b) => b,
         Err(e) => {
             tracing::error!("Bootstrap failed: {e}");

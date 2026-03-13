@@ -128,6 +128,7 @@ pub mod domain_key {
 mod tests {
     use super::*;
     use crate::agent::Did;
+    use crate::test_fixtures::TEST_SOURCE_PRIMAL;
 
     #[test]
     fn test_contribution_record_serialization_roundtrip() {
@@ -139,7 +140,7 @@ mod tests {
             size: 100,
             timestamp: 1_234_567_890,
             description: Some("Test contribution".to_string()),
-            source_primal: Some("rhizoCrypt".to_string()),
+            source_primal: Some(TEST_SOURCE_PRIMAL.to_string()),
             session_id: Some("session-1".to_string()),
             domain: {
                 let mut m = HashMap::new();
@@ -162,7 +163,7 @@ mod tests {
     fn test_session_contribution_serialization_roundtrip() {
         let session = SessionContribution {
             session_id: "session-123".to_string(),
-            source_primal: "rhizoCrypt".to_string(),
+            source_primal: TEST_SOURCE_PRIMAL.to_string(),
             niche: Some("chemistry".to_string()),
             contributions: vec![ContributionRecord {
                 agent: Did::new("did:key:z6MkAgent1"),

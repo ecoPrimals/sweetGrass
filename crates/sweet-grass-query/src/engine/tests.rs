@@ -534,3 +534,129 @@ async fn test_query_ordering_consistency() {
     assert_eq!(newest.braids.len(), oldest.braids.len());
     assert_eq!(newest.braids.len(), 5);
 }
+
+#[tokio::test]
+async fn test_full_attribution_chain() {
+    let store = Arc::new(MemoryStore::new());
+    let parent = make_test_braid("sha256:parent-full", "did:key:z6MkP");
+    let mut child = make_test_braid("sha256:child-full", "did:key:z6MkC");
+    child.was_derived_from = vec![EntityReference::by_hash("sha256:parent-full")];
+
+    store.put(&parent).await.expect("store");
+    store.put(&child).await.expect("store");
+
+    let engine = QueryEngine::new(store);
+    let chain = engine
+        .full_attribution_chain(&ContentHash::new("sha256:child-full"), None)
+        .await
+        .expect("should calculate");
+
+    assert!(chain.is_valid());
+    assert!(!chain.contributors.is_empty());
+}
+
+#[tokio::test]
+async fn test_full_attribution_chain_not_found() {
+    let store = Arc::new(MemoryStore::new());
+    let engine = QueryEngine::new(store);
+
+    let result = engine
+        .full_attribution_chain(&ContentHash::new("sha256:nonexistent"), None)
+        .await;
+
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_descendants() {
+    let store = Arc::new(MemoryStore::new());
+    let parent_hash = "sha256:parent-desc".to_string();
+    let parent = make_test_braid(&parent_hash, "did:key:z6MkP");
+    let mut child1 = make_test_braid("sha256:child1-desc", "did:key:z6MkC");
+    let mut child2 = make_test_braid("sha256:child2-desc", "did:key:z6MkC");
+    child1.was_derived_from = vec![EntityReference::by_hash(&parent_hash)];
+    child2.was_derived_from = vec![EntityReference::by_hash(&parent_hash)];
+
+    store.put(&parent).await.expect("store");
+    store.put(&child1).await.expect("store");
+    store.put(&child2).await.expect("store");
+
+    let engine = QueryEngine::new(store);
+    let descendants = engine
+        .descendants(&ContentHash::new(&parent_hash))
+        .await
+        .expect("should query");
+
+    assert_eq!(descendants.len(), 2);
+}
+
+#[tokio::test]
+async fn test_descendants_none() {
+    let store = Arc::new(MemoryStore::new());
+    let braid = make_test_braid("sha256:leaf", "did:key:z6MkLeaf");
+    store.put(&braid).await.expect("store");
+
+    let engine = QueryEngine::new(store);
+    let descendants = engine
+        .descendants(&braid.data_hash)
+        .await
+        .expect("should query");
+
+    assert!(descendants.is_empty());
+}
+
+#[tokio::test]
+async fn test_ancestors_parallel_multi_level() {
+    let store = Arc::new(MemoryStore::new());
+
+    let mut previous_hash = "sha256:anc_0".to_string();
+    let level_0 = make_test_braid(&previous_hash, "did:key:z6Mk0");
+    store.put(&level_0).await.expect("store");
+
+    for i in 1..=3 {
+        let hash = format!("sha256:anc_{i}");
+        let mut braid = make_test_braid(&hash, &format!("did:key:z6Mk{i}"));
+        braid.was_derived_from = vec![EntityReference::by_hash(&previous_hash)];
+        store.put(&braid).await.expect("store");
+        previous_hash = hash;
+    }
+
+    let engine = QueryEngine::new(store);
+    let ancestors = engine
+        .ancestors_parallel(&ContentHash::new(&previous_hash), Some(10))
+        .await
+        .expect("should query");
+
+    assert!(!ancestors.is_empty());
+    assert!(ancestors.len() >= 3);
+}
+
+#[tokio::test]
+async fn test_export_graph_provo_nonexistent() {
+    let store = Arc::new(MemoryStore::new());
+    let engine = QueryEngine::new(store);
+
+    // Non-existent root yields empty graph; export still succeeds
+    let result = engine
+        .export_graph_provo(EntityReference::by_hash("sha256:nonexistent"), None)
+        .await;
+
+    assert!(result.is_ok());
+    let doc = result.expect("doc");
+    let json = doc.to_json().expect("serialize");
+    assert!(json.contains("@context"));
+}
+
+#[tokio::test]
+async fn test_provenance_graph_empty_root_not_in_store() {
+    let store = Arc::new(MemoryStore::new());
+    let engine = QueryEngine::new(store);
+
+    let result = engine
+        .provenance_graph(EntityReference::by_hash("sha256:not-stored"), None)
+        .await;
+
+    assert!(result.is_ok());
+    let graph = result.expect("graph");
+    assert!(graph.entity_count() <= 1);
+}

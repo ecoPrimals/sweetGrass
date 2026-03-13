@@ -103,10 +103,11 @@ pub struct SessionOperation {
 mod tests {
     use super::*;
     use crate::agent::Did;
+    use crate::test_fixtures::TEST_SOURCE_PRIMAL;
 
     fn sample_summary() -> DehydrationSummary {
         DehydrationSummary {
-            source_primal: "rhizoCrypt".to_string(),
+            source_primal: TEST_SOURCE_PRIMAL.to_string(),
             session_id: "rhizo-session-42".to_string(),
             merkle_root: ContentHash::new("sha256:abcdef0123456789"),
             vertex_count: 15,

@@ -64,9 +64,12 @@ pub mod state;
 #[cfg(unix)]
 pub mod uds;
 
-pub use bootstrap::{create_app_state_from_env, infant_bootstrap, BootstrapError, BootstrapResult};
+pub use bootstrap::{
+    create_app_state_from_env, infant_bootstrap, infant_bootstrap_with_config, BootstrapConfig,
+    BootstrapError, BootstrapResult,
+};
 pub use error::ServiceError;
-pub use factory::BraidStoreFactory;
+pub use factory::{BraidStoreFactory, StorageConfig};
 pub use router::create_router;
 pub use rpc::{RpcError, SweetGrassRpc, SweetGrassRpcClient};
 pub use server::{start_tarpc_server, SweetGrassServer};

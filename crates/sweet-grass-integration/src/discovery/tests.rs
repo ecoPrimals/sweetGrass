@@ -247,7 +247,10 @@ async fn test_concurrent_discovery_operations() {
                 instance_id: format!("primal-{i}"),
                 name: format!("primal-{i}"),
                 capabilities: vec![Capability::Signing],
-                tarpc_address: Some(format!("localhost:{}", 8090 + i)),
+                tarpc_address: Some(format!(
+                    "localhost:{}",
+                    crate::testing::allocate_test_port()
+                )),
                 rest_address: None,
                 last_seen: std::time::SystemTime::now(),
                 healthy: true,
@@ -268,4 +271,281 @@ async fn test_concurrent_discovery_operations() {
         .await
         .expect("find");
     assert_eq!(found.len(), 10);
+}
+
+#[tokio::test]
+async fn test_find_by_capability_none_exist() {
+    let discovery = LocalDiscovery::new();
+
+    let result = discovery
+        .find_by_capability(&Capability::Signing)
+        .await
+        .expect("find");
+    assert!(result.is_empty());
+}
+
+#[tokio::test]
+async fn test_find_one_health_filtering() {
+    let discovery = LocalDiscovery::new();
+
+    // Register only unhealthy primal
+    let mut unhealthy = make_test_primal("unhealthy-signer", vec![Capability::Signing]);
+    unhealthy.healthy = false;
+    discovery.register(unhealthy).await;
+
+    // find_one should fail - no healthy primals
+    let result = discovery.find_one(&Capability::Signing).await;
+    assert!(result.is_err());
+
+    // Add healthy primal
+    let healthy = make_test_primal("healthy-signer", vec![Capability::Signing]);
+    discovery.register(healthy).await;
+
+    // find_one should now succeed with healthy one
+    let found = discovery
+        .find_one(&Capability::Signing)
+        .await
+        .expect("find");
+    assert!(found.healthy);
+    assert_eq!(found.name, "healthy-signer");
+}
+
+#[tokio::test]
+async fn test_cached_discovery_invalidate() {
+    let inner = Arc::new(LocalDiscovery::new());
+    let signer = make_test_primal("signer", vec![Capability::Signing]);
+    inner.register(signer).await;
+
+    let cached = CachedDiscovery::new(inner, Duration::from_secs(60));
+
+    // Populate cache
+    let _ = cached
+        .find_by_capability(&Capability::Signing)
+        .await
+        .expect("find");
+
+    // Invalidate and re-query - should still work (refreshes from inner)
+    cached.invalidate(&Capability::Signing).await;
+    let result = cached
+        .find_by_capability(&Capability::Signing)
+        .await
+        .expect("find");
+    assert_eq!(result.len(), 1);
+}
+
+#[tokio::test]
+async fn test_cached_discovery_invalidate_all() {
+    let inner = Arc::new(LocalDiscovery::new());
+    let signer = make_test_primal("signer", vec![Capability::Signing]);
+    inner.register(signer).await;
+
+    let cached = CachedDiscovery::new(inner, Duration::from_secs(60));
+    let _ = cached
+        .find_by_capability(&Capability::Signing)
+        .await
+        .expect("find");
+
+    cached.invalidate_all().await;
+    let result = cached
+        .find_by_capability(&Capability::Signing)
+        .await
+        .expect("find");
+    assert_eq!(result.len(), 1);
+}
+
+#[tokio::test]
+async fn test_announce() {
+    let discovery = LocalDiscovery::new();
+    let primal = make_test_primal("announced", vec![Capability::Signing]);
+
+    discovery.announce(&primal).await.expect("announce");
+
+    let found = discovery
+        .find_by_capability(&Capability::Signing)
+        .await
+        .expect("find");
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0].name, "announced");
+}
+
+#[tokio::test]
+async fn test_preferred_address_tarpc_first() {
+    let primal = make_test_primal("test", vec![Capability::Signing]);
+    assert_eq!(primal.preferred_address(), primal.tarpc_address.as_deref());
+}
+
+#[tokio::test]
+async fn test_preferred_address_rest_fallback() {
+    let primal = DiscoveredPrimal {
+        instance_id: "fallback-instance".to_string(),
+        name: "fallback".to_string(),
+        capabilities: vec![Capability::Signing],
+        tarpc_address: None,
+        rest_address: Some("http://localhost:8080".to_string()),
+        last_seen: std::time::SystemTime::now(),
+        healthy: true,
+    };
+    assert_eq!(primal.preferred_address(), Some("http://localhost:8080"));
+}
+
+#[tokio::test]
+async fn test_preferred_address_none() {
+    let primal = DiscoveredPrimal {
+        instance_id: "no-addr-instance".to_string(),
+        name: "no-addr".to_string(),
+        capabilities: vec![Capability::Signing],
+        tarpc_address: None,
+        rest_address: None,
+        last_seen: std::time::SystemTime::now(),
+        healthy: true,
+    };
+    assert!(primal.preferred_address().is_none());
+}
+
+#[tokio::test]
+async fn test_service_info_to_primal() {
+    use super::ServiceInfo;
+
+    let info = ServiceInfo {
+        id: "svc-1".to_string(),
+        name: "test-service".to_string(),
+        version: "1.0.0".to_string(),
+        tarpc_address: Some("tcp://localhost:9000".to_string()),
+        rest_address: Some("http://localhost:8080".to_string()),
+        capabilities: vec!["signing".to_string(), "anchoring".to_string()],
+        last_seen: 1_700_000_000,
+        healthy: true,
+    };
+
+    let primal = info.to_primal();
+    assert_eq!(primal.instance_id, "svc-1");
+    assert_eq!(primal.name, "test-service");
+    assert!(primal.offers(&Capability::Signing));
+    assert!(primal.offers(&Capability::Anchoring));
+    assert!(primal.healthy);
+}
+
+#[tokio::test]
+async fn test_discovery_error_display() {
+    let err = DiscoveryError::CapabilityNotFound(Capability::Signing);
+    assert!(err.to_string().contains("Signing"));
+
+    let err = DiscoveryError::ConnectionFailed {
+        address: "localhost:9000".to_string(),
+        reason: "connection refused".to_string(),
+    };
+    assert!(err.to_string().contains("localhost:9000"));
+    assert!(err.to_string().contains("connection refused"));
+
+    let err = DiscoveryError::ServiceUnavailable("down".to_string());
+    assert!(err.to_string().contains("down"));
+
+    let err = DiscoveryError::Timeout(Duration::from_secs(5));
+    assert!(err.to_string().contains('5'));
+}
+
+#[tokio::test]
+async fn test_local_discovery_all() {
+    let discovery = LocalDiscovery::new();
+    let signer = make_test_primal("signer", vec![Capability::Signing]);
+    let anchor = make_test_primal("anchor", vec![Capability::Anchoring]);
+
+    discovery.register(signer).await;
+    discovery.register(anchor).await;
+
+    let all = discovery.all().await;
+    assert_eq!(all.len(), 2);
+}
+
+#[tokio::test]
+async fn test_local_discovery_default() {
+    let discovery = LocalDiscovery::default();
+    assert!(discovery.health().await);
+}
+
+#[tokio::test]
+async fn test_cached_discovery_expired_entries() {
+    let inner = Arc::new(LocalDiscovery::new());
+    let signer = make_test_primal("signer", vec![Capability::Signing]);
+    inner.register(signer).await;
+
+    let cached = CachedDiscovery::new(inner, Duration::from_millis(1));
+
+    let _ = cached
+        .find_by_capability(&Capability::Signing)
+        .await
+        .expect("populate cache");
+
+    tokio::time::sleep(Duration::from_millis(10)).await;
+
+    let result = cached
+        .find_by_capability(&Capability::Signing)
+        .await
+        .expect("should refresh after TTL expires");
+    assert_eq!(result.len(), 1);
+}
+
+#[tokio::test]
+async fn test_cached_discovery_announce() {
+    let inner = Arc::new(LocalDiscovery::new());
+    let cached = CachedDiscovery::new(inner, Duration::from_secs(60));
+
+    let primal = make_test_primal("announced", vec![Capability::Signing]);
+    cached.announce(&primal).await.expect("announce");
+
+    let found = cached
+        .find_by_capability(&Capability::Signing)
+        .await
+        .expect("find");
+    assert_eq!(found.len(), 1);
+    assert_eq!(found[0].name, "announced");
+}
+
+#[tokio::test]
+async fn test_cached_discovery_invalidate_forces_refresh() {
+    let inner = Arc::new(LocalDiscovery::new());
+    let signer = make_test_primal("signer-original", vec![Capability::Signing]);
+    inner.register(signer).await;
+
+    let inner_dyn: Arc<dyn PrimalDiscovery> = Arc::clone(&inner) as Arc<dyn PrimalDiscovery>;
+    let cached = CachedDiscovery::new(inner_dyn, Duration::from_secs(300));
+    let _ = cached
+        .find_by_capability(&Capability::Signing)
+        .await
+        .unwrap();
+
+    inner.unregister("signer-original-instance").await;
+    let updated = make_test_primal("signer-updated", vec![Capability::Signing]);
+    inner.register(updated).await;
+
+    cached.invalidate(&Capability::Signing).await;
+    let result = cached
+        .find_by_capability(&Capability::Signing)
+        .await
+        .unwrap();
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0].name, "signer-updated");
+}
+
+#[tokio::test]
+async fn test_create_discovery_no_env() {
+    std::env::remove_var("DISCOVERY_ADDRESS");
+    std::env::remove_var("UNIVERSAL_ADAPTER_ADDRESS");
+    std::env::remove_var("DISCOVERY_BOOTSTRAP");
+
+    let discovery = super::create_discovery().await;
+    assert!(discovery.health().await);
+}
+
+#[tokio::test]
+async fn test_songbird_from_env_missing() {
+    std::env::remove_var("DISCOVERY_ADDRESS");
+    std::env::remove_var("UNIVERSAL_ADAPTER_ADDRESS");
+    std::env::remove_var("DISCOVERY_BOOTSTRAP");
+
+    let result = super::SongbirdDiscovery::from_env().await;
+    assert!(result.is_err());
+    if let Err(err) = result {
+        assert!(err.to_string().contains("No discovery address found"));
+    }
 }

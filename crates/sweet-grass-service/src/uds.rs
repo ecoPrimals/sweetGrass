@@ -178,6 +178,7 @@ mod tests {
         std::env::remove_var("BIOMEOS_SOCKET_DIR");
         std::env::remove_var("BIOMEOS_FAMILY_ID");
         std::env::remove_var("XDG_RUNTIME_DIR");
+        std::env::remove_var("USER");
     }
 
     #[test]
@@ -229,6 +230,47 @@ mod tests {
         std::env::remove_var("USER");
         let path = resolve_socket_path();
         assert_eq!(path, PathBuf::from("/tmp/sweetgrass.sock"));
+    }
+
+    #[test]
+    #[serial]
+    fn test_resolve_socket_user_fallback() {
+        clear_env();
+        std::env::set_var("USER", "testuser");
+        let path = resolve_socket_path();
+        assert_eq!(path, PathBuf::from("/tmp/biomeos-testuser/sweetgrass.sock"));
+    }
+
+    #[test]
+    #[serial]
+    fn test_resolve_socket_priority_explicit_overrides_all() {
+        clear_env();
+        std::env::set_var("SWEETGRASS_SOCKET", "/absolute/custom.sock");
+        std::env::set_var("BIOMEOS_SOCKET_DIR", "/run/biomeos");
+        std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
+        std::env::set_var("USER", "testuser");
+
+        let path = resolve_socket_path();
+        assert_eq!(path, PathBuf::from("/absolute/custom.sock"));
+    }
+
+    #[test]
+    #[serial]
+    fn test_resolve_socket_family_id_in_fallback() {
+        clear_env();
+        std::env::set_var("BIOMEOS_FAMILY_ID", "beta");
+        std::env::remove_var("USER");
+        let path = resolve_socket_path();
+        assert_eq!(path, PathBuf::from("/tmp/sweetgrass-beta.sock"));
+    }
+
+    #[test]
+    #[serial]
+    fn test_cleanup_socket_nonexistent() {
+        clear_env();
+        std::env::set_var("SWEETGRASS_SOCKET", "/nonexistent/path/socket.sock");
+        // Should not panic when socket doesn't exist
+        cleanup_socket();
     }
 
     #[tokio::test]

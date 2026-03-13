@@ -36,7 +36,7 @@ cargo clean
 ## ✅ TEST COMMANDS
 
 ```bash
-# All tests (544+ tests)
+# All tests (746 tests)
 cargo test --workspace
 
 # Unit tests only
@@ -69,7 +69,7 @@ cargo watch -x test
 ## 📊 COVERAGE COMMANDS
 
 ```bash
-# Generate HTML coverage report (86%)
+# Generate HTML coverage report (94%)
 cargo llvm-cov --workspace --html
 
 # Open coverage report

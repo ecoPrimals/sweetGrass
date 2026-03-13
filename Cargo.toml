@@ -13,7 +13,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.7.2"
+version = "0.7.3"
 edition = "2021"
 license = "AGPL-3.0-only"
 repository = "https://github.com/ecoPrimals/sweetGrass"
@@ -53,6 +53,7 @@ chrono = { version = "0.4", features = ["serde"] }
 
 # Collections
 indexmap = { version = "2.7", features = ["serde"] }
+bytes = { version = "1", features = ["serde"] }
 
 # Database (Pure Rust - no OpenSSL)
 sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "chrono", "uuid", "json"] }

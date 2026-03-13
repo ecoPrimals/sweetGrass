@@ -516,4 +516,71 @@ mod tests {
         let parsed: Activity = serde_json::from_str(&json).expect("should deserialize");
         assert_eq!(parsed.activity_type, ActivityType::Transformation);
     }
+
+    #[test]
+    fn test_activity_id_from_task() {
+        let id = ActivityId::from_task("task-123");
+        assert_eq!(id.as_str(), "urn:activity:task:task-123");
+    }
+
+    #[test]
+    fn test_activity_id_from_string() {
+        let id = ActivityId::from_string("custom-id");
+        assert_eq!(id.as_str(), "custom-id");
+    }
+
+    #[test]
+    fn test_activity_id_display() {
+        let id = ActivityId::new();
+        let display = format!("{id}");
+        assert!(display.starts_with("urn:activity:uuid:"));
+    }
+
+    #[test]
+    fn test_activity_id_default() {
+        let id = ActivityId::default();
+        assert!(id.as_str().starts_with("urn:activity:uuid:"));
+    }
+
+    #[test]
+    fn test_activity_type_display() {
+        assert_eq!(format!("{}", ActivityType::Creation), "Creation");
+        assert_eq!(format!("{}", ActivityType::Computation), "Computation");
+        assert_eq!(format!("{}", ActivityType::Import), "Import");
+        assert_eq!(format!("{}", ActivityType::Derivation), "Derivation");
+    }
+
+    #[test]
+    fn test_used_entity() {
+        let used = UsedEntity::new(EntityReference::by_hash("sha256:input"))
+            .with_role(EntityRole::Input)
+            .with_time(42);
+        assert_eq!(used.time, Some(42));
+        assert!(matches!(used.role, EntityRole::Input));
+    }
+
+    #[test]
+    fn test_activity_builder_uses() {
+        let used = UsedEntity::new(EntityReference::by_hash("sha256:used"));
+        let activity = Activity::builder(ActivityType::Derivation)
+            .uses(used)
+            .build();
+        assert_eq!(activity.used.len(), 1);
+    }
+
+    #[test]
+    fn test_activity_builder_rhizo_session() {
+        let activity = Activity::builder(ActivityType::Creation)
+            .rhizo_session("session-42")
+            .build();
+        assert_eq!(activity.ecop.rhizo_session, Some("session-42".to_string()));
+    }
+
+    #[test]
+    fn test_activity_builder_toadstool_task() {
+        let activity = Activity::builder(ActivityType::Computation)
+            .toadstool_task("task-99")
+            .build();
+        assert_eq!(activity.ecop.toadstool_task, Some("task-99".to_string()));
+    }
 }

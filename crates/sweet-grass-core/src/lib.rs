@@ -60,3 +60,16 @@ pub use privacy::{
 
 /// Result type for `SweetGrass` operations.
 pub type Result<T> = std::result::Result<T, SweetGrassError>;
+
+/// Test fixture constants for capability-based test isolation.
+///
+/// Available when building tests or with the `test-support` feature.
+/// These replace hardcoded primal names with capability-agnostic identifiers.
+#[cfg(any(test, feature = "test-support"))]
+pub mod test_fixtures {
+    /// Capability-based test primal name for source attribution.
+    ///
+    /// Represents any primal offering the session capture capability in tests,
+    /// rather than hardcoding a specific primal name.
+    pub const TEST_SOURCE_PRIMAL: &str = "test-session-source";
+}

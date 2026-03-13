@@ -462,6 +462,201 @@ mod tests {
         assert_eq!(chain.direct_contributors().len(), 1);
         assert_eq!(chain.inherited_contributors().len(), 1);
     }
+
+    #[test]
+    fn test_with_config() {
+        let mut weights = HashMap::new();
+        weights.insert(AgentRole::Creator, 0.80);
+        let config = AttributionConfig {
+            role_weights: weights,
+            decay_factor: 0.3,
+            max_depth: 5,
+            min_share: 0.01,
+        };
+        let calc = AttributionCalculator::with_config(config);
+        let braid = make_test_braid("sha256:custom-cfg", "did:key:z6MkCfg");
+        let chain = calc.calculate_single(&braid);
+        assert!(chain.is_valid());
+        assert!((chain.contributors[0].share - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_weight_for_unknown_role() {
+        let config = AttributionConfig::default();
+        let weight = config.weight_for_role(&AgentRole::Custom("unknown".to_string()));
+        assert!((weight - 0.1).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_calculate_rewards_invalid_chain() {
+        let mut chain = AttributionChain::new(EntityReference::by_hash("sha256:invalid"));
+        chain.add_contributor(ContributorShare::new(
+            Did::new("did:key:z6MkA"),
+            0.3,
+            AgentRole::Creator,
+            true,
+        ));
+        chain.add_contributor(ContributorShare::new(
+            Did::new("did:key:z6MkB"),
+            0.3,
+            AgentRole::Creator,
+            true,
+        ));
+
+        let result = calculate_rewards(&chain, 100.0);
+        assert!(result.is_err());
+    }
+
+    fn no_resolve(_: &ContentHash) -> Option<Braid> {
+        None
+    }
+
+    #[tokio::test]
+    async fn test_calculate_batch() {
+        let calc = Arc::new(AttributionCalculator::new());
+        let braids = vec![
+            make_test_braid("sha256:batch1", "did:key:z6MkBatch1"),
+            make_test_braid("sha256:batch2", "did:key:z6MkBatch2"),
+            make_test_braid("sha256:batch3", "did:key:z6MkBatch3"),
+        ];
+
+        let resolve = Arc::new(no_resolve);
+
+        let results = calc.calculate_batch(braids, resolve).await;
+        assert_eq!(results.len(), 3);
+        for chain in &results {
+            assert!(chain.is_valid());
+        }
+    }
+
+    #[test]
+    fn test_infer_role_from_derived_braid() {
+        let did = Did::new("did:key:z6MkTransformer");
+        let mut braid = Braid::builder()
+            .data_hash("sha256:derived")
+            .mime_type("application/json")
+            .size(256)
+            .attributed_to(did)
+            .build()
+            .expect("build");
+        braid.was_derived_from = vec![EntityReference::by_hash("sha256:source")];
+
+        let calc = AttributionCalculator::new();
+        let chain = calc.calculate_single(&braid);
+        assert!(chain.is_valid());
+        assert_eq!(chain.contributors[0].role, AgentRole::Transformer);
+    }
+
+    #[test]
+    fn test_derivation_cycle_protection() {
+        let braid_a = {
+            let did = Did::new("did:key:z6MkA");
+            let mut b = Braid::builder()
+                .data_hash("sha256:cycleA")
+                .mime_type("text/plain")
+                .size(10)
+                .attributed_to(did)
+                .build()
+                .expect("build");
+            b.was_derived_from = vec![EntityReference::by_hash("sha256:cycleB")];
+            b
+        };
+        let braid_b = {
+            let did = Did::new("did:key:z6MkB");
+            let mut b = Braid::builder()
+                .data_hash("sha256:cycleB")
+                .mime_type("text/plain")
+                .size(10)
+                .attributed_to(did)
+                .build()
+                .expect("build");
+            b.was_derived_from = vec![EntityReference::by_hash("sha256:cycleA")];
+            b
+        };
+
+        let calc = AttributionCalculator::new();
+        let resolve = {
+            let a = braid_a.clone();
+            let b = braid_b;
+            move |hash: &ContentHash| {
+                if hash == "sha256:cycleA" {
+                    Some(a.clone())
+                } else if hash == "sha256:cycleB" {
+                    Some(b.clone())
+                } else {
+                    None
+                }
+            }
+        };
+
+        let chain = calc.calculate_with_derivations(&braid_a, resolve);
+        assert!(chain.is_valid());
+    }
+
+    #[test]
+    fn test_max_depth_respected() {
+        let config = AttributionConfig {
+            max_depth: 1,
+            ..AttributionConfig::default()
+        };
+        let calc = AttributionCalculator::with_config(config);
+
+        let grandparent = make_test_braid("sha256:grandparent", "did:key:z6MkGrandparent");
+        let parent = {
+            let did = Did::new("did:key:z6MkParent");
+            let mut b = Braid::builder()
+                .data_hash("sha256:parent_depth")
+                .mime_type("text/plain")
+                .size(10)
+                .attributed_to(did)
+                .build()
+                .expect("build");
+            b.was_derived_from = vec![EntityReference::by_hash("sha256:grandparent")];
+            b
+        };
+        let child = {
+            let did = Did::new("did:key:z6MkChild");
+            let mut b = Braid::builder()
+                .data_hash("sha256:child_depth")
+                .mime_type("text/plain")
+                .size(10)
+                .attributed_to(did)
+                .build()
+                .expect("build");
+            b.was_derived_from = vec![EntityReference::by_hash("sha256:parent_depth")];
+            b
+        };
+
+        let resolve = {
+            let p = parent;
+            let gp = grandparent;
+            move |hash: &ContentHash| {
+                if hash == "sha256:parent_depth" {
+                    Some(p.clone())
+                } else if hash == "sha256:grandparent" {
+                    Some(gp.clone())
+                } else {
+                    None
+                }
+            }
+        };
+
+        let chain = calc.calculate_with_derivations(&child, resolve);
+        assert!(chain.is_valid());
+        assert!(
+            chain.max_depth <= 1,
+            "max_depth should be capped at 1, got {}",
+            chain.max_depth
+        );
+    }
+
+    #[test]
+    fn test_default_calculator() {
+        let calc = AttributionCalculator::default();
+        let braid = make_test_braid("sha256:default-calc", "did:key:z6MkDefault");
+        let chain = calc.calculate_single(&braid);
+        assert!(chain.is_valid());
+    }
 }
 
 /// Property-based tests for attribution calculations.
