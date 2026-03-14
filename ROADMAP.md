@@ -1,10 +1,22 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.4 (March 2026)
+**Current Version**: v0.7.5 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.5 — Sovereignty Hardening + Coverage Push (March 2026)
+
+- [x] JSON-RPC methods evolved to snake_case per `SEMANTIC_METHOD_NAMING_STANDARD`
+- [x] `SongbirdDiscovery` → `RegistryDiscovery` (vendor-agnostic discovery)
+- [x] UDS socket path derived from `SelfKnowledge` (was hardcoded)
+- [x] tarpc `max_concurrent_requests` configurable via env/builder (was hardcoded)
+- [x] `#[allow]` → `#[expect(..., reason)]` audit (11 production attrs evolved)
+- [x] Safe casts: `as u64` → `u64::try_from()` (postgres store, signer client)
+- [x] 34 new tests (760 → 794), region coverage 91%, line coverage 89%
+- [x] `cargo-deny` fully passing (dev-only advisory ignores documented)
+- [x] `# Errors` doc sections on anchor, listener, signer, discovery APIs
 
 ### v0.7.4 — Deep Debt: parking_lot + Idiomatic Refactor (March 2026)
 
@@ -15,7 +27,7 @@
 - [x] JSON-RPC `error_code` module promoted to `pub(crate)` (UDS uses named constants, not magic numbers)
 - [x] Status subcommand evolved to real HTTP `/health` check (was raw TCP)
 - [x] Attribution tests extracted to `tests.rs` (786→302L production + 484L tests)
-- [x] Clippy 0 warnings, 746 tests passing, all files under 1000 LOC
+- [x] Clippy 0 warnings, all files under 1000 LOC
 - [x] Stale `DEPRECATED_ALIASES_REMOVAL_PLAN.md` references cleaned from source comments
 - [x] Root docs and wateringHole handoff updated
 
@@ -112,7 +124,7 @@
 - [ ] End-to-end multi-primal integration testing
 - [ ] Chemistry entity types for wetSpring (Molecule, BasisSet, DftCampaign)
 - [ ] Chemistry braid relations (DependsOn, ValidatedBy, ComputedWith, TrainedOn)
-- [x] Coverage target: 90%+ with llvm-cov *(done in v0.7.3 — 94%)*
+- [x] Coverage target: 90%+ with llvm-cov *(region coverage 91% in v0.7.5)*
 
 ### v0.9.0 — sunCloud Integration (Q3 2026)
 
@@ -138,7 +150,7 @@
 ## Ongoing
 
 ### Testing
-- [x] Coverage to 90%+ *(done in v0.7.3 — 94%)*
+- [x] Coverage to 90%+ *(region coverage 91% in v0.7.5)*
 - [ ] Expand chaos testing scenarios
 - [ ] Property-based testing expansion (proptest)
 - [ ] Fuzz testing campaigns
@@ -186,8 +198,9 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.4 | **March 2026** | Deep Debt: parking_lot + Refactor (DONE) |
-| v0.7.3 | March 2026 | Audit + 94% Coverage (DONE) |
+| v0.7.5 | **March 2026** | Sovereignty Hardening + Coverage Push (DONE) |
+| v0.7.4 | March 2026 | Deep Debt: parking_lot + Refactor (DONE) |
+| v0.7.3 | March 2026 | Audit + Coverage (DONE) |
 | v0.7.2 | March 2026 | Provenance Trio + biomeOS IPC (DONE) |
 | v0.7.1 | March 2026 | Standards + Zero-Copy Evolution (DONE) |
 | v0.7.0 | March 2026 | Deep Remediation (DONE) |

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! BraidFactory tests.
+//! `BraidFactory` tests.
 
 #[cfg(test)]
 #[allow(clippy::float_cmp, clippy::expect_used, clippy::unwrap_used)]

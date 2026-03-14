@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! Contribution domain handlers: record, recordSession, recordDehydration.
+//! Contribution domain handlers: record, record_session, record_dehydration.
 
 use sweet_grass_core::{
     braid::{CompressionMeta, EcoPrimalsAttributes},

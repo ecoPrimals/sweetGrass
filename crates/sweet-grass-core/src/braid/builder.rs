@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! BraidBuilder - builder pattern for constructing Braids.
+//! `BraidBuilder` - builder pattern for constructing Braids.
 
 use crate::activity::Activity;
 use crate::agent::Did;

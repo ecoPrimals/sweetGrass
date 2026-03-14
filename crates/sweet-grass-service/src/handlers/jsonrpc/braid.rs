@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! Braid domain handlers: create, get, getByHash, query, delete, commit.
+//! Braid domain handlers: create, get, get_by_hash, query, delete, commit.
 
 use base64::Engine;
 use serde::Deserialize;

@@ -12,7 +12,7 @@
 use std::collections::{HashMap, HashSet};
 
 use parking_lot::RwLock;
-use sweet_grass_core::{Braid, ContentHash};
+use sweet_grass_core::{Braid, BraidId, ContentHash};
 
 /// Collection of secondary indexes for efficient queries.
 ///
@@ -20,19 +20,19 @@ use sweet_grass_core::{Braid, ContentHash};
 /// All operations are infallible since `parking_lot` does not poison locks.
 pub(super) struct Indexes {
     /// Index: content hash → Braid ID.
-    pub hash: RwLock<HashMap<ContentHash, String>>,
+    pub hash: RwLock<HashMap<ContentHash, BraidId>>,
 
     /// Index: agent DID → Braid IDs.
-    pub agent: RwLock<HashMap<String, HashSet<String>>>,
+    pub agent: RwLock<HashMap<String, HashSet<BraidId>>>,
 
     /// Index: derivation source hash → Braid IDs.
-    pub derivation: RwLock<HashMap<ContentHash, HashSet<String>>>,
+    pub derivation: RwLock<HashMap<ContentHash, HashSet<BraidId>>>,
 
     /// Index: tag → Braid IDs.
-    pub tag: RwLock<HashMap<String, HashSet<String>>>,
+    pub tag: RwLock<HashMap<String, HashSet<BraidId>>>,
 
     /// Index: MIME type → Braid IDs.
-    pub mime: RwLock<HashMap<String, HashSet<String>>>,
+    pub mime: RwLock<HashMap<String, HashSet<BraidId>>>,
 }
 
 impl Indexes {
@@ -58,7 +58,7 @@ impl Indexes {
 
     /// Add a Braid to all secondary indexes.
     pub fn add(&self, braid: &Braid) {
-        let id = braid.id.as_str().to_string();
+        let id = braid.id.clone();
 
         self.hash
             .write()
@@ -95,12 +95,10 @@ impl Indexes {
 
     /// Remove a Braid from all secondary indexes.
     pub fn remove(&self, braid: &Braid) {
-        let id = braid.id.as_str().to_string();
-
         self.hash.write().remove(&braid.data_hash);
 
         if let Some(set) = self.agent.write().get_mut(braid.was_attributed_to.as_str()) {
-            set.remove(&id);
+            set.remove(&braid.id);
         }
 
         {
@@ -108,7 +106,7 @@ impl Indexes {
             for derived in &braid.was_derived_from {
                 if let Some(hash) = derived.content_hash() {
                     if let Some(set) = index.get_mut(hash) {
-                        set.remove(&id);
+                        set.remove(&braid.id);
                     }
                 }
             }
@@ -118,28 +116,28 @@ impl Indexes {
             let mut index = self.tag.write();
             for tag in &braid.metadata.tags {
                 if let Some(set) = index.get_mut(tag) {
-                    set.remove(&id);
+                    set.remove(&braid.id);
                 }
             }
         }
 
         if let Some(set) = self.mime.write().get_mut(&braid.mime_type) {
-            set.remove(&id);
+            set.remove(&braid.id);
         }
     }
 
     /// Get Braid ID by content hash.
-    pub fn get_by_hash(&self, hash: &str) -> Option<String> {
+    pub fn get_by_hash(&self, hash: &str) -> Option<BraidId> {
         self.hash.read().get(hash).cloned()
     }
 
     /// Get Braid IDs by agent DID.
-    pub fn get_by_agent(&self, agent: &str) -> HashSet<String> {
+    pub fn get_by_agent(&self, agent: &str) -> HashSet<BraidId> {
         self.agent.read().get(agent).cloned().unwrap_or_default()
     }
 
     /// Get Braid IDs by derivation source hash.
-    pub fn get_by_derivation(&self, hash: &str) -> HashSet<String> {
+    pub fn get_by_derivation(&self, hash: &str) -> HashSet<BraidId> {
         self.derivation
             .read()
             .get(hash)
@@ -148,12 +146,12 @@ impl Indexes {
     }
 
     /// Get Braid IDs by tag.
-    pub fn get_by_tag(&self, tag: &str) -> HashSet<String> {
+    pub fn get_by_tag(&self, tag: &str) -> HashSet<BraidId> {
         self.tag.read().get(tag).cloned().unwrap_or_default()
     }
 
     /// Get Braid IDs by MIME type.
-    pub fn get_by_mime(&self, mime: &str) -> HashSet<String> {
+    pub fn get_by_mime(&self, mime: &str) -> HashSet<BraidId> {
         self.mime.read().get(mime).cloned().unwrap_or_default()
     }
 }
@@ -189,7 +187,7 @@ mod tests {
 
         let id = indexes.get_by_hash("sha256:test1");
         assert!(id.is_some());
-        assert_eq!(id.unwrap(), braid.id.as_str());
+        assert_eq!(id.unwrap(), braid.id);
     }
 
     #[test]
@@ -237,7 +235,7 @@ mod tests {
 
         let ids = indexes.get_by_mime("application/json");
         assert_eq!(ids.len(), 1);
-        assert!(ids.contains(braid.id.as_str()));
+        assert!(ids.contains(&braid.id));
     }
 
     #[test]
@@ -250,7 +248,7 @@ mod tests {
 
         let ids = indexes.get_by_tag("my-tag");
         assert_eq!(ids.len(), 1);
-        assert!(ids.contains(braid.id.as_str()));
+        assert!(ids.contains(&braid.id));
 
         let empty = indexes.get_by_tag("nonexistent");
         assert!(empty.is_empty());
@@ -270,7 +268,7 @@ mod tests {
 
         let ids = indexes.get_by_derivation("sha256:source");
         assert_eq!(ids.len(), 1);
-        assert!(ids.contains(braid.id.as_str()));
+        assert!(ids.contains(&braid.id));
 
         let empty = indexes.get_by_derivation("sha256:nonexistent");
         assert!(empty.is_empty());

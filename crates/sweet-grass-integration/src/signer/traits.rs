@@ -21,6 +21,10 @@ use sweet_grass_core::Braid;
 use crate::Result;
 
 /// Default signature algorithm used by signing clients.
+///
+/// **Note:** This constant serves as a default only. The signing algorithm should
+/// come from the signing primal at runtime (discovered, not assumed). This will
+/// become config-driven in v0.8.0.
 pub const SIGNING_ALGORITHM: &str = "Ed25519Signature2020";
 
 /// Information about a signature.

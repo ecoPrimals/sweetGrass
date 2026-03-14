@@ -583,3 +583,215 @@ async fn test_delete_nonexistent_returns_ok() {
     // delete returns true even for non-existent (idempotent)
     assert!(result);
 }
+
+// --- Error handling and edge case tests ---
+
+#[tokio::test]
+async fn test_get_corrupted_braid_returns_error() {
+    let temp = TempDir::new().expect("create temp dir");
+    let db_path = temp.path().join("corrupt_db");
+
+    let braid = create_test_braid("sha256:corrupt_test");
+    let braid_id = braid.id.clone();
+
+    // Put a valid braid first
+    {
+        let store = SledStore::open_path(&db_path).expect("open");
+        store.put(&braid).await.expect("put");
+    }
+
+    // Corrupt the braid data directly in sled
+    {
+        use crate::trees;
+        let db = sled::open(&db_path).expect("open sled");
+        let braids = db.open_tree(trees::BRAIDS).expect("open braids tree");
+        braids
+            .insert(braid_id.as_str().as_bytes(), b"invalid json {{{")
+            .expect("insert corrupt");
+        db.flush().expect("flush");
+    }
+
+    // Reopen and try to get - should fail with deserialization error
+    let store = SledStore::open_path(&db_path).expect("open");
+    let result = store.get(&braid_id).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_query_skips_corrupted_entries() {
+    let temp = TempDir::new().expect("create temp dir");
+    let db_path = temp.path().join("query_corrupt_db");
+
+    // Put two valid braids
+    let braid1 = create_test_braid("sha256:valid1");
+    let braid2 = create_test_braid("sha256:valid2");
+    {
+        let store = SledStore::open_path(&db_path).expect("open");
+        store.put(&braid1).await.expect("put");
+        store.put(&braid2).await.expect("put");
+    }
+
+    // Corrupt braid2's data
+    {
+        use crate::trees;
+        let db = sled::open(&db_path).expect("open sled");
+        let braids = db.open_tree(trees::BRAIDS).expect("open braids tree");
+        braids
+            .insert(braid2.id.as_str().as_bytes(), b"{{{ corrupted")
+            .expect("insert corrupt");
+        db.flush().expect("flush");
+    }
+
+    // Query should return only braid1 (corrupted entries are skipped)
+    let store = SledStore::open_path(&db_path).expect("open");
+    let result = store
+        .query(&QueryFilter::new(), QueryOrder::NewestFirst)
+        .await
+        .expect("query");
+    assert_eq!(result.braids.len(), 1);
+    assert_eq!(result.braids[0].id, braid1.id);
+}
+
+#[tokio::test]
+async fn test_sled_config_default() {
+    let config = SledConfig::default();
+    assert_eq!(config.path, "./sweetgrass_sled");
+    assert_eq!(config.cache_capacity, 1024 * 1024 * 1024);
+    assert_eq!(config.flush_every_ms, Some(1000));
+    assert!(!config.use_compression);
+}
+
+#[tokio::test]
+async fn test_open_path_with_config() {
+    let temp = TempDir::new().expect("create temp dir");
+    let config = SledConfig::new(temp.path().to_string_lossy().to_string())
+        .cache_capacity(64 * 1024)
+        .flush_every_ms(Some(2000));
+
+    let store = SledStore::open(&config).expect("open");
+    let braid = create_test_braid("sha256:config_test");
+    store.put(&braid).await.expect("put");
+
+    let retrieved = store.get(&braid.id).await.expect("get");
+    assert!(retrieved.is_some());
+}
+
+#[tokio::test]
+async fn test_get_activity_corrupted_returns_error() {
+    use crate::trees;
+    use sweet_grass_core::activity::{Activity, ActivityType};
+
+    let temp = TempDir::new().expect("create temp dir");
+    let db_path = temp.path().join("activity_corrupt_db");
+
+    let activity = Activity::builder(ActivityType::Creation).build();
+    {
+        let store = SledStore::open_path(&db_path).expect("open");
+        store.put_activity(&activity).await.expect("put");
+    }
+
+    // Corrupt activity data
+    {
+        let db = sled::open(&db_path).expect("open sled");
+        let activities = db.open_tree(trees::ACTIVITIES).expect("open activities");
+        activities
+            .insert(activity.id.as_str().as_bytes(), b"not valid json")
+            .expect("insert");
+        db.flush().expect("flush");
+    }
+
+    let store = SledStore::open_path(&db_path).expect("open");
+    let result = store.get_activity(&activity.id).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_query_with_hash_filter_no_match() {
+    let (store, _temp) = create_test_store();
+
+    let braid = create_test_braid("sha256:hash_filter");
+    store.put(&braid).await.expect("put");
+
+    let filter = QueryFilter::new().with_hash("sha256:nonexistent");
+    let result = store
+        .query(&filter, QueryOrder::NewestFirst)
+        .await
+        .expect("query");
+
+    assert!(result.braids.is_empty());
+    assert_eq!(result.total_count, 0);
+}
+
+#[tokio::test]
+async fn test_query_has_more_pagination() {
+    let (store, _temp) = create_test_store();
+
+    for i in 0..5 {
+        let braid = create_test_braid(&format!("sha256:pagination{i}"));
+        store.put(&braid).await.expect("put");
+    }
+
+    let filter = QueryFilter::new().with_limit(2).with_offset(0);
+    let result = store
+        .query(&filter, QueryOrder::NewestFirst)
+        .await
+        .expect("query");
+
+    assert_eq!(result.braids.len(), 2);
+    assert_eq!(result.total_count, 5);
+    assert!(result.has_more);
+}
+
+#[tokio::test]
+async fn test_count_with_filter() {
+    let (store, _temp) = create_test_store();
+
+    let braid1 = create_test_braid("sha256:count_filter1");
+    let mut braid2 = create_test_braid("sha256:count_filter2");
+    braid2.mime_type = "application/json".to_string();
+
+    store.put(&braid1).await.expect("put");
+    store.put(&braid2).await.expect("put");
+
+    let mime_filter = QueryFilter::new().with_mime_type("application/json");
+    assert_eq!(store.count(&mime_filter).await.expect("count"), 1);
+
+    let agent_filter = QueryFilter::new().with_agent(braid1.was_attributed_to.clone());
+    assert_eq!(store.count(&agent_filter).await.expect("count"), 2);
+}
+
+#[tokio::test]
+async fn test_delete_removes_from_get_by_hash() {
+    let (store, _temp) = create_test_store();
+    let braid = create_test_braid("sha256:delete_hash_cleanup");
+
+    store.put(&braid).await.expect("put");
+    assert!(store
+        .get_by_hash(&braid.data_hash)
+        .await
+        .expect("get")
+        .is_some());
+
+    store.delete(&braid.id).await.expect("delete");
+
+    // Index cleanup: get_by_hash should return None after delete
+    let by_hash = store.get_by_hash(&braid.data_hash).await.expect("get");
+    assert!(by_hash.is_none());
+}
+
+#[tokio::test]
+async fn test_query_with_hash_filter_match() {
+    let (store, _temp) = create_test_store();
+
+    let braid = create_test_braid("sha256:hash_match_test");
+    store.put(&braid).await.expect("put");
+
+    let filter = QueryFilter::new().with_hash(braid.data_hash.clone());
+    let result = store
+        .query(&filter, QueryOrder::NewestFirst)
+        .await
+        .expect("query");
+
+    assert_eq!(result.braids.len(), 1);
+    assert_eq!(result.braids[0].data_hash, braid.data_hash);
+}

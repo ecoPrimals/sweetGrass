@@ -101,7 +101,7 @@ impl SledStore {
         serde_json::from_slice(bytes).map_err(SledError::from)
     }
 
-    /// Static helper for updating indexes in spawn_blocking context.
+    /// Static helper for updating indexes in `spawn_blocking` context.
     fn update_indexes_blocking(
         braid: &Braid,
         by_hash: &Tree,
@@ -139,7 +139,7 @@ impl SledStore {
         Ok(())
     }
 
-    /// Static helper for removing indexes in spawn_blocking context.
+    /// Static helper for removing indexes in `spawn_blocking` context.
     fn remove_indexes_blocking(
         braid: &Braid,
         by_hash: &Tree,

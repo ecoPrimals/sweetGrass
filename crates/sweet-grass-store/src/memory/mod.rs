@@ -34,7 +34,7 @@ use indexes::Indexes;
 /// Uses `IndexMap` to maintain insertion order for consistent queries.
 pub struct MemoryStore {
     /// Primary Braid storage by ID.
-    braids: RwLock<IndexMap<String, Braid>>,
+    braids: RwLock<IndexMap<BraidId, Braid>>,
 
     /// Secondary indexes for efficient queries.
     indexes: Indexes,
@@ -86,10 +86,10 @@ impl Default for MemoryStore {
 #[async_trait]
 impl BraidStore for MemoryStore {
     async fn put(&self, braid: &Braid) -> Result<()> {
-        let id = braid.id.as_str().to_string();
+        let id = braid.id.clone();
 
         if self.braids.read().contains_key(&id) {
-            return Err(StoreError::Duplicate(id));
+            return Err(StoreError::Duplicate(id.as_str().to_string()));
         }
 
         self.indexes.add(braid);
@@ -99,7 +99,7 @@ impl BraidStore for MemoryStore {
     }
 
     async fn get(&self, id: &BraidId) -> Result<Option<Braid>> {
-        Ok(self.braids.read().get(id.as_str()).cloned())
+        Ok(self.braids.read().get(id).cloned())
     }
 
     async fn get_by_hash(&self, hash: &ContentHash) -> Result<Option<Braid>> {
@@ -110,7 +110,7 @@ impl BraidStore for MemoryStore {
     }
 
     async fn delete(&self, id: &BraidId) -> Result<bool> {
-        let braid = self.braids.write().shift_remove(id.as_str());
+        let braid = self.braids.write().shift_remove(id);
         Ok(braid.is_some_and(|b| {
             self.indexes.remove(&b);
             true
@@ -118,7 +118,7 @@ impl BraidStore for MemoryStore {
     }
 
     async fn exists(&self, id: &BraidId) -> Result<bool> {
-        Ok(self.braids.read().contains_key(id.as_str()))
+        Ok(self.braids.read().contains_key(id))
     }
 
     async fn query(&self, query_filter: &QueryFilter, order: QueryOrder) -> Result<QueryResult> {
@@ -199,7 +199,7 @@ impl IndexStore for MemoryStore {
     }
 
     async fn unindex_braid(&self, id: &BraidId) -> Result<()> {
-        let braid = self.braids.read().get(id.as_str()).cloned();
+        let braid = self.braids.read().get(id).cloned();
         if let Some(b) = braid {
             self.indexes.remove(&b);
         }
@@ -207,21 +207,11 @@ impl IndexStore for MemoryStore {
     }
 
     async fn by_tag(&self, tag: &str) -> Result<Vec<BraidId>> {
-        Ok(self
-            .indexes
-            .get_by_tag(tag)
-            .into_iter()
-            .map(BraidId::from_string)
-            .collect())
+        Ok(self.indexes.get_by_tag(tag).into_iter().collect())
     }
 
     async fn by_mime_type(&self, mime: &str) -> Result<Vec<BraidId>> {
-        Ok(self
-            .indexes
-            .get_by_mime(mime)
-            .into_iter()
-            .map(BraidId::from_string)
-            .collect())
+        Ok(self.indexes.get_by_mime(mime).into_iter().collect())
     }
 
     async fn by_time_range(&self, start: Timestamp, end: Timestamp) -> Result<Vec<BraidId>> {

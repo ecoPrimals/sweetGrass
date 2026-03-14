@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! Compression domain handlers: compressSession, createMetaBraid.
+//! Compression domain handlers: compress_session, create_meta_braid.
 
 use serde::Deserialize;
 use sweet_grass_compression::Session;

@@ -334,7 +334,7 @@ async fn e2e_jsonrpc_record_session() {
     let resp = server
         .post("/jsonrpc")
         .json(&jsonrpc(
-            "contribution.recordSession",
+            "contribution.record_session",
             json!({
                 "session_id": "rhizo-session-99",
                 "source_primal": TEST_SOURCE_PRIMAL,
@@ -394,7 +394,7 @@ async fn e2e_jsonrpc_record_contribution_then_query() {
     let query_body: serde_json::Value = server
         .post("/jsonrpc")
         .json(&jsonrpc(
-            "braid.getByHash",
+            "braid.get_by_hash",
             json!({"hash": "sha256:queryable"}),
             2,
         ))

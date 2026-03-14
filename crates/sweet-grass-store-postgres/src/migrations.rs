@@ -8,6 +8,7 @@ use sqlx::PgPool;
 use tracing::{debug, info};
 
 /// Initial schema migration.
+/// Raw string preserves SQL readability; r#" avoids escaping inner quotes in SQL.
 #[allow(clippy::needless_raw_string_hashes)]
 const MIGRATION_001_INIT: &str = r#"
 -- SweetGrass Schema v1

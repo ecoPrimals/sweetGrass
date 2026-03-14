@@ -23,6 +23,9 @@ use crate::Result;
 pub mod contribution;
 
 /// Default source primal name when self-knowledge is unavailable.
+///
+/// Prefer [`BraidFactory::from_self_knowledge()`] in production so the source
+/// primal comes from the primal's `SelfKnowledge` at runtime.
 pub const DEFAULT_SOURCE_PRIMAL: &str = "unknown";
 
 /// Parameters for creating a Braid from an anchoring provider (Loam) entry.
@@ -242,7 +245,10 @@ impl BraidFactory {
         let result = hasher.finalize();
         let hash = format!("sha256:{}", hex_encode(result));
 
-        #[allow(clippy::cast_precision_loss)]
+        #[expect(
+            clippy::cast_precision_loss,
+            reason = "member_count is small; u64->f64 precision loss is acceptable for compression ratio"
+        )]
         let ecop = EcoPrimalsAttributes {
             source_primal: Some(self.source_primal.clone()),
             niche: self.niche.clone(),

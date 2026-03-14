@@ -31,8 +31,8 @@ use crate::rpc::{
     ServiceStatus, SweetGrassRpc, TimeRange,
 };
 
-/// Maximum number of concurrent tarpc requests when processing agent contributions.
-pub const TARPC_MAX_CONCURRENT_REQUESTS: usize = 10;
+/// Default maximum concurrent tarpc requests when processing agent contributions.
+const DEFAULT_MAX_CONCURRENT_REQUESTS: usize = 10;
 
 /// SweetGrass tarpc server.
 #[derive(Clone)]
@@ -43,10 +43,16 @@ pub struct SweetGrassServer {
     compression: Arc<CompressionEngine>,
     attribution: Arc<AttributionCalculator>,
     start_time: Instant,
+    /// Maximum concurrent requests for parallel operations (e.g. agent_contributions).
+    /// Configurable via `TARPC_MAX_CONCURRENT_REQUESTS` env var or struct field.
+    max_concurrent_requests: usize,
 }
 
 impl SweetGrassServer {
     /// Create a new SweetGrass server.
+    ///
+    /// `max_concurrent_requests` defaults to `TARPC_MAX_CONCURRENT_REQUESTS` env var
+    /// or 10 if unset.
     #[must_use]
     pub fn new(
         store: Arc<MemoryStore>,
@@ -55,6 +61,10 @@ impl SweetGrassServer {
         compression: Arc<CompressionEngine>,
         attribution: Arc<AttributionCalculator>,
     ) -> Self {
+        let max_concurrent_requests = std::env::var("TARPC_MAX_CONCURRENT_REQUESTS")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(DEFAULT_MAX_CONCURRENT_REQUESTS);
         Self {
             store,
             factory,
@@ -62,7 +72,15 @@ impl SweetGrassServer {
             compression,
             attribution,
             start_time: Instant::now(),
+            max_concurrent_requests,
         }
+    }
+
+    /// Set the maximum concurrent requests for parallel operations.
+    #[must_use]
+    pub fn with_max_concurrent_requests(mut self, n: usize) -> Self {
+        self.max_concurrent_requests = n;
+        self
     }
 }
 
@@ -290,7 +308,7 @@ impl SweetGrassRpc for SweetGrassServer {
                     .unwrap_or(0.0)
                 }
             })
-            .buffer_unordered(TARPC_MAX_CONCURRENT_REQUESTS)
+            .buffer_unordered(self.max_concurrent_requests)
             .collect()
             .await;
 

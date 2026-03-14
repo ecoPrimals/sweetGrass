@@ -538,14 +538,166 @@ async fn test_create_discovery_no_env() {
 }
 
 #[tokio::test]
-async fn test_songbird_from_env_missing() {
+async fn test_registry_from_env_missing() {
     std::env::remove_var("DISCOVERY_ADDRESS");
     std::env::remove_var("UNIVERSAL_ADAPTER_ADDRESS");
     std::env::remove_var("DISCOVERY_BOOTSTRAP");
 
-    let result = super::SongbirdDiscovery::from_env().await;
+    let result = super::RegistryDiscovery::from_env().await;
     assert!(result.is_err());
     if let Err(err) = result {
         assert!(err.to_string().contains("No discovery address found"));
+    }
+}
+
+#[tokio::test]
+async fn test_create_discovery_with_invalid_env_fallback() {
+    std::env::set_var("DISCOVERY_ADDRESS", "127.0.0.1:1");
+    let discovery = super::create_discovery().await;
+    std::env::remove_var("DISCOVERY_ADDRESS");
+
+    assert!(discovery.health().await);
+}
+
+#[tokio::test]
+async fn test_create_discovery_prefers_discovery_address() {
+    std::env::set_var("DISCOVERY_ADDRESS", "127.0.0.1:1");
+    std::env::set_var("UNIVERSAL_ADAPTER_ADDRESS", "127.0.0.1:2");
+    std::env::set_var("DISCOVERY_BOOTSTRAP", "127.0.0.1:3");
+
+    let discovery = super::create_discovery().await;
+    std::env::remove_var("DISCOVERY_ADDRESS");
+    std::env::remove_var("UNIVERSAL_ADAPTER_ADDRESS");
+    std::env::remove_var("DISCOVERY_BOOTSTRAP");
+
+    assert!(discovery.health().await);
+}
+
+#[tokio::test]
+async fn test_service_info_to_primal_empty_capabilities() {
+    use super::ServiceInfo;
+
+    let info = ServiceInfo {
+        id: "empty-svc".to_string(),
+        name: "empty".to_string(),
+        version: "1.0.0".to_string(),
+        tarpc_address: None,
+        rest_address: None,
+        capabilities: vec![],
+        last_seen: 0,
+        healthy: true,
+    };
+
+    let primal = info.to_primal();
+    assert_eq!(primal.instance_id, "empty-svc");
+    assert!(primal.capabilities.is_empty());
+}
+
+#[tokio::test]
+async fn test_service_info_to_primal_mixed_capabilities() {
+    use super::ServiceInfo;
+
+    let info = ServiceInfo {
+        id: "mixed-svc".to_string(),
+        name: "mixed".to_string(),
+        version: "1.0.0".to_string(),
+        tarpc_address: None,
+        rest_address: None,
+        capabilities: vec!["signing".to_string(), "unknown_xyz".to_string()],
+        last_seen: 0,
+        healthy: true,
+    };
+
+    let primal = info.to_primal();
+    assert!(primal.offers(&Capability::Signing));
+    assert!(primal.offers(&Capability::Custom("unknown_xyz".to_string())));
+}
+
+#[tokio::test]
+async fn test_service_info_to_primal_filters_invalid_capability_strings() {
+    use super::ServiceInfo;
+
+    let info = ServiceInfo {
+        id: "filter-svc".to_string(),
+        name: "filter".to_string(),
+        version: "1.0.0".to_string(),
+        tarpc_address: None,
+        rest_address: None,
+        capabilities: vec!["signing".to_string(), "".to_string()],
+        last_seen: 0,
+        healthy: true,
+    };
+
+    let primal = info.to_primal();
+    assert_eq!(primal.capabilities.len(), 1);
+    assert!(primal.offers(&Capability::Signing));
+}
+
+#[tokio::test]
+async fn test_service_info_to_primal_custom_capability() {
+    use super::ServiceInfo;
+
+    let info = ServiceInfo {
+        id: "custom-svc".to_string(),
+        name: "custom".to_string(),
+        version: "1.0.0".to_string(),
+        tarpc_address: None,
+        rest_address: None,
+        capabilities: vec!["custom:my_feature".to_string()],
+        last_seen: 1_700_000_000,
+        healthy: false,
+    };
+
+    let primal = info.to_primal();
+    assert!(primal.offers(&Capability::Custom("my_feature".to_string())));
+    assert!(!primal.healthy);
+}
+
+#[tokio::test]
+async fn test_cached_discovery_different_capabilities_separate_cache() {
+    let inner = Arc::new(LocalDiscovery::new());
+    inner
+        .register(make_test_primal("signer", vec![Capability::Signing]))
+        .await;
+    inner
+        .register(make_test_primal("anchor", vec![Capability::Anchoring]))
+        .await;
+
+    let cached = CachedDiscovery::new(inner, Duration::from_secs(60));
+
+    let signers = cached
+        .find_by_capability(&Capability::Signing)
+        .await
+        .expect("find");
+    let anchors = cached
+        .find_by_capability(&Capability::Anchoring)
+        .await
+        .expect("find");
+
+    assert_eq!(signers.len(), 1);
+    assert_eq!(anchors.len(), 1);
+    assert_eq!(signers[0].name, "signer");
+    assert_eq!(anchors[0].name, "anchor");
+}
+
+#[tokio::test]
+async fn test_cached_discovery_find_one_no_healthy_uses_cache() {
+    let inner = Arc::new(LocalDiscovery::new());
+    let mut unhealthy = make_test_primal("unhealthy", vec![Capability::Signing]);
+    unhealthy.healthy = false;
+    inner.register(unhealthy).await;
+
+    let cached = CachedDiscovery::new(inner, Duration::from_secs(60));
+
+    let result = cached.find_one(&Capability::Signing).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_registry_discovery_connect_invalid_addr() {
+    let result = super::RegistryDiscovery::connect("127.0.0.1:1").await;
+    assert!(result.is_err());
+    if let Err(err) = result {
+        assert!(err.to_string().contains("127.0.0.1:1") || err.to_string().contains("connection"));
     }
 }

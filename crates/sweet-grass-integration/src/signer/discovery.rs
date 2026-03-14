@@ -38,6 +38,10 @@ impl DiscoverySigner {
     /// Create a new signer using discovery to find a signing primal.
     ///
     /// Discovers any primal offering `Capability::Signing` at runtime.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no signing primal is discovered or client creation fails.
     #[instrument(skip(discovery, client_factory))]
     pub async fn new<F>(discovery: Arc<dyn PrimalDiscovery>, client_factory: F) -> Result<Self>
     where
@@ -63,6 +67,10 @@ impl DiscoverySigner {
     }
 
     /// Create with an existing client (for testing or when discovery is handled externally).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if retrieving the client's DID fails.
     pub async fn with_client(client: Arc<dyn SigningClient>) -> Result<Self> {
         let did = client.current_did().await?;
         // Use a no-op discovery since we already have the client
@@ -76,6 +84,10 @@ impl DiscoverySigner {
     }
 
     /// Reconnect to a new signing primal if the current one becomes unavailable.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if re-discovery fails or the new client is unreachable.
     #[instrument(skip(self, client_factory))]
     pub async fn reconnect<F>(&mut self, client_factory: F) -> Result<()>
     where
@@ -142,6 +154,10 @@ pub struct LegacySigner {
 
 impl LegacySigner {
     /// Create a new signer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if retrieving the client's DID fails.
     pub async fn new(client: Arc<dyn SigningClient>) -> Result<Self> {
         let did = client.current_did().await?;
         Ok(Self { client, did })

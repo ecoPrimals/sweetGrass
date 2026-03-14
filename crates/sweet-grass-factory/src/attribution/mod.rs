@@ -203,7 +203,10 @@ impl AttributionCalculator {
         }
         visited.insert(hash);
 
-        #[allow(clippy::cast_possible_wrap)]
+        #[expect(
+            clippy::cast_possible_wrap,
+            reason = "depth is recursion depth; powi requires i32; depth is bounded by graph depth"
+        )]
         let decay = self.config.decay_factor.powi(depth as i32);
         let effective_weight = weight_multiplier * decay;
 
@@ -241,7 +244,10 @@ impl AttributionCalculator {
             }
         }
 
-        #[allow(clippy::cast_precision_loss)]
+        #[expect(
+            clippy::cast_precision_loss,
+            reason = "len() is small; usize->f64 precision loss is acceptable for weight calculation"
+        )]
         let derivation_weight = effective_weight / braid.was_derived_from.len().max(1) as f64;
         for derived in &braid.was_derived_from {
             if let Some(hash) = derived.content_hash() {

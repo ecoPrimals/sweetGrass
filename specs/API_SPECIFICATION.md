@@ -398,16 +398,23 @@ Content-Type: application/json
 
 | Method | Parameters | Returns |
 |--------|------------|---------|
-| `sweetgrass.createBraid` | CreateBraidRequest | Braid |
-| `sweetgrass.getBraid` | { id: string } | Braid |
-| `sweetgrass.getBraidByHash` | { hash: string } | Braid |
-| `sweetgrass.queryBraids` | { filter, order } | QueryResult |
-| `sweetgrass.provenanceGraph` | { entity, depth } | ProvenanceGraph |
-| `sweetgrass.attributionChain` | { hash, config } | AttributionChain |
-| `sweetgrass.calculateRewards` | { hash, value } | RewardShare[] |
-| `sweetgrass.compressSession` | Session | CompressionResult |
-| `sweetgrass.exportProvo` | { hash } | JsonLdDocument |
-| `sweetgrass.health` | {} | HealthStatus |
+| `braid.create` | CreateBraidRequest | Braid |
+| `braid.get` | { id: string } | Braid |
+| `braid.get_by_hash` | { hash: string } | Braid |
+| `braid.query` | { filter, order } | QueryResult |
+| `braid.delete` | { id: string } | bool |
+| `braid.commit` | { id: string } | CommitResult |
+| `provenance.graph` | { entity, depth } | ProvenanceGraph |
+| `attribution.chain` | { hash, config } | AttributionChain |
+| `attribution.top_contributors` | { hash, limit } | ContributorShare[] |
+| `compression.compress_session` | Session | CompressionResult |
+| `provenance.export_provo` | { hash } | JsonLdDocument |
+| `contribution.record` | ContributionRecord | Braid |
+| `contribution.record_dehydration` | DehydrationSummary | Braid |
+| `anchoring.anchor` | { id: string } | AnchorResult |
+| `anchoring.verify` | { id: string } | VerifyResult |
+| `anchoring.get_anchors` | { id: string } | Anchor[] |
+| `health.check` | {} | HealthStatus |
 
 ### 3.3 Request Examples
 
@@ -417,7 +424,7 @@ curl -X POST http://localhost:8080/jsonrpc \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
-    "method": "sweetgrass.getBraid",
+    "method": "braid.get",
     "params": { "id": "urn:braid:sha256:abc123" },
     "id": 1
   }'
@@ -427,7 +434,7 @@ curl -X POST http://localhost:8080/jsonrpc \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
-    "method": "sweetgrass.attributionChain",
+    "method": "attribution.chain",
     "params": {
       "hash": "sha256:abc123",
       "config": { "max_depth": 10, "decay_factor": 0.7 }

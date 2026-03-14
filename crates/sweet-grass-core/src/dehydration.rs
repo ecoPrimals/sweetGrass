@@ -16,8 +16,8 @@ use serde::{Deserialize, Serialize};
 use crate::agent::Did;
 use crate::braid::{ContentHash, Timestamp};
 
-/// Summary produced when rhizoCrypt dehydrates an ephemeral DAG session
-/// into a form suitable for permanence (LoamSpine) and attribution (sweetGrass).
+/// Summary produced when `rhizoCrypt` dehydrates an ephemeral DAG session
+/// into a form suitable for permanence (`LoamSpine`) and attribution (`sweetGrass`).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DehydrationSummary {
     /// The primal that performed the dehydration (discovered at runtime).
@@ -56,7 +56,7 @@ pub struct DehydrationSummary {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub frontier: Vec<ContentHash>,
 
-    /// Niche context (e.g., "rootpulse", "chemistry", "game_engine").
+    /// Niche context (e.g., `rootpulse`, `chemistry`, `game_engine`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub niche: Option<String>,
 
