@@ -62,10 +62,7 @@ impl RedbConfig {
     /// Create a new config with the given path.
     #[must_use]
     pub fn new(path: impl Into<String>) -> Self {
-        Self {
-            path: path.into(),
-            ..Default::default()
-        }
+        Self { path: path.into() }
     }
 }
 
