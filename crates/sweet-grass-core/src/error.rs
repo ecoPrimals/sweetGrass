@@ -104,6 +104,17 @@ pub enum SweetGrassError {
     #[error("discovery error: {0}")]
     Discovery(String),
 
+    /// Capability provider error (structured, vendor-agnostic).
+    ///
+    /// Matches rhizoCrypt's and LoamSpine's `CapabilityProvider` for ecosystem consistency.
+    #[error("capability provider error ({capability}): {message}")]
+    CapabilityProvider {
+        /// The capability that failed.
+        capability: String,
+        /// Error detail.
+        message: String,
+    },
+
     // ==================== Configuration Errors ====================
     /// Configuration error.
     #[error("configuration error: {0}")]
@@ -172,6 +183,7 @@ impl SweetGrassError {
                 | Self::Signing(_)
                 | Self::Compute(_)
                 | Self::Discovery(_)
+                | Self::CapabilityProvider { .. }
         )
     }
 
@@ -191,6 +203,15 @@ impl SweetGrassError {
     #[must_use]
     pub const fn is_not_found(&self) -> bool {
         matches!(self, Self::BraidNotFound(_) | Self::SessionNotFound(_))
+    }
+
+    /// Create a capability provider error.
+    #[must_use]
+    pub fn capability_provider(capability: impl Into<String>, message: impl Into<String>) -> Self {
+        Self::CapabilityProvider {
+            capability: capability.into(),
+            message: message.into(),
+        }
     }
 }
 
@@ -258,6 +279,10 @@ mod tests {
             SweetGrassError::Signing("sign error".to_string()),
             SweetGrassError::Compute("compute error".to_string()),
             SweetGrassError::Discovery("discovery error".to_string()),
+            SweetGrassError::CapabilityProvider {
+                capability: "signing".to_string(),
+                message: "HSM unavailable".to_string(),
+            },
             SweetGrassError::Config("config error".to_string()),
             SweetGrassError::InvalidConfig {
                 field: "port".to_string(),
@@ -345,6 +370,15 @@ mod tests {
         let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file not found");
         let err: SweetGrassError = io_err.into();
         assert!(matches!(err, SweetGrassError::Io(_)));
+    }
+
+    #[test]
+    fn test_capability_provider_error() {
+        let err = SweetGrassError::capability_provider("signing", "HSM unavailable");
+        assert!(err.to_string().contains("capability provider error"));
+        assert!(err.to_string().contains("signing"));
+        assert!(err.to_string().contains("HSM unavailable"));
+        assert!(err.is_retriable());
     }
 
     #[test]
