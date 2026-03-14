@@ -63,19 +63,19 @@ Multiple service instances are started on different ports, each with a different
 
 ### Memory (Default)
 ```bash
-sweet-grass-service --storage memory
+sweetgrass server --storage memory
 ```
 
 ### Sled (Pure Rust Embedded)
 ```bash
 SLED_DB_PATH=/var/lib/sweetgrass/data \
-sweet-grass-service --storage sled
+sweetgrass server --storage sled
 ```
 
 ### PostgreSQL (Enterprise)
 ```bash
 DATABASE_URL=postgres://user:pass@localhost/sweetgrass \
-sweet-grass-service --storage postgres
+sweetgrass server --storage postgres
 ```
 
 ## Why Multiple Backends?

@@ -23,7 +23,7 @@ NC='\033[0m' # No Color
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
-SERVICE_BINARY="$PROJECT_ROOT/target/release/sweet-grass-service"
+SERVICE_BINARY="$PROJECT_ROOT/target/release/sweetgrass"
 OUTPUT_DIR="$SCRIPT_DIR/outputs/demo-$(date +%s)"
 SERVICE_PORT=8080
 SERVICE_PID=""

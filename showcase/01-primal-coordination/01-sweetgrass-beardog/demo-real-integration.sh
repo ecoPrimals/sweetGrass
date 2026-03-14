@@ -92,13 +92,13 @@ fi
 echo "   ✅ BearDog: $BINS_DIR/beardog"
 echo "   Version: $($BINS_DIR/beardog --version 2>&1 | head -1 || echo 'unknown')"
 
-if [ ! -f "$PROJECT_ROOT/target/release/sweet-grass-service" ]; then
+if [ ! -f "$PROJECT_ROOT/target/release/sweetgrass" ]; then
     echo "   Building SweetGrass..."
     cd "$PROJECT_ROOT"
     cargo build --release -p sweet-grass-service
 fi
 
-echo "   ✅ SweetGrass: $PROJECT_ROOT/target/release/sweet-grass-service"
+echo "   ✅ SweetGrass: $PROJECT_ROOT/target/release/sweetgrass"
 echo ""
 sleep 1
 
@@ -169,7 +169,7 @@ sleep 1
 echo -e "${BLUE}Step 3: Starting SweetGrass service...${NC}"
 
 cd "$PROJECT_ROOT"
-RUST_LOG=info "$PROJECT_ROOT/target/release/sweet-grass-service" \
+RUST_LOG=info "$PROJECT_ROOT/target/release/sweetgrass" \
     --port 8080 \
     --storage memory \
     > "$OUTPUT_DIR/sweetgrass.log" 2>&1 &

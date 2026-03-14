@@ -72,7 +72,7 @@ serial_test = "3"
 tempfile = "3"
 
 [[bin]]
-name = "sweet-grass-service"
+name = "sweetgrass"
 path = "src/bin/service.rs"
 
 [[example]]

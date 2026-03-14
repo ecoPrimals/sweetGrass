@@ -76,7 +76,7 @@ echo -e "${YELLOW}🚀 STEP 1: Starting All Services${NC}"
 echo ""
 
 # Start SweetGrass (core provenance)
-SWEETGRASS_BIN="$PROJECT_ROOT/target/release/sweet-grass-service"
+SWEETGRASS_BIN="$PROJECT_ROOT/target/release/sweetgrass"
 if [ ! -f "$SWEETGRASS_BIN" ]; then
     echo -e "${BLUE}   Building SweetGrass...${NC}"
     cd "$PROJECT_ROOT"

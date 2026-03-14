@@ -30,7 +30,7 @@ echo "  Storage Backend: $BACKEND"
 echo ""
 
 # Verify binary exists
-if [ ! -f "target/release/sweet-grass-service" ]; then
+if [ ! -f "target/release/sweetgrass" ]; then
     echo -e "${YELLOW}Binary not found. Building release...${NC}"
     cargo build --release
     echo ""
@@ -80,7 +80,7 @@ echo ""
 
 STORAGE_BACKEND="$BACKEND" \
 SWEETGRASS_HTTP_ADDRESS="0.0.0.0:$PORT" \
-./target/release/sweet-grass-service server &
+./target/release/sweetgrass server &
 
 SERVICE_PID=$!
 

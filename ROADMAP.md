@@ -1,10 +1,23 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.6 (March 2026)
+**Current Version**: v0.7.7 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.7 — Deep Audit + Architecture Fix + UniBin Compliance (March 2026)
+
+- [x] **CRITICAL**: `SweetGrassServer` evolved from `Arc<MemoryStore>` to `Arc<dyn BraidStore>` — tarpc now shares the same store as HTTP/JSON-RPC
+- [x] `SweetGrassServer::from_app_state()` constructor — single shared state across all transports
+- [x] Binary renamed from `sweet-grass-service` to `sweetgrass` (UniBin compliance)
+- [x] `Box<dyn Error>` eliminated from production — `start_tarpc_server()`, `start_uds_listener()`, `handle_uds_connection()`, `http_health_check()` all use typed errors
+- [x] `ServiceError::Io` variant added for IO error coverage
+- [x] `specs/ARCHITECTURE.md` rewritten — removed stale gRPC/proto/GraphQL references, aligned with actual 10-crate structure
+- [x] Flaky sled corruption test fixed (proper db handle flush + drop before re-open)
+- [x] Clippy `--all-targets --all-features -D warnings` clean (was failing on scyborg.rs tests, discovery tests, server tests, state tests)
+- [x] Root docs and deploy script updated for `sweetgrass` binary name
+- [x] 849 tests passing (was 843), 0 failures, 0 unsafe
 
 ### v0.7.6 — redb Migration: Pure Rust Storage Evolution (March 2026)
 
@@ -206,7 +219,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.6 | **March 2026** | redb Migration: Pure Rust Storage Evolution (DONE) |
+| v0.7.7 | **March 2026** | Deep Audit + Architecture Fix + UniBin (DONE) |
+| v0.7.6 | March 2026 | redb Migration: Pure Rust Storage Evolution (DONE) |
 | v0.7.5 | March 2026 | Sovereignty Hardening + Coverage Push (DONE) |
 | v0.7.4 | March 2026 | Deep Debt: parking_lot + Refactor (DONE) |
 | v0.7.3 | March 2026 | Audit + Coverage (DONE) |

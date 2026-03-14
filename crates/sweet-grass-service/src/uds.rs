@@ -85,23 +85,26 @@ pub fn resolve_socket_path(primal_name: Option<&str>) -> PathBuf {
 /// Returns an error if socket binding fails.
 pub async fn start_uds_listener(
     state: crate::state::AppState,
-) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync>> {
+) -> std::result::Result<(), crate::ServiceError> {
     let primal_name = state.self_knowledge.as_ref().map(|sk| sk.name.as_str());
     let path = resolve_socket_path(primal_name);
 
     // Ensure parent directory exists
     if let Some(parent) = path.parent() {
         if !parent.exists() {
-            std::fs::create_dir_all(parent)?;
+            std::fs::create_dir_all(parent)
+                .map_err(|e| crate::ServiceError::Internal(format!("mkdir failed: {e}")))?;
         }
     }
 
     // Remove stale socket
     if path.exists() {
-        std::fs::remove_file(&path)?;
+        std::fs::remove_file(&path)
+            .map_err(|e| crate::ServiceError::Internal(format!("remove stale socket: {e}")))?;
     }
 
-    let listener = tokio::net::UnixListener::bind(&path)?;
+    let listener = tokio::net::UnixListener::bind(&path)
+        .map_err(|e| crate::ServiceError::Internal(format!("UDS bind failed: {e}")))?;
     info!("JSON-RPC 2.0 UDS listening on {}", path.display());
 
     loop {
@@ -125,7 +128,7 @@ pub async fn start_uds_listener(
 async fn handle_uds_connection(
     stream: tokio::net::UnixStream,
     state: crate::state::AppState,
-) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync>> {
+) -> std::result::Result<(), crate::ServiceError> {
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
     let (reader, mut writer) = stream.into_split();

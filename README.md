@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.6 | 843 tests | 91% region coverage | AGPL-3.0-only | Pure Rust | ecoBin compliant
+v0.7.7 | 849 tests | 91% region coverage | AGPL-3.0-only | Pure Rust | ecoBin compliant
 
 ---
 
@@ -26,7 +26,7 @@ Standards: W3C PROV-O | JSON-RPC 2.0 | tarpc binary RPC | REST | Pure Rust | No 
 cargo build --release
 
 # Start the server
-./target/release/sweet-grass-service server
+./target/release/sweetgrass server
 
 # Health check
 curl http://localhost:8080/health
@@ -175,8 +175,8 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.6 |
-| Tests | 843 passing |
+| Version | v0.7.7 |
+| Tests | 849 passing |
 | Region coverage | 91% (`cargo llvm-cov`) |
 | Line coverage | 89% (`cargo llvm-cov`) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates) |

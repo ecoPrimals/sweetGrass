@@ -131,7 +131,7 @@ sleep 2
 echo -e "${YELLOW}🌾 STEP 3: Starting SweetGrass Provenance Service${NC}"
 echo ""
 
-SWEETGRASS_BIN="$PROJECT_ROOT/target/release/sweet-grass-service"
+SWEETGRASS_BIN="$PROJECT_ROOT/target/release/sweetgrass"
 
 if [ ! -f "$SWEETGRASS_BIN" ]; then
     echo -e "${BLUE}   Building SweetGrass...${NC}"

@@ -623,7 +623,7 @@ async fn test_service_info_to_primal_filters_invalid_capability_strings() {
         version: "1.0.0".to_string(),
         tarpc_address: None,
         rest_address: None,
-        capabilities: vec!["signing".to_string(), "".to_string()],
+        capabilities: vec!["signing".to_string(), String::new()],
         last_seen: 0,
         healthy: true,
     };

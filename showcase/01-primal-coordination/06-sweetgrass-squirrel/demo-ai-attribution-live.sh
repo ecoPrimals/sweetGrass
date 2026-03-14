@@ -57,7 +57,7 @@ trap cleanup EXIT INT TERM
 echo -e "${YELLOW}📦 Step 1: Verifying Binaries...${NC}"
 echo ""
 
-SWEETGRASS_BIN="$PROJECT_ROOT/target/release/sweet-grass-service"
+SWEETGRASS_BIN="$PROJECT_ROOT/target/release/sweetgrass"
 SQUIRREL_BIN="$BINS_DIR/squirrel"
 
 if [ ! -f "$SWEETGRASS_BIN" ]; then

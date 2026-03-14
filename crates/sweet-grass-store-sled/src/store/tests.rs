@@ -594,24 +594,26 @@ async fn test_get_corrupted_braid_returns_error() {
     let braid = create_test_braid("sha256:corrupt_test");
     let braid_id = braid.id.clone();
 
-    // Put a valid braid first
-    {
-        let store = SledStore::open_path(&db_path).expect("open");
-        store.put(&braid).await.expect("put");
-    }
-
-    // Corrupt the braid data directly in sled
+    // Use a single sled::Db handle throughout to avoid lock contention.
+    // Open raw sled, put a valid braid, then overwrite with corrupt data.
     {
         use crate::trees;
+        let store = SledStore::open_path(&db_path).expect("open");
+        store.put(&braid).await.expect("put");
+        store.flush().expect("flush before corrupt");
+        drop(store);
+
+        // Re-open after full drop to corrupt data
         let db = sled::open(&db_path).expect("open sled");
         let braids = db.open_tree(trees::BRAIDS).expect("open braids tree");
         braids
             .insert(braid_id.as_str().as_bytes(), b"invalid json {{{")
             .expect("insert corrupt");
-        db.flush().expect("flush");
+        db.flush().expect("flush corrupt");
+        drop(db);
     }
 
-    // Reopen and try to get - should fail with deserialization error
+    // Reopen and try to get — should fail with deserialization error
     let store = SledStore::open_path(&db_path).expect("open");
     let result = store.get(&braid_id).await;
     assert!(result.is_err());
@@ -635,8 +637,8 @@ async fn test_query_skips_corrupted_entries() {
     {
         use crate::trees;
         let db = sled::open(&db_path).expect("open sled");
-        let braids = db.open_tree(trees::BRAIDS).expect("open braids tree");
-        braids
+        let braid_tree = db.open_tree(trees::BRAIDS).expect("open braids tree");
+        braid_tree
             .insert(braid2.id.as_str().as_bytes(), b"{{{ corrupted")
             .expect("insert corrupt");
         db.flush().expect("flush");

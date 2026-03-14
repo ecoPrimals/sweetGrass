@@ -89,7 +89,7 @@ test_result() {
 echo -e "${YELLOW}📦 TEST 1: Verify Binaries Exist${NC}"
 echo ""
 
-SWEETGRASS_BIN="$PROJECT_ROOT/target/release/sweet-grass-service"
+SWEETGRASS_BIN="$PROJECT_ROOT/target/release/sweetgrass"
 TOADSTOOL_BIN="$BINS_DIR/toadstool-byob-server"
 TOADSTOOL_CLI="$BINS_DIR/toadstool-cli"
 

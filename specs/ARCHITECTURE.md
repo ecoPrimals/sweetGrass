@@ -351,58 +351,107 @@ Application                   SweetGrass                    BraidStore
 ```
 sweetGrass/
 ├── Cargo.toml                    # Workspace manifest
+├── deny.toml                     # cargo-deny (AGPL, no gRPC/protobuf)
 ├── crates/
 │   ├── sweet-grass-core/         # Core types and traits
 │   │   └── src/
 │   │       ├── lib.rs
-│   │       ├── braid.rs          # Braid structure
+│   │       ├── braid/            # Braid structure (types, builder, tests)
 │   │       ├── activity.rs       # Activity structure
-│   │       ├── agent.rs          # Agent types
+│   │       ├── agent.rs          # Agent types (Did, roles)
 │   │       ├── entity.rs         # Entity references
-│   │       ├── context.rs        # JSON-LD context
+│   │       ├── config.rs         # SweetGrassConfig
+│   │       ├── contribution.rs   # Contribution tracking
+│   │       ├── dehydration.rs    # Braid dehydration
+│   │       ├── hash.rs           # Content hashing (sha256)
+│   │       ├── primal.rs         # Primal/Capability types
+│   │       ├── primal_info.rs    # SelfKnowledge
+│   │       ├── privacy.rs        # Consent, redaction
+│   │       ├── scyborg.rs        # scyBorg attribution (ORC/CC-BY-SA/AGPL)
 │   │       └── error.rs          # Error types
 │   │
-│   ├── sweet-grass-compression/  # Compression engine
+│   ├── sweet-grass-store/        # Store trait + MemoryStore
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── traits.rs         # BraidStore trait
+│   │       ├── error.rs
+│   │       └── memory/           # In-memory backend (mod, indexes, filter)
+│   │
+│   ├── sweet-grass-store-postgres/ # PostgreSQL backend
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── migrations.rs
+│   │       ├── error.rs
+│   │       └── store/            # BraidStore impl
+│   │
+│   ├── sweet-grass-store-redb/   # redb embedded backend (recommended)
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── error.rs
+│   │       └── store/            # BraidStore impl
+│   │
+│   ├── sweet-grass-store-sled/   # Sled backend (legacy, feature-gated)
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── error.rs
+│   │       └── store/            # BraidStore impl
+│   │
+│   ├── sweet-grass-factory/      # Braid creation + attribution engine
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── error.rs
+│   │       ├── factory/          # BraidFactory (mod, contribution, tests)
+│   │       └── attribution/      # AttributionCalculator (mod, chain, tests)
+│   │
+│   ├── sweet-grass-compression/  # 0/1/Many session compression
 │   │   └── src/
 │   │       ├── lib.rs
 │   │       ├── engine.rs         # Compression logic
+│   │       ├── analyzer.rs       # Session analysis
 │   │       ├── strategy.rs       # Strategy selection
-│   │       └── summary.rs        # Summary generation
+│   │       ├── session.rs        # Session types
+│   │       └── error.rs
 │   │
-│   ├── sweet-grass-store/        # Storage backends
+│   ├── sweet-grass-query/        # Graph traversal + PROV-O export
 │   │   └── src/
 │   │       ├── lib.rs
-│   │       ├── traits.rs         # Store traits
-│   │       ├── postgres.rs       # PostgreSQL + graph
-│   │       ├── oxigraph.rs       # RDF native store
-│   │       └── index.rs          # Index management
+│   │       ├── provo.rs          # W3C PROV-O JSON-LD export
+│   │       ├── traversal.rs      # Graph traversal
+│   │       ├── error.rs
+│   │       └── engine/           # Query engine (mod, tests)
 │   │
-│   ├── sweet-grass-query/        # Query engine
+│   ├── sweet-grass-integration/  # Primal discovery + capability clients
 │   │   └── src/
 │   │       ├── lib.rs
-│   │       ├── engine.rs         # Query execution
-│   │       ├── graphql.rs        # GraphQL schema
-│   │       ├── sparql.rs         # SPARQL support
-│   │       └── attribution.rs    # Attribution calculation
+│   │       ├── anchor.rs         # Anchoring client (LoamSpine)
+│   │       ├── error.rs
+│   │       ├── testing.rs        # Test helpers
+│   │       ├── discovery/        # Capability-based registry discovery
+│   │       ├── listener/         # Session events client
+│   │       └── signer/           # Signing client (BearDog)
 │   │
-│   ├── sweet-grass-listener/     # Event listener
-│   │   └── src/
-│   │       ├── lib.rs
-│   │       ├── rhizo.rs          # RhizoCrypt events
-│   │       ├── loam.rs           # LoamSpine events
-│   │       └── toadstool.rs      # ToadStool events
-│   │
-│   └── sweet-grass-service/      # gRPC/REST service
+│   └── sweet-grass-service/      # UniBin server (tarpc + JSON-RPC + REST + UDS)
 │       └── src/
 │           ├── lib.rs
-│           ├── grpc.rs           # gRPC handlers
-│           ├── rest.rs           # REST handlers
-│           └── graphql.rs        # GraphQL endpoint
+│           ├── bin/service.rs    # UniBin entry point (sweetgrass binary)
+│           ├── bootstrap.rs      # Infant discovery bootstrap
+│           ├── factory.rs        # BraidStoreFactory
+│           ├── rpc.rs            # tarpc service trait
+│           ├── router.rs         # Axum router (REST + JSON-RPC)
+│           ├── state.rs          # AppState (shared across all transports)
+│           ├── uds.rs            # Unix domain socket JSON-RPC
+│           ├── error.rs
+│           ├── handlers/         # REST + JSON-RPC handlers
+│           └── server/           # tarpc server impl
 │
-└── proto/
-    └── sweetgrass/
-        └── v1/
-            └── sweetgrass.proto  # gRPC definitions
+├── fuzz/                         # Fuzz targets (libfuzzer)
+│   └── fuzz_targets/
+│       ├── fuzz_braid_deserialize.rs
+│       ├── fuzz_attribution.rs
+│       └── fuzz_query_filter.rs
+│
+├── docs/guides/                  # Development guides
+└── specs/                        # Technical specifications
 ```
 
 ---

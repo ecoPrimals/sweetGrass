@@ -16,17 +16,12 @@
 #![warn(clippy::unwrap_used, clippy::expect_used)]
 
 use std::net::SocketAddr;
-use std::sync::Arc;
 
 use clap::{Parser, Subcommand};
-use sweet_grass_compression::CompressionEngine;
-use sweet_grass_factory::{AttributionCalculator, BraidFactory};
-use sweet_grass_query::QueryEngine;
 use sweet_grass_service::{
     create_router, infant_bootstrap_with_config, start_tarpc_server, BootstrapConfig,
     StorageConfig, SweetGrassServer,
 };
-use sweet_grass_store::MemoryStore;
 use tracing::info;
 
 mod exit_code {
@@ -194,7 +189,7 @@ async fn run_server(config: ServerConfig) -> i32 {
             Ok(a) => a,
             Err(code) => return code,
         };
-        spawn_tarpc_server(tarpc_addr, bootstrap.default_agent);
+        spawn_tarpc_server(tarpc_addr, &state);
     }
 
     // Start Unix domain socket listener for biomeOS IPC
@@ -234,17 +229,9 @@ fn parse_addr(addr: &str, label: &str) -> Result<SocketAddr, i32> {
     })
 }
 
-fn spawn_tarpc_server(tarpc_addr: SocketAddr, default_agent: sweet_grass_core::agent::Did) {
+fn spawn_tarpc_server(tarpc_addr: SocketAddr, state: &sweet_grass_service::AppState) {
+    let server = SweetGrassServer::from_app_state(state);
     tokio::spawn(async move {
-        let factory = Arc::new(BraidFactory::new(default_agent));
-        let store = Arc::new(MemoryStore::new());
-        let query = Arc::new(QueryEngine::new(
-            Arc::clone(&store) as Arc<dyn sweet_grass_store::BraidStore>
-        ));
-        let compression = Arc::new(CompressionEngine::new(Arc::clone(&factory)));
-        let attribution = Arc::new(AttributionCalculator::new());
-        let server = SweetGrassServer::new(store, factory, query, compression, attribution);
-
         info!("tarpc server starting on {tarpc_addr}");
         if let Err(e) = start_tarpc_server(tarpc_addr, server).await {
             tracing::error!("tarpc server error: {e}");
@@ -301,19 +288,28 @@ async fn run_status(address: &str) -> i32 {
 ///
 /// Pure Rust implementation — no reqwest or hyper dependency needed.
 /// Sends a bare HTTP/1.1 request and parses the response body.
-async fn http_health_check(
-    address: &str,
-) -> std::result::Result<String, Box<dyn std::error::Error>> {
+async fn http_health_check(address: &str) -> Result<String, String> {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-    let mut stream = tokio::net::TcpStream::connect(address).await?;
+    let mut stream = tokio::net::TcpStream::connect(address)
+        .await
+        .map_err(|e| format!("connection failed: {e}"))?;
 
     let request = format!("GET /health HTTP/1.1\r\nHost: {address}\r\nConnection: close\r\n\r\n");
-    stream.write_all(request.as_bytes()).await?;
-    stream.shutdown().await?;
+    stream
+        .write_all(request.as_bytes())
+        .await
+        .map_err(|e| format!("write failed: {e}"))?;
+    stream
+        .shutdown()
+        .await
+        .map_err(|e| format!("shutdown failed: {e}"))?;
 
     let mut response = String::new();
-    stream.read_to_string(&mut response).await?;
+    stream
+        .read_to_string(&mut response)
+        .await
+        .map_err(|e| format!("read failed: {e}"))?;
 
     let body = response
         .split_once("\r\n\r\n")
@@ -326,7 +322,6 @@ async fn http_health_check(
         Err(format!(
             "Unhealthy response: {}",
             response.lines().next().unwrap_or("")
-        )
-        .into())
+        ))
     }
 }

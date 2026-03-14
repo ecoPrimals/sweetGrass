@@ -38,7 +38,7 @@ sleep 2
 echo -e "${BLUE}Step 1: Preparing SweetGrass service...${NC}"
 cd "$PROJECT_ROOT"
 
-if [ ! -f "target/release/sweet-grass-service" ]; then
+if [ ! -f "target/release/sweetgrass" ]; then
     echo "   Building SweetGrass (this may take a moment)..."
     cargo build --release -p sweet-grass-service > /dev/null 2>&1
     echo "   ✅ Build complete"
@@ -57,7 +57,7 @@ echo "     • Default agent: did:key:z6MkLocalDemo"
 echo ""
 
 # Start service in background
-RUST_LOG=error "$PROJECT_ROOT/target/release/sweet-grass-service" \
+RUST_LOG=error "$PROJECT_ROOT/target/release/sweetgrass" \
     --port 8080 \
     --storage memory \
     --default-agent "did:key:z6MkLocalDemo" \
