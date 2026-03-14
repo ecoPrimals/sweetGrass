@@ -1,0 +1,25 @@
+[package]
+name = "sweet-grass-store-redb"
+description = "redb storage backend for sweetGrass — pure Rust, zero C dependencies"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+sweet-grass-store = { path = "../sweet-grass-store" }
+sweet-grass-core = { path = "../sweet-grass-core" }
+redb = "2.4"
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+async-trait = "0.1"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util", "macros"] }
+tempfile = "3.8"
+
+[lints]
+workspace = true
