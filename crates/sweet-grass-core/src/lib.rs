@@ -40,6 +40,7 @@ pub mod hash;
 pub mod primal;
 pub mod primal_info;
 pub mod privacy;
+pub mod scyborg;
 
 // Re-exports for convenience
 pub use activity::{Activity, ActivityId, ActivityType, EntityRole, UsedEntity};
@@ -57,6 +58,7 @@ pub use privacy::{
     DataSubjectRequest, ErasureReason, PrivacyLevel, PrivacyMetadata, ProcessingType,
     RetentionPolicy,
 };
+pub use scyborg::{AttributionNotice, ContentCategory, LicenseExpression, LicenseId};
 
 /// Result type for `SweetGrass` operations.
 pub type Result<T> = std::result::Result<T, SweetGrassError>;
