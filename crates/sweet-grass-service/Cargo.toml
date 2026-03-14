@@ -15,7 +15,8 @@ workspace = true
 sweet-grass-core = { path = "../sweet-grass-core" }
 sweet-grass-store = { path = "../sweet-grass-store" }
 sweet-grass-store-postgres = { path = "../sweet-grass-store-postgres" }
-sweet-grass-store-sled = { path = "../sweet-grass-store-sled" }
+sweet-grass-store-sled = { path = "../sweet-grass-store-sled", optional = true }
+sweet-grass-store-redb = { path = "../sweet-grass-store-redb" }
 sweet-grass-factory = { path = "../sweet-grass-factory" }
 sweet-grass-query = { path = "../sweet-grass-query" }
 sweet-grass-compression = { path = "../sweet-grass-compression" }
@@ -29,7 +30,7 @@ tarpc = { workspace = true }
 bincode = { workspace = true }
 
 # Storage backends for factory
-sled = { workspace = true }
+sled = { workspace = true, optional = true }
 
 # Web framework (REST fallback)
 axum = { workspace = true }
@@ -58,6 +59,10 @@ async-trait = "0.1"
 
 # CLI
 clap = { version = "4", features = ["derive", "env"] }
+
+[features]
+default = []
+sled = ["dep:sled", "dep:sweet-grass-store-sled"]
 
 [dev-dependencies]
 sweet-grass-core = { path = "../sweet-grass-core", features = ["test-support"] }

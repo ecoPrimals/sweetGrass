@@ -1,10 +1,18 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.5 (March 2026)
+**Current Version**: v0.7.6 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.6 — redb Migration: Pure Rust Storage Evolution (March 2026)
+
+- [x] `sweet-grass-store-redb` crate — full `BraidStore` implementation (redb 2.4, 42 tests)
+- [x] `STORAGE_BACKEND=redb` in factory (env + config)
+- [x] sled feature-gated: `--features sled` opt-in (was default)
+- [x] 843 tests passing (was 794), 10 crates (was 9)
+- [x] Follows rhizoCrypt/LoamSpine proven redb migration pattern
 
 ### v0.7.5 — Sovereignty Hardening + Coverage Push (March 2026)
 

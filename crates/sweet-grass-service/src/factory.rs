@@ -16,7 +16,7 @@ type Result<T> = std::result::Result<T, StoreError>;
 /// mutating process environment variables. Safe for multi-threaded contexts.
 #[derive(Clone, Debug, Default)]
 pub struct StorageConfig {
-    /// Backend type: "memory", "postgres", "sled".
+    /// Backend type: "memory", "postgres", "sled", "redb".
     pub backend: String,
 
     /// PostgreSQL connection URL.
@@ -24,6 +24,9 @@ pub struct StorageConfig {
 
     /// Sled database path.
     pub sled_path: Option<String>,
+
+    /// redb database path.
+    pub redb_path: Option<String>,
 
     /// PostgreSQL max connections.
     pub pg_max_connections: Option<u32>,
@@ -49,9 +52,9 @@ pub struct StorageConfig {
 ///
 /// ## Environment Variables
 ///
-/// - `STORAGE_BACKEND`: Backend type (`memory`, `postgres`, `sled`)
+/// - `STORAGE_BACKEND`: Backend type (`memory`, `postgres`, `sled`, `redb`)
 /// - `DATABASE_URL` or `STORAGE_URL`: Connection string (postgres)
-/// - `STORAGE_PATH`: Directory path (sled)
+/// - `STORAGE_PATH`: Directory path (sled/redb)
 pub struct BraidStoreFactory;
 
 impl BraidStoreFactory {
@@ -64,7 +67,8 @@ impl BraidStoreFactory {
     /// Selects the storage backend:
     /// - `memory` — In-memory storage (ephemeral, for testing)
     /// - `postgres` — PostgreSQL database (production)
-    /// - `sled` — Embedded Sled database (pure Rust)
+    /// - `redb` — Embedded redb database (Pure Rust, recommended)
+    /// - `sled` — Embedded Sled database (Pure Rust, legacy)
     ///
     /// Default: `memory`
     ///
@@ -81,7 +85,12 @@ impl BraidStoreFactory {
     /// - `PG_MIN_CONNECTIONS` — Minimum connections (default: 2)
     /// - `PG_CONNECT_TIMEOUT` — Timeout in seconds (default: 30)
     ///
-    /// ## Sled Backend
+    /// ## redb Backend (recommended embedded)
+    ///
+    /// Optional:
+    /// - `STORAGE_PATH` — Database file path (default: `./data/sweetgrass.redb`)
+    ///
+    /// ## Sled Backend (legacy)
     ///
     /// Optional:
     /// - `STORAGE_PATH` — Directory path (default: `./data/sweetgrass`)
@@ -123,10 +132,14 @@ impl BraidStoreFactory {
                 .await
                 .map(|s| (s, "postgres".to_string())),
 
+            "redb" => Self::create_redb_backend().map(|s| (s, "redb".to_string())),
+
+            #[cfg(feature = "sled")]
             "sled" => Self::create_sled_backend().map(|s| (s, "sled".to_string())),
 
             other => Err(StoreError::Internal(format!(
-                "Unknown storage backend: '{other}'. Valid options: memory, postgres, sled"
+                "Unknown storage backend: '{other}'. Valid options: {}",
+                Self::valid_backends()
             ))),
         }
     }
@@ -174,9 +187,12 @@ impl BraidStoreFactory {
             "postgres" => Self::create_postgres_from_config(config)
                 .await
                 .map(|s| (s, "postgres".to_string())),
+            "redb" => Self::create_redb_from_config(config).map(|s| (s, "redb".to_string())),
+            #[cfg(feature = "sled")]
             "sled" => Self::create_sled_from_config(config).map(|s| (s, "sled".to_string())),
             other => Err(StoreError::Internal(format!(
-                "Unknown storage backend: '{other}'. Valid options: memory, postgres, sled"
+                "Unknown storage backend: '{other}'. Valid options: {}",
+                Self::valid_backends()
             ))),
         }
     }
@@ -205,6 +221,23 @@ impl BraidStoreFactory {
         Ok(Arc::new(store) as Arc<dyn BraidStore>)
     }
 
+    /// Create redb backend from explicit config.
+    fn create_redb_from_config(config: &StorageConfig) -> Result<Arc<dyn BraidStore>> {
+        use sweet_grass_store_redb::{RedbConfig, RedbStore};
+
+        let path = config
+            .redb_path
+            .as_deref()
+            .unwrap_or("./data/sweetgrass.redb");
+        let redb_config = RedbConfig::new(path);
+
+        tracing::info!(path = %path, "Opening redb database");
+        let store = RedbStore::open(&redb_config)?;
+        tracing::info!("redb backend initialized");
+        Ok(Arc::new(store) as Arc<dyn BraidStore>)
+    }
+
+    #[cfg(feature = "sled")]
     /// Create Sled backend from explicit config.
     fn create_sled_from_config(config: &StorageConfig) -> Result<Arc<dyn BraidStore>> {
         use sweet_grass_store_sled::{SledConfig, SledStore};
@@ -270,6 +303,33 @@ impl BraidStoreFactory {
         std::env::var(key).ok()?.parse().ok()
     }
 
+    /// Create redb backend from environment.
+    fn create_redb_backend() -> Result<Arc<dyn BraidStore>> {
+        use sweet_grass_store_redb::RedbStore;
+
+        let (config, path) = Self::build_redb_config();
+
+        tracing::info!(path = %path, "Opening redb database");
+        let store = RedbStore::open(&config)?;
+
+        tracing::info!("redb backend initialized");
+        Ok(Arc::new(store) as Arc<dyn BraidStore>)
+    }
+
+    /// Build redb configuration from environment variables.
+    ///
+    /// Returns the config and the path for logging purposes.
+    fn build_redb_config() -> (sweet_grass_store_redb::RedbConfig, String) {
+        use sweet_grass_store_redb::RedbConfig;
+
+        let path =
+            std::env::var("STORAGE_PATH").unwrap_or_else(|_| "./data/sweetgrass.redb".to_string());
+        let config = RedbConfig::new(&path);
+
+        (config, path)
+    }
+
+    #[cfg(feature = "sled")]
     /// Create Sled backend from environment.
     fn create_sled_backend() -> Result<Arc<dyn BraidStore>> {
         use sweet_grass_store_sled::SledStore;
@@ -283,6 +343,7 @@ impl BraidStoreFactory {
         Ok(Arc::new(store) as Arc<dyn BraidStore>)
     }
 
+    #[cfg(feature = "sled")]
     /// Build Sled configuration from environment variables.
     ///
     /// Returns the config and the path for logging purposes.
@@ -304,6 +365,18 @@ impl BraidStoreFactory {
         }
 
         (config, path)
+    }
+
+    /// List valid backend names (varies by enabled features).
+    fn valid_backends() -> &'static str {
+        #[cfg(feature = "sled")]
+        {
+            "memory, postgres, redb, sled"
+        }
+        #[cfg(not(feature = "sled"))]
+        {
+            "memory, postgres, redb"
+        }
     }
 }
 
@@ -365,7 +438,7 @@ mod tests {
             let msg = err.to_string();
             assert!(msg.contains("Unknown storage backend"));
             assert!(msg.contains("unknown_backend"));
-            assert!(msg.contains("memory, postgres, sled"));
+            assert!(msg.contains("memory, postgres, redb"));
         }
     }
 
@@ -462,6 +535,7 @@ mod tests {
 
     // Sled Backend Tests
 
+    #[cfg(feature = "sled")]
     #[test]
     #[serial_test::serial]
     fn test_build_sled_config_default_path() {
@@ -471,6 +545,7 @@ mod tests {
         assert_eq!(path, "./data/sweetgrass");
     }
 
+    #[cfg(feature = "sled")]
     #[test]
     #[serial_test::serial]
     fn test_build_sled_config_custom_path() {
@@ -480,6 +555,7 @@ mod tests {
         assert_eq!(path, "/tmp/custom/path");
     }
 
+    #[cfg(feature = "sled")]
     #[test]
     #[serial_test::serial]
     fn test_build_sled_config_with_cache_size() {
@@ -487,9 +563,9 @@ mod tests {
         std::env::set_var("SLED_CACHE_SIZE", "512");
 
         let (_config, _path) = BraidStoreFactory::build_sled_config();
-        // Config should have cache size set (512 MB = 512 * 1024 * 1024 bytes)
     }
 
+    #[cfg(feature = "sled")]
     #[test]
     #[serial_test::serial]
     fn test_build_sled_config_with_flush_interval() {
@@ -499,6 +575,7 @@ mod tests {
         let (_config, _path) = BraidStoreFactory::build_sled_config();
     }
 
+    #[cfg(feature = "sled")]
     #[test]
     #[serial_test::serial]
     fn test_build_sled_config_with_invalid_cache_size() {
@@ -506,7 +583,6 @@ mod tests {
         std::env::set_var("SLED_CACHE_SIZE", "not_a_number");
 
         let (_config, _path) = BraidStoreFactory::build_sled_config();
-        // Should succeed - invalid values are ignored
     }
 
     // Helper Function Tests
@@ -601,6 +677,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "sled")]
     #[tokio::test]
     async fn test_from_config_sled() {
         let dir = tempfile::tempdir().unwrap();
@@ -618,6 +695,7 @@ mod tests {
         assert!(Arc::strong_count(&store) >= 1);
     }
 
+    #[cfg(feature = "sled")]
     #[tokio::test]
     async fn test_from_config_sled_default_path() {
         let config = StorageConfig {
@@ -628,7 +706,6 @@ mod tests {
         assert!(result.is_ok());
         let (_, name) = result.unwrap();
         assert_eq!(name, "sled");
-        // Clean up default sled directory
         let _ = std::fs::remove_dir_all("./data/sweetgrass");
     }
 
@@ -647,12 +724,76 @@ mod tests {
 
     // ==================== StorageConfig defaults ====================
 
+    // ==================== redb Backend Tests ====================
+
+    #[tokio::test]
+    async fn test_from_config_redb() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("test.redb").to_str().unwrap().to_string();
+        let config = StorageConfig {
+            backend: "redb".to_string(),
+            redb_path: Some(db_path),
+            ..StorageConfig::default()
+        };
+        let (store, name) = BraidStoreFactory::from_config_with_name(&config)
+            .await
+            .unwrap();
+        assert_eq!(name, "redb");
+        assert!(Arc::strong_count(&store) >= 1);
+    }
+
+    #[tokio::test]
+    async fn test_from_config_redb_default_path() {
+        let config = StorageConfig {
+            backend: "redb".to_string(),
+            ..StorageConfig::default()
+        };
+        let result = BraidStoreFactory::from_config_with_name(&config).await;
+        assert!(result.is_ok());
+        let (_, name) = result.unwrap();
+        assert_eq!(name, "redb");
+        let _ = std::fs::remove_file("./data/sweetgrass.redb");
+        let _ = std::fs::remove_dir("./data");
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn test_redb_backend_from_env() {
+        std::env::set_var("STORAGE_BACKEND", "redb");
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("env.redb");
+        std::env::set_var("STORAGE_PATH", db_path.to_str().unwrap());
+        let result = BraidStoreFactory::from_env_with_name().await;
+        assert!(result.is_ok());
+        let (_, name) = result.unwrap();
+        assert_eq!(name, "redb");
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_build_redb_config_default_path() {
+        std::env::remove_var("STORAGE_PATH");
+        let (_config, path) = BraidStoreFactory::build_redb_config();
+        assert_eq!(path, "./data/sweetgrass.redb");
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_build_redb_config_custom_path() {
+        std::env::set_var("STORAGE_PATH", "/tmp/custom.redb");
+        let (_config, path) = BraidStoreFactory::build_redb_config();
+        assert_eq!(path, "/tmp/custom.redb");
+    }
+
+    // ==================== StorageConfig defaults ====================
+
     #[test]
     fn test_storage_config_default() {
         let config = StorageConfig::default();
         assert!(config.backend.is_empty());
         assert!(config.database_url.is_none());
         assert!(config.sled_path.is_none());
+        assert!(config.redb_path.is_none());
         assert!(config.pg_max_connections.is_none());
         assert!(config.pg_min_connections.is_none());
         assert!(config.sled_cache_size_mb.is_none());

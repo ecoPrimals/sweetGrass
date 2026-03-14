@@ -36,12 +36,9 @@ impl ContentCategory {
     #[must_use]
     pub const fn default_license(&self) -> LicenseId {
         match self {
-            Self::Code | Self::Documentation => LicenseId::Agpl3Only,
+            Self::Code | Self::Documentation | Self::Model | Self::Mixed => LicenseId::Agpl3Only,
             Self::Mechanic => LicenseId::Orc,
-            Self::Creative => LicenseId::CcBySa4,
-            Self::Data => LicenseId::CcBySa4,
-            Self::Model => LicenseId::Agpl3Only,
-            Self::Mixed => LicenseId::Agpl3Only,
+            Self::Creative | Self::Data => LicenseId::CcBySa4,
         }
     }
 
@@ -147,18 +144,12 @@ mod tests {
             ContentCategory::Documentation.default_license(),
             LicenseId::Agpl3Only
         );
-        assert_eq!(
-            ContentCategory::Mechanic.default_license(),
-            LicenseId::Orc
-        );
+        assert_eq!(ContentCategory::Mechanic.default_license(), LicenseId::Orc);
         assert_eq!(
             ContentCategory::Creative.default_license(),
             LicenseId::CcBySa4
         );
-        assert_eq!(
-            ContentCategory::Data.default_license(),
-            LicenseId::CcBySa4
-        );
+        assert_eq!(ContentCategory::Data.default_license(), LicenseId::CcBySa4);
         assert_eq!(
             ContentCategory::Model.default_license(),
             LicenseId::Agpl3Only
