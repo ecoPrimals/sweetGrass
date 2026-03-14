@@ -35,7 +35,7 @@ use tracing::instrument;
 use crate::state::AppState;
 
 /// JSON-RPC 2.0 error codes per specification.
-mod error_code {
+pub(crate) mod error_code {
     pub const PARSE_ERROR: i64 = -32700;
     pub const INVALID_REQUEST: i64 = -32600;
     pub const METHOD_NOT_FOUND: i64 = -32601;

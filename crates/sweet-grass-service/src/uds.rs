@@ -131,7 +131,7 @@ async fn handle_uds_connection(
             Err(e) => {
                 let err_response = serde_json::json!({
                     "jsonrpc": "2.0",
-                    "error": {"code": -32700, "message": format!("Parse error: {e}")},
+                    "error": {"code": crate::handlers::jsonrpc::error_code::PARSE_ERROR, "message": format!("Parse error: {e}")},
                     "id": null
                 });
                 let mut resp = serde_json::to_string(&err_response)?;

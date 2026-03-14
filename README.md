@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.3 | 746 tests | 94% line coverage | AGPL-3.0-only | Pure Rust | ecoBin compliant
+v0.7.4 | 746 tests | 94% line coverage | AGPL-3.0-only | Pure Rust | ecoBin compliant
 
 ---
 
@@ -167,7 +167,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.3 |
+| Version | v0.7.4 |
 | Tests | 746 passing |
 | Line coverage | 94% (`cargo llvm-cov`) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates) |
@@ -184,6 +184,10 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 - Cross-compilation ready (ARM64, musl, RISC-V targets documented)
 - Platform-agnostic IPC (JSON-RPC + tarpc + UDS, no gRPC/protobuf)
 - `cargo-deny` enforced (tonic, prost, openssl banned)
+
+### Synchronization
+
+`parking_lot::RwLock` throughout (Pure Rust, no poisoning, better perf than `std`).
 
 ### Zero-Copy
 

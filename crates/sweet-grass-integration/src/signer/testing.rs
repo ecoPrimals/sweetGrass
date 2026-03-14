@@ -37,14 +37,6 @@ pub struct MockSigningClient {
     healthy: bool,
 }
 
-// ============================================================================
-// CAPABILITY-BASED ARCHITECTURE (v0.5.0+)
-// ============================================================================
-// Deprecated primal-specific mock aliases removed (Dec 24, 2025).
-// Use MockSigningClient for all signing capability mocks.
-// See DEPRECATED_ALIASES_REMOVAL_PLAN.md for migration details.
-// ============================================================================
-
 impl MockSigningClient {
     /// Create a mock client with default settings.
     #[must_use]

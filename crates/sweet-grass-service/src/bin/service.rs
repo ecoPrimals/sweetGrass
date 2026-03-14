@@ -284,15 +284,49 @@ async fn run_status(address: &str) -> i32 {
     let url = format!("http://{address}/health");
     println!("Checking SweetGrass at {url}...");
 
-    match tokio::net::TcpStream::connect(address).await {
-        Ok(_) => {
-            println!("SweetGrass is reachable at {address}");
-            println!("  Use: curl {url}");
+    match http_health_check(address).await {
+        Ok(body) => {
+            println!("SweetGrass is healthy at {address}");
+            println!("  {body}");
             exit_code::SUCCESS
         },
         Err(e) => {
             eprintln!("Cannot reach SweetGrass at {address}: {e}");
             exit_code::NETWORK_ERROR
         },
+    }
+}
+
+/// Perform a minimal HTTP GET /health check using raw TCP.
+///
+/// Pure Rust implementation — no reqwest or hyper dependency needed.
+/// Sends a bare HTTP/1.1 request and parses the response body.
+async fn http_health_check(
+    address: &str,
+) -> std::result::Result<String, Box<dyn std::error::Error>> {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    let mut stream = tokio::net::TcpStream::connect(address).await?;
+
+    let request = format!("GET /health HTTP/1.1\r\nHost: {address}\r\nConnection: close\r\n\r\n");
+    stream.write_all(request.as_bytes()).await?;
+    stream.shutdown().await?;
+
+    let mut response = String::new();
+    stream.read_to_string(&mut response).await?;
+
+    let body = response
+        .split_once("\r\n\r\n")
+        .map(|(_, body)| body.to_string())
+        .unwrap_or_default();
+
+    if response.contains("200 OK") {
+        Ok(body)
+    } else {
+        Err(format!(
+            "Unhealthy response: {}",
+            response.lines().next().unwrap_or("")
+        )
+        .into())
     }
 }

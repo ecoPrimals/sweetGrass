@@ -15,8 +15,8 @@ mod indexes;
 
 use async_trait::async_trait;
 use indexmap::IndexMap;
+use parking_lot::RwLock;
 use std::collections::{HashMap, HashSet};
-use std::sync::RwLock;
 
 use sweet_grass_core::{
     agent::Did, braid::Timestamp, Activity, ActivityId, Braid, BraidId, ContentHash,
@@ -60,7 +60,7 @@ impl MemoryStore {
 
     /// Get the number of stored Braids.
     pub fn len(&self) -> usize {
-        self.braids.read().map_or(0, |b| b.len())
+        self.braids.read().len()
     }
 
     /// Check if the store is empty.
@@ -70,16 +70,10 @@ impl MemoryStore {
 
     /// Clear all data from the store.
     pub fn clear(&self) {
-        if let Ok(mut braids) = self.braids.write() {
-            braids.clear();
-        }
+        self.braids.write().clear();
         self.indexes.clear();
-        if let Ok(mut activities) = self.activities.write() {
-            activities.clear();
-        }
-        if let Ok(mut index) = self.braid_activities.write() {
-            index.clear();
-        }
+        self.activities.write().clear();
+        self.braid_activities.write().clear();
     }
 }
 
@@ -94,87 +88,42 @@ impl BraidStore for MemoryStore {
     async fn put(&self, braid: &Braid) -> Result<()> {
         let id = braid.id.as_str().to_string();
 
-        // Check for duplicates first (read lock)
-        {
-            let braids = self
-                .braids
-                .read()
-                .map_err(|e| StoreError::Internal(format!("Lock poisoned: {e}")))?;
-            if braids.contains_key(&id) {
-                return Err(StoreError::Duplicate(id));
-            }
+        if self.braids.read().contains_key(&id) {
+            return Err(StoreError::Duplicate(id));
         }
 
-        // Add to indexes
-        self.indexes.add(braid)?;
-
-        // Store the Braid (write lock)
-        {
-            let mut braids = self
-                .braids
-                .write()
-                .map_err(|e| StoreError::Internal(format!("Lock poisoned: {e}")))?;
-            braids.insert(id, braid.clone());
-        }
+        self.indexes.add(braid);
+        self.braids.write().insert(id, braid.clone());
 
         Ok(())
     }
 
     async fn get(&self, id: &BraidId) -> Result<Option<Braid>> {
-        let braids = self
-            .braids
-            .read()
-            .map_err(|e| StoreError::Internal(format!("Lock poisoned: {e}")))?;
-        Ok(braids.get(id.as_str()).cloned())
+        Ok(self.braids.read().get(id.as_str()).cloned())
     }
 
     async fn get_by_hash(&self, hash: &ContentHash) -> Result<Option<Braid>> {
-        let id = self.indexes.get_by_hash(hash.as_str())?;
-
-        match id {
-            Some(id) => {
-                let braids = self
-                    .braids
-                    .read()
-                    .map_err(|e| StoreError::Internal(format!("Lock poisoned: {e}")))?;
-                Ok(braids.get(&id).cloned())
-            },
-            None => Ok(None),
-        }
+        Ok(self
+            .indexes
+            .get_by_hash(hash.as_str())
+            .and_then(|id| self.braids.read().get(&id).cloned()))
     }
 
     async fn delete(&self, id: &BraidId) -> Result<bool> {
-        let braid = {
-            let mut braids = self
-                .braids
-                .write()
-                .map_err(|e| StoreError::Internal(format!("Lock poisoned: {e}")))?;
-            braids.shift_remove(id.as_str())
-        };
-
-        match braid {
-            Some(b) => {
-                self.indexes.remove(&b)?;
-                Ok(true)
-            },
-            None => Ok(false),
-        }
+        let braid = self.braids.write().shift_remove(id.as_str());
+        Ok(braid.is_some_and(|b| {
+            self.indexes.remove(&b);
+            true
+        }))
     }
 
     async fn exists(&self, id: &BraidId) -> Result<bool> {
-        let braids = self
-            .braids
-            .read()
-            .map_err(|e| StoreError::Internal(format!("Lock poisoned: {e}")))?;
-        Ok(braids.contains_key(id.as_str()))
+        Ok(self.braids.read().contains_key(id.as_str()))
     }
 
     async fn query(&self, query_filter: &QueryFilter, order: QueryOrder) -> Result<QueryResult> {
         let mut matching: Vec<Braid> = {
-            let braids = self
-                .braids
-                .read()
-                .map_err(|e| StoreError::Internal(format!("Lock poisoned: {e}")))?;
+            let braids = self.braids.read();
             braids
                 .values()
                 .filter(|b| filter::matches(b, query_filter))
@@ -183,34 +132,24 @@ impl BraidStore for MemoryStore {
         };
 
         let total_count = matching.len();
-
         filter::sort(&mut matching, &order);
-
         let (result, has_more) = filter::paginate(matching, query_filter);
 
         Ok(QueryResult::new(result, total_count, has_more))
     }
 
     async fn count(&self, query_filter: &QueryFilter) -> Result<usize> {
-        let braids = self
+        Ok(self
             .braids
             .read()
-            .map_err(|e| StoreError::Internal(format!("Lock poisoned: {e}")))?;
-
-        Ok(braids
             .values()
             .filter(|b| filter::matches(b, query_filter))
             .count())
     }
 
     async fn by_agent(&self, agent: &Did) -> Result<Vec<Braid>> {
-        let ids = self.indexes.get_by_agent(agent.as_str())?;
-
-        let braids = self
-            .braids
-            .read()
-            .map_err(|e| StoreError::Internal(format!("Lock poisoned: {e}")))?;
-
+        let ids = self.indexes.get_by_agent(agent.as_str());
+        let braids = self.braids.read();
         Ok(ids
             .iter()
             .filter_map(|id| braids.get(id).cloned())
@@ -218,13 +157,8 @@ impl BraidStore for MemoryStore {
     }
 
     async fn derived_from(&self, hash: &ContentHash) -> Result<Vec<Braid>> {
-        let ids = self.indexes.get_by_derivation(hash.as_str())?;
-
-        let braids = self
-            .braids
-            .read()
-            .map_err(|e| StoreError::Internal(format!("Lock poisoned: {e}")))?;
-
+        let ids = self.indexes.get_by_derivation(hash.as_str());
+        let braids = self.braids.read();
         Ok(ids
             .iter()
             .filter_map(|id| braids.get(id).cloned())
@@ -233,36 +167,23 @@ impl BraidStore for MemoryStore {
 
     async fn put_activity(&self, activity: &Activity) -> Result<()> {
         let id = activity.id.as_str().to_string();
-
-        self.activities
-            .write()
-            .map_err(|e| StoreError::Internal(format!("Lock poisoned: {e}")))?
-            .insert(id, activity.clone());
+        self.activities.write().insert(id, activity.clone());
         Ok(())
     }
 
     async fn get_activity(&self, id: &ActivityId) -> Result<Option<Activity>> {
-        let activities = self
-            .activities
-            .read()
-            .map_err(|e| StoreError::Internal(format!("Lock poisoned: {e}")))?;
-        Ok(activities.get(id.as_str()).cloned())
+        Ok(self.activities.read().get(id.as_str()).cloned())
     }
 
     async fn activities_for_braid(&self, braid_id: &BraidId) -> Result<Vec<Activity>> {
-        let ids = {
-            let index = self
-                .braid_activities
-                .read()
-                .map_err(|e| StoreError::Internal(format!("Lock poisoned: {e}")))?;
-            index.get(braid_id.as_str()).cloned().unwrap_or_default()
-        };
-
-        let activities = self
-            .activities
+        let ids = self
+            .braid_activities
             .read()
-            .map_err(|e| StoreError::Internal(format!("Lock poisoned: {e}")))?;
+            .get(braid_id.as_str())
+            .cloned()
+            .unwrap_or_default();
 
+        let activities = self.activities.read();
         Ok(ids
             .iter()
             .filter_map(|id| activities.get(id).cloned())
@@ -273,41 +194,40 @@ impl BraidStore for MemoryStore {
 #[async_trait]
 impl IndexStore for MemoryStore {
     async fn index_braid(&self, braid: &Braid) -> Result<()> {
-        self.indexes.add(braid)
+        self.indexes.add(braid);
+        Ok(())
     }
 
     async fn unindex_braid(&self, id: &BraidId) -> Result<()> {
-        let braid = {
-            let braids = self
-                .braids
-                .read()
-                .map_err(|e| StoreError::Internal(format!("Lock poisoned: {e}")))?;
-            braids.get(id.as_str()).cloned()
-        };
-
+        let braid = self.braids.read().get(id.as_str()).cloned();
         if let Some(b) = braid {
-            self.indexes.remove(&b)?;
+            self.indexes.remove(&b);
         }
         Ok(())
     }
 
     async fn by_tag(&self, tag: &str) -> Result<Vec<BraidId>> {
-        let ids = self.indexes.get_by_tag(tag)?;
-        Ok(ids.into_iter().map(BraidId::from_string).collect())
+        Ok(self
+            .indexes
+            .get_by_tag(tag)
+            .into_iter()
+            .map(BraidId::from_string)
+            .collect())
     }
 
     async fn by_mime_type(&self, mime: &str) -> Result<Vec<BraidId>> {
-        let ids = self.indexes.get_by_mime(mime)?;
-        Ok(ids.into_iter().map(BraidId::from_string).collect())
+        Ok(self
+            .indexes
+            .get_by_mime(mime)
+            .into_iter()
+            .map(BraidId::from_string)
+            .collect())
     }
 
     async fn by_time_range(&self, start: Timestamp, end: Timestamp) -> Result<Vec<BraidId>> {
-        let braids = self
+        Ok(self
             .braids
             .read()
-            .map_err(|e| StoreError::Internal(format!("Lock poisoned: {e}")))?;
-
-        Ok(braids
             .values()
             .filter(|b| b.generated_at_time >= start && b.generated_at_time <= end)
             .map(|b| b.id.clone())
@@ -315,20 +235,11 @@ impl IndexStore for MemoryStore {
     }
 
     async fn rebuild(&self) -> Result<()> {
-        // Clear all indexes
         self.indexes.clear();
 
-        // Rebuild from Braids
-        let braids: Vec<Braid> = {
-            let store = self
-                .braids
-                .read()
-                .map_err(|e| StoreError::Internal(format!("Lock poisoned: {e}")))?;
-            store.values().cloned().collect()
-        };
-
+        let braids: Vec<Braid> = self.braids.read().values().cloned().collect();
         for braid in &braids {
-            self.indexes.add(braid)?;
+            self.indexes.add(braid);
         }
 
         Ok(())

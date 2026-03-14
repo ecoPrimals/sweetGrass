@@ -1,10 +1,23 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.3 (March 2026)
+**Current Version**: v0.7.4 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.4 — Deep Debt: parking_lot + Idiomatic Refactor (March 2026)
+
+- [x] `parking_lot::RwLock` migration (MemoryStore, Indexes, mock impls — eliminates all lock poisoning)
+- [x] Infallible index operations (removed `Result` wrapping from all `Indexes` methods)
+- [x] `DEFAULT_QUERY_LIMIT` centralized in `sweet-grass-store::traits` (removed sled/postgres duplication)
+- [x] `SIGNING_ALGORITHM` constant extracted (was hardcoded `"Ed25519Signature2020"`)
+- [x] JSON-RPC `error_code` module promoted to `pub(crate)` (UDS uses named constants, not magic numbers)
+- [x] Status subcommand evolved to real HTTP `/health` check (was raw TCP)
+- [x] Attribution tests extracted to `tests.rs` (786→302L production + 484L tests)
+- [x] Clippy 0 warnings, 746 tests passing, all files under 1000 LOC
+- [x] Stale `DEPRECATED_ALIASES_REMOVAL_PLAN.md` references cleaned from source comments
+- [x] Root docs and wateringHole handoff updated
 
 ### v0.7.3 — Comprehensive Audit + 94% Coverage (March 2026)
 
@@ -173,7 +186,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.3 | **March 2026** | Audit + 94% Coverage (DONE) |
+| v0.7.4 | **March 2026** | Deep Debt: parking_lot + Refactor (DONE) |
+| v0.7.3 | March 2026 | Audit + 94% Coverage (DONE) |
 | v0.7.2 | March 2026 | Provenance Trio + biomeOS IPC (DONE) |
 | v0.7.1 | March 2026 | Standards + Zero-Copy Evolution (DONE) |
 | v0.7.0 | March 2026 | Deep Remediation (DONE) |

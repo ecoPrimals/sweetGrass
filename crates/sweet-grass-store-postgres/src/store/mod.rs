@@ -12,12 +12,11 @@ use sweet_grass_core::{
     agent::Did,
     Braid, BraidId, ContentHash,
 };
-use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder, QueryResult, StoreError};
+use sweet_grass_store::{
+    BraidStore, QueryFilter, QueryOrder, QueryResult, StoreError, DEFAULT_QUERY_LIMIT,
+};
 
 use crate::{migrations, PostgresConfig, PostgresError, Result};
-
-/// Default maximum number of results to return when no limit is specified.
-pub const DEFAULT_QUERY_LIMIT: usize = 100;
 
 // ============================================================================
 // Safe integer conversion helpers for PostgreSQL storage

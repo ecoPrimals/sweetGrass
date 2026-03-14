@@ -32,7 +32,7 @@ mod traits;
 pub mod testing;
 
 // Re-export core traits (capability-based naming)
-pub use traits::{SignatureInfo, Signer, SigningClient};
+pub use traits::{SignatureInfo, Signer, SigningClient, SIGNING_ALGORITHM};
 
 // Re-export signers
 pub use discovery::{DiscoverySigner, LegacySigner};

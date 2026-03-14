@@ -52,6 +52,9 @@ futures = { workspace = true }
 # Zero-copy byte buffers (wateringHole standards)
 bytes = { workspace = true }
 
+# Synchronization (Pure Rust, no poisoning)
+parking_lot = { workspace = true }
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util", "macros"] }
 sweet-grass-factory = { path = "../sweet-grass-factory" }
