@@ -8,12 +8,11 @@ use std::sync::Arc;
 use tracing::{debug, instrument};
 
 use sweet_grass_core::{agent::Did, Activity, ActivityId, Braid, BraidId, ContentHash};
-use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder, QueryResult, StoreError};
+use sweet_grass_store::{
+    BraidStore, QueryFilter, QueryOrder, QueryResult, StoreError, DEFAULT_QUERY_LIMIT,
+};
 
 use crate::{trees, Result, SledConfig, SledError};
-
-/// Default maximum number of results to return when no limit is specified.
-pub const DEFAULT_QUERY_LIMIT: usize = 100;
 
 /// Sled storage backend.
 pub struct SledStore {

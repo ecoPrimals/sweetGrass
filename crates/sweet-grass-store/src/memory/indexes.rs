@@ -10,14 +10,14 @@
 //! - MIME type → Braid IDs
 
 use std::collections::{HashMap, HashSet};
-use std::sync::RwLock;
 
+use parking_lot::RwLock;
 use sweet_grass_core::{Braid, ContentHash};
 
-use crate::error::StoreError;
-use crate::Result;
-
 /// Collection of secondary indexes for efficient queries.
+///
+/// Uses `parking_lot::RwLock` for lock-free, panic-safe synchronization.
+/// All operations are infallible since `parking_lot` does not poison locks.
 pub(super) struct Indexes {
     /// Index: content hash → Braid ID.
     pub hash: RwLock<HashMap<ContentHash, String>>,
@@ -49,44 +49,29 @@ impl Indexes {
 
     /// Clear all indexes.
     pub fn clear(&self) {
-        if let Ok(mut index) = self.hash.write() {
-            index.clear();
-        }
-        if let Ok(mut index) = self.agent.write() {
-            index.clear();
-        }
-        if let Ok(mut index) = self.derivation.write() {
-            index.clear();
-        }
-        if let Ok(mut index) = self.tag.write() {
-            index.clear();
-        }
-        if let Ok(mut index) = self.mime.write() {
-            index.clear();
-        }
+        self.hash.write().clear();
+        self.agent.write().clear();
+        self.derivation.write().clear();
+        self.tag.write().clear();
+        self.mime.write().clear();
     }
 
     /// Add a Braid to all secondary indexes.
-    pub fn add(&self, braid: &Braid) -> Result<()> {
+    pub fn add(&self, braid: &Braid) {
         let id = braid.id.as_str().to_string();
 
-        // Hash index
         self.hash
             .write()
-            .map_err(lock_error)?
             .insert(braid.data_hash.clone(), id.clone());
 
-        // Agent index
         self.agent
             .write()
-            .map_err(lock_error)?
             .entry(braid.was_attributed_to.as_str().to_string())
             .or_default()
             .insert(id.clone());
 
-        // Derivation index
         {
-            let mut index = self.derivation.write().map_err(lock_error)?;
+            let mut index = self.derivation.write();
             for derived in &braid.was_derived_from {
                 if let Some(hash) = derived.content_hash() {
                     index.entry((*hash).clone()).or_default().insert(id.clone());
@@ -94,48 +79,32 @@ impl Indexes {
             }
         }
 
-        // Tag index
         {
-            let mut index = self.tag.write().map_err(lock_error)?;
+            let mut index = self.tag.write();
             for tag in &braid.metadata.tags {
                 index.entry(tag.clone()).or_default().insert(id.clone());
             }
         }
 
-        // MIME index
         self.mime
             .write()
-            .map_err(lock_error)?
             .entry(braid.mime_type.clone())
             .or_default()
             .insert(id);
-
-        Ok(())
     }
 
     /// Remove a Braid from all secondary indexes.
-    pub fn remove(&self, braid: &Braid) -> Result<()> {
+    pub fn remove(&self, braid: &Braid) {
         let id = braid.id.as_str().to_string();
 
-        // Hash index
-        self.hash
-            .write()
-            .map_err(lock_error)?
-            .remove(&braid.data_hash);
+        self.hash.write().remove(&braid.data_hash);
 
-        // Agent index
-        if let Some(set) = self
-            .agent
-            .write()
-            .map_err(lock_error)?
-            .get_mut(braid.was_attributed_to.as_str())
-        {
+        if let Some(set) = self.agent.write().get_mut(braid.was_attributed_to.as_str()) {
             set.remove(&id);
         }
 
-        // Derivation index
         {
-            let mut index = self.derivation.write().map_err(lock_error)?;
+            let mut index = self.derivation.write();
             for derived in &braid.was_derived_from {
                 if let Some(hash) = derived.content_hash() {
                     if let Some(set) = index.get_mut(hash) {
@@ -145,9 +114,8 @@ impl Indexes {
             }
         }
 
-        // Tag index
         {
-            let mut index = self.tag.write().map_err(lock_error)?;
+            let mut index = self.tag.write();
             for tag in &braid.metadata.tags {
                 if let Some(set) = index.get_mut(tag) {
                     set.remove(&id);
@@ -155,66 +123,38 @@ impl Indexes {
             }
         }
 
-        // MIME index
-        if let Some(set) = self
-            .mime
-            .write()
-            .map_err(lock_error)?
-            .get_mut(&braid.mime_type)
-        {
+        if let Some(set) = self.mime.write().get_mut(&braid.mime_type) {
             set.remove(&id);
         }
-
-        Ok(())
     }
 
     /// Get Braid ID by content hash.
-    pub fn get_by_hash(&self, hash: &str) -> Result<Option<String>> {
-        Ok(self.hash.read().map_err(lock_error)?.get(hash).cloned())
+    pub fn get_by_hash(&self, hash: &str) -> Option<String> {
+        self.hash.read().get(hash).cloned()
     }
 
     /// Get Braid IDs by agent DID.
-    pub fn get_by_agent(&self, agent: &str) -> Result<HashSet<String>> {
-        Ok(self
-            .agent
-            .read()
-            .map_err(lock_error)?
-            .get(agent)
-            .cloned()
-            .unwrap_or_default())
+    pub fn get_by_agent(&self, agent: &str) -> HashSet<String> {
+        self.agent.read().get(agent).cloned().unwrap_or_default()
     }
 
     /// Get Braid IDs by derivation source hash.
-    pub fn get_by_derivation(&self, hash: &str) -> Result<HashSet<String>> {
-        Ok(self
-            .derivation
+    pub fn get_by_derivation(&self, hash: &str) -> HashSet<String> {
+        self.derivation
             .read()
-            .map_err(lock_error)?
             .get(hash)
             .cloned()
-            .unwrap_or_default())
+            .unwrap_or_default()
     }
 
     /// Get Braid IDs by tag.
-    pub fn get_by_tag(&self, tag: &str) -> Result<HashSet<String>> {
-        Ok(self
-            .tag
-            .read()
-            .map_err(lock_error)?
-            .get(tag)
-            .cloned()
-            .unwrap_or_default())
+    pub fn get_by_tag(&self, tag: &str) -> HashSet<String> {
+        self.tag.read().get(tag).cloned().unwrap_or_default()
     }
 
     /// Get Braid IDs by MIME type.
-    pub fn get_by_mime(&self, mime: &str) -> Result<HashSet<String>> {
-        Ok(self
-            .mime
-            .read()
-            .map_err(lock_error)?
-            .get(mime)
-            .cloned()
-            .unwrap_or_default())
+    pub fn get_by_mime(&self, mime: &str) -> HashSet<String> {
+        self.mime.read().get(mime).cloned().unwrap_or_default()
     }
 }
 
@@ -222,12 +162,6 @@ impl Default for Indexes {
     fn default() -> Self {
         Self::new()
     }
-}
-
-/// Helper to convert lock poison errors.
-#[allow(clippy::needless_pass_by_value)]
-fn lock_error<T>(e: std::sync::PoisonError<T>) -> StoreError {
-    StoreError::Internal(format!("Lock poisoned: {e}"))
 }
 
 #[cfg(test)]
@@ -251,9 +185,9 @@ mod tests {
         let indexes = Indexes::new();
         let braid = make_test_braid("sha256:test1", "did:key:z6MkTest");
 
-        indexes.add(&braid).expect("should add");
+        indexes.add(&braid);
 
-        let id = indexes.get_by_hash("sha256:test1").expect("should get");
+        let id = indexes.get_by_hash("sha256:test1");
         assert!(id.is_some());
         assert_eq!(id.unwrap(), braid.id.as_str());
     }
@@ -264,12 +198,10 @@ mod tests {
         let braid1 = make_test_braid("sha256:a1", "did:key:z6MkAgent");
         let braid2 = make_test_braid("sha256:a2", "did:key:z6MkAgent");
 
-        indexes.add(&braid1).expect("should add");
-        indexes.add(&braid2).expect("should add");
+        indexes.add(&braid1);
+        indexes.add(&braid2);
 
-        let ids = indexes
-            .get_by_agent("did:key:z6MkAgent")
-            .expect("should get");
+        let ids = indexes.get_by_agent("did:key:z6MkAgent");
         assert_eq!(ids.len(), 2);
     }
 
@@ -278,11 +210,11 @@ mod tests {
         let indexes = Indexes::new();
         let braid = make_test_braid("sha256:remove", "did:key:z6MkTest");
 
-        indexes.add(&braid).expect("should add");
-        assert!(indexes.get_by_hash("sha256:remove").expect("get").is_some());
+        indexes.add(&braid);
+        assert!(indexes.get_by_hash("sha256:remove").is_some());
 
-        indexes.remove(&braid).expect("should remove");
-        assert!(indexes.get_by_hash("sha256:remove").expect("get").is_none());
+        indexes.remove(&braid);
+        assert!(indexes.get_by_hash("sha256:remove").is_none());
     }
 
     #[test]
@@ -290,10 +222,10 @@ mod tests {
         let indexes = Indexes::new();
         let braid = make_test_braid("sha256:clear", "did:key:z6MkTest");
 
-        indexes.add(&braid).expect("should add");
+        indexes.add(&braid);
         indexes.clear();
 
-        assert!(indexes.get_by_hash("sha256:clear").expect("get").is_none());
+        assert!(indexes.get_by_hash("sha256:clear").is_none());
     }
 
     #[test]
@@ -301,9 +233,9 @@ mod tests {
         let indexes = Indexes::new();
         let braid = make_test_braid("sha256:mime", "did:key:z6MkTest");
 
-        indexes.add(&braid).expect("should add");
+        indexes.add(&braid);
 
-        let ids = indexes.get_by_mime("application/json").expect("should get");
+        let ids = indexes.get_by_mime("application/json");
         assert_eq!(ids.len(), 1);
         assert!(ids.contains(braid.id.as_str()));
     }
@@ -314,14 +246,13 @@ mod tests {
         let mut braid = make_test_braid("sha256:tagged", "did:key:z6MkTest");
         braid.metadata.tags.push("my-tag".to_string());
 
-        indexes.add(&braid).expect("should add");
+        indexes.add(&braid);
 
-        let ids = indexes.get_by_tag("my-tag").expect("should get");
+        let ids = indexes.get_by_tag("my-tag");
         assert_eq!(ids.len(), 1);
         assert!(ids.contains(braid.id.as_str()));
 
-        // Non-existent tag should return empty set
-        let empty = indexes.get_by_tag("nonexistent").expect("should get");
+        let empty = indexes.get_by_tag("nonexistent");
         assert!(empty.is_empty());
     }
 
@@ -335,18 +266,13 @@ mod tests {
             .was_derived_from
             .push(EntityReference::by_hash("sha256:source"));
 
-        indexes.add(&braid).expect("should add");
+        indexes.add(&braid);
 
-        let ids = indexes
-            .get_by_derivation("sha256:source")
-            .expect("should get");
+        let ids = indexes.get_by_derivation("sha256:source");
         assert_eq!(ids.len(), 1);
         assert!(ids.contains(braid.id.as_str()));
 
-        // Non-existent source should return empty set
-        let empty = indexes
-            .get_by_derivation("sha256:nonexistent")
-            .expect("should get");
+        let empty = indexes.get_by_derivation("sha256:nonexistent");
         assert!(empty.is_empty());
     }
 
@@ -362,39 +288,25 @@ mod tests {
             .was_derived_from
             .push(EntityReference::by_hash("sha256:parent"));
 
-        indexes.add(&braid).expect("should add");
+        indexes.add(&braid);
 
-        // Verify all indexes are populated
-        assert!(!indexes.get_by_tag("tag1").expect("get").is_empty());
-        assert!(!indexes.get_by_tag("tag2").expect("get").is_empty());
-        assert!(!indexes
-            .get_by_derivation("sha256:parent")
-            .expect("get")
-            .is_empty());
-        assert!(!indexes
-            .get_by_mime("application/json")
-            .expect("get")
-            .is_empty());
+        assert!(!indexes.get_by_tag("tag1").is_empty());
+        assert!(!indexes.get_by_tag("tag2").is_empty());
+        assert!(!indexes.get_by_derivation("sha256:parent").is_empty());
+        assert!(!indexes.get_by_mime("application/json").is_empty());
 
-        // Remove and verify all indexes are cleaned up
-        indexes.remove(&braid).expect("should remove");
+        indexes.remove(&braid);
 
-        assert!(indexes.get_by_tag("tag1").expect("get").is_empty());
-        assert!(indexes.get_by_tag("tag2").expect("get").is_empty());
-        assert!(indexes
-            .get_by_derivation("sha256:parent")
-            .expect("get")
-            .is_empty());
-        assert!(indexes
-            .get_by_mime("application/json")
-            .expect("get")
-            .is_empty());
+        assert!(indexes.get_by_tag("tag1").is_empty());
+        assert!(indexes.get_by_tag("tag2").is_empty());
+        assert!(indexes.get_by_derivation("sha256:parent").is_empty());
+        assert!(indexes.get_by_mime("application/json").is_empty());
     }
 
     #[test]
     fn test_default_trait() {
         let indexes = Indexes::default();
-        assert!(indexes.get_by_hash("any").expect("get").is_none());
+        assert!(indexes.get_by_hash("any").is_none());
     }
 
     #[test]
@@ -404,18 +316,17 @@ mod tests {
         let braid2 = make_test_braid("sha256:m2", "did:key:z6MkBob");
         let braid3 = make_test_braid("sha256:m3", "did:key:z6MkAlice");
 
-        indexes.add(&braid1).expect("should add");
-        indexes.add(&braid2).expect("should add");
-        indexes.add(&braid3).expect("should add");
+        indexes.add(&braid1);
+        indexes.add(&braid2);
+        indexes.add(&braid3);
 
-        let alice_ids = indexes.get_by_agent("did:key:z6MkAlice").expect("get");
+        let alice_ids = indexes.get_by_agent("did:key:z6MkAlice");
         assert_eq!(alice_ids.len(), 2);
 
-        let bob_ids = indexes.get_by_agent("did:key:z6MkBob").expect("get");
+        let bob_ids = indexes.get_by_agent("did:key:z6MkBob");
         assert_eq!(bob_ids.len(), 1);
 
-        // Non-existent agent should return empty set
-        let empty = indexes.get_by_agent("did:key:z6MkNobody").expect("get");
+        let empty = indexes.get_by_agent("did:key:z6MkNobody");
         assert!(empty.is_empty());
     }
 }

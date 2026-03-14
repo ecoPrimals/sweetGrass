@@ -301,32 +301,19 @@ pub async fn create_anchoring_client_async(
 }
 
 // ============================================================================
-// CAPABILITY-BASED ARCHITECTURE (v0.5.0+)
-// ============================================================================
-// Deprecated primal-specific aliases removed (Dec 24, 2025).
-// All code now uses capability-based naming:
-//   - AnchoringClient (not LoamSpineClient)
-//   - Any primal can provide anchoring capability
-//   - Discovery is runtime, not compile-time
-//
-// Migration: Replace LoamSpine* → Anchoring* in your code.
-// See DEPRECATED_ALIASES_REMOVAL_PLAN.md for details.
-// ============================================================================
-
-// ============================================================================
 // Test-only implementations
 // ============================================================================
 
 /// Test-only module containing mock implementations.
 #[cfg(any(test, feature = "test-support"))]
-#[allow(clippy::unwrap_used)]
 pub mod testing {
     use super::{async_trait, AnchorInfo, AnchorReceipt, AnchoringClient, Braid, BraidId, Result};
+    use parking_lot::RwLock;
 
     /// Mock anchoring client for testing.
     pub struct MockAnchoringClient {
         healthy: bool,
-        anchors: std::sync::RwLock<Vec<AnchorInfo>>,
+        anchors: RwLock<Vec<AnchorInfo>>,
     }
 
     impl MockAnchoringClient {
@@ -335,7 +322,7 @@ pub mod testing {
         pub fn new() -> Self {
             Self {
                 healthy: true,
-                anchors: std::sync::RwLock::new(Vec::new()),
+                anchors: RwLock::new(Vec::new()),
             }
         }
 
@@ -366,7 +353,7 @@ pub mod testing {
                 verified: false,
             };
 
-            self.anchors.write().unwrap().push(anchor.clone());
+            self.anchors.write().push(anchor.clone());
 
             Ok(AnchorReceipt {
                 anchor,
@@ -376,12 +363,12 @@ pub mod testing {
         }
 
         async fn verify(&self, braid_id: &BraidId) -> Result<Option<AnchorInfo>> {
-            let anchors = self.anchors.read().unwrap();
+            let anchors = self.anchors.read();
             Ok(anchors.iter().find(|a| &a.braid_id == braid_id).cloned())
         }
 
         async fn get_anchors(&self, braid_id: &BraidId) -> Result<Vec<AnchorInfo>> {
-            let anchors = self.anchors.read().unwrap();
+            let anchors = self.anchors.read();
             Ok(anchors
                 .iter()
                 .filter(|a| &a.braid_id == braid_id)

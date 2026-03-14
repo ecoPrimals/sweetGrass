@@ -15,6 +15,12 @@ use crate::Result;
 /// Default number of concurrent operations for batch put operations.
 pub const DEFAULT_BATCH_CONCURRENCY: usize = 10;
 
+/// Default maximum number of results when no limit is specified.
+///
+/// Shared across all store backends (memory, sled, postgres) to ensure
+/// consistent pagination behavior regardless of storage choice.
+pub const DEFAULT_QUERY_LIMIT: usize = 100;
+
 /// Query filter for searching Braids.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct QueryFilter {

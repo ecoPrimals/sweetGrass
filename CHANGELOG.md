@@ -5,6 +5,54 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.4] - 2026-03-13
+
+### Deep Debt: parking_lot Migration + Idiomatic Refactor + Doc Cleanup
+
+Migrated all `std::sync::RwLock` to `parking_lot::RwLock` (pure Rust, no poisoning,
+better performance). Centralized duplicated constants. Evolved status subcommand to
+a real HTTP health check. Extracted attribution tests for file-size compliance.
+Cleaned stale doc references and updated wateringHole handoffs.
+
+### Changed
+
+- **`parking_lot::RwLock` migration** — `MemoryStore`, `Indexes`,
+  `MockAnchoringClient`, `MockSessionEventsClient` all use `parking_lot::RwLock`.
+  Lock acquisition is infallible (no `.map_err` poisoning dance)
+- **Infallible `Indexes` API** — `add()` and `remove()` return `()`, `get_*`
+  methods return `Option<String>` or `HashSet<String>` directly (no `Result` wrapper)
+- **`DEFAULT_QUERY_LIMIT` centralized** — Single constant in
+  `sweet-grass-store::traits`, imported by sled and postgres backends (was duplicated)
+- **`SIGNING_ALGORITHM` constant** — Extracted `"Ed25519Signature2020"` to
+  `signer::traits::SIGNING_ALGORITHM` (was hardcoded in tarpc client)
+- **JSON-RPC error codes** — UDS handler uses `error_code::PARSE_ERROR` constant
+  (was magic number `-32700`)
+- **Status subcommand** — Performs real HTTP `GET /health` instead of raw TCP
+  connection check, with a pure-Rust implementation (no external HTTP client)
+- **Attribution test extraction** — `attribution/mod.rs` (786 LOC) split into
+  `mod.rs` (302 LOC) + `tests.rs` (484 LOC)
+
+### Fixed
+
+- **Stale doc references** — Removed 4 references to non-existent
+  `DEPRECATED_ALIASES_REMOVAL_PLAN.md` from source comments
+- **Clippy `unnecessary_wraps`** — Fixed methods that returned `Result` after
+  `parking_lot` migration made them infallible
+- **Clippy `option_if_let_else`** — `MemoryStore::delete` refactored to
+  `Option::is_some_and`
+
+### Metrics
+
+```
+Version:       0.7.4
+Tests:         746 passing
+Line coverage: 94% (cargo llvm-cov)
+Clippy:        0 warnings (pedantic + nursery, -D warnings)
+Max file:      824 lines (limit: 1000)
+TODOs:         0 in source
+Unsafe:        0 (forbidden)
+```
+
 ## [0.7.3] - 2026-03-13
 
 ### Comprehensive Audit + Coverage Push + Doc Cleanup

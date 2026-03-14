@@ -25,5 +25,8 @@ indexmap = { workspace = true }
 # Async trait support
 async-trait = "0.1"
 
+# Synchronization (Pure Rust, no poisoning, better perf than std)
+parking_lot = { workspace = true }
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util", "macros"] }

@@ -20,6 +20,9 @@ use sweet_grass_core::Braid;
 
 use crate::Result;
 
+/// Default signature algorithm used by signing clients.
+pub const SIGNING_ALGORITHM: &str = "Ed25519Signature2020";
+
 /// Information about a signature.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignatureInfo {
@@ -65,8 +68,6 @@ pub trait SigningClient: Send + Sync {
     /// Check connection health.
     async fn health(&self) -> Result<bool>;
 }
-
-// Note: BearDogClient alias removed - use SigningClient directly
 
 /// Trait for signing Braids.
 #[async_trait]

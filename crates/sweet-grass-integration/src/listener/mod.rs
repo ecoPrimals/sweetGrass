@@ -214,21 +214,18 @@ impl EventHandler {
 
 /// Test-only module containing mock implementations.
 #[cfg(any(test, feature = "test-support"))]
-#[allow(
-    clippy::unwrap_used,
-    clippy::missing_panics_doc,
-    clippy::cast_sign_loss
-)]
+#[allow(clippy::missing_panics_doc, clippy::cast_sign_loss)]
 pub mod testing {
     use super::{
         async_trait, Arc, Result, Session, SessionEvent, SessionEventStream, SessionEventsClient,
     };
+    use parking_lot::RwLock;
     use std::collections::VecDeque;
     use tokio::sync::Mutex;
 
     /// Mock session events client for testing.
     pub struct MockSessionEventsClient {
-        sessions: std::sync::RwLock<std::collections::HashMap<String, Session>>,
+        sessions: RwLock<std::collections::HashMap<String, Session>>,
         events: Arc<Mutex<VecDeque<SessionEvent>>>,
         healthy: bool,
     }
@@ -238,7 +235,7 @@ pub mod testing {
         #[must_use]
         pub fn new() -> Self {
             Self {
-                sessions: std::sync::RwLock::new(std::collections::HashMap::new()),
+                sessions: RwLock::new(std::collections::HashMap::new()),
                 events: Arc::new(Mutex::new(VecDeque::new())),
                 healthy: true,
             }
@@ -247,7 +244,7 @@ pub mod testing {
         /// Add a session to the mock.
         #[allow(dead_code)]
         pub fn add_session(&self, session: Session) {
-            let mut sessions = self.sessions.write().unwrap();
+            let mut sessions = self.sessions.write();
             sessions.insert(session.id.clone(), session);
         }
 
@@ -282,7 +279,7 @@ pub mod testing {
         }
 
         async fn get_session(&self, session_id: &str) -> Result<Option<Session>> {
-            let sessions = self.sessions.read().unwrap();
+            let sessions = self.sessions.read();
             Ok(sessions.get(session_id).cloned())
         }
 

@@ -12,7 +12,9 @@ pub mod traits;
 
 pub use error::StoreError;
 pub use memory::MemoryStore;
-pub use traits::{BraidStore, IndexStore, QueryFilter, QueryOrder, QueryResult};
+pub use traits::{
+    BraidStore, IndexStore, QueryFilter, QueryOrder, QueryResult, DEFAULT_QUERY_LIMIT,
+};
 
 /// Result type for store operations.
 pub type Result<T> = std::result::Result<T, StoreError>;

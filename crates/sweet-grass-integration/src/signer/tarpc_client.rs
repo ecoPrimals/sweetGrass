@@ -22,7 +22,7 @@ use crate::discovery::DiscoveredPrimal;
 use crate::error::IntegrationError;
 use crate::Result;
 
-use super::traits::{SignatureInfo, SigningClient};
+use super::traits::{SignatureInfo, SigningClient, SIGNING_ALGORITHM};
 
 /// tarpc service definition for signing capability.
 ///
@@ -64,14 +64,6 @@ pub trait SigningRpc {
 pub struct TarpcSigningClient {
     client: SigningRpcClient,
 }
-
-// ============================================================================
-// CAPABILITY-BASED ARCHITECTURE (v0.5.0+)
-// ============================================================================
-// Deprecated primal-specific type aliases removed (Dec 24, 2025).
-// Use TarpcSigningClient for capability-based architecture.
-// See DEPRECATED_ALIASES_REMOVAL_PLAN.md for migration details.
-// ============================================================================
 
 impl TarpcSigningClient {
     /// Connect to a signing service at the given address.
@@ -149,7 +141,7 @@ impl SigningClient for TarpcSigningClient {
 
         Ok(SignatureInfo {
             signer,
-            algorithm: "Ed25519Signature2020".to_string(),
+            algorithm: SIGNING_ALGORITHM.to_string(),
             signed_at,
             valid,
         })
@@ -220,11 +212,3 @@ pub async fn create_signing_client_async(
         Ok(Arc::new(client))
     }
 }
-
-// ============================================================================
-// CAPABILITY-BASED ARCHITECTURE (v0.5.0+)
-// ============================================================================
-// Deprecated primal-specific functions removed (Dec 24, 2025).
-// Use create_signing_client_async() for capability-based discovery.
-// See DEPRECATED_ALIASES_REMOVAL_PLAN.md for migration details.
-// ============================================================================
