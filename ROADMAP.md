@@ -206,7 +206,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.5 | **March 2026** | Sovereignty Hardening + Coverage Push (DONE) |
+| v0.7.6 | **March 2026** | redb Migration: Pure Rust Storage Evolution (DONE) |
+| v0.7.5 | March 2026 | Sovereignty Hardening + Coverage Push (DONE) |
 | v0.7.4 | March 2026 | Deep Debt: parking_lot + Refactor (DONE) |
 | v0.7.3 | March 2026 | Audit + Coverage (DONE) |
 | v0.7.2 | March 2026 | Provenance Trio + biomeOS IPC (DONE) |

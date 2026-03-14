@@ -17,8 +17,8 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-DEFAULT_PORT=8091
-DEFAULT_BACKEND="postgres"
+DEFAULT_PORT=8080
+DEFAULT_BACKEND="redb"
 
 # Parse arguments
 PORT="${1:-$DEFAULT_PORT}"
@@ -78,9 +78,9 @@ check_health() {
 echo -e "${GREEN}🚀 Starting SweetGrass service...${NC}"
 echo ""
 
-./target/release/sweet-grass-service \
-    --port "$PORT" \
-    --storage-backend "$BACKEND" &
+STORAGE_BACKEND="$BACKEND" \
+SWEETGRASS_HTTP_ADDRESS="0.0.0.0:$PORT" \
+./target/release/sweet-grass-service server &
 
 SERVICE_PID=$!
 

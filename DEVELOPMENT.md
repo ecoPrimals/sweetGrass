@@ -92,10 +92,12 @@ docker-compose down -v
 
 ```
 tests/
-├── Unit Tests          (377 tests) - In src/ modules
-├── Integration Tests   (74 tests)  - tests/*.rs
-├── Chaos Tests        (8 tests)   - tests/chaos.rs
-└── Property Tests     (12 tests)  - Uses proptest
+├── Unit Tests          (600+ tests) - In src/ modules
+├── Integration Tests   (74 tests)   - tests/*.rs
+├── Chaos Tests        (17 tests)   - tests/chaos.rs
+├── Fault Injection    (9 tests)    - tests/fault_injection.rs
+├── E2E HTTP           (19 tests)   - tests/e2e_http.rs
+└── Property Tests     (12 tests)   - Uses proptest
 ```
 
 ### Run Specific Tests
@@ -185,7 +187,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 94% line coverage
+- **Overall**: 91% region coverage / 89% line coverage
 - **Target**: 90%+ (achieved)
 
 ### Per-Crate Coverage
@@ -198,9 +200,10 @@ cargo audit
 | sweet-grass-query | 94% | 90% | ✅ Excellent |
 | sweet-grass-service | 92% | 90% | ✅ Above target |
 | sweet-grass-store | 96% | 90% | ✅ Excellent |
+| sweet-grass-store-redb | 90%+ | 90% | ✅ Above target |
 | sweet-grass-store-postgres | 5% | 80% | ❌ Needs CI/Docker |
 | sweet-grass-integration | 80% | 80% | ✅ At target |
-| sweet-grass-store-sled | 80% | 90% | ⚠️ Close |
+| sweet-grass-store-sled | 80% | 90% | ⚠️ Legacy (feature-gated) |
 
 ### Improving Coverage
 
@@ -421,7 +424,7 @@ SELECT * FROM braids LIMIT 10;
 
 ```bash
 # Update Cargo.toml versions
-cargo set-version 0.7.3
+cargo set-version 0.7.6
 
 # Update CHANGELOG.md and ROADMAP.md
 ```

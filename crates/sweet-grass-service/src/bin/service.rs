@@ -59,7 +59,7 @@ enum Commands {
         #[arg(long, env = "SWEETGRASS_TARPC_ADDRESS", default_value = "0.0.0.0:0")]
         tarpc_address: String,
 
-        /// Storage backend: memory, postgres, sled.
+        /// Storage backend: memory, postgres, redb, sled (requires --features sled).
         #[arg(short, long, env = "STORAGE_BACKEND", default_value = "memory")]
         storage: String,
 
