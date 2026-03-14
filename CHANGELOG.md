@@ -5,6 +5,47 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.7.6-dev — 2026-03-14
+
+### Added
+- `sweet-grass-store-redb` crate: pure Rust storage backend (40 tests)
+- `scyborg` module: ContentCategory, LicenseId, LicenseExpression, AttributionNotice types
+- `CapabilityProvider { capability, message }` error variant
+- `capability_provider()` helper on `SweetGrassError`
+
+### Changed
+- Workspace now includes sweet-grass-store-redb
+- `CapabilityProvider` included in `is_retriable()` check
+
+## [0.7.6] - 2026-03-14
+
+### redb Migration — Pure Rust Storage Evolution
+
+New `sweet-grass-store-redb` crate implementing the `BraidStore` trait against
+redb 2.4 (100% Pure Rust, actively maintained). The sled backend is now
+feature-gated behind `--features sled` in `sweet-grass-service`. This follows
+the proven redb migration pattern established by rhizoCrypt and LoamSpine.
+
+### Added
+
+- **`sweet-grass-store-redb` crate** — Full `BraidStore` implementation with
+  6 typed tables (braids, by_hash, by_agent, by_time, by_tag, activities),
+  ACID transactions, automatic parent directory creation, 42 tests
+- **`STORAGE_BACKEND=redb`** — New backend option in `BraidStoreFactory` for
+  both env-based and config-based initialization
+- **`StorageConfig.redb_path`** — Explicit config field for redb database path
+- **Factory tests** — 5 new tests for redb backend (env, config, default path)
+
+### Changed
+
+- **sled feature-gated** — `sweet-grass-store-sled` and `sled` are now optional
+  dependencies behind `features = ["sled"]` in `sweet-grass-service`
+- **Valid backends message** — Error message dynamically reflects enabled features
+- **10 crates** (was 9) — workspace now includes `sweet-grass-store-redb`
+- **843 tests** (was 794) — 42 new redb store tests + 5 factory tests + 2 config tests
+
+---
+
 ## [0.7.5] - 2026-03-14
 
 ### Sovereignty Hardening + Coverage Push + Idiomatic Audit

@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.5 | 794 tests | 91% region coverage | AGPL-3.0-only | Pure Rust | ecoBin compliant
+v0.7.6 | 843 tests | 91% region coverage | AGPL-3.0-only | Pure Rust | ecoBin compliant
 
 ---
 
@@ -56,14 +56,15 @@ curl http://localhost:8080/api/v1/braids
        LoamSpine (permanent record)
 ```
 
-### 9 Crates
+### 10 Crates
 
 | Crate | Purpose |
 |-------|---------|
 | `sweet-grass-core` | Braid, Agent, Activity, Entity, Contribution, DehydrationSummary, Config |
 | `sweet-grass-store` | BraidStore trait + MemoryStore |
 | `sweet-grass-store-postgres` | PostgreSQL backend |
-| `sweet-grass-store-sled` | Embedded pure Rust backend |
+| `sweet-grass-store-redb` | Embedded Pure Rust backend (redb, recommended) |
+| `sweet-grass-store-sled` | Embedded Pure Rust backend (sled, legacy) |
 | `sweet-grass-factory` | Braid creation + attribution engine |
 | `sweet-grass-query` | Graph traversal, PROV-O export |
 | `sweet-grass-compression` | 0/1/Many session compression |
@@ -91,16 +92,23 @@ Single binary with subcommands (`sweetgrass server`, `sweetgrass status`), grace
 - Derivation chains and dependencies
 - Content-addressed braids (URN format)
 
+### scyBorg Types
+- **ContentCategory**, **LicenseId**, **LicenseExpression**, **AttributionNotice** — License and attribution metadata types
+
 ### Attribution and Rewards
 - 12 configurable agent roles with weights
 - Time-decay models
 - Recursive derivation chain propagation
 - sunCloud integration ready
 
+### Error Types
+- **`CapabilityProvider { capability, message }`** — Ecosystem-consistent capability provider error variant
+
 ### Storage Flexibility
 - **Memory**: Testing and development
 - **PostgreSQL**: Production scale with migrations
-- **Sled**: Embedded pure Rust (zero C deps)
+- **redb**: Embedded Pure Rust, ACID transactions, actively maintained (recommended)
+- **Sled**: Embedded Pure Rust, legacy (feature-gated, `--features sled`)
 - Runtime selection via environment
 
 ### Privacy and Consent
@@ -139,7 +147,7 @@ cargo llvm-cov --workspace
 ### Configuration
 
 ```bash
-STORAGE_BACKEND=sled          # or: memory, postgres
+STORAGE_BACKEND=redb          # or: memory, postgres, sled (with --features sled)
 DATABASE_URL=postgresql://... # for postgres backend
 HTTP_LISTEN=0.0.0.0:8080
 TARPC_LISTEN=0.0.0.0:8091
@@ -167,8 +175,8 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.5 |
-| Tests | 794 passing |
+| Version | v0.7.6 |
+| Tests | 843 passing |
 | Region coverage | 91% (`cargo llvm-cov`) |
 | Line coverage | 89% (`cargo llvm-cov`) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates) |
