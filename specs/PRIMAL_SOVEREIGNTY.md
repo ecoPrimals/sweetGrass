@@ -176,7 +176,7 @@ For non-Rust clients (Python, JavaScript, curl):
 ```json
 {
     "jsonrpc": "2.0",
-    "method": "sweetgrass.getBraid",
+    "method": "braid.get",
     "params": {
         "id": "urn:braid:sha256:abc123..."
     },
@@ -220,10 +220,10 @@ class SweetGrassClient:
         return response.json()["result"]
     
     def get_braid(self, braid_id):
-        return self._call("sweetgrass.getBraid", {"id": braid_id})
+        return self._call("braid.get", {"id": braid_id})
     
     def attribution_chain(self, content_hash):
-        return self._call("sweetgrass.attributionChain", {"hash": content_hash})
+        return self._call("attribution.chain", {"hash": content_hash})
 ```
 
 ---

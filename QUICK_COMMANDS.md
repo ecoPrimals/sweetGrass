@@ -36,7 +36,7 @@ cargo clean
 ## ✅ TEST COMMANDS
 
 ```bash
-# All tests (746 tests)
+# All tests (843 tests)
 cargo test --workspace
 
 # Unit tests only
@@ -69,7 +69,7 @@ cargo watch -x test
 ## 📊 COVERAGE COMMANDS
 
 ```bash
-# Generate HTML coverage report (94%)
+# Generate HTML coverage report (91% region)
 cargo llvm-cov --workspace --html
 
 # Open coverage report
@@ -88,14 +88,8 @@ cargo llvm-cov --workspace --test integration
 ## 🎯 BENCHMARK COMMANDS
 
 ```bash
-# Run all benchmarks (4 suites)
-cargo bench --package sweet-grass-benchmarks
-
-# Specific benchmark
-cargo bench --package sweet-grass-benchmarks --bench braid_operations
-cargo bench --package sweet-grass-benchmarks --bench query_engine
-cargo bench --package sweet-grass-benchmarks --bench attribution
-cargo bench --package sweet-grass-benchmarks --bench compression
+# Run criterion benchmarks (when available)
+cargo bench --workspace
 
 # Save baseline
 cargo bench -- --save-baseline main
@@ -216,9 +210,10 @@ docker run \
   -p 8080:8080 \
   sweetgrass:latest
 
-# Run with Sled
+# Run with redb (recommended embedded)
 docker run \
-  -e STORAGE_URL=sled:///data \
+  -e STORAGE_BACKEND=redb \
+  -e STORAGE_PATH=/data/sweetgrass.redb \
   -v /host/data:/data \
   -p 8080:8080 \
   sweetgrass:latest
@@ -272,8 +267,9 @@ kubectl set image deployment/sweetgrass sweetgrass=sweetgrass:v0.2.0
 DATABASE_URL=postgresql://user:pass@localhost:5432/sweetgrass \
 ./target/release/sweet-grass-service
 
-# Sled
-STORAGE_URL=sled:///var/lib/sweetgrass/data \
+# redb (recommended embedded)
+STORAGE_BACKEND=redb \
+STORAGE_PATH=/var/lib/sweetgrass/data.redb \
 ./target/release/sweet-grass-service
 
 # With discovery
@@ -401,7 +397,7 @@ cargo test --test chaos
 cargo llvm-cov --workspace
 
 # 6. Run benchmarks
-cargo bench --package sweet-grass-benchmarks
+cargo bench --workspace
 
 # 7. Build release
 cargo build --release
@@ -567,7 +563,7 @@ cargo build --release && cargo test --workspace && ./target/release/sweet-grass-
 cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all -- --check && cargo test --workspace
 
 # Coverage + benchmark
-cargo llvm-cov --workspace --html && cargo bench --package sweet-grass-benchmarks
+cargo llvm-cov --workspace --html && cargo bench --workspace
 
 # Deploy check
 cargo build --release && cargo test --workspace && ./target/release/sweet-grass-service --help
@@ -587,7 +583,7 @@ echo "Testing..." && cargo test --workspace && \
 echo "Linting..." && cargo clippy --workspace --all-targets -- -D warnings && \
 echo "Formatting..." && cargo fmt --all -- --check && \
 echo "Coverage..." && cargo llvm-cov --workspace && \
-echo "Benchmarking..." && cargo bench --package sweet-grass-benchmarks && \
+echo "Benchmarking..." && cargo bench --workspace && \
 echo "Starting service..." && ./target/release/sweet-grass-service &
 sleep 2 && \
 echo "Health check..." && curl http://localhost:8080/health && \
@@ -603,7 +599,7 @@ pkill sweet-grass-service
 **Quick Deploy**: `cargo build --release && ./target/release/sweet-grass-service`  
 **Full Check**: `cargo test --workspace && cargo clippy --workspace -- -D warnings`  
 **Coverage**: `cargo llvm-cov --workspace --html`  
-**Benchmarks**: `cargo bench --package sweet-grass-benchmarks`
+**Benchmarks**: `cargo bench --workspace`
 
 **Status**: ✅ **READY TO DEPLOY**
 

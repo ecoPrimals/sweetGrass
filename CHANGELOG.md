@@ -5,18 +5,6 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.7.6-dev — 2026-03-14
-
-### Added
-- `sweet-grass-store-redb` crate: pure Rust storage backend (40 tests)
-- `scyborg` module: ContentCategory, LicenseId, LicenseExpression, AttributionNotice types
-- `CapabilityProvider { capability, message }` error variant
-- `capability_provider()` helper on `SweetGrassError`
-
-### Changed
-- Workspace now includes sweet-grass-store-redb
-- `CapabilityProvider` included in `is_retriable()` check
-
 ## [0.7.6] - 2026-03-14
 
 ### redb Migration — Pure Rust Storage Evolution
@@ -35,6 +23,10 @@ the proven redb migration pattern established by rhizoCrypt and LoamSpine.
   both env-based and config-based initialization
 - **`StorageConfig.redb_path`** — Explicit config field for redb database path
 - **Factory tests** — 5 new tests for redb backend (env, config, default path)
+- **`scyborg` module** — `ContentCategory`, `LicenseId`, `LicenseExpression`,
+  `AttributionNotice` types for triple-copyleft enforcement
+- **`CapabilityProvider` error variant** — structured error for capability
+  routing failures, with `capability_provider()` helper
 
 ### Changed
 

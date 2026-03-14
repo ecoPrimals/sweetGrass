@@ -2,7 +2,7 @@
 
 **The Attribution Layer for ecoPrimals**
 
-**Version**: 0.7.3 | **Status**: Production Ready | **Tests**: 746 passing | **Coverage**: 94%
+**Version**: 0.7.6 | **Status**: Production Ready | **Tests**: 843 passing | **Coverage**: 91% region
 
 ---
 
