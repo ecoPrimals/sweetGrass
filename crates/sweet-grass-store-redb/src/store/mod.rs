@@ -12,16 +12,9 @@ use sweet_grass_store::{
     BraidStore, QueryFilter, QueryOrder, QueryResult, StoreError, DEFAULT_QUERY_LIMIT,
 };
 
+use crate::error::RedbError;
 use crate::tables::{ACTIVITIES, BRAIDS, BY_AGENT, BY_HASH, BY_TAG, BY_TIME};
 use crate::RedbConfig;
-
-fn map_storage_error(e: impl std::fmt::Display) -> StoreError {
-    StoreError::Internal(format!("storage error: {e}"))
-}
-
-fn map_serde_error(e: serde_json::Error) -> StoreError {
-    StoreError::Serialization(e.to_string())
-}
 
 /// redb storage backend.
 pub struct RedbStore {
@@ -30,23 +23,24 @@ pub struct RedbStore {
 
 impl RedbStore {
     /// Open or create a redb database with configuration.
-    #[instrument(skip_all, fields(path = ?config.path))]
-    pub fn open(config: &RedbConfig) -> Result<Self, StoreError> {
-        debug!("Opening redb database at {:?}", config.path);
+    #[instrument(skip_all, fields(path = %config.path))]
+    pub fn open(config: &RedbConfig) -> Result<Self, RedbError> {
+        debug!("Opening redb database at {}", config.path);
 
-        let db = Database::create(&config.path).map_err(map_storage_error)?;
+        let path = Path::new(&config.path);
+        let db = Database::create(path).map_err(|e| RedbError::Open(e.to_string()))?;
 
-        // Create tables on first open (redb creates them implicitly)
-        let write_txn = db.begin_write().map_err(map_storage_error)?;
+        // Ensure tables exist via initial write txn
+        let write_txn = db.begin_write().map_err(|e| RedbError::Transaction(e.to_string()))?;
         {
-            let _ = write_txn.open_table(BRAIDS).map_err(map_storage_error)?;
-            let _ = write_txn.open_table(BY_HASH).map_err(map_storage_error)?;
-            let _ = write_txn.open_table(BY_AGENT).map_err(map_storage_error)?;
-            let _ = write_txn.open_table(BY_TIME).map_err(map_storage_error)?;
-            let _ = write_txn.open_table(BY_TAG).map_err(map_storage_error)?;
-            let _ = write_txn.open_table(ACTIVITIES).map_err(map_storage_error)?;
+            let _ = write_txn.open_table(BRAIDS).map_err(RedbError::from)?;
+            let _ = write_txn.open_table(BY_HASH).map_err(RedbError::from)?;
+            let _ = write_txn.open_table(BY_AGENT).map_err(RedbError::from)?;
+            let _ = write_txn.open_table(BY_TIME).map_err(RedbError::from)?;
+            let _ = write_txn.open_table(BY_TAG).map_err(RedbError::from)?;
+            let _ = write_txn.open_table(ACTIVITIES).map_err(RedbError::from)?;
         }
-        write_txn.commit().map_err(map_storage_error)?;
+        write_txn.commit().map_err(RedbError::from)?;
 
         debug!("redb database opened successfully");
         Ok(Self {
@@ -55,55 +49,57 @@ impl RedbStore {
     }
 
     /// Open with a simple path.
-    pub fn open_path(path: impl AsRef<Path>) -> Result<Self, StoreError> {
-        Self::open(&RedbConfig::new(path.as_ref().to_path_buf()))
+    pub fn open_path(path: impl AsRef<Path>) -> Result<Self, RedbError> {
+        Self::open(&RedbConfig::new(
+            path.as_ref().to_string_lossy().to_string(),
+        ))
     }
 
     /// Flush all pending writes to disk.
     ///
     /// redb commits are durable by default; this is a no-op for API compatibility.
-    pub fn flush(&self) -> Result<(), StoreError> {
+    pub fn flush(&self) -> Result<(), RedbError> {
         Ok(())
     }
 
-    fn serialize_braid(braid: &Braid) -> Result<Vec<u8>, StoreError> {
-        serde_json::to_vec(braid).map_err(map_serde_error)
+    fn serialize_braid(braid: &Braid) -> Result<Vec<u8>, RedbError> {
+        serde_json::to_vec(braid).map_err(RedbError::from)
     }
 
-    fn deserialize_braid(bytes: &[u8]) -> Result<Braid, StoreError> {
-        serde_json::from_slice(bytes).map_err(map_serde_error)
+    fn deserialize_braid(bytes: &[u8]) -> Result<Braid, RedbError> {
+        serde_json::from_slice(bytes).map_err(RedbError::from)
     }
 
     fn update_indexes(
         write_txn: &redb::WriteTransaction,
         braid: &Braid,
-    ) -> Result<(), StoreError> {
+    ) -> Result<(), RedbError> {
         let braid_id = braid.id.as_str();
         let braid_id_bytes = braid_id.as_bytes();
 
-        let mut by_hash = write_txn.open_table(BY_HASH).map_err(map_storage_error)?;
+        let mut by_hash = write_txn.open_table(BY_HASH).map_err(RedbError::from)?;
         by_hash
-            .insert(braid.data_hash.as_str(), braid_id_bytes)
-            .map_err(map_storage_error)?;
+            .insert(braid.data_hash.as_str().as_bytes(), braid_id_bytes)
+            .map_err(|e| RedbError::Write(e.to_string()))?;
 
-        let mut by_agent = write_txn.open_table(BY_AGENT).map_err(map_storage_error)?;
+        let mut by_agent = write_txn.open_table(BY_AGENT).map_err(RedbError::from)?;
         let agent_key = format!("{}:{}", braid.was_attributed_to.as_str(), braid_id);
         by_agent
-            .insert(agent_key.as_str(), braid_id_bytes)
-            .map_err(map_storage_error)?;
+            .insert(agent_key.as_bytes(), braid_id_bytes)
+            .map_err(|e| RedbError::Write(e.to_string()))?;
 
-        let mut by_time = write_txn.open_table(BY_TIME).map_err(map_storage_error)?;
+        let mut by_time = write_txn.open_table(BY_TIME).map_err(RedbError::from)?;
         let time_key = format!("{:020}:{}", braid.generated_at_time, braid_id);
         by_time
-            .insert(time_key.as_str(), braid_id_bytes)
-            .map_err(map_storage_error)?;
+            .insert(time_key.as_bytes(), braid_id_bytes)
+            .map_err(|e| RedbError::Write(e.to_string()))?;
 
-        let mut by_tag = write_txn.open_table(BY_TAG).map_err(map_storage_error)?;
+        let mut by_tag = write_txn.open_table(BY_TAG).map_err(RedbError::from)?;
         for tag in &braid.metadata.tags {
             let tag_key = format!("{tag}:{braid_id}");
             by_tag
-                .insert(tag_key.as_str(), braid_id_bytes)
-                .map_err(map_storage_error)?;
+                .insert(tag_key.as_bytes(), braid_id_bytes)
+                .map_err(|e| RedbError::Write(e.to_string()))?;
         }
 
         Ok(())
@@ -112,26 +108,32 @@ impl RedbStore {
     fn remove_indexes(
         write_txn: &redb::WriteTransaction,
         braid: &Braid,
-    ) -> Result<(), StoreError> {
+    ) -> Result<(), RedbError> {
         let braid_id = braid.id.as_str();
 
-        let mut by_hash = write_txn.open_table(BY_HASH).map_err(map_storage_error)?;
+        let mut by_hash = write_txn.open_table(BY_HASH).map_err(RedbError::from)?;
         by_hash
-            .remove(braid.data_hash.as_str())
-            .map_err(map_storage_error)?;
+            .remove(braid.data_hash.as_str().as_bytes())
+            .map_err(|e| RedbError::Delete(e.to_string()))?;
 
-        let mut by_agent = write_txn.open_table(BY_AGENT).map_err(map_storage_error)?;
+        let mut by_agent = write_txn.open_table(BY_AGENT).map_err(RedbError::from)?;
         let agent_key = format!("{}:{}", braid.was_attributed_to.as_str(), braid_id);
-        by_agent.remove(agent_key.as_str()).map_err(map_storage_error)?;
+        by_agent
+            .remove(agent_key.as_bytes())
+            .map_err(|e| RedbError::Delete(e.to_string()))?;
 
-        let mut by_time = write_txn.open_table(BY_TIME).map_err(map_storage_error)?;
+        let mut by_time = write_txn.open_table(BY_TIME).map_err(RedbError::from)?;
         let time_key = format!("{:020}:{}", braid.generated_at_time, braid_id);
-        by_time.remove(time_key.as_str()).map_err(map_storage_error)?;
+        by_time
+            .remove(time_key.as_bytes())
+            .map_err(|e| RedbError::Delete(e.to_string()))?;
 
-        let mut by_tag = write_txn.open_table(BY_TAG).map_err(map_storage_error)?;
+        let mut by_tag = write_txn.open_table(BY_TAG).map_err(RedbError::from)?;
         for tag in &braid.metadata.tags {
             let tag_key = format!("{tag}:{braid_id}");
-            by_tag.remove(tag_key.as_str()).map_err(map_storage_error)?;
+            by_tag
+                .remove(tag_key.as_bytes())
+                .map_err(|e| RedbError::Delete(e.to_string()))?;
         }
 
         Ok(())
@@ -146,16 +148,22 @@ impl BraidStore for RedbStore {
         let braid = braid.clone();
 
         tokio::task::spawn_blocking(move || {
-            let value = Self::serialize_braid(&braid)?;
-            let write_txn = db.begin_write().map_err(map_storage_error)?;
+            let value = Self::serialize_braid(&braid).map_err(|e| StoreError::from(RedbError::from(e)))?;
+            let write_txn = db
+                .begin_write()
+                .map_err(|e| StoreError::from(RedbError::Transaction(e.to_string())))?;
             {
-                let mut braids = write_txn.open_table(BRAIDS).map_err(map_storage_error)?;
+                let mut braids = write_txn
+                    .open_table(BRAIDS)
+                    .map_err(|e| StoreError::from(RedbError::from(e)))?;
                 braids
-                    .insert(braid.id.as_str(), value.as_slice())
-                    .map_err(map_storage_error)?;
-                Self::update_indexes(&write_txn, &braid)?;
+                    .insert(braid.id.as_str().as_bytes(), value.as_slice())
+                    .map_err(|e| StoreError::Internal(e.to_string()))?;
+                Self::update_indexes(&write_txn, &braid).map_err(|e| StoreError::from(RedbError::from(e)))?;
             }
-            write_txn.commit().map_err(map_storage_error)?;
+            write_txn
+                .commit()
+                .map_err(|e| StoreError::from(RedbError::Transaction(e.to_string())))?;
             debug!("Stored braid {}", braid.id);
             Ok(())
         })
@@ -169,16 +177,20 @@ impl BraidStore for RedbStore {
         let id = id.as_str().to_string();
 
         tokio::task::spawn_blocking(move || {
-            let read_txn = db.begin_read().map_err(map_storage_error)?;
-            let braids = read_txn.open_table(BRAIDS).map_err(map_storage_error)?;
-            match braids.get(id.as_str()) {
+            let read_txn = db
+                .begin_read()
+                .map_err(|e| StoreError::Internal(e.to_string()))?;
+            let braids = read_txn
+                .open_table(BRAIDS)
+                .map_err(|e| StoreError::from(RedbError::from(e)))?;
+            match braids.get(id.as_str().as_bytes()) {
                 Ok(Some(guard)) => {
                     let bytes = guard.value();
-                    let braid = Self::deserialize_braid(bytes)?;
+                    let braid = Self::deserialize_braid(bytes).map_err(|e| StoreError::from(RedbError::from(e)))?;
                     Ok(Some(braid))
                 },
                 Ok(None) => Ok(None),
-                Err(e) => Err(map_storage_error(e)),
+                Err(e) => Err(StoreError::Internal(e.to_string())),
             }
         })
         .await
@@ -191,16 +203,20 @@ impl BraidStore for RedbStore {
         let hash = hash.clone();
 
         let braid_id_opt = tokio::task::spawn_blocking(move || {
-            let read_txn = db.begin_read().map_err(map_storage_error)?;
-            let by_hash = read_txn.open_table(BY_HASH).map_err(map_storage_error)?;
-            match by_hash.get(hash.as_str()) {
+            let read_txn = db
+                .begin_read()
+                .map_err(|e| StoreError::Internal(e.to_string()))?;
+            let by_hash = read_txn
+                .open_table(BY_HASH)
+                .map_err(|e| StoreError::from(RedbError::from(e)))?;
+            match by_hash.get(hash.as_str().as_bytes()) {
                 Ok(Some(guard)) => {
                     let bytes = guard.value();
                     let braid_id = String::from_utf8_lossy(bytes).to_string();
                     Ok(Some(BraidId::from_string(braid_id)))
                 },
                 Ok(None) => Ok(None),
-                Err(e) => Err(map_storage_error(e)),
+                Err(e) => Err(StoreError::Internal(e.to_string())),
             }
         })
         .await
@@ -222,13 +238,21 @@ impl BraidStore for RedbStore {
             let id = id.as_str().to_string();
 
             tokio::task::spawn_blocking(move || {
-                let write_txn = db.begin_write().map_err(map_storage_error)?;
+                let write_txn = db
+                    .begin_write()
+                    .map_err(|e| StoreError::Internal(e.to_string()))?;
                 {
-                    Self::remove_indexes(&write_txn, &braid)?;
-                    let mut braids = write_txn.open_table(BRAIDS).map_err(map_storage_error)?;
-                    braids.remove(id.as_str()).map_err(map_storage_error)?;
+                    Self::remove_indexes(&write_txn, &braid).map_err(|e| StoreError::from(RedbError::from(e)))?;
+                    let mut braids = write_txn
+                        .open_table(BRAIDS)
+                        .map_err(|e| StoreError::from(RedbError::from(e)))?;
+                    braids
+                        .remove(id.as_str().as_bytes())
+                        .map_err(|e| StoreError::Internal(e.to_string()))?;
                 }
-                write_txn.commit().map_err(map_storage_error)?;
+                write_txn
+                    .commit()
+                    .map_err(|e| StoreError::Internal(e.to_string()))?;
                 Ok(true)
             })
             .await
@@ -244,12 +268,16 @@ impl BraidStore for RedbStore {
         let id = id.as_str().to_string();
 
         tokio::task::spawn_blocking(move || {
-            let read_txn = db.begin_read().map_err(map_storage_error)?;
-            let braids = read_txn.open_table(BRAIDS).map_err(map_storage_error)?;
+            let read_txn = db
+                .begin_read()
+                .map_err(|e| StoreError::Internal(e.to_string()))?;
+            let braids = read_txn
+                .open_table(BRAIDS)
+                .map_err(|e| StoreError::from(RedbError::from(e)))?;
             braids
-                .get(id.as_str())
+                .get(id.as_str().as_bytes())
                 .map(|opt| opt.is_some())
-                .map_err(map_storage_error)
+                .map_err(|e| StoreError::Internal(e.to_string()))
         })
         .await
         .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?
@@ -265,12 +293,16 @@ impl BraidStore for RedbStore {
         let filter = filter.clone();
 
         tokio::task::spawn_blocking(move || {
-            let read_txn = db.begin_read().map_err(map_storage_error)?;
-            let braids_table = read_txn.open_table(BRAIDS).map_err(map_storage_error)?;
+            let read_txn = db
+                .begin_read()
+                .map_err(|e| StoreError::Internal(e.to_string()))?;
+            let braids_table = read_txn
+                .open_table(BRAIDS)
+                .map_err(|e| StoreError::from(RedbError::from(e)))?;
             let mut braids = Vec::new();
 
-            for item in braids_table.iter().map_err(map_storage_error)? {
-                let (_, guard) = item.map_err(map_storage_error)?;
+            for item in braids_table.iter().map_err(|e| StoreError::Internal(e.to_string()))? {
+                let (_, guard) = item.map_err(|e| StoreError::Internal(e.to_string()))?;
                 let bytes = guard.value();
                 if let Ok(braid) = Self::deserialize_braid(bytes) {
                     if let Some(hash) = &filter.data_hash {
@@ -373,15 +405,21 @@ impl BraidStore for RedbStore {
         let activity = activity.clone();
 
         tokio::task::spawn_blocking(move || {
-            let value = serde_json::to_vec(&activity).map_err(map_serde_error)?;
-            let write_txn = db.begin_write().map_err(map_storage_error)?;
+            let value = serde_json::to_vec(&activity).map_err(|e| StoreError::from(RedbError::from(e)))?;
+            let write_txn = db
+                .begin_write()
+                .map_err(|e| StoreError::Internal(e.to_string()))?;
             {
-                let mut activities = write_txn.open_table(ACTIVITIES).map_err(map_storage_error)?;
+                let mut activities = write_txn
+                    .open_table(ACTIVITIES)
+                    .map_err(|e| StoreError::from(RedbError::from(e)))?;
                 activities
-                    .insert(activity.id.as_str(), value.as_slice())
-                    .map_err(map_storage_error)?;
+                    .insert(activity.id.as_str().as_bytes(), value.as_slice())
+                    .map_err(|e| StoreError::Internal(e.to_string()))?;
             }
-            write_txn.commit().map_err(map_storage_error)?;
+            write_txn
+                .commit()
+                .map_err(|e| StoreError::Internal(e.to_string()))?;
             Ok(())
         })
         .await
@@ -394,16 +432,21 @@ impl BraidStore for RedbStore {
         let id = id.as_str().to_string();
 
         tokio::task::spawn_blocking(move || {
-            let read_txn = db.begin_read().map_err(map_storage_error)?;
-            let activities = read_txn.open_table(ACTIVITIES).map_err(map_storage_error)?;
-            match activities.get(id.as_str()) {
+            let read_txn = db
+                .begin_read()
+                .map_err(|e| StoreError::Internal(e.to_string()))?;
+            let activities = read_txn
+                .open_table(ACTIVITIES)
+                .map_err(|e| StoreError::from(RedbError::from(e)))?;
+            match activities.get(id.as_str().as_bytes()) {
                 Ok(Some(guard)) => {
                     let bytes = guard.value();
-                    let activity = serde_json::from_slice(bytes).map_err(map_serde_error)?;
+                    let activity =
+                        serde_json::from_slice(bytes).map_err(|e| StoreError::from(RedbError::from(e)))?;
                     Ok(Some(activity))
                 },
                 Ok(None) => Ok(None),
-                Err(e) => Err(map_storage_error(e)),
+                Err(e) => Err(StoreError::Internal(e.to_string())),
             }
         })
         .await

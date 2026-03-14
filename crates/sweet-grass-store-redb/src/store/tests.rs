@@ -61,6 +61,21 @@ async fn test_delete() {
 }
 
 #[tokio::test]
+async fn test_query_empty() {
+    let (store, _temp) = create_test_store();
+
+    let filter = QueryFilter::new();
+    let result = store
+        .query(&filter, QueryOrder::NewestFirst)
+        .await
+        .expect("query");
+
+    assert!(result.braids.is_empty());
+    assert_eq!(result.total_count, 0);
+    assert!(!result.has_more);
+}
+
+#[tokio::test]
 async fn test_query_basic() {
     let (store, _temp) = create_test_store();
 
@@ -115,7 +130,7 @@ async fn test_flush() {
 #[tokio::test]
 async fn test_config_builder() {
     let config = RedbConfig::new("/tmp/test.redb");
-    assert!(config.path.to_string_lossy().contains("test"));
+    assert!(config.path.contains("test"));
 }
 
 #[tokio::test]
@@ -554,14 +569,14 @@ async fn test_delete_nonexistent_returns_ok() {
 #[tokio::test]
 async fn test_redb_config_default() {
     let config = RedbConfig::default();
-    assert!(config.path.to_string_lossy().contains("sweetgrass"));
+    assert!(config.path.contains("sweetgrass"));
 }
 
 #[tokio::test]
 async fn test_open_path_with_config() {
     let temp = TempDir::new().expect("create temp dir");
     let db_path = temp.path().join("config_test.redb");
-    let config = RedbConfig::new(&db_path);
+    let config = RedbConfig::new(db_path.to_string_lossy().to_string());
 
     let store = RedbStore::open(&config).expect("open");
     let braid = create_test_braid("sha256:config_test");
@@ -659,4 +674,40 @@ async fn test_query_with_hash_filter_match() {
 
     assert_eq!(result.braids.len(), 1);
     assert_eq!(result.braids[0].data_hash, braid.data_hash);
+}
+
+#[tokio::test]
+async fn test_corrupted_data() {
+    let temp = TempDir::new().expect("create temp dir");
+    let db_path = temp.path().join("corrupt_db.redb");
+
+    let braid = create_test_braid("sha256:corrupt_test");
+    let braid_id = braid.id.clone();
+
+    // Put a valid braid first
+    {
+        let store = RedbStore::open_path(&db_path).expect("open");
+        store.put(&braid).await.expect("put");
+    }
+
+    // Corrupt the braid data directly in redb
+    {
+        use crate::tables::BRAIDS;
+        use redb::Database;
+
+        let db = Database::create(&db_path).expect("open redb");
+        let write_txn = db.begin_write().expect("begin write");
+        {
+            let mut braids = write_txn.open_table(BRAIDS).expect("open braids");
+            braids
+                .insert(braid_id.as_str().as_bytes(), b"invalid json {{{".as_slice())
+                .expect("insert corrupt");
+        }
+        write_txn.commit().expect("commit");
+    }
+
+    // Reopen and try to get - should fail with deserialization error
+    let store = RedbStore::open_path(&db_path).expect("open");
+    let result = store.get(&braid_id).await;
+    assert!(result.is_err());
 }
