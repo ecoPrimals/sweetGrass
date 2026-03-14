@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! Braid type definitions: ContentHash, BraidId, BraidContext, BraidType, etc.
+//! Braid type definitions: `ContentHash`, `BraidId`, `BraidContext`, `BraidType`, etc.
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -34,7 +34,7 @@ impl ContentHash {
     ///
     /// Returns `None` if the hash is not in `{algorithm}:{hex}` format or
     /// the hex portion doesn't decode to exactly 32 bytes.
-    /// This is used for LoamSpine anchoring which expects `[u8; 32]`.
+    /// This is used for `LoamSpine` anchoring which expects `[u8; 32]`.
     #[must_use]
     pub fn to_bytes32(&self) -> Option<[u8; 32]> {
         let hex_str = self.0.split_once(':').map(|(_, h)| h)?;
@@ -142,9 +142,9 @@ impl BraidId {
         Self(Arc::from(s.into_boxed_str()))
     }
 
-    /// Extract the UUID from a `urn:braid:uuid:{uuid}` format BraidId.
+    /// Extract the UUID from a `urn:braid:uuid:{uuid}` format `BraidId`.
     ///
-    /// Returns `None` if the BraidId is not in UUID format (e.g., hash-based IDs).
+    /// Returns `None` if the `BraidId` is not in UUID format (e.g., hash-based IDs).
     #[must_use]
     pub fn extract_uuid(&self) -> Option<Uuid> {
         self.0
@@ -429,7 +429,10 @@ pub struct BraidMetadata {
 
 /// Get current timestamp in nanoseconds since Unix epoch.
 #[must_use]
-#[allow(clippy::cast_possible_truncation)]
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "u128->u64 truncation only occurs for dates beyond ~year 2554; acceptable for timestamp"
+)]
 pub fn current_timestamp_nanos() -> Timestamp {
     use std::time::{SystemTime, UNIX_EPOCH};
     SystemTime::now()

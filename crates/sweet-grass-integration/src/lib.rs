@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! # SweetGrass Integration
+//! # `SweetGrass` Integration
 //!
 //! Integration with other ecoPrimals via pure Rust tarpc (no gRPC).
 //!
 //! ## Architecture
 //!
-//! SweetGrass uses **capability-based discovery** to find and integrate
+//! `SweetGrass` uses **capability-based discovery** to find and integrate
 //! with other primals at runtime:
 //!
 //! - **No hardcoded primal names** - discover by capability, not name
 //! - **tarpc for RPC** - pure Rust, no gRPC/protobuf
-//! - **Runtime discovery** - via Songbird or local discovery
+//! - **Runtime discovery** - via registry service or local discovery
 //! - **Test isolation** - mocks only in testing modules
 //!
 //! ## Capabilities
@@ -82,18 +82,20 @@ pub mod testing;
 
 // Re-exports
 pub use anchor::{
-    create_anchoring_client_async, AnchorInfo, AnchorReceipt, AnchoringClient, TarpcAnchoringClient,
+    create_anchoring_client_async, AnchorInfo, AnchorManager, AnchorReceipt, AnchoringClient,
+    TarpcAnchoringClient,
 };
-pub use discovery::{DiscoveredPrimal, LocalDiscovery, PrimalDiscovery};
+pub use discovery::{
+    CachedDiscovery, DiscoveredPrimal, LocalDiscovery, PrimalDiscovery, RegistryDiscovery,
+};
 pub use error::IntegrationError;
 pub use listener::{
-    create_session_events_client_async, tarpc_client::TarpcSessionEventsClient, SessionEventStream,
-    SessionEventsClient,
+    create_session_events_client_async, tarpc_client::TarpcSessionEventsClient, EventHandler,
+    SessionEventStream, SessionEventsClient,
 };
 pub use signer::{create_signing_client_async, SignatureInfo, SigningClient};
 pub use sweet_grass_core::config::Capability;
 
-// Function to create discovery instance
 pub use discovery::create_discovery;
 
 // Test support (mocks only)

@@ -5,6 +5,61 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.5] - 2026-03-14
+
+### Sovereignty Hardening + Coverage Push + Idiomatic Audit
+
+Primal sovereignty hardening: JSON-RPC methods evolved to snake_case per
+`SEMANTIC_METHOD_NAMING_STANDARD`, `SongbirdDiscovery` renamed to
+`RegistryDiscovery` (vendor-agnostic), UDS socket path resolution via
+`SelfKnowledge`, tarpc `max_concurrent_requests` made configurable.
+`#[allow]` attributes evolved to `#[expect(..., reason)]` or replaced with
+safe Rust. 34 new tests push region coverage to 91%. `cargo-deny` advisory
+ignores added for dev-only testcontainers chain.
+
+### Changed
+
+- **JSON-RPC snake_case methods** — 11 methods renamed (e.g.
+  `braid.getByHash` → `braid.get_by_hash`, `anchoring.anchorBraid` →
+  `anchoring.anchor`) per wateringHole semantic naming standard
+- **`SongbirdDiscovery` → `RegistryDiscovery`** — Discovery trait and
+  struct renamed for vendor-agnostic primal sovereignty
+- **UDS socket path** — `resolve_socket_path()` derives path from
+  `SelfKnowledge` or `PRIMAL_NAME` env (was hardcoded)
+- **tarpc concurrency** — `TARPC_MAX_CONCURRENT_REQUESTS` configurable via
+  builder and env var (was hardcoded `100`)
+- **`#[allow]` → `#[expect]`** — 11 production `#[allow(...)]` evolved to
+  `#[expect(..., reason = "...")]` with documented rationale
+- **Safe casts** — `value as u64` replaced with `u64::try_from(...).unwrap_or(0)`
+  in postgres store and signer client
+- **Mock factory docs** — All `create_*_client_async` factory functions document
+  `#[cfg]` branching pattern (mock isolation verified)
+- **`deny.toml` advisories** — Dev-only testcontainers/bollard chain advisories
+  ignored (no safe upgrades available)
+
+### Added
+
+- **34 new tests** — Sled store (count/delete/query), server RPC methods
+  (provenance, query ordering, compression, meta-braids), discovery
+  (`CachedDiscovery`, `RegistryDiscovery`, `ServiceInfo::to_primal`),
+  anchor/listener failure paths, braid builder validation, primal state/health
+- **`# Errors` doc sections** — Added to anchor, listener, signer, discovery
+  public APIs
+
+### Metrics
+
+```
+Version:        0.7.5
+Tests:          794 passing
+Region coverage: 91% (cargo llvm-cov)
+Line coverage:  89% (cargo llvm-cov)
+Clippy:         0 warnings (pedantic + nursery)
+Max file:       828 lines (limit: 1000)
+TODOs:          0 in source
+Unsafe:         0 (forbidden)
+cargo deny:     advisories ok, bans ok, licenses ok, sources ok
+```
+
 ## [0.7.4] - 2026-03-13
 
 ### Deep Debt: parking_lot Migration + Idiomatic Refactor + Doc Cleanup

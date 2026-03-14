@@ -33,13 +33,17 @@ fn u64_to_i64(value: u64) -> std::result::Result<i64, StoreError> {
 
 /// Convert `i64` from `PostgreSQL` to `u64`.
 /// Negative values are clamped to 0 (shouldn't happen with valid data).
-#[allow(clippy::cast_sign_loss)]
 fn i64_to_u64(value: i64) -> u64 {
-    value.max(0) as u64
+    u64::try_from(value.max(0)).unwrap_or(0)
 }
 
 /// Convert `i64` from `PostgreSQL` to `usize` for counts/offsets.
-#[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+/// Truncation on 32-bit targets is acceptable; PG row counts fit in usize.
+#[expect(
+    clippy::cast_sign_loss,
+    clippy::cast_possible_truncation,
+    reason = "Clamp to 0 then cast; truncation on 32-bit is acceptable for PG counts/offsets"
+)]
 fn i64_to_usize(value: i64) -> usize {
     value.max(0) as usize
 }
@@ -51,7 +55,7 @@ pub struct PostgresStore {
 }
 
 impl PostgresStore {
-    /// Connect to PostgreSQL with the given configuration.
+    /// Connect to `PostgreSQL` with the given configuration.
     #[instrument(skip_all)]
     pub async fn connect(config: &PostgresConfig) -> Result<Self> {
         debug!("Connecting to PostgreSQL");

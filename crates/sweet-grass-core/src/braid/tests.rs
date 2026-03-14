@@ -296,4 +296,110 @@ mod proptests {
 
         assert_eq!(braid.metadata.tags, vec!["important"]);
     }
+
+    #[test]
+    fn test_braid_builder_braid_type() {
+        use crate::braid::BraidType;
+
+        let did = Did::new("did:key:z6MkBuilderType");
+
+        let entity = Braid::builder()
+            .data_hash("sha256:entity")
+            .mime_type("text/plain")
+            .size(0)
+            .attributed_to(did.clone())
+            .braid_type(BraidType::Entity)
+            .build()
+            .expect("should build");
+        assert!(matches!(entity.braid_type, BraidType::Entity));
+
+        let activity = Braid::builder()
+            .data_hash("sha256:activity")
+            .mime_type("text/plain")
+            .size(0)
+            .attributed_to(did.clone())
+            .braid_type(BraidType::Activity)
+            .build()
+            .expect("should build");
+        assert!(matches!(activity.braid_type, BraidType::Activity));
+
+        let agent = Braid::builder()
+            .data_hash("sha256:agent")
+            .mime_type("text/plain")
+            .size(0)
+            .attributed_to(did)
+            .braid_type(BraidType::Agent)
+            .build()
+            .expect("should build");
+        assert!(matches!(agent.braid_type, BraidType::Agent));
+    }
+
+    #[test]
+    fn test_braid_builder_derived_from_multiple() {
+        let did = Did::new("did:key:z6MkBuilderDeriv");
+        let e1 = EntityReference::by_hash("sha256:parent1");
+        let e2 = EntityReference::by_hash("sha256:parent2");
+
+        let braid = Braid::builder()
+            .data_hash("sha256:derived-multi")
+            .mime_type("text/plain")
+            .size(10)
+            .attributed_to(did)
+            .derived_from(e1)
+            .derived_from(e2)
+            .build()
+            .expect("should build");
+
+        assert_eq!(braid.was_derived_from.len(), 2);
+    }
+
+    #[test]
+    fn test_braid_builder_missing_data_hash() {
+        let did = Did::new("did:key:z6MkBuilder");
+        let result = Braid::builder()
+            .mime_type("text/plain")
+            .size(100)
+            .attributed_to(did)
+            .build();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("data_hash"));
+    }
+
+    #[test]
+    fn test_braid_builder_missing_mime_type() {
+        let did = Did::new("did:key:z6MkBuilder");
+        let result = Braid::builder()
+            .data_hash("sha256:abc")
+            .size(100)
+            .attributed_to(did)
+            .build();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("mime_type"));
+    }
+
+    #[test]
+    fn test_braid_builder_missing_size() {
+        let did = Did::new("did:key:z6MkBuilder");
+        let result = Braid::builder()
+            .data_hash("sha256:abc")
+            .mime_type("text/plain")
+            .attributed_to(did)
+            .build();
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("size"));
+    }
+
+    #[test]
+    fn test_braid_builder_missing_attributed_to() {
+        let result = Braid::builder()
+            .data_hash("sha256:abc")
+            .mime_type("text/plain")
+            .size(100)
+            .build();
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("was_attributed_to"));
+    }
 }

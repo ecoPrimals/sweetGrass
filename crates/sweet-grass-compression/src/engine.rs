@@ -19,7 +19,10 @@ use crate::session::Session;
 use crate::strategy::{CompressionConfig, CompressionStrategy, DiscardReason};
 use crate::Result;
 
-/// Default source primal name when discovery has not been used.
+/// Default source primal name when `SelfKnowledge` has not been used.
+///
+/// Prefer [`CompressionEngine::with_source()`] or construction from self-knowledge
+/// so the source primal comes from the primal's `SelfKnowledge` at runtime.
 pub const DEFAULT_SOURCE_PRIMAL: &str = "unknown";
 
 /// Result of compression.
@@ -244,7 +247,10 @@ impl CompressionEngine {
             compression: Some(CompressionMeta {
                 vertex_count: analysis.vertex_count as u64,
                 branch_count: analysis.branch_count as u64,
-                #[allow(clippy::cast_precision_loss)]
+                #[expect(
+                    clippy::cast_precision_loss,
+                    reason = "vertex_count is small; u64->f64 precision loss is acceptable for compression ratio"
+                )]
                 ratio: 1.0 / analysis.vertex_count.max(1) as f64,
                 summarizes: Vec::new(),
             }),

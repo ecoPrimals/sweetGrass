@@ -187,20 +187,14 @@ impl PrimalDiscovery for LocalDiscovery {
 
 /// Discovery client that caches results and handles failover.
 ///
-/// Will be constructed by service bootstrap when v0.8.0 connects to live Songbird.
-#[allow(dead_code)]
+/// Wraps any [`PrimalDiscovery`] implementation with a TTL-based cache
+/// to reduce repeated network queries for the same capability.
 pub struct CachedDiscovery {
-    /// Underlying discovery implementation.
     inner: Arc<dyn PrimalDiscovery>,
-
-    /// Cached primal information.
     cache: Arc<RwLock<HashMap<Capability, Vec<DiscoveredPrimal>>>>,
-
-    /// Cache TTL.
     cache_ttl: Duration,
 }
 
-#[allow(dead_code)]
 impl CachedDiscovery {
     /// Create a new cached discovery client.
     #[must_use]
@@ -275,12 +269,16 @@ impl PrimalDiscovery for CachedDiscovery {
 }
 
 // ============================================================================
-// Songbird-based Discovery
+// Registry-based Discovery (vendor-agnostic)
 // ============================================================================
 
-/// Songbird tarpc service definition for discovery.
+/// tarpc service definition for registry-based discovery.
+///
+/// Any primal offering `Capability::Discovery` can implement this interface.
+/// The name is deliberately vendor-agnostic — primals discover registries
+/// by capability, not by name.
 #[tarpc::service]
-pub trait SongbirdRpc {
+pub trait RegistryRpc {
     /// Discover services by capability.
     async fn discover_services(capability: String)
         -> std::result::Result<Vec<ServiceInfo>, String>;
@@ -295,7 +293,7 @@ pub trait SongbirdRpc {
     async fn health() -> std::result::Result<bool, String>;
 }
 
-/// Service information from Songbird.
+/// Service information returned by a discovery registry.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ServiceInfo {
     /// Service ID.
@@ -317,7 +315,7 @@ pub struct ServiceInfo {
 }
 
 impl ServiceInfo {
-    /// Convert to `DiscoveredPrimal`.
+    /// Convert to [`DiscoveredPrimal`].
     #[must_use]
     pub fn to_primal(&self) -> DiscoveredPrimal {
         DiscoveredPrimal {
@@ -337,18 +335,17 @@ impl ServiceInfo {
     }
 }
 
-/// Discovery implementation using Songbird service mesh.
+/// Discovery implementation backed by a remote registry service.
 ///
-/// Connects to a running Songbird rendezvous server for real service discovery.
-pub struct SongbirdDiscovery {
-    /// tarpc client.
-    client: SongbirdRpcClient,
-    /// Local fallback for when Songbird is unavailable.
+/// Connects to any primal offering `Capability::Discovery` via tarpc.
+/// Falls back to `LocalDiscovery` when the registry is unreachable.
+pub struct RegistryDiscovery {
+    client: RegistryRpcClient,
     fallback: LocalDiscovery,
 }
 
-impl SongbirdDiscovery {
-    /// Connect to a Songbird rendezvous server.
+impl RegistryDiscovery {
+    /// Connect to a discovery registry service.
     ///
     /// # Errors
     ///
@@ -364,7 +361,7 @@ impl SongbirdDiscovery {
             }
         })?;
 
-        let client = SongbirdRpcClient::new(tarpc::client::Config::default(), transport).spawn();
+        let client = RegistryRpcClient::new(tarpc::client::Config::default(), transport).spawn();
 
         Ok(Self {
             client,
@@ -375,15 +372,14 @@ impl SongbirdDiscovery {
     /// Create from environment configuration.
     ///
     /// Looks for discovery address in environment variables (in order of preference):
-    /// 1. `DISCOVERY_ADDRESS` - Generic discovery service
-    /// 2. `UNIVERSAL_ADAPTER_ADDRESS` - Universal adapter (e.g., service mesh)
-    /// 3. `DISCOVERY_BOOTSTRAP` - Bootstrap node address
+    /// 1. `DISCOVERY_ADDRESS` — generic discovery service
+    /// 2. `UNIVERSAL_ADAPTER_ADDRESS` — universal adapter (e.g., service mesh)
+    /// 3. `DISCOVERY_BOOTSTRAP` — bootstrap node address
     ///
     /// # Errors
     ///
-    /// Returns an error if the environment variable is not set or connection fails.
+    /// Returns an error if no environment variable is set or connection fails.
     pub async fn from_env() -> Result<Self, DiscoveryError> {
-        // Try environment variables (vendor-agnostic only)
         let addr = std::env::var("DISCOVERY_ADDRESS")
             .or_else(|_| std::env::var("UNIVERSAL_ADAPTER_ADDRESS"))
             .or_else(|_| std::env::var("DISCOVERY_BOOTSTRAP"))
@@ -396,22 +392,19 @@ impl SongbirdDiscovery {
     }
 
     /// Register local fallback primals (for hybrid discovery).
-    #[allow(dead_code)]
     pub async fn register_fallback(&self, primal: DiscoveredPrimal) {
         self.fallback.register(primal).await;
     }
 }
 
 #[async_trait::async_trait]
-impl PrimalDiscovery for SongbirdDiscovery {
+impl PrimalDiscovery for RegistryDiscovery {
     async fn find_by_capability(
         &self,
         capability: &Capability,
     ) -> Result<Vec<DiscoveredPrimal>, DiscoveryError> {
-        // Convert capability to string for Songbird query
         let cap_string = capability.to_string();
 
-        // Try Songbird first
         match self
             .client
             .discover_services(tarpc::context::current(), cap_string)
@@ -425,10 +418,10 @@ impl PrimalDiscovery for SongbirdDiscovery {
                 // Fall through to local fallback
             },
             Ok(Err(e)) => {
-                tracing::warn!("Songbird discovery error: {}", e);
+                tracing::warn!("Registry discovery error: {}", e);
             },
             Err(e) => {
-                tracing::warn!("Songbird RPC error: {}", e);
+                tracing::warn!("Registry RPC error: {}", e);
             },
         }
 
@@ -465,7 +458,7 @@ impl PrimalDiscovery for SongbirdDiscovery {
             Err(e) => {
                 // Fall back to local registration
                 self.fallback.announce(primal).await?;
-                tracing::warn!("Songbird unavailable, registered locally: {}", e);
+                tracing::warn!("Registry unavailable, registered locally: {}", e);
                 Ok(())
             },
         }
@@ -486,7 +479,7 @@ impl PrimalDiscovery for SongbirdDiscovery {
 ///
 /// Otherwise, returns a local discovery instance for single-node deployments.
 pub async fn create_discovery() -> Arc<dyn PrimalDiscovery> {
-    match SongbirdDiscovery::from_env().await {
+    match RegistryDiscovery::from_env().await {
         Ok(discovery) => {
             tracing::info!(
                 "Using network discovery service (universal adapter) for primal coordination"

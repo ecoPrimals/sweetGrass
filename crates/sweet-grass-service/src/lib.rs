@@ -21,7 +21,7 @@
 //! use sweet_grass_service::rpc::SweetGrassRpcClient;
 //! use tarpc::{client, context};
 //!
-//! // Address discovered via Songbird or SWEETGRASS_TARPC_ADDRESS env var
+//! // Address discovered via registry service or SWEETGRASS_TARPC_ADDRESS env var
 //! let client = connect_tarpc(&discovered_address).await?;
 //! let braid = client.get_braid(context::current(), braid_id).await??;
 //! ```

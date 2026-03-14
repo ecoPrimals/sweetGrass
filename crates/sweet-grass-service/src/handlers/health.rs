@@ -264,7 +264,8 @@ fn check_capability_env(env_var: &str) -> PrimalStatus {
     )
 }
 
-/// Liveness probe (async required by axum handler trait).
+/// Liveness probe.
+/// Axum handler signature requires async fn; liveness is sync but must match router expectations.
 #[allow(clippy::unused_async)]
 pub async fn liveness() -> StatusCode {
     StatusCode::OK

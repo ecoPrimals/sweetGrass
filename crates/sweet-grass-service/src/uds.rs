@@ -17,19 +17,28 @@ use std::path::PathBuf;
 
 use tracing::{debug, info, warn};
 
-const PRIMAL_NAME: &str = "sweetgrass";
+/// Default primal name when SelfKnowledge is unavailable.
+const DEFAULT_PRIMAL_NAME: &str = "sweetgrass";
 
 /// Resolve the Unix domain socket path using XDG-compliant resolution.
+///
+/// The primal name is derived from SelfKnowledge when available (e.g. via
+/// `state.self_knowledge`). When `primal_name` is `None`, falls back to
+/// `PRIMAL_NAME` env var or `"sweetgrass"`.
 ///
 /// Follows the same resolution order as other ecoPrimals primals
 /// (ludoSpring, bearDog, etc.) for biomeOS coordination.
 #[must_use]
-pub fn resolve_socket_path() -> PathBuf {
+pub fn resolve_socket_path(primal_name: Option<&str>) -> PathBuf {
+    let env_name = std::env::var("PRIMAL_NAME").ok();
+    let name = primal_name
+        .or(env_name.as_deref())
+        .unwrap_or(DEFAULT_PRIMAL_NAME);
     let family_id = std::env::var("BIOMEOS_FAMILY_ID").unwrap_or_default();
     let sock_name = if family_id.is_empty() {
-        format!("{PRIMAL_NAME}.sock")
+        format!("{name}.sock")
     } else {
-        format!("{PRIMAL_NAME}-{family_id}.sock")
+        format!("{name}-{family_id}.sock")
     };
 
     // 1. Explicit override
@@ -77,7 +86,8 @@ pub fn resolve_socket_path() -> PathBuf {
 pub async fn start_uds_listener(
     state: crate::state::AppState,
 ) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let path = resolve_socket_path();
+    let primal_name = state.self_knowledge.as_ref().map(|sk| sk.name.as_str());
+    let path = resolve_socket_path(primal_name);
 
     // Ensure parent directory exists
     if let Some(parent) = path.parent() {
@@ -157,7 +167,7 @@ async fn handle_uds_connection(
 
 /// Remove the socket file on shutdown.
 pub fn cleanup_socket() {
-    let path = resolve_socket_path();
+    let path = resolve_socket_path(None);
     if path.exists() {
         if let Err(e) = std::fs::remove_file(&path) {
             warn!("Failed to clean up UDS socket {}: {e}", path.display());
@@ -172,6 +182,7 @@ pub fn cleanup_socket() {
 mod tests {
     use super::*;
     use serial_test::serial;
+    use sweet_grass_core::agent::Did;
 
     fn clear_env() {
         std::env::remove_var("SWEETGRASS_SOCKET");
@@ -179,6 +190,7 @@ mod tests {
         std::env::remove_var("BIOMEOS_FAMILY_ID");
         std::env::remove_var("XDG_RUNTIME_DIR");
         std::env::remove_var("USER");
+        std::env::remove_var("PRIMAL_NAME");
     }
 
     #[test]
@@ -186,7 +198,10 @@ mod tests {
     fn test_resolve_socket_explicit() {
         clear_env();
         std::env::set_var("SWEETGRASS_SOCKET", "/custom/path.sock");
-        assert_eq!(resolve_socket_path(), PathBuf::from("/custom/path.sock"));
+        assert_eq!(
+            resolve_socket_path(None),
+            PathBuf::from("/custom/path.sock")
+        );
     }
 
     #[test]
@@ -195,7 +210,7 @@ mod tests {
         clear_env();
         std::env::set_var("BIOMEOS_SOCKET_DIR", "/run/biomeos");
         assert_eq!(
-            resolve_socket_path(),
+            resolve_socket_path(None),
             PathBuf::from("/run/biomeos/sweetgrass.sock")
         );
     }
@@ -207,7 +222,7 @@ mod tests {
         std::env::set_var("BIOMEOS_SOCKET_DIR", "/run/biomeos");
         std::env::set_var("BIOMEOS_FAMILY_ID", "alpha");
         assert_eq!(
-            resolve_socket_path(),
+            resolve_socket_path(None),
             PathBuf::from("/run/biomeos/sweetgrass-alpha.sock")
         );
     }
@@ -218,7 +233,7 @@ mod tests {
         clear_env();
         std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
         assert_eq!(
-            resolve_socket_path(),
+            resolve_socket_path(None),
             PathBuf::from("/run/user/1000/biomeos/sweetgrass.sock")
         );
     }
@@ -228,7 +243,7 @@ mod tests {
     fn test_resolve_socket_fallback() {
         clear_env();
         std::env::remove_var("USER");
-        let path = resolve_socket_path();
+        let path = resolve_socket_path(None);
         assert_eq!(path, PathBuf::from("/tmp/sweetgrass.sock"));
     }
 
@@ -237,7 +252,7 @@ mod tests {
     fn test_resolve_socket_user_fallback() {
         clear_env();
         std::env::set_var("USER", "testuser");
-        let path = resolve_socket_path();
+        let path = resolve_socket_path(None);
         assert_eq!(path, PathBuf::from("/tmp/biomeos-testuser/sweetgrass.sock"));
     }
 
@@ -250,7 +265,7 @@ mod tests {
         std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
         std::env::set_var("USER", "testuser");
 
-        let path = resolve_socket_path();
+        let path = resolve_socket_path(None);
         assert_eq!(path, PathBuf::from("/absolute/custom.sock"));
     }
 
@@ -260,8 +275,18 @@ mod tests {
         clear_env();
         std::env::set_var("BIOMEOS_FAMILY_ID", "beta");
         std::env::remove_var("USER");
-        let path = resolve_socket_path();
+        let path = resolve_socket_path(None);
         assert_eq!(path, PathBuf::from("/tmp/sweetgrass-beta.sock"));
+    }
+
+    #[test]
+    #[serial]
+    fn test_resolve_socket_from_self_knowledge() {
+        clear_env();
+        std::env::set_var("BIOMEOS_SOCKET_DIR", "/run/biomeos");
+        // Primal name from SelfKnowledge overrides default
+        let path = resolve_socket_path(Some("sweetgrass-prod"));
+        assert_eq!(path, PathBuf::from("/run/biomeos/sweetgrass-prod.sock"));
     }
 
     #[test]
@@ -273,10 +298,23 @@ mod tests {
         cleanup_socket();
     }
 
+    #[test]
+    #[serial]
+    fn test_cleanup_socket_when_exists() {
+        clear_env();
+        let dir = tempfile::tempdir().expect("tempdir");
+        let sock_path = dir.path().join("cleanup-test.sock");
+        std::env::set_var("SWEETGRASS_SOCKET", sock_path.to_str().unwrap());
+        std::fs::write(&sock_path, "").expect("create socket file");
+        assert!(sock_path.exists());
+        cleanup_socket();
+        // Socket should be removed
+        assert!(!sock_path.exists());
+    }
+
     #[tokio::test]
     #[serial]
     async fn test_uds_roundtrip() {
-        use sweet_grass_core::agent::Did;
         use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
         let dir = tempfile::tempdir().expect("tempdir");
@@ -316,6 +354,99 @@ mod tests {
         assert_eq!(response["jsonrpc"], "2.0");
         assert!(response["result"].is_object());
         assert_eq!(response["result"]["status"], "healthy");
+
+        listener_handle.abort();
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_uds_parse_error_returns_jsonrpc_error() {
+        use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+
+        let dir = tempfile::tempdir().expect("tempdir");
+        let sock_path = dir.path().join("parse-error-test.sock");
+        std::env::set_var("SWEETGRASS_SOCKET", sock_path.to_str().unwrap());
+
+        let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTest"));
+
+        let state_clone = state.clone();
+        let listener_handle = tokio::spawn(async move {
+            let _ = start_uds_listener(state_clone).await;
+        });
+
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+        let stream = tokio::net::UnixStream::connect(&sock_path)
+            .await
+            .expect("connect");
+        let (reader, mut writer) = stream.into_split();
+
+        // Send malformed JSON
+        writer
+            .write_all(b"{ invalid json }\n")
+            .await
+            .expect("write");
+        writer.flush().await.expect("flush");
+
+        let mut lines = BufReader::new(reader).lines();
+        let response_line = lines.next_line().await.unwrap().expect("response");
+        let response: serde_json::Value =
+            serde_json::from_str(&response_line).expect("parse response");
+
+        assert_eq!(response["jsonrpc"], "2.0");
+        assert!(response["error"].is_object());
+        assert_eq!(
+            response["error"]["code"],
+            crate::handlers::jsonrpc::error_code::PARSE_ERROR
+        );
+
+        listener_handle.abort();
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn test_uds_empty_lines_skipped() {
+        use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+
+        let dir = tempfile::tempdir().expect("tempdir");
+        let sock_path = dir.path().join("empty-lines-test.sock");
+        std::env::set_var("SWEETGRASS_SOCKET", sock_path.to_str().unwrap());
+
+        let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTest"));
+
+        let state_clone = state.clone();
+        let listener_handle = tokio::spawn(async move {
+            let _ = start_uds_listener(state_clone).await;
+        });
+
+        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+        let stream = tokio::net::UnixStream::connect(&sock_path)
+            .await
+            .expect("connect");
+        let (reader, mut writer) = stream.into_split();
+
+        // Send empty line then valid request
+        writer.write_all(b"\n").await.expect("write");
+        let request = serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "health.check",
+            "params": {},
+            "id": 2
+        });
+        let mut req_str = serde_json::to_string(&request).unwrap();
+        req_str.push('\n');
+        writer.write_all(req_str.as_bytes()).await.unwrap();
+        writer.flush().await.expect("flush");
+
+        let mut lines = BufReader::new(reader).lines();
+        // First line might be empty or we get response - skip empties in handler
+        let response_line = lines.next_line().await.unwrap().expect("response");
+        let response: serde_json::Value =
+            serde_json::from_str(&response_line).expect("parse response");
+
+        assert_eq!(response["jsonrpc"], "2.0");
+        assert!(response["result"].is_object());
 
         listener_handle.abort();
     }

@@ -69,6 +69,9 @@ impl AppState {
     }
 
     /// Create with self-knowledge and store backend type.
+    ///
+    /// Uses the primal's self-knowledge for source attribution (factory and
+    /// compression engine) instead of hardcoded defaults.
     #[must_use]
     pub fn with_self_knowledge(
         store: Arc<dyn BraidStore>,
@@ -76,9 +79,14 @@ impl AppState {
         self_knowledge: SelfKnowledge,
         store_backend: impl Into<String>,
     ) -> Self {
-        let factory = Arc::new(BraidFactory::new(default_agent));
+        let factory = Arc::new(BraidFactory::from_self_knowledge(
+            default_agent,
+            &self_knowledge,
+        ));
         let query = Arc::new(QueryEngine::new(Arc::clone(&store)));
-        let compression = Arc::new(CompressionEngine::new(Arc::clone(&factory)));
+        let compression = Arc::new(
+            CompressionEngine::new(Arc::clone(&factory)).with_source(&self_knowledge.name),
+        );
 
         Self {
             store,
@@ -120,8 +128,11 @@ mod tests {
     fn test_app_state_clone() {
         let original = AppState::new_memory(Did::new("did:key:z6MkTestAgent"));
 
-        // Explicitly test Clone trait - clippy's redundant_clone is intentional here
-        #[allow(clippy::redundant_clone)]
+        // Clone is required: test verifies Clone trait produces shared Arc references.
+        #[expect(
+            clippy::redundant_clone,
+            reason = "Test must invoke clone() to assert shared Arc ptrs"
+        )]
         let cloned = original.clone();
 
         // Cloned state should share the same Arc references

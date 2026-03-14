@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! Anchoring domain handlers: anchorBraid, verifyAnchor.
+//! Anchoring domain handlers: anchor, verify.
 
 use base64::Engine;
 use serde::Deserialize;

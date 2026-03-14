@@ -191,7 +191,7 @@ pub trait BraidStore: Send + Sync {
     /// * `concurrency` - Maximum number of concurrent operations (defaults to 10)
     ///
     /// # Returns
-    /// A tuple of (success_count, errors) where errors contains any failures
+    /// A tuple of (`success_count`, errors) where errors contains any failures
     ///
     /// # Example
     /// ```rust,ignore

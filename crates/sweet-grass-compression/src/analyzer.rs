@@ -75,7 +75,10 @@ impl SessionAnalyzer {
         let convergence = if branch_count == 0 {
             1.0 // Fully linear
         } else {
-            #[allow(clippy::cast_precision_loss)]
+            #[expect(
+                clippy::cast_precision_loss,
+                reason = "tip_count and branch_count are small; precision loss acceptable for convergence ratio"
+            )]
             {
                 tip_count as f64 / branch_count.max(1) as f64
             }
@@ -172,7 +175,10 @@ impl SessionAnalyzer {
         }
 
         // Heuristic: fewer tips relative to vertices = more coherent
-        #[allow(clippy::cast_precision_loss)]
+        #[expect(
+            clippy::cast_precision_loss,
+            reason = "tip count and vertex_count are small; precision loss acceptable for coherence heuristic"
+        )]
         let tip_ratio = tips.len() as f64 / session.vertex_count().max(1) as f64;
 
         // Invert: more tips = less coherent

@@ -384,4 +384,74 @@ mod tests {
         assert!(report.checks[0].passed);
         assert!(!report.checks[1].passed);
     }
+
+    #[test]
+    fn test_primal_state_display_all_variants() {
+        assert_eq!(PrimalState::Created.to_string(), "created");
+        assert_eq!(PrimalState::Starting.to_string(), "starting");
+        assert_eq!(PrimalState::Running.to_string(), "running");
+        assert_eq!(PrimalState::Stopping.to_string(), "stopping");
+        assert_eq!(PrimalState::Stopped.to_string(), "stopped");
+        assert_eq!(PrimalState::Failed.to_string(), "failed");
+    }
+
+    #[test]
+    fn test_primal_state_is_running() {
+        assert!(PrimalState::Running.is_running());
+        assert!(!PrimalState::Created.is_running());
+        assert!(!PrimalState::Stopped.is_running());
+        assert!(!PrimalState::Failed.is_running());
+    }
+
+    #[test]
+    fn test_health_status_display() {
+        assert_eq!(HealthStatus::Healthy.to_string(), "healthy");
+
+        let degraded = HealthStatus::Degraded {
+            reason: "high load".to_string(),
+        };
+        assert_eq!(degraded.to_string(), "degraded: high load");
+
+        let unhealthy = HealthStatus::Unhealthy {
+            reason: "db down".to_string(),
+        };
+        assert_eq!(unhealthy.to_string(), "unhealthy: db down");
+    }
+
+    #[test]
+    fn test_health_check_pass_fail() {
+        let pass = HealthCheck::pass("storage");
+        assert_eq!(pass.name, "storage");
+        assert!(pass.passed);
+        assert!(pass.message.is_none());
+
+        let fail = HealthCheck::fail("network", "timeout");
+        assert_eq!(fail.name, "network");
+        assert!(!fail.passed);
+        assert_eq!(fail.message.as_deref(), Some("timeout"));
+    }
+
+    #[test]
+    fn test_health_report_new() {
+        let report = HealthReport::new("MyPrimal", "2.0.0");
+        assert_eq!(report.name, "MyPrimal");
+        assert_eq!(report.version, "2.0.0");
+        assert!(report.status.is_healthy());
+        assert!(report.checks.is_empty());
+        assert!(report.timestamp > 0);
+    }
+
+    #[test]
+    fn test_stop_not_running_error() {
+        let config = SweetGrassConfig::default();
+        let mut primal = SweetGrass::new(config);
+
+        let result = primal.stop();
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .to_lowercase()
+            .contains("not running"));
+    }
 }

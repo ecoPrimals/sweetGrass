@@ -93,8 +93,11 @@ pub trait SessionEventStream: Send + Sync {
 /// Event handler that processes session events using discovery.
 pub struct EventHandler {
     /// Discovery service for capability-based primal lookup.
-    /// Used for reconnection and failover scenarios.
-    #[allow(dead_code)]
+    /// Reserved for v0.8.0 deployment (reconnection and failover scenarios).
+    #[expect(
+        dead_code,
+        reason = "Reserved for v0.8.0 reconnection and failover; will be used when discovery-based reconnection is implemented"
+    )]
     discovery: Arc<dyn PrimalDiscovery>,
     session_client: Arc<dyn SessionEventsClient>,
     compression: Arc<sweet_grass_compression::CompressionEngine>,
@@ -103,7 +106,10 @@ pub struct EventHandler {
 
 impl EventHandler {
     /// Create a new event handler using discovery.
-    #[allow(dead_code)]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no primal offering `Capability::SessionEvents` is discovered.
     #[instrument(skip(discovery, compression, store, client_factory))]
     pub async fn new<F>(
         discovery: Arc<dyn PrimalDiscovery>,
@@ -134,7 +140,6 @@ impl EventHandler {
     }
 
     /// Create with an existing client.
-    #[allow(dead_code)]
     pub fn with_client(
         client: Arc<dyn SessionEventsClient>,
         compression: Arc<sweet_grass_compression::CompressionEngine>,
@@ -150,7 +155,10 @@ impl EventHandler {
     }
 
     /// Start processing events.
-    #[allow(dead_code)]
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if subscribing to the event stream fails.
     #[instrument(skip(self))]
     pub async fn start(&self) -> Result<()> {
         let mut stream = self.session_client.subscribe().await?;
@@ -165,7 +173,6 @@ impl EventHandler {
     }
 
     /// Process a single event.
-    #[allow(dead_code)]
     #[instrument(skip(self, event), fields(session_id = %event.session_id))]
     async fn process_event(&self, event: SessionEvent) -> Result<()> {
         match event.event_type {
@@ -186,7 +193,6 @@ impl EventHandler {
     }
 
     /// Compress a session and store resulting Braids.
-    #[allow(dead_code)]
     async fn compress_and_store(&self, mut session: Session) -> Result<()> {
         session.finalize(SessionOutcome::Committed);
 
@@ -201,7 +207,6 @@ impl EventHandler {
     }
 
     /// Get the underlying client.
-    #[allow(dead_code)]
     #[must_use]
     pub fn client(&self) -> &dyn SessionEventsClient {
         self.session_client.as_ref()
@@ -573,5 +578,126 @@ mod tests {
     async fn test_mock_client_default() {
         let client = testing::MockSessionEventsClient::default();
         assert!(client.health().await.expect("health"));
+    }
+
+    #[tokio::test]
+    async fn test_event_handler_new_discovery_failure() {
+        use crate::discovery::{LocalDiscovery, PrimalDiscovery};
+        use std::sync::Arc;
+
+        let discovery: Arc<dyn PrimalDiscovery> = Arc::new(LocalDiscovery::new());
+        let compression = Arc::new(sweet_grass_compression::CompressionEngine::new(Arc::new(
+            sweet_grass_factory::BraidFactory::new(Did::new("did:key:z6MkTest")),
+        )));
+        let store: Arc<dyn sweet_grass_store::BraidStore> =
+            Arc::new(sweet_grass_store::MemoryStore::new());
+
+        let result = EventHandler::new(discovery, compression, store, |_| {
+            Arc::new(testing::MockSessionEventsClient::new())
+        })
+        .await;
+
+        let err = result.err().expect("should fail");
+        assert!(
+            err.to_string().to_lowercase().contains("capability"),
+            "error should mention capability: {err}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_event_handler_start_processes_committed_event() {
+        use std::sync::Arc;
+
+        let client = Arc::new(testing::MockSessionEventsClient::new());
+        let compression = Arc::new(sweet_grass_compression::CompressionEngine::new(Arc::new(
+            sweet_grass_factory::BraidFactory::new(Did::new("did:key:z6MkTest")),
+        )));
+        let store: Arc<dyn sweet_grass_store::BraidStore> =
+            Arc::new(sweet_grass_store::MemoryStore::new());
+
+        let mut session = Session::new("compress-test");
+        session.add_vertex(
+            SessionVertex::new(
+                "v1",
+                "sha256:root",
+                "text/plain",
+                Did::new("did:key:z6MkTest"),
+            )
+            .with_size(100)
+            .committed(),
+        );
+        session.add_vertex(
+            SessionVertex::new(
+                "v2",
+                "sha256:derived",
+                "text/plain",
+                Did::new("did:key:z6MkTest"),
+            )
+            .with_parent("v1")
+            .with_size(200)
+            .committed(),
+        );
+
+        client
+            .queue_event(SessionEvent {
+                session_id: "compress-test".to_string(),
+                event_type: SessionEventType::Committed,
+                session: Some(session),
+                timestamp: chrono::Utc::now().timestamp() as u64,
+                agent: Did::new("did:key:z6MkTest"),
+            })
+            .await;
+
+        let handler = EventHandler::with_client(client, compression, Arc::clone(&store));
+        handler.start().await.expect("start");
+
+        let result = store
+            .query(
+                &sweet_grass_store::QueryFilter::new(),
+                sweet_grass_store::QueryOrder::NewestFirst,
+            )
+            .await
+            .expect("query");
+        assert!(
+            !result.braids.is_empty(),
+            "compress_and_store should have stored Braids"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_event_handler_start_ignores_rolled_back() {
+        use std::sync::Arc;
+
+        let client = Arc::new(testing::MockSessionEventsClient::new());
+        let compression = Arc::new(sweet_grass_compression::CompressionEngine::new(Arc::new(
+            sweet_grass_factory::BraidFactory::new(Did::new("did:key:z6MkTest")),
+        )));
+        let store: Arc<dyn sweet_grass_store::BraidStore> =
+            Arc::new(sweet_grass_store::MemoryStore::new());
+
+        client
+            .queue_event(SessionEvent {
+                session_id: "rollback-session".to_string(),
+                event_type: SessionEventType::RolledBack,
+                session: None,
+                timestamp: chrono::Utc::now().timestamp() as u64,
+                agent: Did::new("did:key:z6MkTest"),
+            })
+            .await;
+
+        let handler = EventHandler::with_client(client, compression, Arc::clone(&store));
+        handler.start().await.expect("start");
+
+        let result = store
+            .query(
+                &sweet_grass_store::QueryFilter::new(),
+                sweet_grass_store::QueryOrder::NewestFirst,
+            )
+            .await
+            .expect("query");
+        assert!(
+            result.braids.is_empty(),
+            "RolledBack should not store Braids"
+        );
     }
 }

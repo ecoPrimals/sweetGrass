@@ -288,7 +288,10 @@ impl Default for ProvoExport {
 fn timestamp_to_iso(nanos: u64) -> String {
     use chrono::{TimeZone, Utc};
 
-    #[allow(clippy::cast_possible_wrap)]
+    #[expect(
+        clippy::cast_possible_wrap,
+        reason = "nanos/1e9 fits in i64 for timestamps until year 2554; chrono::Utc::timestamp_opt requires i64"
+    )]
     let secs = (nanos / 1_000_000_000) as i64;
     let nsecs = (nanos % 1_000_000_000) as u32;
 

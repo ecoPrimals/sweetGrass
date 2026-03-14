@@ -9,12 +9,12 @@
 //!
 //! | Domain        | Operations                                                       |
 //! |---------------|------------------------------------------------------------------|
-//! | `braid`       | create, get, getByHash, query, delete, commit                    |
-//! | `anchoring`   | anchorBraid, verifyAnchor                                        |
-//! | `provenance`  | graph, exportProvo, exportGraphProvo                             |
-//! | `attribution` | chain, calculateRewards, topContributors                         |
-//! | `compression` | compressSession, createMetaBraid                                 |
-//! | `contribution`| record, recordSession, recordDehydration                         |
+//! | `braid`       | create, get, get_by_hash, query, delete, commit                  |
+//! | `anchoring`   | anchor, verify                                                   |
+//! | `provenance`  | graph, export_provo, export_graph_provo                           |
+//! | `attribution` | chain, calculate_rewards, top_contributors                       |
+//! | `compression` | compress_session, create_meta_braid                              |
+//! | `contribution`| record, record_session, record_dehydration                       |
 //! | `health`      | check                                                            |
 
 mod anchoring;
@@ -126,7 +126,7 @@ static METHODS: &[MethodEntry] = &[
         handler: |s, p| Box::pin(braid::handle_braid_get(s, p)),
     },
     MethodEntry {
-        name: "braid.getByHash",
+        name: "braid.get_by_hash",
         handler: |s, p| Box::pin(braid::handle_braid_get_by_hash(s, p)),
     },
     MethodEntry {
@@ -142,11 +142,11 @@ static METHODS: &[MethodEntry] = &[
         handler: |s, p| Box::pin(braid::handle_braid_commit(s, p)),
     },
     MethodEntry {
-        name: "anchoring.anchorBraid",
+        name: "anchoring.anchor",
         handler: |s, p| Box::pin(anchoring::handle_anchor_braid(s, p)),
     },
     MethodEntry {
-        name: "anchoring.verifyAnchor",
+        name: "anchoring.verify",
         handler: |s, p| Box::pin(anchoring::handle_verify_anchor(s, p)),
     },
     // Provenance
@@ -155,11 +155,11 @@ static METHODS: &[MethodEntry] = &[
         handler: |s, p| Box::pin(provenance::handle_provenance_graph(s, p)),
     },
     MethodEntry {
-        name: "provenance.exportProvo",
+        name: "provenance.export_provo",
         handler: |s, p| Box::pin(provenance::handle_export_provo(s, p)),
     },
     MethodEntry {
-        name: "provenance.exportGraphProvo",
+        name: "provenance.export_graph_provo",
         handler: |s, p| Box::pin(provenance::handle_export_graph_provo(s, p)),
     },
     // Attribution
@@ -168,20 +168,20 @@ static METHODS: &[MethodEntry] = &[
         handler: |s, p| Box::pin(attribution::handle_attribution_chain(s, p)),
     },
     MethodEntry {
-        name: "attribution.calculateRewards",
+        name: "attribution.calculate_rewards",
         handler: |s, p| Box::pin(attribution::handle_calculate_rewards(s, p)),
     },
     MethodEntry {
-        name: "attribution.topContributors",
+        name: "attribution.top_contributors",
         handler: |s, p| Box::pin(attribution::handle_top_contributors(s, p)),
     },
     // Compression
     MethodEntry {
-        name: "compression.compressSession",
+        name: "compression.compress_session",
         handler: |s, p| Box::pin(async move { compression::handle_compress_session_sync(s, p) }),
     },
     MethodEntry {
-        name: "compression.createMetaBraid",
+        name: "compression.create_meta_braid",
         handler: |s, p| Box::pin(compression::handle_create_meta_braid(s, p)),
     },
     // Contribution recording
@@ -190,11 +190,11 @@ static METHODS: &[MethodEntry] = &[
         handler: |s, p| Box::pin(contribution::handle_record_contribution(s, p)),
     },
     MethodEntry {
-        name: "contribution.recordSession",
+        name: "contribution.record_session",
         handler: |s, p| Box::pin(contribution::handle_record_session(s, p)),
     },
     MethodEntry {
-        name: "contribution.recordDehydration",
+        name: "contribution.record_dehydration",
         handler: |s, p| Box::pin(contribution::handle_record_dehydration(s, p)),
     },
     // Health

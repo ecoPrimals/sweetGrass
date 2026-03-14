@@ -8,9 +8,12 @@
 )]
 
 use super::*;
+use crate::rpc::SweetGrassRpcClient;
 use sweet_grass_compression::{SessionOutcome, SessionVertex};
 use sweet_grass_core::agent::Did;
 use tarpc::context;
+use tarpc::serde_transport::tcp;
+use tarpc::tokio_serde::formats::Bincode;
 
 fn make_server() -> SweetGrassServer {
     let store = Arc::new(MemoryStore::new());
@@ -527,4 +530,194 @@ async fn test_agent_contributions_empty_time_range() {
         .unwrap();
 
     assert_eq!(contributions.total_count, 0);
+}
+
+// --- Server configuration and builder tests ---
+
+#[tokio::test]
+async fn test_server_with_max_concurrent_requests() {
+    let store = Arc::new(MemoryStore::new());
+    let did = Did::new("did:key:z6MkTest");
+    let factory = Arc::new(BraidFactory::new(did));
+    let query = Arc::new(QueryEngine::new(store.clone()));
+    let compression = Arc::new(CompressionEngine::new(factory.clone()));
+    let attribution = Arc::new(AttributionCalculator::new());
+
+    let server = SweetGrassServer::new(store, factory, query, compression, attribution)
+        .with_max_concurrent_requests(42);
+
+    // Verify server works (builder doesn't expose the field, but we can verify it runs)
+    let status = server.health_check(context::current()).await.unwrap();
+    assert_eq!(status.status, "UP");
+}
+
+#[tokio::test]
+async fn test_server_new_with_env_var() {
+    std::env::set_var("TARPC_MAX_CONCURRENT_REQUESTS", "99");
+    let server = make_server();
+    std::env::remove_var("TARPC_MAX_CONCURRENT_REQUESTS");
+
+    let status = server.health_check(context::current()).await.unwrap();
+    assert_eq!(status.status, "UP");
+}
+
+#[tokio::test]
+async fn test_server_new_with_invalid_env_var_falls_back_to_default() {
+    std::env::set_var("TARPC_MAX_CONCURRENT_REQUESTS", "not-a-number");
+    let server = make_server();
+    std::env::remove_var("TARPC_MAX_CONCURRENT_REQUESTS");
+
+    let status = server.health_check(context::current()).await.unwrap();
+    assert_eq!(status.status, "UP");
+}
+
+#[tokio::test]
+async fn test_provenance_graph_without_activities() {
+    let server = make_server();
+    let braid = create_test_braid(&server).await;
+
+    let entity = EntityReference::by_hash(&braid.data_hash);
+    let graph = server
+        .provenance_graph(context::current(), entity, 5, false)
+        .await
+        .unwrap();
+
+    assert!(!graph.entities.is_empty());
+}
+
+#[tokio::test]
+async fn test_query_braids_with_order_variants() {
+    let server = make_server();
+    create_test_braid(&server).await;
+    create_test_braid(&server).await;
+
+    let result_oldest = server
+        .clone()
+        .query_braids(
+            context::current(),
+            QueryFilter::new(),
+            QueryOrder::OldestFirst,
+        )
+        .await
+        .unwrap();
+    assert_eq!(result_oldest.total_count, 2);
+
+    let result_largest = server
+        .clone()
+        .query_braids(
+            context::current(),
+            QueryFilter::new(),
+            QueryOrder::LargestFirst,
+        )
+        .await
+        .unwrap();
+    assert_eq!(result_largest.total_count, 2);
+
+    let result_smallest = server
+        .clone()
+        .query_braids(
+            context::current(),
+            QueryFilter::new(),
+            QueryOrder::SmallestFirst,
+        )
+        .await
+        .unwrap();
+    assert_eq!(result_smallest.total_count, 2);
+}
+
+#[tokio::test]
+async fn test_delete_braid_nonexistent_returns_ok() {
+    let server = make_server();
+
+    let deleted = server
+        .delete_braid(context::current(), BraidId::new())
+        .await
+        .unwrap();
+
+    assert!(deleted);
+}
+
+#[tokio::test]
+async fn test_compress_session_empty_discards() {
+    let server = make_server();
+
+    let session = Session::new("empty-session");
+    let result = server
+        .compress_session(context::current(), session)
+        .await
+        .unwrap();
+
+    assert!(result.discard_reason().is_some());
+    assert!(!result.has_braids());
+}
+
+#[tokio::test]
+async fn test_compress_session_rollback_discards() {
+    let server = make_server();
+
+    let mut session = Session::new("rollback-session");
+    session.outcome = SessionOutcome::Rollback;
+    session.add_vertex(
+        SessionVertex::new(
+            "v1",
+            "sha256:test",
+            "text/plain",
+            Did::new("did:key:z6MkTest"),
+        )
+        .with_size(100)
+        .committed(),
+    );
+
+    let result = server
+        .compress_session(context::current(), session)
+        .await
+        .unwrap();
+
+    assert!(result.discard_reason().is_some());
+}
+
+#[tokio::test]
+async fn test_create_meta_braid_single_braid() {
+    let server = make_server();
+    let braid = create_test_braid(&server).await;
+
+    let meta = server
+        .create_meta_braid(
+            context::current(),
+            vec![braid.id],
+            SummaryType::Session {
+                session_id: "single-session".to_string(),
+            },
+        )
+        .await
+        .unwrap();
+
+    assert!(matches!(
+        meta.braid_type,
+        sweet_grass_core::BraidType::Collection { .. }
+    ));
+}
+
+#[tokio::test]
+async fn test_start_tarpc_server_binds_and_accepts() {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind");
+    let addr = listener.local_addr().expect("local_addr");
+    drop(listener);
+
+    let server = make_server();
+    let server_handle = tokio::spawn(async move { start_tarpc_server(addr, server).await });
+
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
+    let transport = tcp::connect(addr, Bincode::default).await.expect("connect");
+    let client = SweetGrassRpcClient::new(Default::default(), transport).spawn();
+
+    let status = client
+        .health_check(context::current())
+        .await
+        .expect("tarpc transport")
+        .expect("rpc call");
+    assert_eq!(status.status, "UP");
+
+    server_handle.abort();
 }

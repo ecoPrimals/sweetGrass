@@ -39,6 +39,10 @@ pub struct TarpcSessionEventsClient {
 
 impl TarpcSessionEventsClient {
     /// Connect to a session events service at the given address.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the TCP connection or tarpc handshake fails.
     #[instrument(skip_all, fields(addr = %addr))]
     pub async fn connect(addr: &str) -> Result<Self> {
         use tarpc::serde_transport::tcp;
@@ -58,6 +62,10 @@ impl TarpcSessionEventsClient {
     }
 
     /// Create from a discovered primal.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the primal has no tarpc address or connection fails.
     pub async fn from_primal(primal: &DiscoveredPrimal) -> Result<Self> {
         let addr = primal.tarpc_address.as_ref().ok_or_else(|| {
             IntegrationError::Discovery("Primal has no tarpc address".to_string())
@@ -129,7 +137,15 @@ impl SessionEventStream for TarpcEventStream {
 
 /// Async factory function to create a session events client from a discovered primal.
 ///
-/// In test mode, returns a mock client. In production, connects via tarpc.
+/// ## `#[cfg]` branching (compile-time, not runtime)
+///
+/// This function uses `#[cfg(any(test, feature = "test-support"))]` branching.
+/// The mock is **only** returned when compiled with `cargo test` or the
+/// `test-support` feature. Production builds always get the real tarpc client.
+///
+/// # Errors
+///
+/// Returns an error if the primal has no tarpc address or connection fails.
 pub async fn create_session_events_client_async(
     primal: &DiscoveredPrimal,
 ) -> std::result::Result<Arc<dyn SessionEventsClient>, IntegrationError> {

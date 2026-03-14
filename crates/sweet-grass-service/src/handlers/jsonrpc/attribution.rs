@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! Attribution domain handlers: chain, calculateRewards, topContributors.
+//! Attribution domain handlers: chain, calculate_rewards, top_contributors.
 
 use serde::Deserialize;
 use sweet_grass_core::braid::ContentHash;

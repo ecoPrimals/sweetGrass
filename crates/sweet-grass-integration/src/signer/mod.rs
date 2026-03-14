@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //! Signing capability integration.
 //!
-//! Provides traits for signing Braids via capability-based discovery.
-//! SweetGrass discovers signing primals at runtime rather than using
+//! Provides traits for signing `Braid`s via capability-based discovery.
+//! `SweetGrass` discovers signing primals at runtime rather than using
 //! hardcoded connections.
 //!
 //! ## Zero-Knowledge Architecture

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! Inter-primal Braid creation: from_contribution, from_session.
+//! Inter-primal Braid creation: `from_contribution`, `from_session`.
 
 use sweet_grass_core::{
     activity::{Activity, ActivityMetadata, ActivityType},
@@ -12,8 +12,8 @@ use sweet_grass_core::{
 use crate::error::FactoryError;
 use crate::Result;
 
-/// Parse loam_entry string into LoamCommitRef.
-/// Format: "spine_id|entry_hash|index" (pipe-separated).
+/// Parse `loam_entry` string into [`LoamCommitRef`].
+/// Format: `spine_id|entry_hash|index` (pipe-separated).
 fn parse_loam_entry(s: Option<&str>) -> Option<LoamCommitRef> {
     let s = s?;
     let parts: Vec<&str> = s.split('|').collect();

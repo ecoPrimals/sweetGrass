@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.4 | 746 tests | 94% line coverage | AGPL-3.0-only | Pure Rust | ecoBin compliant
+v0.7.5 | 794 tests | 91% region coverage | AGPL-3.0-only | Pure Rust | ecoBin compliant
 
 ---
 
@@ -72,7 +72,7 @@ curl http://localhost:8080/api/v1/braids
 
 ### Protocol Stack
 
-- **JSON-RPC 2.0** (primary): `POST /jsonrpc` with semantic methods (`braid.create`, `braid.commit`, `contribution.record`, `contribution.recordDehydration`, `health.check`, etc.)
+- **JSON-RPC 2.0** (primary): `POST /jsonrpc` with semantic methods (`braid.create`, `braid.commit`, `contribution.record`, `contribution.record_dehydration`, `health.check`, etc.)
 - **Unix domain socket** (biomeOS IPC): Newline-delimited JSON-RPC 2.0 over UDS with XDG-compliant path resolution
 - **tarpc** (high-performance binary): Pure Rust RPC, no gRPC/protobuf
 - **REST** (HTTP/JSON): `/api/v1/braids` for debugging and admin
@@ -167,13 +167,14 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.4 |
-| Tests | 746 passing |
-| Line coverage | 94% (`cargo llvm-cov`) |
+| Version | v0.7.5 |
+| Tests | 794 passing |
+| Region coverage | 91% (`cargo llvm-cov`) |
+| Line coverage | 89% (`cargo llvm-cov`) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates) |
 | Production unwraps | 0 |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
-| Max file size | 824 lines (limit: 1000) |
+| Max file size | 828 lines (limit: 1000) |
 | TODOs in source | 0 |
 | SPDX headers | All .rs files |
 | License | AGPL-3.0-only |

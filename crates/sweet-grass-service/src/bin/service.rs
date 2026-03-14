@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! SweetGrass UniBin — single binary, multiple modes.
+//! `SweetGrass` `UniBin` — single binary, multiple modes.
 //!
 //! Follows the wateringHole `UNIBIN_ARCHITECTURE_STANDARD`:
 //! - `sweetgrass server` — start REST + tarpc + JSON-RPC
@@ -49,7 +49,7 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Commands {
-    /// Start the SweetGrass service (REST + JSON-RPC + tarpc).
+    /// Start the `SweetGrass` service (REST + JSON-RPC + tarpc).
     Server {
         /// REST/JSON-RPC bind address.
         #[arg(long, env = "SWEETGRASS_HTTP_ADDRESS", default_value = "0.0.0.0:0")]
@@ -63,7 +63,7 @@ enum Commands {
         #[arg(short, long, env = "STORAGE_BACKEND", default_value = "memory")]
         storage: String,
 
-        /// PostgreSQL connection string (if storage=postgres).
+        /// `PostgreSQL` connection string (if storage=postgres).
         #[arg(long, env = "DATABASE_URL")]
         database_url: Option<String>,
 
@@ -80,7 +80,7 @@ enum Commands {
         no_tarpc: bool,
     },
 
-    /// Check status of a running SweetGrass instance.
+    /// Check status of a running `SweetGrass` instance.
     Status {
         /// Address of the running instance (discovered from env or explicit).
         #[arg(long, env = "SWEETGRASS_HTTP_ADDRESS")]

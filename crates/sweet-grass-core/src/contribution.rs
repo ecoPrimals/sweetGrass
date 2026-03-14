@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //! Contribution recording types for inter-primal attribution.
 //!
-//! When a primal completes work (e.g., rhizoCrypt dehydrates a session),
-//! it sends a `ContributionRecord` to sweetGrass. SweetGrass converts this
+//! When a primal completes work (e.g., `rhizoCrypt` dehydrates a session),
+//! it sends a `ContributionRecord` to `sweetGrass`. `SweetGrass` converts this
 //! into a provenance Braid with proper W3C PROV-O attribution.
 
 use serde::{Deserialize, Serialize};
@@ -13,8 +13,8 @@ use crate::braid::Timestamp;
 
 /// A contribution from an agent to be recorded as provenance.
 ///
-/// This is the inter-primal payload: another primal sends this to sweetGrass
-/// to record attribution. SweetGrass converts it into a Braid.
+/// This is the inter-primal payload: another primal sends this to `sweetGrass`
+/// to record attribution. `SweetGrass` converts it into a Braid.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ContributionRecord {
     /// The agent who made the contribution.
@@ -71,7 +71,7 @@ pub struct SessionContribution {
     /// The primal reporting these contributions.
     pub source_primal: String,
 
-    /// Niche context (e.g., "rootpulse", "game_engine", "chemistry").
+    /// Niche context (e.g., `rootpulse`, `game_engine`, `chemistry`).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub niche: Option<String>,
 
@@ -86,7 +86,7 @@ pub struct SessionContribution {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub session_end: Option<Timestamp>,
 
-    /// LoamSpine entry reference (if already committed to permanent record).
+    /// `LoamSpine` entry reference (if already committed to permanent record).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub loam_entry: Option<String>,
 

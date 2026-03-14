@@ -190,7 +190,7 @@ async fn test_record_session_dispatch() {
         ]
     });
 
-    let result = dispatch(&state, "contribution.recordSession", params).await;
+    let result = dispatch(&state, "contribution.record_session", params).await;
     assert!(result.is_ok());
     let response = result.unwrap();
     assert_eq!(response["session_id"], "rpc-session-123");
@@ -210,23 +210,23 @@ fn test_dispatch_table_completeness() {
     let expected = [
         "braid.create",
         "braid.get",
-        "braid.getByHash",
+        "braid.get_by_hash",
         "braid.query",
         "braid.delete",
         "braid.commit",
-        "anchoring.anchorBraid",
-        "anchoring.verifyAnchor",
+        "anchoring.anchor",
+        "anchoring.verify",
         "provenance.graph",
-        "provenance.exportProvo",
-        "provenance.exportGraphProvo",
+        "provenance.export_provo",
+        "provenance.export_graph_provo",
         "attribution.chain",
-        "attribution.calculateRewards",
-        "attribution.topContributors",
-        "compression.compressSession",
-        "compression.createMetaBraid",
+        "attribution.calculate_rewards",
+        "attribution.top_contributors",
+        "compression.compress_session",
+        "compression.create_meta_braid",
         "contribution.record",
-        "contribution.recordSession",
-        "contribution.recordDehydration",
+        "contribution.record_session",
+        "contribution.record_dehydration",
         "health.check",
     ];
     for name in expected {
@@ -248,9 +248,13 @@ async fn test_braid_get_by_hash() {
     .unwrap();
     let hash = create["data_hash"].as_str().unwrap();
 
-    let found = dispatch(&state, "braid.getByHash", serde_json::json!({"hash": hash}))
-        .await
-        .unwrap();
+    let found = dispatch(
+        &state,
+        "braid.get_by_hash",
+        serde_json::json!({"hash": hash}),
+    )
+    .await
+    .unwrap();
     assert_eq!(found["data_hash"], hash);
 }
 
@@ -259,7 +263,7 @@ async fn test_braid_get_by_hash_not_found() {
     let state = test_state();
     let result = dispatch(
         &state,
-        "braid.getByHash",
+        "braid.get_by_hash",
         serde_json::json!({"hash": "sha256:nonexistent"}),
     )
     .await;
@@ -352,7 +356,7 @@ async fn test_anchor_braid() {
 
     let result = dispatch(
         &state,
-        "anchoring.anchorBraid",
+        "anchoring.anchor",
         serde_json::json!({"braid_id": braid_id, "spine_id": "main"}),
     )
     .await
@@ -368,7 +372,7 @@ async fn test_anchor_braid_not_found() {
     let state = test_state();
     let result = dispatch(
         &state,
-        "anchoring.anchorBraid",
+        "anchoring.anchor",
         serde_json::json!({"braid_id": "nonexistent"}),
     )
     .await;
@@ -389,7 +393,7 @@ async fn test_anchor_braid_non_sha256() {
 
     let result = dispatch(
         &state,
-        "anchoring.anchorBraid",
+        "anchoring.anchor",
         serde_json::json!({"braid_id": braid_id}),
     )
     .await;
@@ -410,7 +414,7 @@ async fn test_verify_anchor() {
 
     let result = dispatch(
         &state,
-        "anchoring.verifyAnchor",
+        "anchoring.verify",
         serde_json::json!({"braid_id": braid_id}),
     )
     .await
@@ -424,7 +428,7 @@ async fn test_verify_anchor_not_found() {
     let state = test_state();
     let result = dispatch(
         &state,
-        "anchoring.verifyAnchor",
+        "anchoring.verify",
         serde_json::json!({"braid_id": "nonexistent"}),
     )
     .await;
@@ -469,7 +473,7 @@ async fn test_export_provo() {
 
     let result = dispatch(
         &state,
-        "provenance.exportProvo",
+        "provenance.export_provo",
         serde_json::json!({"hash": "sha256:provohash"}),
     )
     .await;
@@ -489,7 +493,7 @@ async fn test_export_graph_provo() {
 
     let result = dispatch(
         &state,
-        "provenance.exportGraphProvo",
+        "provenance.export_graph_provo",
         serde_json::json!({"entity": {"data_hash": "sha256:graphprovohash"}}),
     )
     .await;
@@ -537,7 +541,7 @@ async fn test_calculate_rewards() {
 
     let result = dispatch(
         &state,
-        "attribution.calculateRewards",
+        "attribution.calculate_rewards",
         serde_json::json!({"hash": "sha256:rewardshash", "value": 100.0}),
     )
     .await
@@ -562,7 +566,7 @@ async fn test_top_contributors() {
 
     let result = dispatch(
         &state,
-        "attribution.topContributors",
+        "attribution.top_contributors",
         serde_json::json!({"hash": "sha256:topcontrib", "limit": 5}),
     )
     .await
@@ -583,7 +587,7 @@ async fn test_top_contributors_default_limit() {
 
     let result = dispatch(
         &state,
-        "attribution.topContributors",
+        "attribution.top_contributors",
         serde_json::json!({"hash": "sha256:topdefault"}),
     )
     .await
@@ -615,7 +619,7 @@ async fn test_compress_session() {
         "compute_units": 1.0
     });
 
-    let result = dispatch(&state, "compression.compressSession", params).await;
+    let result = dispatch(&state, "compression.compress_session", params).await;
     assert!(result.is_ok(), "compress should succeed: {result:?}");
 }
 
@@ -639,7 +643,7 @@ async fn test_create_meta_braid() {
 
     let result = dispatch(
         &state,
-        "compression.createMetaBraid",
+        "compression.create_meta_braid",
         serde_json::json!({
             "braid_ids": [b1["@id"], b2["@id"]],
             "summary_type": {"Session": {"session_id": "meta-session"}}
@@ -673,7 +677,7 @@ async fn test_record_dehydration_with_operations() {
         "compression_ratio": 0.42
     });
 
-    let result = dispatch(&state, "contribution.recordDehydration", params).await;
+    let result = dispatch(&state, "contribution.record_dehydration", params).await;
     assert!(
         result.is_ok(),
         "recordDehydration should succeed: {result:?}"
@@ -698,7 +702,7 @@ async fn test_record_dehydration_empty_operations() {
         "dehydrated_at": 200_000
     });
 
-    let result = dispatch(&state, "contribution.recordDehydration", params).await;
+    let result = dispatch(&state, "contribution.record_dehydration", params).await;
     assert!(
         result.is_ok(),
         "dehydration with empty ops should succeed: {result:?}"
@@ -723,7 +727,7 @@ async fn test_record_dehydration_no_agents_fallback() {
         "dehydrated_at": 1
     });
 
-    let result = dispatch(&state, "contribution.recordDehydration", params).await;
+    let result = dispatch(&state, "contribution.record_dehydration", params).await;
     assert!(
         result.is_ok(),
         "dehydration with no agents should use fallback DID"
