@@ -32,7 +32,8 @@ pub struct DehydrationSummary {
     /// Number of vertices in the original DAG.
     pub vertex_count: u64,
 
-    /// Number of branches explored.
+    /// Number of branches explored (defaults to 0 when omitted by older callers).
+    #[serde(default)]
     pub branch_count: u64,
 
     /// Agents who participated in the session.
@@ -46,10 +47,12 @@ pub struct DehydrationSummary {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub operations: Vec<SessionOperation>,
 
-    /// When the session was created.
+    /// When the session was created (defaults to 0 when omitted by older callers).
+    #[serde(default)]
     pub session_start: Timestamp,
 
-    /// When dehydration occurred.
+    /// When dehydration occurred (defaults to 0 when omitted by older callers).
+    #[serde(default)]
     pub dehydrated_at: Timestamp,
 
     /// The frontier hashes (leaf nodes of the DAG at dehydration time).
@@ -196,5 +199,51 @@ mod tests {
         let parsed: SessionOperation = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(parsed.op_type, "derive");
         assert!(!json.contains("description"));
+    }
+
+    #[test]
+    fn test_rhizocrypt_payload_compatibility() {
+        let payload = serde_json::json!({
+            "session_id": "rhizo-session-99",
+            "source_primal": "rhizoCrypt",
+            "merkle_root": "sha256:abc123",
+            "vertex_count": 42,
+            "agents": ["did:key:z6MkAlice", "did:key:z6MkBob"],
+            "session_type": "experiment",
+            "outcome": "Success"
+        });
+
+        let parsed: DehydrationSummary =
+            serde_json::from_value(payload).expect("rhizoCrypt payload should deserialize");
+        assert_eq!(parsed.session_id, "rhizo-session-99");
+        assert_eq!(parsed.source_primal, "rhizoCrypt");
+        assert_eq!(parsed.vertex_count, 42);
+        assert_eq!(parsed.agents.len(), 2);
+        assert_eq!(parsed.branch_count, 0);
+        assert_eq!(parsed.session_start, 0);
+        assert_eq!(parsed.dehydrated_at, 0);
+    }
+
+    #[test]
+    fn test_enriched_rhizocrypt_payload() {
+        let payload = serde_json::json!({
+            "session_id": "rhizo-session-100",
+            "source_primal": "rhizoCrypt",
+            "merkle_root": "sha256:def456",
+            "vertex_count": 100,
+            "branch_count": 5,
+            "agents": ["did:key:z6MkAlice"],
+            "session_start": 1_000_000_u64,
+            "dehydrated_at": 2_000_000_u64,
+            "session_type": "rootpulse",
+            "outcome": "Success"
+        });
+
+        let parsed: DehydrationSummary =
+            serde_json::from_value(payload).expect("enriched payload should deserialize");
+        assert_eq!(parsed.vertex_count, 100);
+        assert_eq!(parsed.branch_count, 5);
+        assert_eq!(parsed.session_start, 1_000_000);
+        assert_eq!(parsed.dehydrated_at, 2_000_000);
     }
 }
