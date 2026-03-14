@@ -5,6 +5,7 @@ members = [
     "crates/sweet-grass-store",
     "crates/sweet-grass-store-postgres",
     "crates/sweet-grass-store-sled",
+    "crates/sweet-grass-store-redb",
     "crates/sweet-grass-factory",
     "crates/sweet-grass-query",
     "crates/sweet-grass-compression",
