@@ -61,7 +61,7 @@ trap cleanup EXIT INT TERM
 echo -e "${YELLOW}📦 Step 1: Verifying Binaries...${NC}"
 echo ""
 
-SWEETGRASS_BIN="$PROJECT_ROOT/target/release/sweet-grass-service"
+SWEETGRASS_BIN="$PROJECT_ROOT/target/release/sweetgrass"
 TOADSTOOL_BIN="$BINS_DIR/toadstool-byob-server"
 NESTGATE_BIN="$BINS_DIR/nestgate"
 

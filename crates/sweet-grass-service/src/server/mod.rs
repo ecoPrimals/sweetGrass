@@ -24,7 +24,7 @@ use sweet_grass_factory::{
     AttributionCalculator, AttributionChain, AttributionConfig, BraidFactory,
 };
 use sweet_grass_query::{ProvenanceGraph, ProvenanceGraphBuilder, QueryEngine};
-use sweet_grass_store::{BraidStore, MemoryStore, QueryFilter, QueryOrder, QueryResult};
+use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder, QueryResult};
 
 use crate::rpc::{
     AgentContributions, CreateBraidRequest, HealthStatus, JsonLdDocument, RewardShare, RpcError,
@@ -35,15 +35,19 @@ use crate::rpc::{
 const DEFAULT_MAX_CONCURRENT_REQUESTS: usize = 10;
 
 /// SweetGrass tarpc server.
+///
+/// Generic over `BraidStore` — shares the same store as the HTTP/JSON-RPC
+/// stack when constructed from `AppState`.
 #[derive(Clone)]
 pub struct SweetGrassServer {
-    store: Arc<MemoryStore>,
+    store: Arc<dyn BraidStore>,
     factory: Arc<BraidFactory>,
     query: Arc<QueryEngine>,
     compression: Arc<CompressionEngine>,
     attribution: Arc<AttributionCalculator>,
+    store_backend: String,
     start_time: Instant,
-    /// Maximum concurrent requests for parallel operations (e.g. agent_contributions).
+    /// Maximum concurrent requests for parallel operations (e.g. `agent_contributions`).
     /// Configurable via `TARPC_MAX_CONCURRENT_REQUESTS` env var or struct field.
     max_concurrent_requests: usize,
 }
@@ -55,7 +59,7 @@ impl SweetGrassServer {
     /// or 10 if unset.
     #[must_use]
     pub fn new(
-        store: Arc<MemoryStore>,
+        store: Arc<dyn BraidStore>,
         factory: Arc<BraidFactory>,
         query: Arc<QueryEngine>,
         compression: Arc<CompressionEngine>,
@@ -71,6 +75,26 @@ impl SweetGrassServer {
             query,
             compression,
             attribution,
+            store_backend: "unknown".to_string(),
+            start_time: Instant::now(),
+            max_concurrent_requests,
+        }
+    }
+
+    /// Create from `AppState` — shares the same store as the HTTP/JSON-RPC stack.
+    #[must_use]
+    pub fn from_app_state(state: &crate::state::AppState) -> Self {
+        let max_concurrent_requests = std::env::var("TARPC_MAX_CONCURRENT_REQUESTS")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(DEFAULT_MAX_CONCURRENT_REQUESTS);
+        Self {
+            store: Arc::clone(&state.store),
+            factory: Arc::clone(&state.factory),
+            query: Arc::clone(&state.query),
+            compression: Arc::clone(&state.compression),
+            attribution: Arc::new(AttributionCalculator::new()),
+            store_backend: state.store_backend.clone(),
             start_time: Instant::now(),
             max_concurrent_requests,
         }
@@ -80,6 +104,13 @@ impl SweetGrassServer {
     #[must_use]
     pub fn with_max_concurrent_requests(mut self, n: usize) -> Self {
         self.max_concurrent_requests = n;
+        self
+    }
+
+    /// Set the store backend label for status reporting.
+    #[must_use]
+    pub fn with_store_backend(mut self, backend: impl Into<String>) -> Self {
+        self.store_backend = backend.into();
         self
     }
 }
@@ -160,7 +191,7 @@ impl SweetGrassRpc for SweetGrassServer {
         max_depth: u32,
         include_activities: bool,
     ) -> Result<ProvenanceGraph, RpcError> {
-        let store = Arc::clone(&self.store) as Arc<dyn BraidStore>;
+        let store = Arc::clone(&self.store);
         let builder = ProvenanceGraphBuilder::new()
             .max_depth(max_depth)
             .include_activities(include_activities);
@@ -495,7 +526,7 @@ impl SweetGrassRpc for SweetGrassServer {
             healthy: true,
             uptime_seconds: self.start_time.elapsed().as_secs(),
             braid_count: count,
-            store_type: "memory".to_string(),
+            store_type: self.store_backend.clone(),
             version: env!("CARGO_PKG_VERSION").to_string(),
         })
     }
@@ -505,8 +536,10 @@ impl SweetGrassRpc for SweetGrassServer {
 pub async fn start_tarpc_server(
     addr: SocketAddr,
     server: SweetGrassServer,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let listener = tarpc::serde_transport::tcp::listen(&addr, Bincode::default).await?;
+) -> std::result::Result<(), crate::ServiceError> {
+    let listener = tarpc::serde_transport::tcp::listen(&addr, Bincode::default)
+        .await
+        .map_err(|e| crate::ServiceError::Internal(format!("tarpc bind failed: {e}")))?;
 
     info!("🌾 SweetGrass tarpc server listening on {}", addr);
 

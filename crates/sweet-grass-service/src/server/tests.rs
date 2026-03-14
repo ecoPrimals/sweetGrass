@@ -11,19 +11,21 @@ use super::*;
 use crate::rpc::SweetGrassRpcClient;
 use sweet_grass_compression::{SessionOutcome, SessionVertex};
 use sweet_grass_core::agent::Did;
+use sweet_grass_store::MemoryStore;
 use tarpc::context;
 use tarpc::serde_transport::tcp;
 use tarpc::tokio_serde::formats::Bincode;
 
 fn make_server() -> SweetGrassServer {
-    let store = Arc::new(MemoryStore::new());
+    let store: Arc<dyn BraidStore> = Arc::new(MemoryStore::new());
     let did = Did::new("did:key:z6MkTest");
     let factory = Arc::new(BraidFactory::new(did));
-    let query = Arc::new(QueryEngine::new(store.clone()));
-    let compression = Arc::new(CompressionEngine::new(factory.clone()));
+    let query = Arc::new(QueryEngine::new(Arc::clone(&store)));
+    let compression = Arc::new(CompressionEngine::new(Arc::clone(&factory)));
     let attribution = Arc::new(AttributionCalculator::new());
 
     SweetGrassServer::new(store, factory, query, compression, attribution)
+        .with_store_backend("memory")
 }
 
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -710,7 +712,7 @@ async fn test_start_tarpc_server_binds_and_accepts() {
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
     let transport = tcp::connect(addr, Bincode::default).await.expect("connect");
-    let client = SweetGrassRpcClient::new(Default::default(), transport).spawn();
+    let client = SweetGrassRpcClient::new(tarpc::client::Config::default(), transport).spawn();
 
     let status = client
         .health_check(context::current())

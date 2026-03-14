@@ -127,15 +127,8 @@ mod tests {
     #[test]
     fn test_app_state_clone() {
         let original = AppState::new_memory(Did::new("did:key:z6MkTestAgent"));
-
-        // Clone is required: test verifies Clone trait produces shared Arc references.
-        #[expect(
-            clippy::redundant_clone,
-            reason = "Test must invoke clone() to assert shared Arc ptrs"
-        )]
         let cloned = original.clone();
 
-        // Cloned state should share the same Arc references
         assert!(Arc::ptr_eq(&original.store, &cloned.store));
         assert!(Arc::ptr_eq(&original.query, &cloned.query));
         assert!(Arc::ptr_eq(&original.factory, &cloned.factory));

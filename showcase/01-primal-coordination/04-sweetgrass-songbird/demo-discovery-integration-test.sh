@@ -89,7 +89,7 @@ test_result() {
 echo -e "${YELLOW}📦 TEST 1: Verify Binaries Exist${NC}"
 echo ""
 
-SWEETGRASS_BIN="$PROJECT_ROOT/target/release/sweet-grass-service"
+SWEETGRASS_BIN="$PROJECT_ROOT/target/release/sweetgrass"
 SONGBIRD_RENDEZVOUS_BIN="$BINS_DIR/songbird-rendezvous"
 
 if [ ! -f "$SWEETGRASS_BIN" ]; then
@@ -234,7 +234,7 @@ echo -e "${BLUE}   Manually announcing SweetGrass to Songbird...${NC}"
 
 ANNOUNCEMENT=$(cat <<EOF
 {
-  "name": "sweet-grass-service",
+  "name": "sweetgrass",
   "version": "0.4.0",
   "endpoint": "http://localhost:$SWEETGRASS_PORT",
   "capabilities": [
@@ -365,7 +365,7 @@ async fn main() -> Result<()> {
     
     // Announce SweetGrass capabilities
     let announcement = ServiceAnnouncement {
-        name: "sweet-grass-service".into(),
+        name: "sweetgrass".into(),
         version: env!("CARGO_PKG_VERSION").into(),
         endpoint: format!("http://localhost:{}", port),
         capabilities: vec![

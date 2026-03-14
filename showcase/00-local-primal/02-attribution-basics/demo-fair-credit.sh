@@ -33,7 +33,7 @@ sleep 2
 # Start service
 echo -e "${BLUE}Starting SweetGrass service...${NC}"
 cd "$PROJECT_ROOT"
-RUST_LOG=error "$PROJECT_ROOT/target/release/sweet-grass-service" \
+RUST_LOG=error "$PROJECT_ROOT/target/release/sweetgrass" \
     --port 8080 --storage memory \
     > "$OUTPUT_DIR/sweetgrass.log" 2>&1 &
 SWEETGRASS_PID=$!

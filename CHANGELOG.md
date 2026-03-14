@@ -5,6 +5,32 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.7] - 2026-03-14
+
+### Deep Audit + Architecture Fix + UniBin Compliance
+
+#### Critical
+
+- **tarpc shared state**: `SweetGrassServer` evolved from `Arc<MemoryStore>` to `Arc<dyn BraidStore>` — tarpc now shares the same store/factory/query/compression as HTTP/JSON-RPC
+- `SweetGrassServer::from_app_state()` constructor for single shared state across all transports
+- `store_type` in status response now reports actual backend (was hardcoded `"memory"`)
+
+#### Changed
+
+- Binary renamed from `sweet-grass-service` to `sweetgrass` (wateringHole `UNIBIN_ARCHITECTURE_STANDARD` compliance)
+- `Box<dyn Error>` eliminated from production: `start_tarpc_server()`, `start_uds_listener()`, `handle_uds_connection()`, `http_health_check()` all use typed `ServiceError` or `Result<String, String>`
+- `ServiceError::Io` variant added for IO error coverage
+- `specs/ARCHITECTURE.md` rewritten — removed stale gRPC/proto/GraphQL references, aligned with actual 10-crate structure
+- Root docs, QUICK_COMMANDS, deploy.sh updated for `sweetgrass` binary name
+- 849 tests passing (was 843), 0 failures
+
+#### Fixed
+
+- Flaky sled corruption test (`test_get_corrupted_braid_returns_error`) — proper db handle flush + drop before re-open eliminates lock contention
+- Clippy `--all-targets --all-features -D warnings` now fully clean (scyborg.rs test `#[allow]`, discovery `String::new()`, server `Config::default()`, state unfulfilled `#[expect]`, sled `similar_names`)
+
+---
+
 ## [0.7.6] - 2026-03-14
 
 ### redb Migration — Pure Rust Storage Evolution

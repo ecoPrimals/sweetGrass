@@ -94,7 +94,7 @@ echo ""
 
 # Start SweetGrass (using in-memory store for demo)
 cd "$PROJECT_ROOT"
-cargo run --bin sweet-grass-service --release -- \
+cargo run --bin sweetgrass --release -- \
     --port "$SWEETGRASS_PORT" \
     > "$LOG_DIR/sweetgrass.log" 2>&1 &
 SWEETGRASS_PID=$!

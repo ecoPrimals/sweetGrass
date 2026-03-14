@@ -8,7 +8,7 @@
 
 ```bash
 # Build and run (zero configuration!)
-cargo build --release && ./target/release/sweet-grass-service
+cargo build --release && ./target/release/sweetgrass server
 ```
 
 That's it! Service runs with zero config.
@@ -261,31 +261,31 @@ kubectl set image deployment/sweetgrass sweetgrass=sweetgrass:v0.2.0
 
 ```bash
 # Memory storage (default)
-./target/release/sweet-grass-service
+./target/release/sweetgrass
 
 # PostgreSQL
 DATABASE_URL=postgresql://user:pass@localhost:5432/sweetgrass \
-./target/release/sweet-grass-service
+./target/release/sweetgrass
 
 # redb (recommended embedded)
 STORAGE_BACKEND=redb \
 STORAGE_PATH=/var/lib/sweetgrass/data.redb \
-./target/release/sweet-grass-service
+./target/release/sweetgrass
 
 # With discovery
 DISCOVERY_ADDRESS=discovery.example.com:9090 \
 DATABASE_URL=postgresql://user:pass@localhost:5432/sweetgrass \
-./target/release/sweet-grass-service
+./target/release/sweetgrass
 
 # Custom ports
 REST_PORT=8080 \
 TARPC_PORT=9090 \
-./target/release/sweet-grass-service
+./target/release/sweetgrass
 
 # Debug logging
 RUST_LOG=debug \
 RUST_BACKTRACE=1 \
-./target/release/sweet-grass-service
+./target/release/sweetgrass
 ```
 
 ---
@@ -327,10 +327,10 @@ tail -f /var/log/sweetgrass/service.log
 journalctl -u sweetgrass -f
 
 # Check resource usage
-ps aux | grep sweet-grass-service
+ps aux | grep sweetgrass
 
 # Memory usage
-pmap $(pgrep sweet-grass-service)
+pmap $(pgrep sweetgrass)
 
 # Network connections
 netstat -an | grep :8080
@@ -366,7 +366,7 @@ cargo fmt --all
 cargo build --release
 
 # 8. Run
-./target/release/sweet-grass-service
+./target/release/sweetgrass
 
 # Or all at once:
 cargo check && \
@@ -430,7 +430,7 @@ docker run -d \
 
 # Run service with PostgreSQL
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sweetgrass \
-./target/release/sweet-grass-service
+./target/release/sweetgrass
 
 # Run integration tests
 cargo test --workspace --test '*' -- --ignored
@@ -520,10 +520,10 @@ cargo test --workspace && \
 cargo clippy --workspace --all-targets -- -D warnings && \
 cargo fmt --all -- --check && \
 cargo llvm-cov --workspace && \
-./target/release/sweet-grass-service &
+./target/release/sweetgrass &
 sleep 2 && \
 curl http://localhost:8080/health && \
-pkill sweet-grass-service && \
+pkill sweetgrass && \
 echo "✅ All checks passed!"
 ```
 
@@ -557,7 +557,7 @@ ls specs/
 
 ```bash
 # Build, test, and run
-cargo build --release && cargo test --workspace && ./target/release/sweet-grass-service
+cargo build --release && cargo test --workspace && ./target/release/sweetgrass
 
 # Full quality check
 cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all -- --check && cargo test --workspace
@@ -566,7 +566,7 @@ cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all -- --ch
 cargo llvm-cov --workspace --html && cargo bench --workspace
 
 # Deploy check
-cargo build --release && cargo test --workspace && ./target/release/sweet-grass-service --help
+cargo build --release && cargo test --workspace && ./target/release/sweetgrass --help
 
 # Health check loop
 watch -n 5 'curl -s http://localhost:8080/health | jq'
@@ -584,19 +584,19 @@ echo "Linting..." && cargo clippy --workspace --all-targets -- -D warnings && \
 echo "Formatting..." && cargo fmt --all -- --check && \
 echo "Coverage..." && cargo llvm-cov --workspace && \
 echo "Benchmarking..." && cargo bench --workspace && \
-echo "Starting service..." && ./target/release/sweet-grass-service &
+echo "Starting service..." && ./target/release/sweetgrass &
 sleep 2 && \
 echo "Health check..." && curl http://localhost:8080/health && \
 echo "" && \
 echo "✅ SweetGrass is PRODUCTION READY!" && \
-pkill sweet-grass-service
+pkill sweetgrass
 ```
 
 ---
 
 🌾 **SweetGrass: One command away from production.** 🌾
 
-**Quick Deploy**: `cargo build --release && ./target/release/sweet-grass-service`  
+**Quick Deploy**: `cargo build --release && ./target/release/sweetgrass`  
 **Full Check**: `cargo test --workspace && cargo clippy --workspace -- -D warnings`  
 **Coverage**: `cargo llvm-cov --workspace --html`  
 **Benchmarks**: `cargo bench --workspace`

@@ -47,6 +47,10 @@ pub enum ServiceError {
     /// Serialization error.
     #[error("serialization error: {0}")]
     Serialization(String),
+
+    /// IO error (UDS, TCP, file operations).
+    #[error("io error: {0}")]
+    Io(#[from] std::io::Error),
 }
 
 /// Error response body.
@@ -65,7 +69,7 @@ impl IntoResponse for ServiceError {
             Self::Store(_) | Self::Query(_) | Self::Factory(_) | Self::Compression(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "processing_error")
             },
-            Self::Core(_) | Self::Internal(_) => {
+            Self::Io(_) | Self::Core(_) | Self::Internal(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "internal_error")
             },
         };
