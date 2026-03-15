@@ -8,7 +8,11 @@
 //! - Recovery and consistency checks
 //! - Resource exhaustion handling
 
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::clone_on_ref_ptr)] // Test code may use unwrap/expect for clarity
+#![expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "test file: expect/unwrap are standard in tests"
+)]
 
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;

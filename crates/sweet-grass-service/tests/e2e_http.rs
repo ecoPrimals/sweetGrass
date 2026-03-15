@@ -4,10 +4,11 @@
 //! These tests start the actual Axum router (without a network socket)
 //! and verify the full request→handler→store→response pipeline.
 
-#![allow(
+#![expect(
     clippy::unwrap_used,
     clippy::expect_used,
-    clippy::needless_pass_by_value
+    clippy::needless_pass_by_value,
+    reason = "test file: expect/unwrap are standard in tests"
 )]
 
 use axum_test::TestServer;

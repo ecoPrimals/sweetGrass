@@ -97,7 +97,7 @@ impl Braid {
     /// Check if this Braid is signed.
     #[must_use]
     pub fn is_signed(&self) -> bool {
-        self.signature.sig_type != "Unsigned"
+        self.signature.sig_type.as_ref() != "Unsigned"
     }
 
     /// Get the content hash for verification.

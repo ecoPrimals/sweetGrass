@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //! Tests for the JSON-RPC 2.0 dispatch handler.
 
-#![allow(clippy::unwrap_used, clippy::expect_used)]
+#![expect(clippy::unwrap_used, reason = "test file: unwrap is standard in tests")]
 
 use super::*;
 use crate::state::AppState;

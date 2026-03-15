@@ -17,8 +17,10 @@ use std::path::PathBuf;
 
 use tracing::{debug, info, warn};
 
+use sweet_grass_core::identity;
+
 /// Default primal name when SelfKnowledge is unavailable.
-const DEFAULT_PRIMAL_NAME: &str = "sweetgrass";
+const DEFAULT_PRIMAL_NAME: &str = identity::PRIMAL_NAME;
 
 /// Resolve the Unix domain socket path using XDG-compliant resolution.
 ///
@@ -181,7 +183,11 @@ pub fn cleanup_socket() {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
+#[expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "test module: expect/unwrap are standard in tests"
+)]
 mod tests {
     use super::*;
     use serial_test::serial;

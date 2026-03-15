@@ -218,7 +218,6 @@ impl Default for CompressionConfig {
 }
 
 #[cfg(test)]
-#[allow(clippy::float_cmp, clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
 

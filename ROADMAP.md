@@ -1,10 +1,23 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.7 (March 2026)
+**Current Version**: v0.7.8 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.8 — Deep Debt Evolution: Zero-Copy + Benchmarks + Config (March 2026)
+
+- [x] `ActivityId(String)` → `ActivityId(Arc<str>)` — O(1) clone, consistent zero-copy strategy
+- [x] `BraidSignature` fields → `Cow<'static, str>` — zero heap allocation for static values
+- [x] `BraidContext.imports` → `IndexMap` — deterministic JSON-LD serialization
+- [x] `#[allow]` → `#[expect(..., reason)]` — ~50+ attributes across all 10 crates
+- [x] Primal identity constants centralized (`identity::PRIMAL_NAME`, `PRIMAL_DISPLAY_NAME`)
+- [x] Test address constants centralized (`TEST_BIND_ADDR`, `TEST_REST_URL`, etc.)
+- [x] Criterion benchmarks — 7 groups (braid, store, hash, query, attribution, compression, traversal)
+- [x] TOML config file support — `SweetGrassConfig::load()`, XDG-compliant, env > file > defaults
+- [x] Smart refactoring: `factory.rs` 820→310+330, `listener/mod.rs` 703→320+testing+tests
+- [x] 853 tests passing (was 849), 0 failures, 0 unsafe
 
 ### v0.7.7 — Deep Audit + Architecture Fix + UniBin Compliance (March 2026)
 
@@ -219,7 +232,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.7 | **March 2026** | Deep Audit + Architecture Fix + UniBin (DONE) |
+| v0.7.8 | **March 2026** | Deep Debt Evolution: Zero-Copy + Benchmarks + Config (DONE) |
+| v0.7.7 | March 2026 | Deep Audit + Architecture Fix + UniBin (DONE) |
 | v0.7.6 | March 2026 | redb Migration: Pure Rust Storage Evolution (DONE) |
 | v0.7.5 | March 2026 | Sovereignty Hardening + Coverage Push (DONE) |
 | v0.7.4 | March 2026 | Deep Debt: parking_lot + Refactor (DONE) |

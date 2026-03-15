@@ -4,12 +4,12 @@
 //! These tests verify the complete attribution pipeline from
 //! data creation through querying and export.
 
-#![allow(
+#![expect(
     clippy::unwrap_used,
     clippy::expect_used,
-    clippy::float_cmp,
-    clippy::clone_on_ref_ptr
-)] // Test code may use unwrap/expect for clarity
+    clippy::clone_on_ref_ptr,
+    reason = "test file: expect/unwrap are standard in tests"
+)]
 
 use std::sync::Arc;
 

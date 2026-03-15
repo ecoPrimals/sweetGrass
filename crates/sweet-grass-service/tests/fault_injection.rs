@@ -4,7 +4,7 @@
 //! Tests that verify the system returns proper HTTP/JSON-RPC error codes when
 //! the store fails, and that data integrity is preserved under faults.
 
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::clone_on_ref_ptr)]
+#![expect(clippy::expect_used, reason = "test file: expect is standard in tests")]
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;

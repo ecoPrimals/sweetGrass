@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-#![allow(clippy::float_cmp, clippy::expect_used, clippy::unwrap_used)]
+#![expect(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    reason = "test file: expect/unwrap are standard in tests"
+)]
 
 use super::*;
 use std::sync::Arc;

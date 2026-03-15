@@ -131,7 +131,10 @@ impl AttributionNotice {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[expect(
+    clippy::unwrap_used,
+    reason = "test module: unwrap is standard in tests"
+)]
 mod tests {
     use super::*;
 

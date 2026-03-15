@@ -373,7 +373,10 @@ impl Default for PrivacyMetadataBuilder {
 }
 
 #[cfg(test)]
-#[allow(clippy::expect_used)]
+#[expect(
+    clippy::expect_used,
+    reason = "test module: expect is standard in tests"
+)]
 mod tests {
     use super::*;
 

@@ -26,7 +26,11 @@
 //! ```
 
 #![cfg(feature = "integration-tests")]
-#![allow(clippy::expect_used, clippy::unwrap_used)] // Test code clarity
+#![expect(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    reason = "test file: expect/unwrap are standard in tests"
+)]
 
 pub mod common;
 pub mod crud;

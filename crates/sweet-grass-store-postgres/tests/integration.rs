@@ -32,8 +32,11 @@
 //! - Containers auto-cleanup after tests
 
 #![cfg(feature = "integration-tests")]
-#![allow(clippy::expect_used, clippy::unwrap_used)]
-// Test code clarity
+#![expect(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    reason = "test file: expect/unwrap are standard in tests"
+)]
 
 // New modular organization (fully migrated)
 mod integration {

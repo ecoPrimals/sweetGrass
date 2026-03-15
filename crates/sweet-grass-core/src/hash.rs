@@ -52,7 +52,6 @@ pub fn sha256(data: &[u8]) -> ContentHash {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
 

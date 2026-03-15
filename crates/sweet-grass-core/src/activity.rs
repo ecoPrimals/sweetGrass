@@ -5,6 +5,7 @@
 //! consume inputs and produce outputs.
 
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::agent::{AgentAssociation, Did};
@@ -12,32 +13,50 @@ use crate::braid::Timestamp;
 use crate::entity::EntityReference;
 
 /// Activity identifier (URN format).
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct ActivityId(String);
+///
+/// Uses `Arc<str>` internally so `.clone()` is O(1) (atomic refcount increment),
+/// matching the zero-copy strategy used by [`ContentHash`], [`BraidId`], and [`Did`].
+///
+/// [`ContentHash`]: crate::braid::ContentHash
+/// [`BraidId`]: crate::braid::BraidId
+/// [`Did`]: crate::agent::Did
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
+pub struct ActivityId(Arc<str>);
 
 impl ActivityId {
     /// Create a new random Activity ID.
     #[must_use]
     pub fn new() -> Self {
-        Self(format!("urn:activity:uuid:{}", Uuid::new_v4()))
+        Self(format!("urn:activity:uuid:{}", Uuid::new_v4()).into())
     }
 
     /// Create an Activity ID from a task ID.
     #[must_use]
     pub fn from_task(task_id: &str) -> Self {
-        Self(format!("urn:activity:task:{task_id}"))
+        Self(format!("urn:activity:task:{task_id}").into())
     }
 
     /// Create an Activity ID from a string (for deserialization from storage).
     #[must_use]
     pub fn from_string(s: impl Into<String>) -> Self {
-        Self(s.into())
+        let s = s.into();
+        Self(Arc::from(s.into_boxed_str()))
     }
 
     /// Get the inner string representation.
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+}
+
+impl<'de> Deserialize<'de> for ActivityId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        Ok(Self(Arc::from(s.into_boxed_str())))
     }
 }
 
@@ -49,7 +68,19 @@ impl Default for ActivityId {
 
 impl std::fmt::Display for ActivityId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        f.write_str(&self.0)
+    }
+}
+
+impl From<&str> for ActivityId {
+    fn from(s: &str) -> Self {
+        Self(Arc::from(s))
+    }
+}
+
+impl From<String> for ActivityId {
+    fn from(s: String) -> Self {
+        Self(Arc::from(s.into_boxed_str()))
     }
 }
 
@@ -459,7 +490,10 @@ impl ActivityBuilder {
 }
 
 #[cfg(test)]
-#[allow(clippy::float_cmp, clippy::expect_used, clippy::unwrap_used)]
+#[expect(
+    clippy::expect_used,
+    reason = "test module: expect is standard in tests"
+)]
 mod tests {
     use super::*;
     use crate::agent::{AgentRole, Did};

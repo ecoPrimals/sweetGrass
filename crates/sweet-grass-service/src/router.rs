@@ -86,7 +86,6 @@ pub fn create_test_router(state: AppState) -> Router {
 }
 
 #[cfg(test)]
-#[allow(clippy::float_cmp, clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
     use sweet_grass_core::agent::Did;

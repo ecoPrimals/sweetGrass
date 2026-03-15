@@ -1,7 +1,7 @@
 # 🌾 SweetGrass — Development Guide
 
 **Last Updated**: March 14, 2026  
-**Version**: v0.7.7
+**Version**: v0.7.8
 
 ---
 
@@ -187,7 +187,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 91% region coverage / 89% line coverage (849 tests passing)
+- **Overall**: 91% region coverage / 89% line coverage (853 tests passing)
 - **Target**: 90%+ (achieved)
 
 ### Per-Crate Coverage
@@ -424,7 +424,7 @@ SELECT * FROM braids LIMIT 10;
 
 ```bash
 # Update Cargo.toml versions
-cargo set-version 0.7.6
+cargo set-version 0.7.8
 
 # Update CHANGELOG.md and ROADMAP.md
 ```

@@ -8,6 +8,24 @@
 
 use std::net::TcpListener;
 
+/// Test bind address for mock services (OS-allocated port).
+pub const TEST_BIND_ADDR: &str = "127.0.0.1:0";
+
+/// Test base URL for mock HTTP services (OS-allocated port).
+pub const TEST_HTTP_BASE: &str = "http://127.0.0.1:0";
+
+/// Test REST URL for discovery test fixtures (arbitrary port, not for binding).
+pub const TEST_REST_URL: &str = "http://localhost:8080";
+
+/// Test tarpc address for discovery test fixtures (arbitrary port, not for binding).
+pub const TEST_TARPC_ADDR: &str = "localhost:9000";
+
+/// Test tarpc URI for discovery test fixtures (arbitrary port, not for binding).
+pub const TEST_TARPC_URI: &str = "tcp://localhost:9000";
+
+/// Invalid address for testing connection failure (reserved port).
+pub const TEST_INVALID_ADDR: &str = "127.0.0.1:1";
+
 /// Allocate a random port from the operating system.
 ///
 /// This avoids port conflicts in CI/CD pipelines and follows the
@@ -25,9 +43,12 @@ use std::net::TcpListener;
 /// let addr = format!("127.0.0.1:{port}");
 /// let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
 /// ```
-#[allow(clippy::expect_used)] // Test helper: panic on system failure is acceptable
+#[expect(
+    clippy::expect_used,
+    reason = "test helper: panic on system failure is acceptable"
+)]
 pub fn allocate_test_port() -> u16 {
-    TcpListener::bind("127.0.0.1:0")
+    TcpListener::bind(TEST_BIND_ADDR)
         .expect("OS should allocate port")
         .local_addr()
         .expect("should have local address")

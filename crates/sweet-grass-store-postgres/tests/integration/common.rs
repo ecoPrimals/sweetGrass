@@ -4,7 +4,10 @@
 //! Note: Some helpers may be unused during incremental test refactoring.
 //! They are kept for future test modules being migrated.
 
-#![allow(dead_code)] // Test utilities for incremental migration
+#![expect(
+    dead_code,
+    reason = "test helpers used by multiple integration test files"
+)]
 
 use sweet_grass_core::{
     activity::{Activity, ActivityType},

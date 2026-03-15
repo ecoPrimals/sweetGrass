@@ -228,7 +228,11 @@ impl Default for SessionAnalyzer {
 }
 
 #[cfg(test)]
-#[allow(clippy::float_cmp, clippy::expect_used, clippy::unwrap_used)]
+#[expect(
+    clippy::float_cmp,
+    clippy::expect_used,
+    reason = "test module: float comparison, expect are standard in tests"
+)]
 mod tests {
     use super::*;
     use crate::session::SessionVertex;
