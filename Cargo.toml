@@ -14,7 +14,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.7.8"
+version = "0.7.9"
 edition = "2021"
 license = "AGPL-3.0-only"
 repository = "https://github.com/ecoPrimals/sweetGrass"
@@ -98,9 +98,9 @@ unwrap_used = "warn"
 expect_used = "warn"
 clone_on_ref_ptr = "warn"
 
-# Allow some overly pedantic lints
+# Specific pedantic overrides
 module_name_repetitions = "allow"
-missing_const_for_fn = "allow"
 must_use_candidate = "allow"
+# Evolving toward full pedantic: keeping these as allow until systematic cleanup
+missing_const_for_fn = "allow"
 missing_errors_doc = "allow"
-doc_markdown = "allow"

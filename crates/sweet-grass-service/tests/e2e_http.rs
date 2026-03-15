@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! HTTP-level E2E tests exercising REST and JSON-RPC 2.0 endpoints.
 //!
 //! These tests start the actual Axum router (without a network socket)

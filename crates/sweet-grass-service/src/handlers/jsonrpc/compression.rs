@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! Compression domain handlers: compress_session, create_meta_braid.
+// Copyright (C) 2024–2026 ecoPrimals Project
+//! Compression domain handlers: `compress_session`, `create_meta_braid`.
 
 use serde::Deserialize;
 use sweet_grass_compression::Session;

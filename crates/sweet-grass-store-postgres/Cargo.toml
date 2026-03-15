@@ -6,6 +6,9 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
+readme = "../../README.md"
+keywords = ["postgres", "storage", "provenance", "braids", "database"]
+categories = ["database"]
 
 [lints]
 workspace = true
@@ -39,6 +42,7 @@ chrono = { workspace = true }
 uuid = { workspace = true }
 
 [dev-dependencies]
+sweet-grass-integration = { path = "../sweet-grass-integration", features = ["test"] }
 tokio = { workspace = true, features = ["test-util", "macros"] }
 testcontainers = "0.23"
 testcontainers-modules = { version = "0.11", features = ["postgres"] }

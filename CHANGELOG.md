@@ -5,6 +5,62 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.9] - 2026-03-15
+
+### Deep Debt Audit — Pedantic Quality + Capability Discovery + Spec Evolution
+
+Comprehensive pedantic audit and documentation pass. `capability.list` JSON-RPC
+method added for runtime primal discovery per wateringHole standards. All 10
+crates now enforce `#![warn(missing_docs)]` and `doc_markdown` lint. Copyright
+notices, Cargo metadata, and spec documents brought to current state.
+
+### Added
+
+- **`capability.list` JSON-RPC method** — Returns primal name, version, supported
+  domains, and method list. Implements wateringHole `SPRING_AS_NICHE_DEPLOYMENT_STANDARD`
+  for runtime capability discovery
+- **`#![warn(missing_docs)]`** on all 10 crates (was only 5)
+- **Copyright notice** (`Copyright (C) 2024–2026 ecoPrimals Project`) on all 112
+  source files (was missing from most)
+- **Cargo metadata** — `readme`, `keywords`, `categories` fields on all 10 crate
+  `Cargo.toml` files
+- **Centralized PostgreSQL test URLs** — `TEST_DB_URL`, `test_db_url()`,
+  `postgres_test_url_for_port()` in `sweet-grass-integration::testing`
+
+### Changed
+
+- **`doc_markdown` lint enabled** — Removed `doc_markdown = "allow"` override;
+  all backtick warnings auto-fixed via `cargo clippy --fix`
+- **`test-support` → `test` feature rename** — 4 crate `Cargo.toml` + 14 source
+  files updated per `clippy::cargo` recommendation
+- **`config.rs` smart-refactored** — `config.rs` (879L) → `config/mod.rs` (455L)
+  + `config/tests.rs` (271L)
+- **`specs/SWEETGRASS_SPECIFICATION.md`** — Section 8.1 evolved from gRPC/protobuf
+  to current tarpc + JSON-RPC 2.0 architecture; Section 12 roadmap updated to
+  reflect v0.7.x reality
+- **`deploy.sh`** — Hardcoded `DEFAULT_PORT=8080` replaced with
+  `SWEETGRASS_HTTP_PORT` env-var cascade
+- **Redundant `#![allow]`** removed from 3 crate `lib.rs` files (workspace lints
+  now handle `missing_const_for_fn` and `missing_errors_doc`)
+- **Dispatch table** — Updated from 20 to 21 methods; test updated accordingly
+
+### Metrics
+
+```
+Version:        0.7.9
+Tests:          857 passing (was 853)
+Region coverage: 91% (cargo llvm-cov)
+Line coverage:  89% (cargo llvm-cov)
+Clippy:         0 warnings (pedantic + nursery + doc_markdown)
+Max file:       455 lines (limit: 1000)
+TODOs:          0 in source
+Unsafe:         0 (forbidden)
+JSON-RPC:       21 methods (was 20)
+Crates:         10, all with missing_docs + copyright + Cargo metadata
+```
+
+---
+
 ## [0.7.8] - 2026-03-14
 
 ### Deep Debt Evolution — Zero-Copy + Idiomatic Rust + Benchmarks + Config

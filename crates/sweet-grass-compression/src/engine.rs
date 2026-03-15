@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Compression Engine implementation.
 //!
 //! Compresses session events into Braids using the 0/1/Many model.

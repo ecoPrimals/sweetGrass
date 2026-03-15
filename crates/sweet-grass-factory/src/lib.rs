@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! Braid Factory - creates Braids from various sources.
+// Copyright (C) 2024–2026 ecoPrimals Project
+//! Braid Factory — creates Braids from various sources.
 //!
 //! The factory handles:
 //! - Creating Braids from data with computed hashes
@@ -9,6 +10,7 @@
 //! - Signing Braids with agent credentials
 
 #![forbid(unsafe_code)]
+#![warn(missing_docs)]
 
 pub mod attribution;
 pub mod error;

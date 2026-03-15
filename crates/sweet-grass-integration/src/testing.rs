@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Test utilities for integration testing.
 //!
 //! Provides helpers for creating test fixtures and managing test infrastructure
 //! without hardcoding.
 
-#![cfg(any(test, feature = "test-support"))]
+#![cfg(any(test, feature = "test"))]
 
 use std::net::TcpListener;
 
@@ -25,6 +26,39 @@ pub const TEST_TARPC_URI: &str = "tcp://localhost:9000";
 
 /// Invalid address for testing connection failure (reserved port).
 pub const TEST_INVALID_ADDR: &str = "127.0.0.1:1";
+
+// ---------------------------------------------------------------------------
+// PostgreSQL test database URLs
+// ---------------------------------------------------------------------------
+
+/// Fallback PostgreSQL URL when `TEST_DATABASE_URL` is not set (e.g. local dev).
+pub const TEST_DB_URL_FALLBACK: &str = "postgresql://postgres:postgres@localhost/sweetgrass_test";
+
+/// PostgreSQL URL for generic test database (factory/config tests).
+pub const TEST_DB_URL: &str = "postgresql://localhost/test";
+
+/// PostgreSQL URL for primary database (preference tests).
+pub const TEST_DB_URL_PRIMARY: &str = "postgresql://localhost/primary";
+
+/// PostgreSQL URL for secondary database (preference tests).
+pub const TEST_DB_URL_SECONDARY: &str = "postgresql://localhost/secondary";
+
+/// Get test database URL from `TEST_DATABASE_URL` env var or fallback.
+///
+/// Use this for integration tests that need a real PostgreSQL connection
+/// (migrations, CRUD). Prefer constants for unit tests that only need valid URLs.
+#[must_use]
+pub fn test_db_url() -> String {
+    std::env::var("TEST_DATABASE_URL").unwrap_or_else(|_| TEST_DB_URL_FALLBACK.to_string())
+}
+
+/// Format a PostgreSQL URL for testcontainers (dynamic host/port).
+///
+/// Use when connecting to a containerized PostgreSQL instance.
+#[must_use]
+pub fn postgres_test_url_for_port(port: u16) -> String {
+    format!("postgresql://postgres:postgres@127.0.0.1:{port}/postgres")
+}
 
 /// Allocate a random port from the operating system.
 ///

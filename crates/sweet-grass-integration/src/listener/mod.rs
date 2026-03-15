@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Session events listener.
 //!
 //! Provides capability-based discovery for subscribing to session events
@@ -217,10 +218,10 @@ impl EventHandler {
 // Test-only implementations
 // ============================================================================
 
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(any(test, feature = "test"))]
 pub mod testing;
 
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(any(test, feature = "test"))]
 #[allow(unused_imports)] // Re-export for external consumers; may be unused in some builds
 pub use testing::MockSessionEventsClient;
 

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Unix domain socket transport for biomeOS IPC.
 //!
 //! Provides XDG-compliant socket path resolution and a newline-delimited
@@ -19,12 +20,12 @@ use tracing::{debug, info, warn};
 
 use sweet_grass_core::identity;
 
-/// Default primal name when SelfKnowledge is unavailable.
+/// Default primal name when `SelfKnowledge` is unavailable.
 const DEFAULT_PRIMAL_NAME: &str = identity::PRIMAL_NAME;
 
 /// Resolve the Unix domain socket path using XDG-compliant resolution.
 ///
-/// The primal name is derived from SelfKnowledge when available (e.g. via
+/// The primal name is derived from `SelfKnowledge` when available (e.g. via
 /// `state.self_knowledge`). When `primal_name` is `None`, falls back to
 /// `PRIMAL_NAME` env var or `"sweetgrass"`.
 ///

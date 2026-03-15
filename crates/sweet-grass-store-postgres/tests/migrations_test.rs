@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Tests for PostgreSQL database migrations.
 //!
 //! Ensures migrations are idempotent and schema is correct.
@@ -7,14 +8,11 @@
 
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
-
-/// Fallback PostgreSQL URL when TEST_DATABASE_URL is not set (e.g. local dev).
-const TEST_DATABASE_URL_FALLBACK: &str = "postgres://postgres:postgres@localhost/sweetgrass_test";
+use sweet_grass_integration::testing::test_db_url;
 
 /// Test helper to create a test database
 async fn create_test_db() -> PgPool {
-    let database_url = std::env::var("TEST_DATABASE_URL")
-        .unwrap_or_else(|_| TEST_DATABASE_URL_FALLBACK.to_string());
+    let database_url = test_db_url();
 
     PgPoolOptions::new()
         .max_connections(5)

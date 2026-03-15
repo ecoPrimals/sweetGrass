@@ -7,8 +7,8 @@
 //! framework, which combines AGPL-3.0 (code), ORC (game mechanics),
 //! and CC-BY-SA-4.0 (creative content).
 //!
-//! These types are stored in sweetGrass braids, referenced by rhizoCrypt
-//! vertex metadata, and enforced by LoamSpine certificates.
+//! These types are stored in `sweetGrass` braids, referenced by `rhizoCrypt`
+//! vertex metadata, and enforced by `LoamSpine` certificates.
 
 use serde::{Deserialize, Serialize};
 

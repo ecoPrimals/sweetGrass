@@ -1,10 +1,26 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.8 (March 2026)
+**Current Version**: v0.7.9 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.9 — Deep Debt Audit: Pedantic Quality + Capability Discovery + Spec Evolution (March 2026)
+
+- [x] `capability.list` JSON-RPC method — wateringHole `SPRING_AS_NICHE_DEPLOYMENT_STANDARD` compliance
+- [x] `#![warn(missing_docs)]` on all 10 crates (was 5)
+- [x] `doc_markdown` lint enabled — all backtick warnings fixed via `cargo clippy --fix`
+- [x] Cargo metadata (`readme`, `keywords`, `categories`) on all 10 crates
+- [x] Copyright notice (`Copyright (C) 2024–2026 ecoPrimals Project`) on all 112 source files
+- [x] `test-support` feature renamed to `test` per clippy::cargo (14 files)
+- [x] `config.rs` (879L) smart-refactored → `config/mod.rs` (455L) + `config/tests.rs` (271L)
+- [x] PostgreSQL test URLs centralized with env-var fallback pattern
+- [x] `specs/SWEETGRASS_SPECIFICATION.md` Section 8.1 evolved: gRPC/protobuf → tarpc + JSON-RPC 2.0
+- [x] `specs/SWEETGRASS_SPECIFICATION.md` Section 12 roadmap updated to reflect v0.7.x reality
+- [x] `deploy.sh` evolved from hardcoded port to env-var based (`SWEETGRASS_HTTP_PORT`)
+- [x] Redundant `#![allow]` removed from 3 crate lib.rs files (workspace lints handle them)
+- [x] 857 tests passing (was 853), 0 failures, 0 unsafe, 0 clippy warnings
 
 ### v0.7.8 — Deep Debt Evolution: Zero-Copy + Benchmarks + Config (March 2026)
 
@@ -232,7 +248,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.8 | **March 2026** | Deep Debt Evolution: Zero-Copy + Benchmarks + Config (DONE) |
+| v0.7.9 | **March 2026** | Deep Debt Audit: Pedantic Quality + Capability Discovery (DONE) |
+| v0.7.8 | March 2026 | Deep Debt Evolution: Zero-Copy + Benchmarks + Config (DONE) |
 | v0.7.7 | March 2026 | Deep Audit + Architecture Fix + UniBin (DONE) |
 | v0.7.6 | March 2026 | redb Migration: Pure Rust Storage Evolution (DONE) |
 | v0.7.5 | March 2026 | Sovereignty Hardening + Coverage Push (DONE) |

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! `SweetGrass` Demo - Full Attribution Pipeline
 //!
 //! This example demonstrates the complete `SweetGrass` workflow:

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! Contribution domain handlers: record, record_session, record_dehydration.
+// Copyright (C) 2024–2026 ecoPrimals Project
+//! Contribution domain handlers: record, `record_session`, `record_dehydration`.
 
 use sweet_grass_core::{
     braid::{CompressionMeta, EcoPrimalsAttributes},

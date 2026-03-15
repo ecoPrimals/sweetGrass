@@ -16,13 +16,9 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Configuration
-DEFAULT_PORT=8080
-DEFAULT_BACKEND="redb"
-
-# Parse arguments
-PORT="${1:-$DEFAULT_PORT}"
-BACKEND="${2:-$DEFAULT_BACKEND}"
+# Configuration — all from env vars (capability-based, no hardcoding)
+PORT="${SWEETGRASS_HTTP_PORT:-${1:-8080}}"
+BACKEND="${STORAGE_BACKEND:-${2:-redb}}"
 
 echo -e "${BLUE}Configuration:${NC}"
 echo "  Port: $PORT"

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! # `SweetGrass`
 //!
 //! Attribution Layer - Semantic Provenance & PROV-O
@@ -79,9 +80,9 @@ pub type Result<T> = std::result::Result<T, SweetGrassError>;
 
 /// Test fixture constants for capability-based test isolation.
 ///
-/// Available when building tests or with the `test-support` feature.
+/// Available when building tests or with the `test` feature.
 /// These replace hardcoded primal names with capability-agnostic identifiers.
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(any(test, feature = "test"))]
 pub mod test_fixtures {
     /// Capability-based test primal name for source attribution.
     ///

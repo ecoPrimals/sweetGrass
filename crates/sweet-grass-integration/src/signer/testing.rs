@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Test-only mock implementations for signing.
 //!
 //! These are isolated from production code and only available in test builds.
@@ -8,7 +9,7 @@
 //! Mock implementations use capability-based naming (`MockSigningClient`)
 //! rather than primal-specific names.
 
-#![cfg(any(test, feature = "test-support"))]
+#![cfg(any(test, feature = "test"))]
 #![expect(
     clippy::cast_sign_loss,
     reason = "test-only module; timestamp cast from i64 to u64 is safe in tests"

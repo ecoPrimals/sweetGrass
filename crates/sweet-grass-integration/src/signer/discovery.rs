@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Discovery-based signing services.
 //!
 //! Uses capability-based discovery to find signing primals at runtime.

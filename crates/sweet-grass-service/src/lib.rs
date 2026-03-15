@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! `SweetGrass` Service Layer.
 //!
 //! Pure Rust service providing tarpc (primary) and REST (fallback) APIs.
@@ -29,29 +30,26 @@
 //! ## REST API (Fallback)
 //!
 //! ### Braids
-//! - `GET /api/v1/braids/:id` - Get a Braid by ID
-//! - `GET /api/v1/braids/hash/:hash` - Get a Braid by content hash
-//! - `POST /api/v1/braids` - Create a new Braid
-//! - `GET /api/v1/braids?agent=...&tag=...` - Query Braids
+//! - `GET /api/v1/braids/:id` — Get a Braid by ID
+//! - `GET /api/v1/braids/hash/:hash` — Get a Braid by content hash
+//! - `POST /api/v1/braids` — Create a new Braid
+//! - `GET /api/v1/braids?agent=...&tag=...` — Query Braids
 //!
 //! ### Provenance
-//! - `GET /api/v1/provenance/:hash` - Get provenance graph
-//! - `GET /api/v1/provenance/:hash/prov-o` - Export as PROV-O JSON-LD
+//! - `GET /api/v1/provenance/:hash` — Get provenance graph
+//! - `GET /api/v1/provenance/:hash/prov-o` — Export as PROV-O JSON-LD
 //!
 //! ### Attribution
-//! - `GET /api/v1/attribution/:hash` - Get attribution chain
+//! - `GET /api/v1/attribution/:hash` — Get attribution chain
 //!
 //! ### Compression
-//! - `POST /api/v1/compress` - Compress session to Braids
+//! - `POST /api/v1/compress` — Compress session to Braids
 //!
 //! ### Health
-//! - `GET /health` - Health check
+//! - `GET /health` — Health check
 
 #![forbid(unsafe_code)]
-// Note: These pedantic lints are planned for cleanup in v0.3.0
-#![allow(clippy::missing_const_for_fn)]
-#![allow(clippy::missing_errors_doc)]
-#![allow(clippy::doc_markdown)]
+#![warn(missing_docs)]
 
 pub mod bootstrap;
 pub mod error;

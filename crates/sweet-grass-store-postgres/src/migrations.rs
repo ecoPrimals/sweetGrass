@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Database migrations for the `PostgreSQL` store.
 //!
 //! Migrations are embedded and run automatically on startup.

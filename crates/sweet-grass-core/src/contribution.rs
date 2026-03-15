@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Contribution recording types for inter-primal attribution.
 //!
 //! When a primal completes work (e.g., `rhizoCrypt` dehydrates a session),

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! `SweetGrass` error types.
 //!
 //! Comprehensive error handling for all `SweetGrass` operations.
@@ -106,7 +107,7 @@ pub enum SweetGrassError {
 
     /// Capability provider error (structured, vendor-agnostic).
     ///
-    /// Matches rhizoCrypt's and LoamSpine's `CapabilityProvider` for ecosystem consistency.
+    /// Matches `rhizoCrypt`'s and `LoamSpine`'s `CapabilityProvider` for ecosystem consistency.
     #[error("capability provider error ({capability}): {message}")]
     CapabilityProvider {
         /// The capability that failed.

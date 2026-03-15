@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! PostgreSQL integration tests organized by domain.
 //!
 //! This module contains comprehensive integration tests for the PostgreSQL

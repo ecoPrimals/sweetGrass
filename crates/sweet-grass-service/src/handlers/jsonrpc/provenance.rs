@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! Provenance domain handlers: graph, export_provo, export_graph_provo.
+// Copyright (C) 2024–2026 ecoPrimals Project
+//! Provenance domain handlers: graph, `export_provo`, `export_graph_provo`.
 
 use serde::Deserialize;
 use sweet_grass_core::braid::ContentHash;

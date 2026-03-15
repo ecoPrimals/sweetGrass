@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Activity data structures - processes that create or transform data.
 //!
 //! Activities represent the "how" of provenance - the processes that

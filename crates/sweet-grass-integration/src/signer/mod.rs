@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Signing capability integration.
 //!
 //! Provides traits for signing `Braid`s via capability-based discovery.
@@ -28,7 +29,7 @@ mod discovery;
 mod tarpc_client;
 mod traits;
 
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(any(test, feature = "test"))]
 pub mod testing;
 
 // Re-export core traits (capability-based naming)
