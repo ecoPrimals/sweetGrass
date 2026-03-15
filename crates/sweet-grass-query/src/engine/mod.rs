@@ -45,7 +45,7 @@ impl QueryEngine {
 
     /// Set the maximum traversal depth.
     #[must_use]
-    pub fn with_max_depth(mut self, depth: u32) -> Self {
+    pub const fn with_max_depth(mut self, depth: u32) -> Self {
         self.max_depth = depth;
         self
     }
@@ -53,31 +53,55 @@ impl QueryEngine {
     // === Basic Queries ===
 
     /// Get a Braid by ID.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store operation fails.
     pub async fn get(&self, id: &BraidId) -> Result<Option<Braid>> {
         Ok(self.store.get(id).await?)
     }
 
     /// Get a Braid by content hash.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store operation fails.
     pub async fn get_by_hash(&self, hash: &ContentHash) -> Result<Option<Braid>> {
         Ok(self.store.get_by_hash(hash).await?)
     }
 
     /// Query Braids with a filter.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store operation fails.
     pub async fn query(&self, filter: &QueryFilter, order: QueryOrder) -> Result<QueryResult> {
         Ok(self.store.query(filter, order).await?)
     }
 
     /// Get all Braids attributed to an agent.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store operation fails.
     pub async fn by_agent(&self, agent: &Did) -> Result<Vec<Braid>> {
         Ok(self.store.by_agent(agent).await?)
     }
 
     /// Get all Braids derived from an entity.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store operation fails.
     pub async fn derived_from(&self, hash: &ContentHash) -> Result<Vec<Braid>> {
         Ok(self.store.derived_from(hash).await?)
     }
 
     /// Check if a Braid exists.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store operation fails.
     pub async fn exists(&self, id: &BraidId) -> Result<bool> {
         Ok(self.store.exists(id).await?)
     }
@@ -85,6 +109,10 @@ impl QueryEngine {
     // === Provenance Queries ===
 
     /// Build a provenance graph from a root entity.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if traversal fails or the store operation fails.
     pub async fn provenance_graph(
         &self,
         root: EntityReference,
@@ -101,6 +129,10 @@ impl QueryEngine {
     ///
     /// This method uses concurrent queries to fetch multiple ancestors simultaneously,
     /// improving performance for deep provenance chains.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if a store operation fails or a spawned task fails to join.
     pub async fn ancestors_parallel(
         &self,
         hash: &ContentHash,
@@ -149,6 +181,10 @@ impl QueryEngine {
     }
 
     /// Get ancestors of an entity (what it was derived from).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if provenance graph building fails.
     pub async fn ancestors(&self, hash: &ContentHash, depth: Option<u32>) -> Result<Vec<Braid>> {
         let graph = self
             .provenance_graph(EntityReference::by_hash(hash), depth)
@@ -163,6 +199,10 @@ impl QueryEngine {
     }
 
     /// Get descendants of an entity (what was derived from it).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store operation fails.
     pub async fn descendants(&self, hash: &ContentHash) -> Result<Vec<Braid>> {
         // For descendants, we need to search forward, not backward
         // This is done by querying for Braids that have this hash as a derivation source
@@ -172,6 +212,10 @@ impl QueryEngine {
     // === Attribution Queries ===
 
     /// Calculate the attribution chain for an entity.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the entity is not found or the store operation fails.
     pub async fn attribution_chain(&self, hash: &ContentHash) -> Result<AttributionChain> {
         let braid = self
             .get_by_hash(hash)
@@ -188,6 +232,10 @@ impl QueryEngine {
     /// Calculate attribution for an entity including its derivation chain.
     ///
     /// This is more expensive as it traverses the full provenance graph.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the entity is not found or provenance graph building fails.
     pub async fn full_attribution_chain(
         &self,
         hash: &ContentHash,
@@ -211,6 +259,10 @@ impl QueryEngine {
     }
 
     /// Get contributions summary for an agent.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store operation fails.
     pub async fn agent_contributions(&self, agent: &Did) -> Result<AgentContributions> {
         let braids = self.by_agent(agent).await?;
 
@@ -236,6 +288,10 @@ impl QueryEngine {
     // === Export ===
 
     /// Export a Braid as PROV-O JSON-LD.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the entity is not found or the export operation fails.
     pub async fn export_braid_provo(&self, hash: &ContentHash) -> Result<JsonLdDocument> {
         let braid = self
             .get_by_hash(hash)
@@ -247,6 +303,10 @@ impl QueryEngine {
     }
 
     /// Export a provenance graph as PROV-O JSON-LD.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if provenance graph building or export fails.
     pub async fn export_graph_provo(
         &self,
         root: EntityReference,

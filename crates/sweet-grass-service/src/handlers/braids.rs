@@ -107,6 +107,10 @@ pub struct ListBraidsResponse {
 }
 
 /// Get a Braid by ID.
+///
+/// # Errors
+///
+/// Returns an error if the store lookup fails or the Braid is not found.
 pub async fn get_braid(
     State(state): State<AppState>,
     Path(id): Path<String>,
@@ -123,6 +127,10 @@ pub async fn get_braid(
 }
 
 /// Get a Braid by content hash.
+///
+/// # Errors
+///
+/// Returns an error if the store lookup fails or the Braid is not found.
 pub async fn get_braid_by_hash(
     State(state): State<AppState>,
     Path(hash): Path<String>,
@@ -138,6 +146,10 @@ pub async fn get_braid_by_hash(
 }
 
 /// Create a new Braid from raw data.
+///
+/// # Errors
+///
+/// Returns an error if base64 decoding fails, factory creation fails, or storage fails.
 pub async fn create_braid(
     State(state): State<AppState>,
     Json(request): Json<CreateBraidRequest>,
@@ -174,6 +186,10 @@ pub async fn create_braid(
 }
 
 /// Create a Braid with full provenance metadata (from existing hash).
+///
+/// # Errors
+///
+/// Returns an error if factory creation fails or storage fails.
 pub async fn create_provenance_braid(
     State(state): State<AppState>,
     Json(request): Json<CreateProvenanceBraidRequest>,
@@ -219,6 +235,10 @@ pub async fn create_provenance_braid(
 }
 
 /// List/query Braids.
+///
+/// # Errors
+///
+/// Returns an error if the store query fails.
 pub async fn list_braids(
     State(state): State<AppState>,
     Query(query): Query<ListBraidsQuery>,
@@ -266,6 +286,10 @@ pub async fn list_braids(
 }
 
 /// Delete a Braid.
+///
+/// # Errors
+///
+/// Returns an error if the store delete operation fails.
 pub async fn delete_braid(
     State(state): State<AppState>,
     Path(id): Path<String>,

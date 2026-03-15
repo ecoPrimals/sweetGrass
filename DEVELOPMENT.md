@@ -1,7 +1,7 @@
 # 🌾 SweetGrass — Development Guide
 
 **Last Updated**: March 15, 2026  
-**Version**: v0.7.9
+**Version**: v0.7.10
 
 ---
 
@@ -91,13 +91,14 @@ docker-compose down -v
 ### Test Hierarchy
 
 ```
-tests/
-├── Unit Tests          (600+ tests) - In src/ modules
-├── Integration Tests   (74 tests)   - tests/*.rs
-├── Chaos Tests        (17 tests)   - tests/chaos.rs
-├── Fault Injection    (9 tests)    - tests/fault_injection.rs
-├── E2E HTTP           (19 tests)   - tests/e2e_http.rs
-└── Property Tests     (12 tests)   - Uses proptest
+crates/
+├── Unit Tests          (600+ tests)  - src/ modules across all 10 crates
+├── Integration Tests   (74 tests)    - sweet-grass-service/tests/*.rs
+├── Chaos Tests        (17 tests)    - sweet-grass-service/tests/chaos.rs
+├── Fault Injection    (9 tests)     - sweet-grass-service/tests/fault_injection.rs
+├── E2E HTTP           (19 tests)    - sweet-grass-service/tests/e2e_http.rs
+├── Property Tests     (12 tests)    - Uses proptest
+└── PostgreSQL         (23 tests)    - sweet-grass-store-postgres/tests/
 ```
 
 ### Run Specific Tests
@@ -187,7 +188,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 91% region coverage / 89% line coverage (857 tests passing)
+- **Overall**: 91% region coverage / 89% line coverage (847 tests passing)
 - **Target**: 90%+ (achieved)
 
 ### Per-Crate Coverage
@@ -424,7 +425,7 @@ SELECT * FROM braids LIMIT 10;
 
 ```bash
 # Update Cargo.toml versions
-cargo set-version 0.7.9
+cargo set-version 0.7.10
 
 # Update CHANGELOG.md and ROADMAP.md
 ```
@@ -455,8 +456,8 @@ cargo build --release
 ### 4. Tag & Push
 
 ```bash
-git tag -a v0.7.0 -m "Release v0.7.0"
-git push origin v0.7.0
+git tag -a v0.7.10 -m "Release v0.7.10"
+git push origin v0.7.10
 ```
 
 ---

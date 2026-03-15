@@ -373,7 +373,7 @@ impl BraidStoreFactory {
     }
 
     /// List valid backend names (varies by enabled features).
-    fn valid_backends() -> &'static str {
+    const fn valid_backends() -> &'static str {
         #[cfg(feature = "sled")]
         {
             "memory, postgres, redb, sled"

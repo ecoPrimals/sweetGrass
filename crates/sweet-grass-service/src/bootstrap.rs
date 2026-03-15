@@ -31,9 +31,9 @@ pub struct BootstrapConfig {
 /// Bootstrap error.
 #[derive(Debug, thiserror::Error)]
 pub enum BootstrapError {
-    /// Failed to establish self-knowledge.
+    /// Failed to establish self-knowledge from environment.
     #[error("Self-knowledge error: {0}")]
-    SelfKnowledge(String),
+    SelfKnowledge(#[from] sweet_grass_core::BootstrapEnvError),
 
     /// Failed to initialize storage.
     #[error("Storage initialization error: {0}")]
@@ -115,7 +115,7 @@ pub async fn infant_bootstrap() -> Result<BootstrapResult, BootstrapError> {
 
     // Phase 1: Establish self-knowledge from environment
     debug!("Phase 1: Establishing self-knowledge from environment");
-    let self_knowledge = SelfKnowledge::from_env().map_err(BootstrapError::SelfKnowledge)?;
+    let self_knowledge = SelfKnowledge::from_env()?;
 
     info!(
         primal_name = %self_knowledge.name,
@@ -185,7 +185,7 @@ pub async fn infant_bootstrap_with_config(
     // Phase 1: Establish self-knowledge from environment
     // (primal identity still comes from env — only storage is config-driven)
     debug!("Phase 1: Establishing self-knowledge from environment");
-    let self_knowledge = SelfKnowledge::from_env().map_err(BootstrapError::SelfKnowledge)?;
+    let self_knowledge = SelfKnowledge::from_env()?;
 
     info!(
         primal_name = %self_knowledge.name,
@@ -427,8 +427,11 @@ mod tests {
 
     #[test]
     fn test_bootstrap_error_display() {
-        let err = BootstrapError::SelfKnowledge("bad config".to_string());
-        assert!(err.to_string().contains("bad config"));
+        let err = BootstrapError::from(sweet_grass_core::BootstrapEnvError::InvalidPort {
+            var_name: "TARPC_PORT".to_string(),
+            value: "bad".to_string(),
+        });
+        assert!(err.to_string().contains("TARPC_PORT"));
 
         let err = BootstrapError::Discovery("no service".to_string());
         assert!(err.to_string().contains("no service"));

@@ -89,7 +89,7 @@ pub struct JsonRpcError {
 }
 
 impl JsonRpcResponse {
-    fn success(id: serde_json::Value, result: serde_json::Value) -> Self {
+    const fn success(id: serde_json::Value, result: serde_json::Value) -> Self {
         Self {
             jsonrpc: "2.0",
             result: Some(result),
@@ -279,6 +279,9 @@ pub(crate) fn internal(e: impl std::fmt::Display) -> DispatchError {
     (error_code::INTERNAL_ERROR, e.to_string())
 }
 
+/// # Errors
+///
+/// Returns an error if JSON deserialization of params fails.
 pub(crate) fn parse_params<T: serde::de::DeserializeOwned>(
     params: serde_json::Value,
 ) -> Result<T, DispatchError> {
@@ -286,6 +289,9 @@ pub(crate) fn parse_params<T: serde::de::DeserializeOwned>(
         .map_err(|e| (error_code::INVALID_PARAMS, format!("Invalid params: {e}")))
 }
 
+/// # Errors
+///
+/// Returns an error if JSON serialization fails.
 pub(crate) fn to_value<T: Serialize>(v: &T) -> DispatchResult {
     serde_json::to_value(v).map_err(|e| {
         (

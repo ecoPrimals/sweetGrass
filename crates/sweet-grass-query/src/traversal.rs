@@ -121,7 +121,7 @@ pub struct ProvenanceGraphBuilder {
 impl ProvenanceGraphBuilder {
     /// Create a new builder with default settings.
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             max_depth: 10,
             include_activities: true,
@@ -130,19 +130,23 @@ impl ProvenanceGraphBuilder {
 
     /// Set the maximum traversal depth.
     #[must_use]
-    pub fn max_depth(mut self, depth: u32) -> Self {
+    pub const fn max_depth(mut self, depth: u32) -> Self {
         self.max_depth = depth;
         self
     }
 
     /// Set whether to include activities.
     #[must_use]
-    pub fn include_activities(mut self, include: bool) -> Self {
+    pub const fn include_activities(mut self, include: bool) -> Self {
         self.include_activities = include;
         self
     }
 
     /// Build a provenance graph from a root entity.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the store operation fails during traversal.
     pub async fn build(
         &self,
         root: EntityReference,

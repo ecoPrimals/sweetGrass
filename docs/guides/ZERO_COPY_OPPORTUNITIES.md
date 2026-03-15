@@ -38,7 +38,7 @@
 
 ### 1. Factory String Allocations
 
-**File**: `crates/sweet-grass-factory/src/factory.rs` (21 clones)
+**File**: `crates/sweet-grass-factory/src/factory/mod.rs`
 
 **Current**:
 ```rust
@@ -72,7 +72,7 @@ pub fn from_data(
 
 ### 2. Attribution Calculator
 
-**File**: `crates/sweet-grass-factory/src/attribution.rs` (12 clones)
+**File**: `crates/sweet-grass-factory/src/attribution/mod.rs`
 
 **Current**:
 ```rust
@@ -100,7 +100,7 @@ pub fn calculate_single(&self, braid: &Braid) -> AttributionChain {
 
 ### 3. Query Engine Graph Traversal
 
-**File**: `crates/sweet-grass-query/src/engine.rs` (10 clones)
+**File**: `crates/sweet-grass-query/src/engine/mod.rs`
 
 **Current**:
 ```rust
@@ -138,7 +138,7 @@ pub async fn ancestors(&self, hash: &ContentHash, depth: Option<u32>)
 
 ### 4. Storage Index Lookups
 
-**File**: `crates/sweet-grass-store/src/memory/indexes.rs` (8 clones)
+**File**: `crates/sweet-grass-store/src/memory/indexes.rs`
 
 **Current**:
 ```rust

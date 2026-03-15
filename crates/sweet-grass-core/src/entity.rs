@@ -212,7 +212,7 @@ impl InlineEntity {
                     .decode(&self.data)
                     .map_err(|e| DecodeError::Base64(e.to_string()))
             },
-            Encoding::Hex => hex_decode_strict(&self.data).map_err(DecodeError::Hex),
+            Encoding::Hex => Ok(hex_decode_strict(&self.data)?),
         }
     }
 
@@ -237,7 +237,7 @@ impl InlineEntity {
                 Ok(Cow::Owned(decoded))
             },
             Encoding::Hex => {
-                let decoded = hex_decode_strict(&self.data).map_err(DecodeError::Hex)?;
+                let decoded = hex_decode_strict(&self.data)?;
                 Ok(Cow::Owned(decoded))
             },
         }
@@ -264,7 +264,7 @@ pub enum DecodeError {
 
     /// Hex decoding error.
     #[error("hex decode error: {0}")]
-    Hex(String),
+    Hex(#[from] crate::hash::HexDecodeError),
 }
 
 use crate::hash::{hex_decode_strict, sha256 as compute_sha256};

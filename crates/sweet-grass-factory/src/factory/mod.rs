@@ -357,11 +357,17 @@ impl BraidFactory {
         Ok(braid)
     }
 
-    /// Sign a Braid with agent credentials.
+    /// Attach a local placeholder signature to a Braid.
     ///
-    /// Note: This creates a placeholder signature. Real signing requires
-    /// integration with signing capability provider.
-    pub fn sign(&self, braid: &mut Braid, key_id: &str) {
+    /// **This is NOT a cryptographic signature.** It derives a deterministic
+    /// placeholder from the Braid's signing hash so that the signature field
+    /// is populated for local operations, testing, and pre-signing workflows.
+    ///
+    /// For real Ed25519 signing, route through a primal offering
+    /// [`Capability::Signing`] at runtime via capability-based discovery.
+    ///
+    /// [`Capability::Signing`]: sweet_grass_core::config::Capability::Signing
+    pub fn sign_placeholder(&self, braid: &mut Braid, key_id: &str) {
         let signing_hash = braid.compute_signing_hash();
         let placeholder_sig = signing_hash.as_str().as_bytes();
         braid.signature =

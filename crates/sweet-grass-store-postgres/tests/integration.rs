@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2024–2026 ecoPrimals Project
-//! PostgreSQL integration tests.
+//! `PostgreSQL` integration tests.
 //!
-//! Comprehensive tests for the PostgreSQL backend, refactored into logical modules.
+//! Comprehensive tests for the `PostgreSQL` backend, refactored into logical modules.
 //!
 //! ## Organization
 //!
@@ -15,7 +15,7 @@
 //!
 //! ## Running Tests
 //!
-//! These tests require Docker to run real PostgreSQL:
+//! These tests require Docker to run real `PostgreSQL`:
 //!
 //! ```bash
 //! # All integration tests
@@ -27,7 +27,7 @@
 //!
 //! ## Best Practices
 //!
-//! - Each test uses isolated PostgreSQL container (testcontainers)
+//! - Each test uses isolated `PostgreSQL` container (`testcontainers`)
 //! - Dynamic port allocation prevents conflicts
 //! - Tests can run in parallel safely
 //! - Containers auto-cleanup after tests

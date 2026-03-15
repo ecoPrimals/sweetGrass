@@ -123,7 +123,7 @@ impl PrimalStatus {
 
     /// Create an unknown status (not configured).
     #[must_use]
-    pub fn unknown() -> Self {
+    pub const fn unknown() -> Self {
         Self {
             connected: false,
             address: None,
@@ -164,6 +164,10 @@ fn determine_status(store_available: bool, integrations: Option<&IntegrationStat
 /// Health check endpoint.
 ///
 /// Returns comprehensive health status including store and integration status.
+///
+/// # Errors
+///
+/// Returns `SERVICE_UNAVAILABLE` if the store count query fails.
 pub async fn health(State(state): State<AppState>) -> Result<Json<HealthResponse>, StatusCode> {
     let braid_count = state
         .store
@@ -200,6 +204,10 @@ pub async fn health(State(state): State<AppState>) -> Result<Json<HealthResponse
 /// Detailed health check with integration status.
 ///
 /// More expensive check that verifies all connected services.
+///
+/// # Errors
+///
+/// Returns `SERVICE_UNAVAILABLE` if the store count query fails.
 pub async fn health_detailed(
     State(state): State<AppState>,
 ) -> Result<Json<HealthResponse>, StatusCode> {

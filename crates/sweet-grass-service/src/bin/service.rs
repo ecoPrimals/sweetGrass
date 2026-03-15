@@ -285,32 +285,33 @@ async fn run_status(address: &str) -> i32 {
     }
 }
 
+/// Errors from the raw TCP health check.
+#[derive(Debug, thiserror::Error)]
+enum HealthCheckError {
+    /// TCP connection or IO failure.
+    #[error("{0}")]
+    Io(#[from] std::io::Error),
+
+    /// Server responded with a non-200 status.
+    #[error("unhealthy response: {0}")]
+    Unhealthy(String),
+}
+
 /// Perform a minimal HTTP GET /health check using raw TCP.
 ///
 /// Pure Rust implementation — no reqwest or hyper dependency needed.
 /// Sends a bare HTTP/1.1 request and parses the response body.
-async fn http_health_check(address: &str) -> Result<String, String> {
+async fn http_health_check(address: &str) -> Result<String, HealthCheckError> {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-    let mut stream = tokio::net::TcpStream::connect(address)
-        .await
-        .map_err(|e| format!("connection failed: {e}"))?;
+    let mut stream = tokio::net::TcpStream::connect(address).await?;
 
     let request = format!("GET /health HTTP/1.1\r\nHost: {address}\r\nConnection: close\r\n\r\n");
-    stream
-        .write_all(request.as_bytes())
-        .await
-        .map_err(|e| format!("write failed: {e}"))?;
-    stream
-        .shutdown()
-        .await
-        .map_err(|e| format!("shutdown failed: {e}"))?;
+    stream.write_all(request.as_bytes()).await?;
+    stream.shutdown().await?;
 
     let mut response = String::new();
-    stream
-        .read_to_string(&mut response)
-        .await
-        .map_err(|e| format!("read failed: {e}"))?;
+    stream.read_to_string(&mut response).await?;
 
     let body = response
         .split_once("\r\n\r\n")
@@ -320,9 +321,7 @@ async fn http_health_check(address: &str) -> Result<String, String> {
     if response.contains("200 OK") {
         Ok(body)
     } else {
-        Err(format!(
-            "Unhealthy response: {}",
-            response.lines().next().unwrap_or("")
-        ))
+        let status_line = response.lines().next().unwrap_or("").to_string();
+        Err(HealthCheckError::Unhealthy(status_line))
     }
 }

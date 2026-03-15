@@ -46,6 +46,10 @@ pub struct ContributorInfo {
 }
 
 /// Get attribution chain for an entity.
+///
+/// # Errors
+///
+/// Returns an error if the store query fails or the entity is not found.
 pub async fn get_attribution(
     State(state): State<AppState>,
     Path(hash): Path<String>,
@@ -109,6 +113,10 @@ pub struct AgentReward {
 }
 
 /// Calculate reward distribution.
+///
+/// # Errors
+///
+/// Returns an error if the store query fails or the entity is not found.
 pub async fn calculate_rewards(
     State(state): State<AppState>,
     Path(hash): Path<String>,

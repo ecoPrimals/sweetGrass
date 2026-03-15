@@ -62,11 +62,15 @@ pub struct SessionAnalyzer {
 impl SessionAnalyzer {
     /// Create a new analyzer.
     #[must_use]
-    pub fn new(config: CompressionConfig) -> Self {
+    pub const fn new(config: CompressionConfig) -> Self {
         Self { config }
     }
 
     /// Analyze a session.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if session analysis fails (e.g. invalid session structure).
     pub fn analyze(&self, session: &Session) -> Result<SessionAnalysis> {
         let tips = session.tips();
         let tip_count = tips.len();

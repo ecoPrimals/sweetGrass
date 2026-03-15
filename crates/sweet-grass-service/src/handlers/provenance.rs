@@ -20,6 +20,10 @@ pub struct ProvenanceQuery {
 }
 
 /// Get provenance graph for an entity.
+///
+/// # Errors
+///
+/// Returns an error if the provenance query fails.
 pub async fn get_provenance(
     State(state): State<AppState>,
     Path(hash): Path<String>,
@@ -43,6 +47,10 @@ pub struct ProvOResponse {
 }
 
 /// Export provenance as PROV-O JSON-LD.
+///
+/// # Errors
+///
+/// Returns an error if the provenance query fails.
 pub async fn export_prov_o(
     State(state): State<AppState>,
     Path(hash): Path<String>,

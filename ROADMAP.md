@@ -1,10 +1,22 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.9 (March 2026)
+**Current Version**: v0.7.10 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.10 — Typed Error Evolution + Lint Hardening + Platform-Agnostic IPC (March 2026)
+
+- [x] `Result<_, String>` → typed error enums: `HexDecodeError`, `BootstrapEnvError`, `HealthCheckError`
+- [x] Workspace lints: `missing_const_for_fn` and `missing_errors_doc` promoted from `allow` to `warn`
+- [x] ~40 `missing_errors_doc` warnings resolved (added `# Errors` sections)
+- [x] ~20 `missing_const_for_fn` warnings resolved (functions marked `const`)
+- [x] UDS fallback paths: `/tmp` → `std::env::temp_dir()` (platform-agnostic)
+- [x] `BraidFactory::sign()` → `sign_placeholder()` (naming clarity)
+- [x] `config/tests.rs` flattened (removed `module_inception`)
+- [x] `doc_markdown` cleanup across integration, postgres, service, benchmark crates
+- [x] 847 tests passing, 0 failures, 0 unsafe, 0 clippy warnings
 
 ### v0.7.9 — Deep Debt Audit: Pedantic Quality + Capability Discovery + Spec Evolution (March 2026)
 
@@ -248,7 +260,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.9 | **March 2026** | Deep Debt Audit: Pedantic Quality + Capability Discovery (DONE) |
+| v0.7.10 | **March 2026** | Typed Error Evolution + Lint Hardening + Platform-Agnostic IPC (DONE) |
+| v0.7.9 | March 2026 | Deep Debt Audit: Pedantic Quality + Capability Discovery (DONE) |
 | v0.7.8 | March 2026 | Deep Debt Evolution: Zero-Copy + Benchmarks + Config (DONE) |
 | v0.7.7 | March 2026 | Deep Audit + Architecture Fix + UniBin (DONE) |
 | v0.7.6 | March 2026 | redb Migration: Pure Rust Storage Evolution (DONE) |

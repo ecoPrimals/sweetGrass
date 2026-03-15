@@ -5,6 +5,64 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.10] - 2026-03-15
+
+### Typed Error Evolution + Lint Hardening + Platform-Agnostic IPC
+
+Comprehensive typed error migration replacing all `Result<_, String>` with
+dedicated error enums. Workspace lints evolved from `allow` to `warn` for
+`missing_errors_doc` and `missing_const_for_fn`, with all resulting warnings
+resolved across the full workspace. UDS paths made platform-agnostic.
+Placeholder signature renamed for clarity.
+
+### Changed
+
+- **`hex_decode_strict()` → typed `HexDecodeError`** — `OddLength(usize)` and
+  `InvalidChar { position }` replace opaque `String` errors. `DecodeError::Hex`
+  now wraps `HexDecodeError` via `#[from]`
+- **`SelfKnowledge::from_env()` → typed `BootstrapEnvError`** —
+  `InvalidPort { var_name, value }` replaces `String`. `BootstrapError::SelfKnowledge`
+  wraps via `#[from]`, call sites simplified to `?`
+- **`http_health_check()` → typed `HealthCheckError`** — `Io` and `Unhealthy`
+  variants replace `String` in the UniBin status subcommand
+- **UDS paths platform-agnostic** — Fallback resolution uses `std::env::temp_dir()`
+  instead of hardcoded `/tmp`, correct on macOS/NixOS/non-standard layouts
+- **`BraidFactory::sign()` → `sign_placeholder()`** — Name communicates intent;
+  doc comment directs to capability-based signing discovery
+- **Workspace lints evolved** — `missing_const_for_fn` and `missing_errors_doc`
+  promoted from `allow` to `warn`; ~40 resulting warnings resolved
+- **`config/tests.rs` flattened** — Redundant inner `mod tests` wrapper removed
+  (was triggering `module_inception`)
+- **`doc_markdown` cleanup** — Backticked identifiers in doc comments across
+  integration, postgres, service, and benchmark crates
+- **`const fn` evolution** — ~20 functions marked `const` across query,
+  compression, integration, and service crates
+
+### Added
+
+- **`HexDecodeError`** — Typed error in `sweet-grass-core::hash`, exported from lib
+- **`BootstrapEnvError`** — Typed error in `sweet-grass-core::primal_info`, exported
+- **`HealthCheckError`** — Typed error in UniBin binary
+- **`# Errors` doc sections** — Added to all public `Result`-returning functions
+  across query, compression, and service crates
+
+### Metrics
+
+```
+Version:        0.7.10
+Tests:          847 passing (was 857)
+Region coverage: 91% (cargo llvm-cov)
+Line coverage:  89% (cargo llvm-cov)
+Clippy:         0 warnings (pedantic + nursery + missing_errors_doc + missing_const_for_fn)
+Max file:       830 lines (limit: 1000)
+TODOs:          0 in source
+Unsafe:         0 (forbidden)
+JSON-RPC:       21 methods
+Source files:   111 .rs files
+```
+
+---
+
 ## [0.7.9] - 2026-03-15
 
 ### Deep Debt Audit — Pedantic Quality + Capability Discovery + Spec Evolution

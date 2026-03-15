@@ -96,6 +96,10 @@ impl From<&Braid> for BraidSummary {
 }
 
 /// Compress a session to Braids.
+///
+/// # Errors
+///
+/// Returns an error if compression fails or storing created Braids fails.
 pub async fn compress_session(
     State(state): State<AppState>,
     Json(request): Json<CompressSessionRequest>,

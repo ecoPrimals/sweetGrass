@@ -7,6 +7,21 @@
 
 use crate::braid::ContentHash;
 
+/// Error from strict hex decoding.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum HexDecodeError {
+    /// Input has odd length and cannot represent whole bytes.
+    #[error("odd length hex string (length: {0})")]
+    OddLength(usize),
+
+    /// A non-hex character was encountered during decoding.
+    #[error("invalid hex character at byte offset {position}")]
+    InvalidChar {
+        /// Byte offset of the invalid character pair.
+        position: usize,
+    },
+}
+
 /// Hex-encode bytes to a lowercase hex string.
 #[must_use]
 pub fn hex_encode(bytes: impl AsRef<[u8]>) -> String {
@@ -29,18 +44,22 @@ pub fn hex_decode(s: &str) -> Option<Vec<u8>> {
         .collect()
 }
 
-/// Hex-decode a string to bytes, returning a descriptive error on failure.
+/// Hex-decode a string to bytes, returning a typed error on failure.
 ///
 /// # Errors
 ///
-/// Returns an error if the string has odd length or contains non-hex characters.
-pub fn hex_decode_strict(s: &str) -> Result<Vec<u8>, String> {
+/// Returns [`HexDecodeError::OddLength`] if the string has odd length,
+/// or [`HexDecodeError::InvalidChar`] if a non-hex character is found.
+pub fn hex_decode_strict(s: &str) -> Result<Vec<u8>, HexDecodeError> {
     if !s.len().is_multiple_of(2) {
-        return Err("odd length hex string".to_string());
+        return Err(HexDecodeError::OddLength(s.len()));
     }
     (0..s.len())
         .step_by(2)
-        .map(|i| u8::from_str_radix(&s[i..i + 2], 16).map_err(|e| format!("invalid hex: {e}")))
+        .map(|i| {
+            u8::from_str_radix(&s[i..i + 2], 16)
+                .map_err(|_| HexDecodeError::InvalidChar { position: i })
+        })
         .collect()
 }
 
@@ -78,8 +97,22 @@ mod tests {
             hex_decode_strict("deadbeef"),
             Ok(vec![0xde, 0xad, 0xbe, 0xef])
         );
-        assert!(hex_decode_strict("abc").is_err());
-        assert!(hex_decode_strict("zzzz").is_err());
+        assert_eq!(hex_decode_strict("abc"), Err(HexDecodeError::OddLength(3)));
+        assert_eq!(
+            hex_decode_strict("zzzz"),
+            Err(HexDecodeError::InvalidChar { position: 0 })
+        );
+    }
+
+    #[test]
+    fn test_hex_decode_error_display() {
+        let err = HexDecodeError::OddLength(5);
+        assert!(err.to_string().contains("odd length"));
+        assert!(err.to_string().contains('5'));
+
+        let err = HexDecodeError::InvalidChar { position: 4 };
+        assert!(err.to_string().contains("invalid hex"));
+        assert!(err.to_string().contains('4'));
     }
 
     #[test]

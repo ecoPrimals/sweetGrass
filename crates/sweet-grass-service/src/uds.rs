@@ -11,8 +11,8 @@
 //! 1. `SWEETGRASS_SOCKET` — explicit override
 //! 2. `BIOMEOS_SOCKET_DIR` + `/sweetgrass-{family_id}.sock`
 //! 3. `$XDG_RUNTIME_DIR/biomeos/sweetgrass-{family_id}.sock`
-//! 4. `/tmp/biomeos-{user}/sweetgrass-{family_id}.sock`
-//! 5. `/tmp/sweetgrass-{family_id}.sock`
+//! 4. `$TMPDIR/biomeos-{user}/sweetgrass-{family_id}.sock`
+//! 5. `$TMPDIR/sweetgrass-{family_id}.sock`
 
 use std::path::PathBuf;
 
@@ -65,16 +65,18 @@ pub fn resolve_socket_path(primal_name: Option<&str>) -> PathBuf {
         return path;
     }
 
-    // 4. /tmp/biomeos-{user}/
+    // 4. $TMPDIR/biomeos-{user}/ (platform-agnostic)
     if let Ok(user) = std::env::var("USER") {
-        let path = PathBuf::from(format!("/tmp/biomeos-{user}")).join(&sock_name);
-        debug!(?path, "Using /tmp/biomeos-USER");
+        let path = std::env::temp_dir()
+            .join(format!("biomeos-{user}"))
+            .join(&sock_name);
+        debug!(?path, "Using TMPDIR/biomeos-USER");
         return path;
     }
 
-    // 5. /tmp/ fallback
-    let path = PathBuf::from("/tmp").join(&sock_name);
-    debug!(?path, "Using /tmp fallback");
+    // 5. $TMPDIR fallback (platform-agnostic)
+    let path = std::env::temp_dir().join(&sock_name);
+    debug!(?path, "Using TMPDIR fallback");
     path
 }
 
@@ -254,7 +256,8 @@ mod tests {
         clear_env();
         std::env::remove_var("USER");
         let path = resolve_socket_path(None);
-        assert_eq!(path, PathBuf::from("/tmp/sweetgrass.sock"));
+        let expected = std::env::temp_dir().join("sweetgrass.sock");
+        assert_eq!(path, expected);
     }
 
     #[test]
@@ -263,7 +266,10 @@ mod tests {
         clear_env();
         std::env::set_var("USER", "testuser");
         let path = resolve_socket_path(None);
-        assert_eq!(path, PathBuf::from("/tmp/biomeos-testuser/sweetgrass.sock"));
+        let expected = std::env::temp_dir()
+            .join("biomeos-testuser")
+            .join("sweetgrass.sock");
+        assert_eq!(path, expected);
     }
 
     #[test]
@@ -286,7 +292,8 @@ mod tests {
         std::env::set_var("BIOMEOS_FAMILY_ID", "beta");
         std::env::remove_var("USER");
         let path = resolve_socket_path(None);
-        assert_eq!(path, PathBuf::from("/tmp/sweetgrass-beta.sock"));
+        let expected = std::env::temp_dir().join("sweetgrass-beta.sock");
+        assert_eq!(path, expected);
     }
 
     #[test]

@@ -613,5 +613,4 @@ mod humantime_serde {
     }
 }
 
-#[cfg(test)]
 mod tests;

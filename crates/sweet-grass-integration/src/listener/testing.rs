@@ -42,7 +42,7 @@ impl MockSessionEventsClient {
 
     /// Set health status.
     #[must_use]
-    pub fn with_health(mut self, healthy: bool) -> Self {
+    pub const fn with_health(mut self, healthy: bool) -> Self {
         self.healthy = healthy;
         self
     }

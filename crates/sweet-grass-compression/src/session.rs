@@ -69,7 +69,7 @@ impl SessionVertex {
 
     /// Set size.
     #[must_use]
-    pub fn with_size(mut self, size: u64) -> Self {
+    pub const fn with_size(mut self, size: u64) -> Self {
         self.size = size;
         self
     }
@@ -90,14 +90,14 @@ impl SessionVertex {
 
     /// Mark as committed.
     #[must_use]
-    pub fn committed(mut self) -> Self {
+    pub const fn committed(mut self) -> Self {
         self.committed = true;
         self
     }
 
     /// Check if this is a root vertex (no parents).
     #[must_use]
-    pub fn is_root(&self) -> bool {
+    pub const fn is_root(&self) -> bool {
         self.parents.is_empty()
     }
 }
@@ -191,7 +191,7 @@ impl Session {
 
     /// Get vertex count.
     #[must_use]
-    pub fn vertex_count(&self) -> usize {
+    pub const fn vertex_count(&self) -> usize {
         self.vertices.len()
     }
 
