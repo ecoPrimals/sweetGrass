@@ -57,7 +57,7 @@ async fn main() -> anyhow::Result<()> {
 
 ```bash
 # Terminal 1: Run SweetGrass service
-TOKIO_CONSOLE=1 cargo run --bin service
+TOKIO_CONSOLE=1 cargo run --bin sweetgrass
 
 # Terminal 2: Run tokio-console
 tokio-console
@@ -73,7 +73,7 @@ tokio-console
 
 ```bash
 # Run service
-cargo run --bin service
+cargo run --bin sweetgrass
 
 # In tokio-console, filter by task name:
 # - "compress_batch"
@@ -350,7 +350,7 @@ Monitor batch attribution:
 cargo install --locked tokio-console
 
 # Run service with console
-TOKIO_CONSOLE=1 cargo run --bin service
+TOKIO_CONSOLE=1 cargo run --bin sweetgrass
 
 # Launch console UI
 tokio-console
