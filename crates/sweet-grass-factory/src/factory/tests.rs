@@ -179,7 +179,7 @@ mod factory_tests {
 
         assert!(!braid.is_signed());
 
-        factory.sign(&mut braid, "key-1");
+        factory.sign_placeholder(&mut braid, "key-1");
 
         assert!(braid.is_signed());
         assert!(braid

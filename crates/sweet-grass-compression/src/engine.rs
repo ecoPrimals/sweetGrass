@@ -76,13 +76,13 @@ impl CompressionResult {
 
     /// Check if any Braids were produced.
     #[must_use]
-    pub fn has_braids(&self) -> bool {
+    pub const fn has_braids(&self) -> bool {
         !matches!(self, Self::None { .. })
     }
 
     /// Get the discard reason if no Braids were produced.
     #[must_use]
-    pub fn discard_reason(&self) -> Option<&DiscardReason> {
+    pub const fn discard_reason(&self) -> Option<&DiscardReason> {
         match self {
             Self::None { reason } => Some(reason),
             _ => None,
@@ -141,6 +141,11 @@ impl CompressionEngine {
     }
 
     /// Compress a session to Braids.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if session analysis fails, no committed vertices exist,
+    /// Braid construction fails, or the factory fails to create a summary Braid.
     pub fn compress(&self, session: &Session) -> Result<CompressionResult> {
         // 1. Analyze session structure
         let analysis = self.analyzer.analyze(session)?;
@@ -286,7 +291,7 @@ impl CompressionEngine {
 
     /// Get the current configuration.
     #[must_use]
-    pub fn config(&self) -> &CompressionConfig {
+    pub const fn config(&self) -> &CompressionConfig {
         &self.config
     }
 }

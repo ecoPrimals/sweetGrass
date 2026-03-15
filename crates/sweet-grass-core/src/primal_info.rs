@@ -9,6 +9,19 @@ use std::time::SystemTime;
 use crate::config::Capability;
 use crate::identity;
 
+/// Error loading primal self-knowledge from the environment.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum BootstrapEnvError {
+    /// An environment variable that should be a port number is not valid.
+    #[error("{var_name} must be a valid port number (0-65535), got: {value}")]
+    InvalidPort {
+        /// Name of the environment variable.
+        var_name: String,
+        /// The invalid value that was read.
+        value: String,
+    },
+}
+
 /// What a primal knows about itself at startup (Infant Discovery).
 ///
 /// A primal is born knowing only itself - everything else is discovered
@@ -94,7 +107,7 @@ impl SelfKnowledge {
     /// # Ok(())
     /// # }
     /// ```
-    pub fn from_env() -> Result<Self, String> {
+    pub fn from_env() -> Result<Self, BootstrapEnvError> {
         Ok(Self {
             name: std::env::var("PRIMAL_NAME")
                 .unwrap_or_else(|_| identity::PRIMAL_NAME.to_string()),
@@ -102,7 +115,7 @@ impl SelfKnowledge {
                 .unwrap_or_else(|_| uuid::Uuid::new_v4().to_string()),
             capabilities: Self::parse_capabilities(),
             tarpc_port: Self::parse_port("TARPC_PORT", 0)?,
-            rest_port: Self::parse_port("REST_PORT", 0)?, // Dynamic allocation
+            rest_port: Self::parse_port("REST_PORT", 0)?,
             established_at: SystemTime::now(),
         })
     }
@@ -128,10 +141,12 @@ impl SelfKnowledge {
     }
 
     /// Parse port from environment.
-    fn parse_port(var_name: &str, default: u16) -> Result<u16, String> {
+    fn parse_port(var_name: &str, default: u16) -> Result<u16, BootstrapEnvError> {
         std::env::var(var_name).map_or(Ok(default), |val| {
-            val.parse()
-                .map_err(|_| format!("{var_name} must be a valid port number (0-65535)"))
+            val.parse().map_err(|_| BootstrapEnvError::InvalidPort {
+                var_name: var_name.to_string(),
+                value: val,
+            })
         })
     }
 
@@ -234,7 +249,9 @@ mod tests {
 
         let result = SelfKnowledge::from_env();
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("TARPC_PORT"));
+        let err = result.unwrap_err();
+        assert!(matches!(err, BootstrapEnvError::InvalidPort { .. }));
+        assert!(err.to_string().contains("TARPC_PORT"));
     }
 
     #[test]

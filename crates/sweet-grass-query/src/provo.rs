@@ -77,11 +77,19 @@ impl JsonLdDocument {
     }
 
     /// Convert to JSON string.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if JSON serialization fails.
     pub fn to_json(&self) -> Result<String> {
         Ok(serde_json::to_string_pretty(self)?)
     }
 
     /// Convert to compact JSON string.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if JSON serialization fails.
     pub fn to_json_compact(&self) -> Result<String> {
         Ok(serde_json::to_string(self)?)
     }
@@ -102,7 +110,7 @@ pub struct ProvoExport {
 impl ProvoExport {
     /// Create a new exporter.
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             include_metadata: true,
             include_ecop: true,
@@ -111,19 +119,23 @@ impl ProvoExport {
 
     /// Set whether to include metadata.
     #[must_use]
-    pub fn include_metadata(mut self, include: bool) -> Self {
+    pub const fn include_metadata(mut self, include: bool) -> Self {
         self.include_metadata = include;
         self
     }
 
     /// Set whether to include ecoPrimals extensions.
     #[must_use]
-    pub fn include_ecop(mut self, include: bool) -> Self {
+    pub const fn include_ecop(mut self, include: bool) -> Self {
         self.include_ecop = include;
         self
     }
 
     /// Export a single Braid as PROV-O JSON-LD.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the export operation fails.
     pub fn export_braid(&self, braid: &Braid) -> Result<JsonLdDocument> {
         let mut doc = JsonLdDocument::new();
 
@@ -139,6 +151,10 @@ impl ProvoExport {
     }
 
     /// Export a provenance graph as PROV-O JSON-LD.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the export operation fails.
     pub fn export_graph(&self, graph: &ProvenanceGraph) -> Result<JsonLdDocument> {
         let mut doc = JsonLdDocument::new();
 

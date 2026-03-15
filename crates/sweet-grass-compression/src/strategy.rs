@@ -118,7 +118,7 @@ pub struct CompressionLevel {
 impl CompressionLevel {
     /// Create a new compression level.
     #[must_use]
-    pub fn new(level: u32, grouping: GroupingStrategy) -> Self {
+    pub const fn new(level: u32, grouping: GroupingStrategy) -> Self {
         Self {
             level,
             grouping,
@@ -128,7 +128,7 @@ impl CompressionLevel {
 
     /// Set max group size.
     #[must_use]
-    pub fn with_max_size(mut self, size: usize) -> Self {
+    pub const fn with_max_size(mut self, size: usize) -> Self {
         self.max_group_size = size;
         self
     }
@@ -162,7 +162,7 @@ pub enum GroupingStrategy {
 impl GroupingStrategy {
     /// Create temporal grouping.
     #[must_use]
-    pub fn temporal(window: Duration) -> Self {
+    pub const fn temporal(window: Duration) -> Self {
         Self::Temporal {
             window_secs: window.as_secs(),
         }
@@ -170,7 +170,7 @@ impl GroupingStrategy {
 
     /// Create fixed size grouping.
     #[must_use]
-    pub fn fixed_size(size: usize) -> Self {
+    pub const fn fixed_size(size: usize) -> Self {
         Self::FixedSize { size }
     }
 }

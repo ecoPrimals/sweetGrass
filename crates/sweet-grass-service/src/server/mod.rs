@@ -103,7 +103,7 @@ impl SweetGrassServer {
 
     /// Set the maximum concurrent requests for parallel operations.
     #[must_use]
-    pub fn with_max_concurrent_requests(mut self, n: usize) -> Self {
+    pub const fn with_max_concurrent_requests(mut self, n: usize) -> Self {
         self.max_concurrent_requests = n;
         self
     }
@@ -534,6 +534,10 @@ impl SweetGrassRpc for SweetGrassServer {
 }
 
 /// Start the tarpc server.
+///
+/// # Errors
+///
+/// Returns an error if binding to the address fails.
 pub async fn start_tarpc_server(
     addr: SocketAddr,
     server: SweetGrassServer,

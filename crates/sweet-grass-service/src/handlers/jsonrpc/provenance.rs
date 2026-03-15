@@ -29,10 +29,13 @@ pub(super) struct ExportGraphProvoParams {
     depth: u32,
 }
 
-fn default_provo_depth() -> u32 {
+const fn default_provo_depth() -> u32 {
     10
 }
 
+/// # Errors
+///
+/// Returns an error if params parsing fails, the provenance query fails, or serialization fails.
 pub(super) async fn handle_provenance_graph(
     state: &AppState,
     params: serde_json::Value,
@@ -46,6 +49,9 @@ pub(super) async fn handle_provenance_graph(
     to_value(&graph)
 }
 
+/// # Errors
+///
+/// Returns an error if params parsing fails, the store/query fails, or serialization fails.
 pub(super) async fn handle_export_provo(
     state: &AppState,
     params: serde_json::Value,
@@ -59,6 +65,9 @@ pub(super) async fn handle_export_provo(
     to_value(&export)
 }
 
+/// # Errors
+///
+/// Returns an error if params parsing fails, the provenance query fails, or serialization fails.
 pub(super) async fn handle_export_graph_provo(
     state: &AppState,
     params: serde_json::Value,

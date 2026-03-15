@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2024–2026 ecoPrimals Project
-//! Common test utilities for PostgreSQL integration tests.
+//! Common test utilities for `PostgreSQL` integration tests.
 //!
 //! Note: Some helpers may be unused during incremental test refactoring.
 //! They are kept for future test modules being migrated.
@@ -21,9 +21,9 @@ use sweet_grass_store_postgres::{PostgresConfig, PostgresStore};
 use testcontainers::{runners::AsyncRunner, ContainerAsync};
 use testcontainers_modules::postgres::Postgres;
 
-/// Helper to spin up a PostgreSQL container and return a connected store.
+/// Helper to spin up a `PostgreSQL` container and return a connected store.
 ///
-/// This uses testcontainers to start a real PostgreSQL instance with:
+/// This uses `testcontainers` to start a real `PostgreSQL` instance with:
 /// - Default postgres user/password
 /// - Temporary storage (cleaned up after tests)
 /// - Dynamic port allocation (no conflicts)

@@ -67,8 +67,9 @@ pub use config::{
 pub use dehydration::{Attestation, DehydrationSummary, SessionOperation};
 pub use entity::{Encoding, EntityReference, InlineEntity};
 pub use error::SweetGrassError;
+pub use hash::HexDecodeError;
 pub use primal::{HealthStatus, PrimalState, SweetGrass};
-pub use primal_info::SelfKnowledge;
+pub use primal_info::{BootstrapEnvError, SelfKnowledge};
 pub use privacy::{
     DataSubjectRequest, ErasureReason, PrivacyLevel, PrivacyMetadata, ProcessingType,
     RetentionPolicy,

@@ -27,10 +27,13 @@ pub(super) struct TopContributorsParams {
     limit: u32,
 }
 
-fn default_contributor_limit() -> u32 {
+const fn default_contributor_limit() -> u32 {
     10
 }
 
+/// # Errors
+///
+/// Returns an error if params parsing fails, the store query fails, or serialization fails.
 pub(super) async fn handle_attribution_chain(
     state: &AppState,
     params: serde_json::Value,
@@ -44,6 +47,9 @@ pub(super) async fn handle_attribution_chain(
     to_value(&chain)
 }
 
+/// # Errors
+///
+/// Returns an error if params parsing fails, the store query fails, or serialization fails.
 pub(super) async fn handle_calculate_rewards(
     state: &AppState,
     params: serde_json::Value,
@@ -69,6 +75,9 @@ pub(super) async fn handle_calculate_rewards(
     to_value(&rewards)
 }
 
+/// # Errors
+///
+/// Returns an error if params parsing fails, the store query fails, or serialization fails.
 pub(super) async fn handle_top_contributors(
     state: &AppState,
     params: serde_json::Value,

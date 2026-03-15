@@ -57,23 +57,23 @@ impl MockSigningClient {
         self
     }
 
-    /// Configure what sign() returns.
+    /// Configure what `sign()` returns.
     #[must_use]
     pub fn with_sign_result(mut self, signature: BraidSignature) -> Self {
         self.sign_result = Some(signature);
         self
     }
 
-    /// Configure what verify() returns.
+    /// Configure what `verify()` returns.
     #[must_use]
-    pub fn with_verify_result(mut self, valid: bool) -> Self {
+    pub const fn with_verify_result(mut self, valid: bool) -> Self {
         self.verify_result = Some(valid);
         self
     }
 
     /// Set health status.
     #[must_use]
-    pub fn with_health(mut self, healthy: bool) -> Self {
+    pub const fn with_health(mut self, healthy: bool) -> Self {
         self.healthy = healthy;
         self
     }

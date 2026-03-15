@@ -36,7 +36,7 @@ cargo clean
 ## ✅ TEST COMMANDS
 
 ```bash
-# All tests (857 tests)
+# All tests (847 tests)
 cargo test --workspace
 
 # Unit tests only
@@ -54,7 +54,7 @@ cargo test --workspace -- --nocapture
 # Single test
 cargo test test_name
 
-# Chaos tests (18 scenarios)
+# Chaos tests (17 scenarios)
 cargo test --test chaos
 
 # PostgreSQL tests (requires Docker)
@@ -198,61 +198,20 @@ curl http://localhost:8080/api/v1/braids | jq
 ## 🐳 DOCKER COMMANDS
 
 ```bash
-# Build image
-docker build -t sweetgrass:latest .
+# PostgreSQL for integration tests
+docker-compose up -d postgres
 
-# Run with memory storage
-docker run -p 8080:8080 sweetgrass:latest
-
-# Run with PostgreSQL
-docker run \
-  -e DATABASE_URL=postgresql://user:pass@db:5432/sweetgrass \
-  -p 8080:8080 \
-  sweetgrass:latest
-
-# Run with redb (recommended embedded)
-docker run \
-  -e STORAGE_BACKEND=redb \
-  -e STORAGE_PATH=/data/sweetgrass.redb \
-  -v /host/data:/data \
-  -p 8080:8080 \
-  sweetgrass:latest
-
-# Docker Compose
-docker-compose up -d
+# PostgreSQL + pgAdmin
+docker-compose --profile admin up -d
 
 # View logs
-docker-compose logs -f sweetgrass
-```
+docker-compose logs -f
 
----
+# Stop
+docker-compose down
 
-## ☸️ KUBERNETES COMMANDS
-
-```bash
-# Apply manifests
-kubectl apply -f k8s/
-
-# Check deployment
-kubectl get deployments sweetgrass
-
-# Check pods
-kubectl get pods -l app=sweetgrass
-
-# Logs
-kubectl logs -l app=sweetgrass -f
-
-# Describe pod
-kubectl describe pod <pod-name>
-
-# Port forward for local testing
-kubectl port-forward svc/sweetgrass 8080:80
-
-# Scale
-kubectl scale deployment sweetgrass --replicas=5
-
-# Rolling update
-kubectl set image deployment/sweetgrass sweetgrass=sweetgrass:v0.2.0
+# Clean slate (remove volumes)
+docker-compose down -v
 ```
 
 ---
@@ -403,16 +362,10 @@ cargo bench --workspace
 cargo build --release
 
 # 8. Tag release
-git tag -a v0.2.0 -m "Release v0.2.0"
+git tag -a v0.7.10 -m "Release v0.7.10"
 
 # 9. Push
 git push && git push --tags
-
-# 10. Build Docker image
-docker build -t sweetgrass:v0.2.0 .
-
-# 11. Push to registry
-docker push sweetgrass:v0.2.0
 ```
 
 ---

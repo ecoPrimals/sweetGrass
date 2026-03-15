@@ -338,7 +338,7 @@ pub async fn create_anchoring_client_async(
 #[cfg(any(test, feature = "test"))]
 pub mod testing {
     use super::{async_trait, AnchorInfo, AnchorReceipt, AnchoringClient, Braid, BraidId, Result};
-    use parking_lot::RwLock;
+    use parking_lot::{const_rwlock, RwLock};
 
     /// Mock anchoring client for testing.
     pub struct MockAnchoringClient {
@@ -349,17 +349,17 @@ pub mod testing {
     impl MockAnchoringClient {
         /// Create a new mock client.
         #[must_use]
-        pub fn new() -> Self {
+        pub const fn new() -> Self {
             Self {
                 healthy: true,
-                anchors: RwLock::new(Vec::new()),
+                anchors: const_rwlock(Vec::new()),
             }
         }
 
         /// Set health status.
         #[must_use]
         #[allow(dead_code)] // Mock method configured per-test scenario
-        pub fn with_health(mut self, healthy: bool) -> Self {
+        pub const fn with_health(mut self, healthy: bool) -> Self {
             self.healthy = healthy;
             self
         }

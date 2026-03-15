@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2024–2026 ecoPrimals Project
-//! Tests for PostgreSQL database migrations.
+//! Tests for `PostgreSQL` database migrations.
 //!
 //! Ensures migrations are idempotent and schema is correct.
 

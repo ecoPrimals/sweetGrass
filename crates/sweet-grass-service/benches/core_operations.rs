@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2024–2026 ecoPrimals Project
-//! Core operations benchmarks for SweetGrass.
+//! Core operations benchmarks for `SweetGrass`.
 //!
 //! Benchmarks braid creation, store operations, hashing, attribution,
 //! compression, and provenance graph traversal.
@@ -34,7 +34,7 @@ fn make_vertex(id: &str, hash: &str) -> SessionVertex {
     SessionVertex::new(id, hash, "application/json", Did::new("did:key:z6MkBench")).with_size(1024)
 }
 
-/// Braid creation via BraidFactory::from_data at various data sizes.
+/// Braid creation via `BraidFactory::from_data` at various data sizes.
 fn bench_braid_creation(c: &mut Criterion) {
     let factory = make_factory();
     let mut group = c.benchmark_group("braid_creation");
@@ -58,7 +58,7 @@ fn bench_braid_creation(c: &mut Criterion) {
     group.finish();
 }
 
-/// Store put and get operations on MemoryStore.
+/// Store put and get operations on `MemoryStore`.
 fn bench_store_put_get(c: &mut Criterion) {
     let rt = rt();
     let factory = make_factory();
@@ -90,7 +90,7 @@ fn bench_store_put_get(c: &mut Criterion) {
     group.finish();
 }
 
-/// Content hashing: sha256 and Braid::compute_signing_hash.
+/// Content hashing: sha256 and `Braid::compute_signing_hash`.
 fn bench_content_hashing(c: &mut Criterion) {
     let factory = make_factory();
     let data = vec![0u8; 1024];
