@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Pure Rust RPC service definition using tarpc.
 //!
 //! No gRPC, no protobuf, no vendor lock-in.
@@ -79,7 +80,7 @@ pub struct RewardShare {
     pub agent: Did,
     /// Share fraction (0.0 - 1.0).
     pub share: f64,
-    /// Amount (share * total_value).
+    /// Amount (share * `total_value`).
     pub amount: f64,
     /// Role that earned this share.
     pub role: AgentRole,
@@ -147,7 +148,7 @@ impl RpcError {
     }
 }
 
-/// SweetGrass RPC Service - Pure Rust, no protobuf.
+/// `SweetGrass` RPC Service - Pure Rust, no protobuf.
 ///
 /// This trait defines all RPC operations. The `#[tarpc::service]` macro
 /// generates client and server code at compile time using Rust macros,
@@ -219,7 +220,7 @@ pub trait SweetGrassRpc {
 
     // ==================== Anchoring ====================
 
-    /// Anchor a Braid to LoamSpine (via integration client).
+    /// Anchor a Braid to `LoamSpine` (via integration client).
     async fn anchor_braid(
         braid_id: BraidId,
         spine_id: String,

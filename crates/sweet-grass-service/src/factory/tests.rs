@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Tests for storage backend factory.
 
 #![expect(
@@ -7,6 +8,8 @@
 )]
 
 use std::sync::Arc;
+
+use sweet_grass_integration::testing::{TEST_DB_URL, TEST_DB_URL_PRIMARY, TEST_DB_URL_SECONDARY};
 
 use super::*;
 
@@ -98,7 +101,7 @@ fn test_build_postgres_config_missing_url() {
 #[test]
 #[serial_test::serial]
 fn test_build_postgres_config_with_database_url() {
-    std::env::set_var("DATABASE_URL", "postgresql://localhost/test");
+    std::env::set_var("DATABASE_URL", TEST_DB_URL);
     std::env::remove_var("STORAGE_URL");
 
     let result = BraidStoreFactory::build_postgres_config();
@@ -109,7 +112,7 @@ fn test_build_postgres_config_with_database_url() {
 #[serial_test::serial]
 fn test_build_postgres_config_with_storage_url() {
     std::env::remove_var("DATABASE_URL");
-    std::env::set_var("STORAGE_URL", "postgresql://localhost/test");
+    std::env::set_var("STORAGE_URL", TEST_DB_URL);
 
     let result = BraidStoreFactory::build_postgres_config();
     assert!(result.is_ok());
@@ -118,8 +121,8 @@ fn test_build_postgres_config_with_storage_url() {
 #[test]
 #[serial_test::serial]
 fn test_build_postgres_config_prefers_database_url() {
-    std::env::set_var("DATABASE_URL", "postgresql://localhost/primary");
-    std::env::set_var("STORAGE_URL", "postgresql://localhost/secondary");
+    std::env::set_var("DATABASE_URL", TEST_DB_URL_PRIMARY);
+    std::env::set_var("STORAGE_URL", TEST_DB_URL_SECONDARY);
 
     let result = BraidStoreFactory::build_postgres_config();
     assert!(result.is_ok());
@@ -129,7 +132,7 @@ fn test_build_postgres_config_prefers_database_url() {
 #[test]
 #[serial_test::serial]
 fn test_build_postgres_config_with_max_connections() {
-    std::env::set_var("DATABASE_URL", "postgresql://localhost/test");
+    std::env::set_var("DATABASE_URL", TEST_DB_URL);
     std::env::set_var("PG_MAX_CONNECTIONS", "20");
 
     let result = BraidStoreFactory::build_postgres_config();
@@ -140,7 +143,7 @@ fn test_build_postgres_config_with_max_connections() {
 #[test]
 #[serial_test::serial]
 fn test_build_postgres_config_with_min_connections() {
-    std::env::set_var("DATABASE_URL", "postgresql://localhost/test");
+    std::env::set_var("DATABASE_URL", TEST_DB_URL);
     std::env::set_var("PG_MIN_CONNECTIONS", "5");
 
     let result = BraidStoreFactory::build_postgres_config();
@@ -150,7 +153,7 @@ fn test_build_postgres_config_with_min_connections() {
 #[test]
 #[serial_test::serial]
 fn test_build_postgres_config_with_invalid_max_connections() {
-    std::env::set_var("DATABASE_URL", "postgresql://localhost/test");
+    std::env::set_var("DATABASE_URL", TEST_DB_URL);
     std::env::set_var("PG_MAX_CONNECTIONS", "not_a_number");
 
     let result = BraidStoreFactory::build_postgres_config();
@@ -427,16 +430,13 @@ fn test_storage_config_default() {
 fn test_storage_config_clone() {
     let original = StorageConfig {
         backend: "postgres".to_string(),
-        database_url: Some("postgresql://localhost/test".to_string()),
+        database_url: Some(TEST_DB_URL.to_string()),
         pg_max_connections: Some(20),
         ..StorageConfig::default()
     };
     let cloned = original.clone();
     assert_eq!(cloned.backend, "postgres");
-    assert_eq!(
-        cloned.database_url,
-        Some("postgresql://localhost/test".to_string())
-    );
+    assert_eq!(cloned.database_url, Some(TEST_DB_URL.to_string()));
     assert_eq!(cloned.pg_max_connections, Some(20));
     assert_eq!(original.backend, cloned.backend);
 }

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Chaos and fault injection tests for `SweetGrass`.
 //!
 //! These tests verify the system's behavior under failure conditions:

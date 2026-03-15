@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Anchoring integration.
 //!
 //! Provides capability-based discovery for anchoring Braids to primals
@@ -307,9 +308,9 @@ impl AnchoringClient for TarpcAnchoringClient {
 ///
 /// ## `#[cfg]` branching (compile-time, not runtime)
 ///
-/// This function uses `#[cfg(any(test, feature = "test-support"))]` branching.
+/// This function uses `#[cfg(any(test, feature = "test"))]` branching.
 /// The mock is **only** returned when compiled with `cargo test` or the
-/// `test-support` feature. Production builds always get the real tarpc client.
+/// `test` feature. Production builds always get the real tarpc client.
 ///
 /// # Errors
 ///
@@ -317,12 +318,12 @@ impl AnchoringClient for TarpcAnchoringClient {
 pub async fn create_anchoring_client_async(
     primal: &DiscoveredPrimal,
 ) -> std::result::Result<Arc<dyn AnchoringClient>, IntegrationError> {
-    #[cfg(any(test, feature = "test-support"))]
+    #[cfg(any(test, feature = "test"))]
     {
         let _ = primal;
         Ok(Arc::new(testing::MockAnchoringClient::new()))
     }
-    #[cfg(not(any(test, feature = "test-support")))]
+    #[cfg(not(any(test, feature = "test")))]
     {
         let client = TarpcAnchoringClient::from_primal(primal).await?;
         Ok(Arc::new(client))
@@ -334,7 +335,7 @@ pub async fn create_anchoring_client_async(
 // ============================================================================
 
 /// Test-only module containing mock implementations.
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(any(test, feature = "test"))]
 pub mod testing {
     use super::{async_trait, AnchorInfo, AnchorReceipt, AnchoringClient, Braid, BraidId, Result};
     use parking_lot::RwLock;
@@ -411,7 +412,7 @@ pub mod testing {
     }
 }
 
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(any(test, feature = "test"))]
 #[allow(unused_imports)] // Re-export for external consumers; may be unused in some builds
 pub use testing::MockAnchoringClient;
 

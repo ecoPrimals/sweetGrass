@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! CRUD operations tests for PostgreSQL backend.
 //!
 //! Tests basic create, read, update, delete operations and data integrity.

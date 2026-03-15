@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! tarpc signing client implementation.
 //!
 //! Production implementation for connecting to signing services
@@ -199,9 +200,9 @@ impl SigningClient for TarpcSigningClient {
 ///
 /// ## `#[cfg]` branching (compile-time, not runtime)
 ///
-/// This function uses `#[cfg(any(test, feature = "test-support"))]` branching.
+/// This function uses `#[cfg(any(test, feature = "test"))]` branching.
 /// The mock is **only** returned when compiled with `cargo test` or the
-/// `test-support` feature. Production builds always get the real tarpc client.
+/// `test` feature. Production builds always get the real tarpc client.
 ///
 /// # Errors
 ///
@@ -210,13 +211,13 @@ impl SigningClient for TarpcSigningClient {
 pub async fn create_signing_client_async(
     primal: &DiscoveredPrimal,
 ) -> std::result::Result<Arc<dyn SigningClient>, IntegrationError> {
-    #[cfg(any(test, feature = "test-support"))]
+    #[cfg(any(test, feature = "test"))]
     {
         // In test mode, return mock client
         let _ = primal; // Silence unused warning
         Ok(Arc::new(super::testing::MockSigningClient::new()))
     }
-    #[cfg(not(any(test, feature = "test-support")))]
+    #[cfg(not(any(test, feature = "test")))]
     {
         // In production, connect via tarpc
         let client = TarpcSigningClient::from_primal(primal).await?;

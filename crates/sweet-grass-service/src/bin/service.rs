@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! `SweetGrass` `UniBin` — single binary, multiple modes.
 //!
 //! Follows the wateringHole `UNIBIN_ARCHITECTURE_STANDARD`:

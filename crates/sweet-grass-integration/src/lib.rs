@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! # `SweetGrass` Integration
 //!
 //! Integration with other ecoPrimals via pure Rust tarpc (no gRPC).
@@ -77,7 +78,7 @@ mod error;
 mod listener;
 pub mod signer;
 
-#[cfg(any(test, feature = "test-support"))]
+#[cfg(any(test, feature = "test"))]
 pub mod testing;
 
 // Re-exports

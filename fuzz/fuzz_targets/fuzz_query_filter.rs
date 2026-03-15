@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Fuzz test for QueryFilter.
 //!
 //! Tests that arbitrary filter configurations don't cause panics.

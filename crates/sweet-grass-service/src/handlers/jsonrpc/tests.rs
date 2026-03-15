@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Tests for the JSON-RPC 2.0 dispatch handler.
 
 #![expect(clippy::unwrap_used, reason = "test file: unwrap is standard in tests")]
@@ -203,8 +204,8 @@ async fn test_record_session_dispatch() {
 fn test_dispatch_table_completeness() {
     assert_eq!(
         METHODS.len(),
-        20,
-        "dispatch table should have all 20 methods"
+        21,
+        "dispatch table should have all 21 methods"
     );
 
     let expected = [
@@ -228,6 +229,7 @@ fn test_dispatch_table_completeness() {
         "contribution.record_session",
         "contribution.record_dehydration",
         "health.check",
+        "capability.list",
     ];
     for name in expected {
         assert!(find_handler(name).is_some(), "missing handler for: {name}");

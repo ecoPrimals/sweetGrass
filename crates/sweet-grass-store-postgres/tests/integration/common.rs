@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Common test utilities for PostgreSQL integration tests.
 //!
 //! Note: Some helpers may be unused during incremental test refactoring.
@@ -15,6 +16,7 @@ use sweet_grass_core::{
     braid::BraidMetadata,
     Braid,
 };
+use sweet_grass_integration::testing::postgres_test_url_for_port;
 use sweet_grass_store_postgres::{PostgresConfig, PostgresStore};
 use testcontainers::{runners::AsyncRunner, ContainerAsync};
 use testcontainers_modules::postgres::Postgres;
@@ -36,8 +38,7 @@ pub async fn setup_postgres() -> (ContainerAsync<Postgres>, PostgresStore) {
         .await
         .expect("Failed to get PostgreSQL port");
 
-    let connection_string =
-        format!("postgresql://postgres:postgres@127.0.0.1:{host_port}/postgres");
+    let connection_string = postgres_test_url_for_port(host_port);
 
     let config = PostgresConfig::new(&connection_string)
         .max_connections(5)

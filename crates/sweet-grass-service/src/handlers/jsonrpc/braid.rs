@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! Braid domain handlers: create, get, get_by_hash, query, delete, commit.
+// Copyright (C) 2024–2026 ecoPrimals Project
+//! Braid domain handlers: create, get, `get_by_hash`, query, delete, commit.
 
 use base64::Engine;
 use serde::Deserialize;
@@ -118,10 +119,10 @@ pub(super) async fn handle_braid_delete(
     to_value(&deleted)
 }
 
-/// Package a Braid for LoamSpine anchoring.
+/// Package a Braid for `LoamSpine` anchoring.
 ///
-/// Extracts UUID from BraidId and converts ContentHash to `[u8; 32]`
-/// for the LoamSpine `braid.commit` wire format.
+/// Extracts UUID from `BraidId` and converts `ContentHash` to `[u8; 32]`
+/// for the `LoamSpine` `braid.commit` wire format.
 pub(super) async fn handle_braid_commit(
     state: &AppState,
     params: serde_json::Value,

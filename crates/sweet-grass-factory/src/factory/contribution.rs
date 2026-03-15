@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Inter-primal Braid creation: `from_contribution`, `from_session`.
 
 use sweet_grass_core::{

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Storage backend factory for infant discovery.
 //!
 //! This module provides runtime selection of storage backends based on
@@ -19,7 +20,7 @@ pub struct StorageConfig {
     /// Backend type: "memory", "postgres", "sled", "redb".
     pub backend: String,
 
-    /// PostgreSQL connection URL.
+    /// `PostgreSQL` connection URL.
     pub database_url: Option<String>,
 
     /// Sled database path.
@@ -28,10 +29,10 @@ pub struct StorageConfig {
     /// redb database path.
     pub redb_path: Option<String>,
 
-    /// PostgreSQL max connections.
+    /// `PostgreSQL` max connections.
     pub pg_max_connections: Option<u32>,
 
-    /// PostgreSQL min connections.
+    /// `PostgreSQL` min connections.
     pub pg_min_connections: Option<u32>,
 
     /// Sled cache size in MB.
@@ -66,13 +67,13 @@ impl BraidStoreFactory {
     ///
     /// Selects the storage backend:
     /// - `memory` — In-memory storage (ephemeral, for testing)
-    /// - `postgres` — PostgreSQL database (production)
+    /// - `postgres` — `PostgreSQL` database (production)
     /// - `redb` — Embedded redb database (Pure Rust, recommended)
     /// - `sled` — Embedded Sled database (Pure Rust, legacy)
     ///
     /// Default: `memory`
     ///
-    /// ## PostgreSQL Backend
+    /// ## `PostgreSQL` Backend
     ///
     /// Requires one of:
     /// - `DATABASE_URL` — Connection string
@@ -197,7 +198,7 @@ impl BraidStoreFactory {
         }
     }
 
-    /// Create PostgreSQL backend from explicit config.
+    /// Create `PostgreSQL` backend from explicit config.
     async fn create_postgres_from_config(config: &StorageConfig) -> Result<Arc<dyn BraidStore>> {
         use sweet_grass_store_postgres::PostgresStore;
 
@@ -257,7 +258,7 @@ impl BraidStoreFactory {
         Ok(Arc::new(store) as Arc<dyn BraidStore>)
     }
 
-    /// Create PostgreSQL backend from environment.
+    /// Create `PostgreSQL` backend from environment.
     async fn create_postgres_backend() -> Result<Arc<dyn BraidStore>> {
         use sweet_grass_store_postgres::PostgresStore;
 

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-//! tarpc server implementation for SweetGrass.
+// Copyright (C) 2024–2026 ecoPrimals Project
+//! tarpc server implementation for `SweetGrass`.
 //!
 //! Pure Rust RPC server - no gRPC, no protobuf.
 
@@ -34,7 +35,7 @@ use crate::rpc::{
 /// Default maximum concurrent tarpc requests when processing agent contributions.
 const DEFAULT_MAX_CONCURRENT_REQUESTS: usize = 10;
 
-/// SweetGrass tarpc server.
+/// `SweetGrass` tarpc server.
 ///
 /// Generic over `BraidStore` — shares the same store as the HTTP/JSON-RPC
 /// stack when constructed from `AppState`.
@@ -53,7 +54,7 @@ pub struct SweetGrassServer {
 }
 
 impl SweetGrassServer {
-    /// Create a new SweetGrass server.
+    /// Create a new `SweetGrass` server.
     ///
     /// `max_concurrent_requests` defaults to `TARPC_MAX_CONCURRENT_REQUESTS` env var
     /// or 10 if unset.

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Query filtering and sorting for the in-memory store.
 //!
 //! This module contains the logic for matching Braids against query filters

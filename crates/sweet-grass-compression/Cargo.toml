@@ -6,6 +6,9 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
+readme = "../../README.md"
+keywords = ["compression", "provenance", "braids", "dehydration", "session"]
+categories = ["data-structures", "compression"]
 
 [lints]
 workspace = true

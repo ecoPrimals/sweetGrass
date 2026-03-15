@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Infant Discovery Bootstrap.
 //!
 //! The entry point for zero-knowledge startup. A primal is born knowing
@@ -20,10 +21,10 @@ pub struct BootstrapConfig {
     /// Storage configuration.
     pub storage: StorageConfig,
 
-    /// Override primal name (otherwise read from PRIMAL_NAME env var).
+    /// Override primal name (otherwise read from `PRIMAL_NAME` env var).
     pub primal_name: Option<String>,
 
-    /// Override instance ID (otherwise read from PRIMAL_INSTANCE_ID env var).
+    /// Override instance ID (otherwise read from `PRIMAL_INSTANCE_ID` env var).
     pub instance_id: Option<String>,
 }
 
@@ -74,7 +75,7 @@ pub struct BootstrapResult {
 /// - `REST_PORT`: REST endpoint port (default: 0 - dynamic allocation)
 ///
 /// ### Storage
-/// - `DATABASE_URL`: PostgreSQL connection string
+/// - `DATABASE_URL`: `PostgreSQL` connection string
 /// - `SLED_PATH`: Sled database path
 /// - (default: in-memory)
 ///

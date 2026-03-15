@@ -36,7 +36,7 @@ cargo clean
 ## ✅ TEST COMMANDS
 
 ```bash
-# All tests (853 tests)
+# All tests (857 tests)
 cargo test --workspace
 
 # Unit tests only

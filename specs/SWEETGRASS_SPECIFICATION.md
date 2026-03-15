@@ -1002,36 +1002,52 @@ query SearchBraids($query: String!) {
 
 ## 8. API Specification
 
-### 8.1 gRPC Service Definition
+### 8.1 tarpc Service Definition (Primary)
 
-```protobuf
-syntax = "proto3";
+Per `PRIMAL_SOVEREIGNTY.md`: **pure Rust, no gRPC, no protobuf, no vendor lock-in.**
 
-package sweetgrass.v1;
-
-service SweetGrass {
+```rust
+#[tarpc::service]
+pub trait SweetGrassRpc {
     // Braid operations
-    rpc CreateBraid(CreateBraidRequest) returns (CreateBraidResponse);
-    rpc GetBraid(GetBraidRequest) returns (GetBraidResponse);
-    rpc GetBraidsForData(GetBraidsForDataRequest) returns (GetBraidsForDataResponse);
-    
-    // Query operations
-    rpc GetProvenanceGraph(GetProvenanceGraphRequest) returns (GetProvenanceGraphResponse);
-    rpc GetAttributionChain(GetAttributionChainRequest) returns (GetAttributionChainResponse);
-    rpc QueryBraids(QueryBraidsRequest) returns (QueryBraidsResponse);
-    rpc SearchBraids(SearchBraidsRequest) returns (SearchBraidsResponse);
-    
-    // GraphQL
-    rpc GraphQL(GraphQLRequest) returns (GraphQLResponse);
-    
-    // Streaming
-    rpc SubscribeBraids(SubscribeBraidsRequest) returns (stream Braid);
-    
-    // LoamSpine integration
-    rpc CommitToLoam(CommitToLoamRequest) returns (CommitToLoamResponse);
-    rpc VerifyCommitment(VerifyCommitmentRequest) returns (VerifyCommitmentResponse);
+    async fn create_braid(data: Vec<u8>, mime_type: String, metadata: Option<String>) -> Result<Braid, RpcError>;
+    async fn get_braid(id: BraidId) -> Result<Option<Braid>, RpcError>;
+    async fn get_braid_by_hash(hash: ContentHash) -> Result<Option<Braid>, RpcError>;
+    async fn query_braids(filter: QueryFilter) -> Result<Vec<Braid>, RpcError>;
+    async fn delete_braid(id: BraidId) -> Result<bool, RpcError>;
+
+    // Provenance
+    async fn provenance_graph(hash: ContentHash, max_depth: Option<usize>) -> Result<ProvenanceGraph, RpcError>;
+    async fn export_provo(hash: ContentHash) -> Result<JsonLdDocument, RpcError>;
+
+    // Attribution
+    async fn attribution_chain(hash: ContentHash) -> Result<AttributionChain, RpcError>;
+
+    // Anchoring (delegates to persistence capability)
+    async fn anchor_braid(braid_id: BraidId) -> Result<AnchorResult, RpcError>;
+    async fn verify_anchor(braid_id: BraidId) -> Result<VerifyResult, RpcError>;
+
+    // Health & capability
+    async fn health() -> Result<HealthStatus, RpcError>;
 }
 ```
+
+### 8.1.1 JSON-RPC 2.0 (Required IPC)
+
+Per wateringHole `UNIVERSAL_IPC_STANDARD_V3`, JSON-RPC 2.0 over Unix domain sockets
+is the required baseline protocol. Method names follow `{domain}.{operation}` per
+`SEMANTIC_METHOD_NAMING_STANDARD.md`.
+
+| Domain         | Operations                                                        |
+|----------------|-------------------------------------------------------------------|
+| `braid`        | create, get, get\_by\_hash, query, delete, commit                 |
+| `anchoring`    | anchor, verify                                                    |
+| `provenance`   | graph, export\_provo, export\_graph\_provo                        |
+| `attribution`  | chain, calculate\_rewards, top\_contributors                      |
+| `compression`  | compress\_session, create\_meta\_braid                            |
+| `contribution` | record, record\_session, record\_dehydration                      |
+| `health`       | check                                                             |
+| `capability`   | list                                                              |
 
 ### 8.2 REST API
 
@@ -1245,38 +1261,66 @@ pub struct RewardDistribution {
 
 ## 12. Implementation Roadmap
 
-### Phase 1: Core Engine (4 weeks)
-- [ ] Braid data structures
-- [ ] JSON-LD context and serialization
-- [ ] Basic Braid store (PostgreSQL)
-- [ ] BearDog signing integration
+### Phase 1: Core Engine — COMPLETE (v0.1.0–v0.5.0)
+- [x] Braid data structures (W3C PROV-O aligned)
+- [x] JSON-LD context and serialization
+- [x] In-memory Braid store
+- [x] PostgreSQL, Sled, and Redb storage backends
+- [x] Content hashing (SHA-256)
 
-### Phase 2: Event Processing (3 weeks)
-- [ ] ToadStool event listener
-- [ ] RhizoCrypt dehydration handler
-- [ ] Automatic Braid generation
-- [ ] LoamSpine commitment
+### Phase 2: Event Processing — COMPLETE (v0.5.0–v0.6.0)
+- [x] Session event listener (capability-based, mock isolation)
+- [x] Dehydration handler (session compression)
+- [x] Automatic Braid generation from sessions
+- [x] Anchoring client (capability-based, mock isolation)
 
-### Phase 3: Query Engine (3 weeks)
-- [ ] Provenance graph traversal
-- [ ] Attribution chain calculation
-- [ ] GraphQL API
-- [ ] Full-text search
+### Phase 3: Query Engine — COMPLETE (v0.6.0–v0.7.0)
+- [x] Provenance graph traversal
+- [x] Attribution chain calculation
+- [x] PROV-O JSON-LD export
+- [ ] Full-text search (planned v0.9.0+)
 
-### Phase 4: Economic Integration (2 weeks)
-- [ ] Contribution calculation
-- [ ] sunCloud interface
-- [ ] Reward tracking
+### Phase 4: Economic Integration — PARTIAL (v0.7.0–v0.7.9)
+- [x] Contribution calculation
+- [x] Attribution normalization and radiating attribution
+- [ ] sunCloud interface (planned v0.9.0)
+- [ ] Reward tracking (planned v0.9.0)
 
-### Phase 5: Optimization (2 weeks)
-- [ ] Graph database migration (Neo4j/Jena)
-- [ ] Caching layer
-- [ ] Performance tuning
+### Phase 5: Protocol & Deployment — COMPLETE (v0.7.0–v0.7.9)
+- [x] tarpc primary RPC (pure Rust, no gRPC)
+- [x] JSON-RPC 2.0 with `{domain}.{operation}` naming
+- [x] REST fallback API
+- [x] UniBin binary (`sweetgrass server|status|--version`)
+- [x] `capability.list` for runtime discovery
+- [x] ecoBin compliance (pure Rust, no C deps)
+- [x] TOML config with XDG hierarchy
 
-### Phase 6: Hardening (2 weeks)
+### Phase 6: Hardening — IN PROGRESS (v0.7.9+)
+- [x] `#![forbid(unsafe_code)]` on all crates
+- [x] Zero `unwrap`/`expect`/`panic!` in production
+- [x] SPDX headers and AGPL-3.0-only licensing
+- [x] Criterion benchmarks (7 groups)
+- [x] Chaos and fault-injection tests
+- [x] Fuzz targets (3) and property tests (proptest)
+- [ ] Privacy features (module exists, integration pending)
 - [ ] Security audit
-- [ ] Privacy features
-- [ ] Documentation
+
+### Planned: v0.8.0+ — Real Deployment
+- [ ] Connect to deployed primals (BearDog signing, LoamSpine anchoring)
+- [ ] Multi-primal integration tests over real sockets
+- [ ] Protocol negotiation (tarpc-preferred, JSON-RPC fallback)
+- [ ] Zero-copy evolution (hot-path clone reduction)
+
+### Planned: v0.9.0 — sunCloud
+- [ ] sunCloud attribution API
+- [ ] Real-time attribution streaming
+- [ ] Payment flow integration
+
+### Planned: v1.0.0 — GA
+- [ ] API versioning
+- [ ] Full PROV-O compliance
+- [ ] Distributed provenance across primals
+- [ ] Kubernetes manifests and deploy graphs
 
 ---
 

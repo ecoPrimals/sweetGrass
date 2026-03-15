@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! tarpc transport implementation for session events.
 
 use std::collections::VecDeque;
@@ -139,9 +140,9 @@ impl SessionEventStream for TarpcEventStream {
 ///
 /// ## `#[cfg]` branching (compile-time, not runtime)
 ///
-/// This function uses `#[cfg(any(test, feature = "test-support"))]` branching.
+/// This function uses `#[cfg(any(test, feature = "test"))]` branching.
 /// The mock is **only** returned when compiled with `cargo test` or the
-/// `test-support` feature. Production builds always get the real tarpc client.
+/// `test` feature. Production builds always get the real tarpc client.
 ///
 /// # Errors
 ///
@@ -149,12 +150,12 @@ impl SessionEventStream for TarpcEventStream {
 pub async fn create_session_events_client_async(
     primal: &DiscoveredPrimal,
 ) -> std::result::Result<Arc<dyn SessionEventsClient>, IntegrationError> {
-    #[cfg(any(test, feature = "test-support"))]
+    #[cfg(any(test, feature = "test"))]
     {
         let _ = primal;
         Ok(Arc::new(super::testing::MockSessionEventsClient::new()))
     }
-    #[cfg(not(any(test, feature = "test-support")))]
+    #[cfg(not(any(test, feature = "test")))]
     {
         let client = TarpcSessionEventsClient::from_primal(primal).await?;
         Ok(Arc::new(client))

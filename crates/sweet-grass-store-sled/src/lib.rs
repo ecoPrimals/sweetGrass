@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Sled storage backend for `SweetGrass`.
 //!
 //! This crate provides a high-performance embedded storage backend

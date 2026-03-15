@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! JSON-RPC 2.0 handler.
 //!
 //! Implements the wateringHole `UNIVERSAL_IPC_STANDARD_V3` required protocol.
@@ -16,10 +17,12 @@
 //! | `compression` | compress_session, create_meta_braid                              |
 //! | `contribution`| record, record_session, record_dehydration                       |
 //! | `health`      | check                                                            |
+//! | `capability`  | list                                                             |
 
 mod anchoring;
 mod attribution;
 mod braid;
+mod capability;
 mod compression;
 mod contribution;
 mod health;
@@ -47,29 +50,40 @@ pub(crate) mod error_code {
 /// JSON-RPC 2.0 request envelope.
 #[derive(Debug, serde::Deserialize)]
 pub struct JsonRpcRequest {
+    /// Protocol version — must be `"2.0"`.
     pub jsonrpc: String,
+    /// Semantic method name (`{domain}.{operation}`).
     pub method: String,
+    /// Method parameters (may be omitted).
     #[serde(default)]
     pub params: serde_json::Value,
+    /// Caller-supplied request identifier.
     pub id: serde_json::Value,
 }
 
 /// JSON-RPC 2.0 response envelope.
 #[derive(Debug, Serialize)]
 pub struct JsonRpcResponse {
+    /// Protocol version — always `"2.0"`.
     pub jsonrpc: &'static str,
+    /// Result on success.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub result: Option<serde_json::Value>,
+    /// Error on failure.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<JsonRpcError>,
+    /// Echoed request identifier.
     pub id: serde_json::Value,
 }
 
 /// JSON-RPC 2.0 error object.
 #[derive(Debug, Serialize)]
 pub struct JsonRpcError {
+    /// Numeric error code per JSON-RPC 2.0 specification.
     pub code: i64,
+    /// Human-readable error message.
     pub message: String,
+    /// Optional structured error data.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<serde_json::Value>,
 }
@@ -107,8 +121,8 @@ type DispatchFn = for<'a> fn(
     serde_json::Value,
 ) -> Pin<Box<dyn Future<Output = DispatchResult> + Send + 'a>>;
 
-struct MethodEntry {
-    name: &'static str,
+pub(super) struct MethodEntry {
+    pub(super) name: &'static str,
     handler: DispatchFn,
 }
 
@@ -201,6 +215,11 @@ static METHODS: &[MethodEntry] = &[
     MethodEntry {
         name: "health.check",
         handler: |s, p| Box::pin(health::handle_health(s, p)),
+    },
+    // Capability discovery (wateringHole SPRING_AS_NICHE_DEPLOYMENT_STANDARD)
+    MethodEntry {
+        name: "capability.list",
+        handler: |s, p| Box::pin(async move { capability::handle_capability_list(s, p) }),
     },
 ];
 

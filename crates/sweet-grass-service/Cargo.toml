@@ -6,6 +6,9 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
+readme = "../../README.md"
+keywords = ["service", "tarpc", "json-rpc", "provenance", "rest"]
+categories = ["web-programming", "network-programming"]
 
 [lints]
 workspace = true
@@ -68,7 +71,8 @@ default = []
 sled = ["dep:sled", "dep:sweet-grass-store-sled"]
 
 [dev-dependencies]
-sweet-grass-core = { path = "../sweet-grass-core", features = ["test-support"] }
+sweet-grass-core = { path = "../sweet-grass-core", features = ["test"] }
+sweet-grass-integration = { path = "../sweet-grass-integration", features = ["test"] }
 tokio = { workspace = true, features = ["test-util", "macros"] }
 axum-test = "19"
 serial_test = "3"

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Entity reference data structures - links to data artifacts.
 //!
 //! Entity references allow Braids to link to other data without

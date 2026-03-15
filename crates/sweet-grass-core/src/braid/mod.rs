@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Braid data structures - the core provenance record.
 //!
 //! A Braid is a PROV-O compatible provenance record that describes:

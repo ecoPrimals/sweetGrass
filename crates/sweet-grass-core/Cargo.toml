@@ -6,10 +6,13 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
+readme = "../../README.md"
+keywords = ["provenance", "prov-o", "attribution", "semantic-web", "braids"]
+categories = ["data-structures", "cryptography"]
 
 [features]
 default = []
-test-support = []
+test = []
 
 [lints]
 workspace = true

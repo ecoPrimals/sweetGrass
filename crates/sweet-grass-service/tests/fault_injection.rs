@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Fault injection tests — HTTP-level resilience.
 //!
 //! Tests that verify the system returns proper HTTP/JSON-RPC error codes when

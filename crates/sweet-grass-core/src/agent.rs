@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Agent data structures - people, software, and organizations that act.
 //!
 //! Agents are the "who" of provenance - the entities that perform activities

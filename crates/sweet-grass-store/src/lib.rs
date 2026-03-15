@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (C) 2024–2026 ecoPrimals Project
 //! Storage backends for `SweetGrass` Braids.
 //!
-//! This crate provides the `BraidStore` trait and implementations
+//! This crate provides the [`BraidStore`] trait and implementations
 //! for persisting and querying Braid provenance records.
 
 #![forbid(unsafe_code)]
+#![warn(missing_docs)]
 
 pub mod error;
 pub mod memory;

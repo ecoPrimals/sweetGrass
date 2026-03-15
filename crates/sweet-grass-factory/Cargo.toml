@@ -6,6 +6,9 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
+readme = "../../README.md"
+keywords = ["provenance", "attribution", "braids", "factory", "prov-o"]
+categories = ["data-structures"]
 
 [lints]
 workspace = true
@@ -26,7 +29,7 @@ chrono = { workspace = true }
 async-trait = "0.1"
 
 [dev-dependencies]
-sweet-grass-core = { path = "../sweet-grass-core", features = ["test-support"] }
+sweet-grass-core = { path = "../sweet-grass-core", features = ["test"] }
 tokio = { workspace = true, features = ["test-util", "macros"] }
 proptest = { workspace = true }
 
