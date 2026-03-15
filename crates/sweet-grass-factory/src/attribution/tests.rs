@@ -5,9 +5,9 @@
 use super::*;
 use std::collections::HashMap;
 use std::sync::Arc;
+use sweet_grass_core::Braid;
 use sweet_grass_core::activity::ActivityType;
 use sweet_grass_core::entity::EntityReference;
-use sweet_grass_core::Braid;
 
 fn make_test_braid(hash: &str, agent: &str) -> Braid {
     let did = Did::new(agent);
@@ -356,6 +356,212 @@ fn test_default_calculator() {
     let braid = make_test_braid("sha256:default-calc", "did:key:z6MkDefault");
     let chain = calc.calculate_single(&braid);
     assert!(chain.is_valid());
+}
+
+/// Chaos and fault injection tests for attribution edge cases.
+///
+/// Follows groundSpring pattern: test with NaN, Inf, extreme values,
+/// empty inputs, and boundary conditions.
+mod chaos {
+    use super::*;
+
+    #[test]
+    fn chaos_zero_weight_config() {
+        let config = AttributionConfig {
+            role_weights: HashMap::new(),
+            decay_factor: 0.5,
+            max_depth: 10,
+            min_share: 0.001,
+        };
+        let calc = AttributionCalculator::with_config(config);
+        let braid = make_test_braid("sha256:zero-weight", "did:key:z6MkZero");
+        let chain = calc.calculate_single(&braid);
+        assert!(chain.is_valid());
+        for c in &chain.contributors {
+            assert!(c.share.is_finite());
+        }
+    }
+
+    #[test]
+    fn chaos_extreme_decay_factor_zero() {
+        let config = AttributionConfig {
+            decay_factor: 0.0,
+            ..AttributionConfig::default()
+        };
+        let calc = AttributionCalculator::with_config(config);
+        let parent = make_test_braid("sha256:parent-decay0", "did:key:z6MkP");
+        let child = {
+            let did = Did::new("did:key:z6MkC");
+            let mut b = Braid::builder()
+                .data_hash("sha256:child-decay0")
+                .mime_type("text/plain")
+                .size(10)
+                .attributed_to(did)
+                .build()
+                .expect("build");
+            b.was_derived_from = vec![EntityReference::by_hash("sha256:parent-decay0")];
+            b
+        };
+        let p = parent;
+        let chain = calc.calculate_with_derivations(&child, |h: &ContentHash| {
+            if h == "sha256:parent-decay0" {
+                Some(p.clone())
+            } else {
+                None
+            }
+        });
+        assert!(chain.is_valid());
+        for c in &chain.contributors {
+            assert!(c.share.is_finite());
+        }
+    }
+
+    #[test]
+    fn chaos_extreme_decay_factor_one() {
+        let config = AttributionConfig {
+            decay_factor: 1.0,
+            ..AttributionConfig::default()
+        };
+        let calc = AttributionCalculator::with_config(config);
+        let braid = make_test_braid("sha256:decay1", "did:key:z6MkD1");
+        let chain = calc.calculate_single(&braid);
+        assert!(chain.is_valid());
+    }
+
+    #[test]
+    fn chaos_zero_min_share() {
+        let config = AttributionConfig {
+            min_share: 0.0,
+            ..AttributionConfig::default()
+        };
+        let calc = AttributionCalculator::with_config(config);
+        let braid = make_test_braid("sha256:min0", "did:key:z6MkMin0");
+        let chain = calc.calculate_single(&braid);
+        assert!(chain.is_valid());
+    }
+
+    #[test]
+    fn chaos_max_depth_zero() {
+        let config = AttributionConfig {
+            max_depth: 0,
+            ..AttributionConfig::default()
+        };
+        let calc = AttributionCalculator::with_config(config);
+        let parent = make_test_braid("sha256:p-depth0", "did:key:z6MkPD0");
+        let child = {
+            let did = Did::new("did:key:z6MkCD0");
+            let mut b = Braid::builder()
+                .data_hash("sha256:c-depth0")
+                .mime_type("text/plain")
+                .size(10)
+                .attributed_to(did)
+                .build()
+                .expect("build");
+            b.was_derived_from = vec![EntityReference::by_hash("sha256:p-depth0")];
+            b
+        };
+        let p = parent;
+        let chain = calc.calculate_with_derivations(&child, |h: &ContentHash| {
+            if h == "sha256:p-depth0" {
+                Some(p.clone())
+            } else {
+                None
+            }
+        });
+        assert!(chain.is_valid());
+        assert_eq!(chain.max_depth, 0, "Should not recurse at all");
+    }
+
+    #[test]
+    fn chaos_empty_contributors_normalize() {
+        let mut chain = AttributionChain::new(EntityReference::by_hash("sha256:empty"));
+        chain.normalize();
+        assert!(chain.contributors.is_empty());
+    }
+
+    #[test]
+    fn chaos_single_zero_share_normalize() {
+        let mut chain = AttributionChain::new(EntityReference::by_hash("sha256:zsn"));
+        chain.add_contributor(ContributorShare::new(
+            Did::new("did:key:z6MkZ"),
+            0.0,
+            AgentRole::Creator,
+            true,
+        ));
+        chain.normalize();
+        for c in &chain.contributors {
+            assert!(c.share.is_finite());
+        }
+    }
+
+    #[test]
+    fn chaos_rewards_zero_value() {
+        let braid = make_test_braid("sha256:r0", "did:key:z6MkR0");
+        let calc = AttributionCalculator::new();
+        let chain = calc.calculate_single(&braid);
+        let rewards = calculate_rewards(&chain, 0.0);
+        assert!(rewards.is_ok());
+        let r = rewards.unwrap();
+        assert_eq!(r.len(), 1);
+        assert!((r[0].1 - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn chaos_rewards_large_value() {
+        let braid = make_test_braid("sha256:big", "did:key:z6MkBig");
+        let calc = AttributionCalculator::new();
+        let chain = calc.calculate_single(&braid);
+        let rewards = calculate_rewards(&chain, f64::MAX / 2.0);
+        assert!(rewards.is_ok());
+        for (_, v) in rewards.unwrap() {
+            assert!(v.is_finite());
+        }
+    }
+
+    #[test]
+    fn chaos_many_contributors() {
+        let mut chain = AttributionChain::new(EntityReference::by_hash("sha256:many"));
+        for i in 0..100 {
+            chain.add_contributor(ContributorShare::new(
+                Did::new(format!("did:key:z6Mk{i}")),
+                0.01,
+                AgentRole::Contributor,
+                true,
+            ));
+        }
+        chain.normalize();
+        let total: f64 = chain.contributors.iter().map(|c| c.share).sum();
+        assert!((total - 1.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn chaos_deep_derivation_chain() {
+        let braids: Vec<Braid> = (0..20)
+            .map(|i| {
+                let did = Did::new(format!("did:key:z6MkDeep{i}"));
+                let mut b = Braid::builder()
+                    .data_hash(format!("sha256:deep{i}"))
+                    .mime_type("text/plain")
+                    .size(10)
+                    .attributed_to(did)
+                    .build()
+                    .expect("build");
+                if i > 0 {
+                    b.was_derived_from =
+                        vec![EntityReference::by_hash(format!("sha256:deep{}", i - 1))];
+                }
+                b
+            })
+            .collect();
+
+        let calc = AttributionCalculator::new();
+        let bs = braids.clone();
+        let chain = calc.calculate_with_derivations(braids.last().unwrap(), |h: &ContentHash| {
+            bs.iter().find(|b| &b.data_hash == h).cloned()
+        });
+        assert!(chain.is_valid());
+        assert!(chain.max_depth <= DEFAULT_ATTRIBUTION_MAX_DEPTH);
+    }
 }
 
 /// Property-based tests for attribution calculations.

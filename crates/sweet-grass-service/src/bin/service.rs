@@ -20,8 +20,8 @@ use std::net::SocketAddr;
 
 use clap::{Parser, Subcommand};
 use sweet_grass_service::{
-    create_router, infant_bootstrap_with_config, start_tarpc_server, BootstrapConfig,
-    StorageConfig, SweetGrassServer,
+    BootstrapConfig, StorageConfig, SweetGrassServer, create_router, infant_bootstrap_with_config,
+    start_tarpc_server,
 };
 use tracing::info;
 

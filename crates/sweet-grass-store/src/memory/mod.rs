@@ -20,12 +20,12 @@ use parking_lot::RwLock;
 use std::collections::{HashMap, HashSet};
 
 use sweet_grass_core::{
-    agent::Did, braid::Timestamp, Activity, ActivityId, Braid, BraidId, ContentHash,
+    Activity, ActivityId, Braid, BraidId, ContentHash, agent::Did, braid::Timestamp,
 };
 
+use crate::Result;
 use crate::error::StoreError;
 use crate::traits::{BraidStore, IndexStore, QueryFilter, QueryOrder, QueryResult};
-use crate::Result;
 
 use indexes::Indexes;
 

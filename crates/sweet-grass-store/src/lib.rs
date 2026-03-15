@@ -15,7 +15,7 @@ pub mod traits;
 pub use error::StoreError;
 pub use memory::MemoryStore;
 pub use traits::{
-    BraidStore, IndexStore, QueryFilter, QueryOrder, QueryResult, DEFAULT_QUERY_LIMIT,
+    BraidStore, DEFAULT_QUERY_LIMIT, IndexStore, QueryFilter, QueryOrder, QueryResult,
 };
 
 /// Result type for store operations.

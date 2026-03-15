@@ -453,10 +453,12 @@ mod tests {
 
         let result = primal.stop();
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .to_lowercase()
-            .contains("not running"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .to_lowercase()
+                .contains("not running")
+        );
     }
 }

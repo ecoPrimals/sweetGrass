@@ -6,6 +6,7 @@
 
 use sha2::{Digest, Sha256};
 use sweet_grass_core::{
+    ContentHash,
     activity::{Activity, ActivityType, UsedEntity},
     agent::{AgentAssociation, AgentRole, Did},
     braid::{
@@ -15,11 +16,10 @@ use sweet_grass_core::{
     entity::EntityReference,
     hash::hex_encode,
     primal_info::SelfKnowledge,
-    ContentHash,
 };
 
-use crate::error::FactoryError;
 use crate::Result;
+use crate::error::FactoryError;
 
 pub mod contribution;
 

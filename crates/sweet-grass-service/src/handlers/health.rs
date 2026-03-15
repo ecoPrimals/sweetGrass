@@ -7,7 +7,7 @@
 //! - Detailed component status for debugging
 //! - Integration status for connected primals
 
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{Json, extract::State, http::StatusCode};
 use serde::Serialize;
 use sweet_grass_store::QueryFilter;
 
@@ -289,6 +289,7 @@ pub async fn readiness(State(state): State<AppState>) -> StatusCode {
 }
 
 #[cfg(test)]
+#[allow(unsafe_code)]
 #[expect(
     clippy::unwrap_used,
     clippy::expect_used,
@@ -419,7 +420,9 @@ mod tests {
     #[tokio::test]
     #[serial_test::serial]
     async fn test_health_detailed() {
-        std::env::remove_var("DISCOVERY_ADDRESS");
+        unsafe {
+            std::env::remove_var("DISCOVERY_ADDRESS");
+        }
         let state = create_test_state();
         let result = health_detailed(State(state)).await;
         assert!(result.is_ok());
@@ -528,7 +531,9 @@ mod tests {
     #[tokio::test]
     #[serial_test::serial]
     async fn test_health_detailed_integrations_discovery_unknown() {
-        std::env::remove_var("DISCOVERY_ADDRESS");
+        unsafe {
+            std::env::remove_var("DISCOVERY_ADDRESS");
+        }
 
         let state = create_test_state();
         let result = health_detailed(State(state)).await;
@@ -551,7 +556,9 @@ mod tests {
     #[tokio::test]
     #[serial_test::serial]
     async fn test_health_detailed_integrations_discovery_configured() {
-        std::env::set_var("DISCOVERY_ADDRESS", "localhost:9999");
+        unsafe {
+            std::env::set_var("DISCOVERY_ADDRESS", "localhost:9999");
+        }
 
         let state = create_test_state();
         let result = health_detailed(State(state)).await;
@@ -570,7 +577,9 @@ mod tests {
         assert_eq!(discovery.address.as_deref(), Some("localhost:9999"));
         assert!(discovery.error.is_some());
 
-        std::env::remove_var("DISCOVERY_ADDRESS");
+        unsafe {
+            std::env::remove_var("DISCOVERY_ADDRESS");
+        }
     }
 
     #[test]

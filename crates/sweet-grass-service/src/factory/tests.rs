@@ -2,6 +2,7 @@
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Tests for storage backend factory.
 
+#![allow(unsafe_code)]
 #![expect(
     clippy::unwrap_used,
     reason = "test module: unwrap is standard in tests"
@@ -18,7 +19,9 @@ use super::*;
 #[tokio::test]
 #[serial_test::serial]
 async fn test_memory_backend() {
-    std::env::set_var("STORAGE_BACKEND", "memory");
+    unsafe {
+        std::env::set_var("STORAGE_BACKEND", "memory");
+    }
     let store = BraidStoreFactory::from_env().await;
     assert!(store.is_ok());
 }
@@ -26,7 +29,9 @@ async fn test_memory_backend() {
 #[tokio::test]
 #[serial_test::serial]
 async fn test_default_backend() {
-    std::env::remove_var("STORAGE_BACKEND");
+    unsafe {
+        std::env::remove_var("STORAGE_BACKEND");
+    }
     let store = BraidStoreFactory::from_env().await;
     assert!(store.is_ok(), "Should default to memory backend");
 }
@@ -34,7 +39,9 @@ async fn test_default_backend() {
 #[tokio::test]
 #[serial_test::serial]
 async fn test_memory_backend_explicit() {
-    std::env::set_var("STORAGE_BACKEND", "memory");
+    unsafe {
+        std::env::set_var("STORAGE_BACKEND", "memory");
+    }
     let result = BraidStoreFactory::from_env().await;
     assert!(result.is_ok());
     let store = result.unwrap();
@@ -46,7 +53,9 @@ async fn test_memory_backend_explicit() {
 #[tokio::test]
 #[serial_test::serial]
 async fn test_unknown_backend() {
-    std::env::set_var("STORAGE_BACKEND", "unknown");
+    unsafe {
+        std::env::set_var("STORAGE_BACKEND", "unknown");
+    }
     let result = BraidStoreFactory::from_env().await;
     assert!(result.is_err());
     if let Err(err) = result {
@@ -59,7 +68,9 @@ async fn test_unknown_backend() {
 #[serial_test::serial]
 async fn test_unknown_backend_specific_message() {
     // Use generic unknown backend, not vendor-specific name
-    std::env::set_var("STORAGE_BACKEND", "unknown_backend");
+    unsafe {
+        std::env::set_var("STORAGE_BACKEND", "unknown_backend");
+    }
     let result = BraidStoreFactory::from_env().await;
     assert!(result.is_err());
     if let Err(err) = result {
@@ -75,9 +86,15 @@ async fn test_unknown_backend_specific_message() {
 #[tokio::test]
 #[serial_test::serial]
 async fn test_postgres_backend_missing_url() {
-    std::env::set_var("STORAGE_BACKEND", "postgres");
-    std::env::remove_var("DATABASE_URL");
-    std::env::remove_var("STORAGE_URL");
+    unsafe {
+        std::env::set_var("STORAGE_BACKEND", "postgres");
+    }
+    unsafe {
+        std::env::remove_var("DATABASE_URL");
+    }
+    unsafe {
+        std::env::remove_var("STORAGE_URL");
+    }
 
     let result = BraidStoreFactory::from_env().await;
     assert!(result.is_err());
@@ -89,8 +106,12 @@ async fn test_postgres_backend_missing_url() {
 #[test]
 #[serial_test::serial]
 fn test_build_postgres_config_missing_url() {
-    std::env::remove_var("DATABASE_URL");
-    std::env::remove_var("STORAGE_URL");
+    unsafe {
+        std::env::remove_var("DATABASE_URL");
+    }
+    unsafe {
+        std::env::remove_var("STORAGE_URL");
+    }
 
     let result = BraidStoreFactory::build_postgres_config();
     assert!(result.is_err());
@@ -101,8 +122,12 @@ fn test_build_postgres_config_missing_url() {
 #[test]
 #[serial_test::serial]
 fn test_build_postgres_config_with_database_url() {
-    std::env::set_var("DATABASE_URL", TEST_DB_URL);
-    std::env::remove_var("STORAGE_URL");
+    unsafe {
+        std::env::set_var("DATABASE_URL", TEST_DB_URL);
+    }
+    unsafe {
+        std::env::remove_var("STORAGE_URL");
+    }
 
     let result = BraidStoreFactory::build_postgres_config();
     assert!(result.is_ok());
@@ -111,8 +136,12 @@ fn test_build_postgres_config_with_database_url() {
 #[test]
 #[serial_test::serial]
 fn test_build_postgres_config_with_storage_url() {
-    std::env::remove_var("DATABASE_URL");
-    std::env::set_var("STORAGE_URL", TEST_DB_URL);
+    unsafe {
+        std::env::remove_var("DATABASE_URL");
+    }
+    unsafe {
+        std::env::set_var("STORAGE_URL", TEST_DB_URL);
+    }
 
     let result = BraidStoreFactory::build_postgres_config();
     assert!(result.is_ok());
@@ -121,8 +150,12 @@ fn test_build_postgres_config_with_storage_url() {
 #[test]
 #[serial_test::serial]
 fn test_build_postgres_config_prefers_database_url() {
-    std::env::set_var("DATABASE_URL", TEST_DB_URL_PRIMARY);
-    std::env::set_var("STORAGE_URL", TEST_DB_URL_SECONDARY);
+    unsafe {
+        std::env::set_var("DATABASE_URL", TEST_DB_URL_PRIMARY);
+    }
+    unsafe {
+        std::env::set_var("STORAGE_URL", TEST_DB_URL_SECONDARY);
+    }
 
     let result = BraidStoreFactory::build_postgres_config();
     assert!(result.is_ok());
@@ -132,8 +165,12 @@ fn test_build_postgres_config_prefers_database_url() {
 #[test]
 #[serial_test::serial]
 fn test_build_postgres_config_with_max_connections() {
-    std::env::set_var("DATABASE_URL", TEST_DB_URL);
-    std::env::set_var("PG_MAX_CONNECTIONS", "20");
+    unsafe {
+        std::env::set_var("DATABASE_URL", TEST_DB_URL);
+    }
+    unsafe {
+        std::env::set_var("PG_MAX_CONNECTIONS", "20");
+    }
 
     let result = BraidStoreFactory::build_postgres_config();
     assert!(result.is_ok());
@@ -143,8 +180,12 @@ fn test_build_postgres_config_with_max_connections() {
 #[test]
 #[serial_test::serial]
 fn test_build_postgres_config_with_min_connections() {
-    std::env::set_var("DATABASE_URL", TEST_DB_URL);
-    std::env::set_var("PG_MIN_CONNECTIONS", "5");
+    unsafe {
+        std::env::set_var("DATABASE_URL", TEST_DB_URL);
+    }
+    unsafe {
+        std::env::set_var("PG_MIN_CONNECTIONS", "5");
+    }
 
     let result = BraidStoreFactory::build_postgres_config();
     assert!(result.is_ok());
@@ -153,8 +194,12 @@ fn test_build_postgres_config_with_min_connections() {
 #[test]
 #[serial_test::serial]
 fn test_build_postgres_config_with_invalid_max_connections() {
-    std::env::set_var("DATABASE_URL", TEST_DB_URL);
-    std::env::set_var("PG_MAX_CONNECTIONS", "not_a_number");
+    unsafe {
+        std::env::set_var("DATABASE_URL", TEST_DB_URL);
+    }
+    unsafe {
+        std::env::set_var("PG_MAX_CONNECTIONS", "not_a_number");
+    }
 
     let result = BraidStoreFactory::build_postgres_config();
     // Should succeed - invalid values are ignored
@@ -167,7 +212,9 @@ fn test_build_postgres_config_with_invalid_max_connections() {
 #[test]
 #[serial_test::serial]
 fn test_build_sled_config_default_path() {
-    std::env::remove_var("STORAGE_PATH");
+    unsafe {
+        std::env::remove_var("STORAGE_PATH");
+    }
 
     let (_config, path) = BraidStoreFactory::build_sled_config();
     assert_eq!(path, "./data/sweetgrass");
@@ -177,7 +224,9 @@ fn test_build_sled_config_default_path() {
 #[test]
 #[serial_test::serial]
 fn test_build_sled_config_custom_path() {
-    std::env::set_var("STORAGE_PATH", "/tmp/custom/path");
+    unsafe {
+        std::env::set_var("STORAGE_PATH", "/tmp/custom/path");
+    }
 
     let (_config, path) = BraidStoreFactory::build_sled_config();
     assert_eq!(path, "/tmp/custom/path");
@@ -187,8 +236,12 @@ fn test_build_sled_config_custom_path() {
 #[test]
 #[serial_test::serial]
 fn test_build_sled_config_with_cache_size() {
-    std::env::set_var("STORAGE_PATH", "/tmp/test");
-    std::env::set_var("SLED_CACHE_SIZE", "512");
+    unsafe {
+        std::env::set_var("STORAGE_PATH", "/tmp/test");
+    }
+    unsafe {
+        std::env::set_var("SLED_CACHE_SIZE", "512");
+    }
 
     let (_config, _path) = BraidStoreFactory::build_sled_config();
 }
@@ -197,8 +250,12 @@ fn test_build_sled_config_with_cache_size() {
 #[test]
 #[serial_test::serial]
 fn test_build_sled_config_with_flush_interval() {
-    std::env::set_var("STORAGE_PATH", "/tmp/test");
-    std::env::set_var("SLED_FLUSH_MS", "1000");
+    unsafe {
+        std::env::set_var("STORAGE_PATH", "/tmp/test");
+    }
+    unsafe {
+        std::env::set_var("SLED_FLUSH_MS", "1000");
+    }
 
     let (_config, _path) = BraidStoreFactory::build_sled_config();
 }
@@ -207,8 +264,12 @@ fn test_build_sled_config_with_flush_interval() {
 #[test]
 #[serial_test::serial]
 fn test_build_sled_config_with_invalid_cache_size() {
-    std::env::set_var("STORAGE_PATH", "/tmp/test");
-    std::env::set_var("SLED_CACHE_SIZE", "not_a_number");
+    unsafe {
+        std::env::set_var("STORAGE_PATH", "/tmp/test");
+    }
+    unsafe {
+        std::env::set_var("SLED_CACHE_SIZE", "not_a_number");
+    }
 
     let (_config, _path) = BraidStoreFactory::build_sled_config();
 }
@@ -218,7 +279,9 @@ fn test_build_sled_config_with_invalid_cache_size() {
 #[test]
 #[serial_test::serial]
 fn test_parse_env_var_success() {
-    std::env::set_var("TEST_VAR", "42");
+    unsafe {
+        std::env::set_var("TEST_VAR", "42");
+    }
     let result: Option<u32> = BraidStoreFactory::parse_env_var("TEST_VAR");
     assert_eq!(result, Some(42));
 }
@@ -226,7 +289,9 @@ fn test_parse_env_var_success() {
 #[test]
 #[serial_test::serial]
 fn test_parse_env_var_missing() {
-    std::env::remove_var("MISSING_VAR");
+    unsafe {
+        std::env::remove_var("MISSING_VAR");
+    }
     let result: Option<u32> = BraidStoreFactory::parse_env_var("MISSING_VAR");
     assert_eq!(result, None);
 }
@@ -234,7 +299,9 @@ fn test_parse_env_var_missing() {
 #[test]
 #[serial_test::serial]
 fn test_parse_env_var_invalid_parse() {
-    std::env::set_var("INVALID_VAR", "not_a_number");
+    unsafe {
+        std::env::set_var("INVALID_VAR", "not_a_number");
+    }
     let result: Option<u32> = BraidStoreFactory::parse_env_var("INVALID_VAR");
     assert_eq!(result, None);
 }
@@ -242,15 +309,21 @@ fn test_parse_env_var_invalid_parse() {
 #[test]
 #[serial_test::serial]
 fn test_parse_env_var_different_types() {
-    std::env::set_var("STRING_VAR", "hello");
+    unsafe {
+        std::env::set_var("STRING_VAR", "hello");
+    }
     let result: Option<String> = BraidStoreFactory::parse_env_var("STRING_VAR");
     assert_eq!(result, Some("hello".to_string()));
 
-    std::env::set_var("BOOL_VAR", "true");
+    unsafe {
+        std::env::set_var("BOOL_VAR", "true");
+    }
     let result: Option<bool> = BraidStoreFactory::parse_env_var("BOOL_VAR");
     assert_eq!(result, Some(true));
 
-    std::env::set_var("FLOAT_VAR", "42.5");
+    unsafe {
+        std::env::set_var("FLOAT_VAR", "42.5");
+    }
     let result: Option<f64> = BraidStoreFactory::parse_env_var("FLOAT_VAR");
     assert_eq!(result, Some(42.5));
 }
@@ -385,10 +458,14 @@ async fn test_from_config_redb_default_path() {
 #[tokio::test]
 #[serial_test::serial]
 async fn test_redb_backend_from_env() {
-    std::env::set_var("STORAGE_BACKEND", "redb");
+    unsafe {
+        std::env::set_var("STORAGE_BACKEND", "redb");
+    }
     let dir = tempfile::tempdir().unwrap();
     let db_path = dir.path().join("env.redb");
-    std::env::set_var("STORAGE_PATH", db_path.to_str().unwrap());
+    unsafe {
+        std::env::set_var("STORAGE_PATH", db_path.to_str().unwrap());
+    }
     let result = BraidStoreFactory::from_env_with_name().await;
     assert!(result.is_ok());
     let (_, name) = result.unwrap();
@@ -398,7 +475,9 @@ async fn test_redb_backend_from_env() {
 #[test]
 #[serial_test::serial]
 fn test_build_redb_config_default_path() {
-    std::env::remove_var("STORAGE_PATH");
+    unsafe {
+        std::env::remove_var("STORAGE_PATH");
+    }
     let (_config, path) = BraidStoreFactory::build_redb_config();
     assert_eq!(path, "./data/sweetgrass.redb");
 }
@@ -406,7 +485,9 @@ fn test_build_redb_config_default_path() {
 #[test]
 #[serial_test::serial]
 fn test_build_redb_config_custom_path() {
-    std::env::set_var("STORAGE_PATH", "/tmp/custom.redb");
+    unsafe {
+        std::env::set_var("STORAGE_PATH", "/tmp/custom.redb");
+    }
     let (_config, path) = BraidStoreFactory::build_redb_config();
     assert_eq!(path, "/tmp/custom.redb");
 }

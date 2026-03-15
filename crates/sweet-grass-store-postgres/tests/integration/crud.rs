@@ -25,20 +25,24 @@ async fn test_basic_crud() {
     assert_eq!(retrieved.mime_type, braid.mime_type);
 
     // Exists
-    assert!(store
-        .exists(&braid.id)
-        .await
-        .expect("Failed to check exists"));
+    assert!(
+        store
+            .exists(&braid.id)
+            .await
+            .expect("Failed to check exists")
+    );
 
     // Delete
     let deleted = store.delete(&braid.id).await.expect("Failed to delete");
     assert!(deleted);
 
     // Verify deleted
-    assert!(!store
-        .exists(&braid.id)
-        .await
-        .expect("Failed to check exists"));
+    assert!(
+        !store
+            .exists(&braid.id)
+            .await
+            .expect("Failed to check exists")
+    );
 }
 
 #[tokio::test]

@@ -3,7 +3,7 @@
 //! Test-only mock implementations for session events.
 
 use super::{
-    async_trait, Arc, Result, Session, SessionEvent, SessionEventStream, SessionEventsClient,
+    Arc, Result, Session, SessionEvent, SessionEventStream, SessionEventsClient, async_trait,
 };
 use parking_lot::RwLock;
 use std::collections::VecDeque;
@@ -16,7 +16,7 @@ pub struct MockSessionEventsClient {
     healthy: bool,
 }
 
-#[allow(dead_code)] // Mock methods configured per-test scenario
+#[allow(dead_code)]
 impl MockSessionEventsClient {
     /// Create a new mock client.
     #[must_use]

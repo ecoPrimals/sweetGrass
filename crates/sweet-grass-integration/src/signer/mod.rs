@@ -33,14 +33,14 @@ mod traits;
 pub mod testing;
 
 // Re-export core traits (capability-based naming)
-pub use traits::{SignatureInfo, Signer, SigningClient, SIGNING_ALGORITHM};
+pub use traits::{SIGNING_ALGORITHM, SignatureInfo, Signer, SigningClient};
 
 // Re-export signers
 pub use discovery::{DiscoverySigner, LegacySigner};
 
 // Re-export tarpc client and factories (capability-based naming only - v0.5.0+)
 pub use tarpc_client::{
-    create_signing_client_async, SigningRpc, SigningRpcClient, TarpcSigningClient,
+    SigningRpc, SigningRpcClient, TarpcSigningClient, create_signing_client_async,
 };
 
 // ============================================================================

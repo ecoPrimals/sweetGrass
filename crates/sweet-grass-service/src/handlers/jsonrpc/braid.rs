@@ -9,7 +9,7 @@ use sweet_grass_store::{QueryFilter, QueryOrder};
 
 use crate::state::AppState;
 
-use super::{error_code, internal, parse_params, to_value, DispatchResult};
+use super::{DispatchResult, error_code, internal, parse_params, to_value};
 
 #[derive(Debug, Deserialize)]
 pub(super) struct CreateBraidParams {

@@ -15,9 +15,9 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
+use sweet_grass_core::Braid;
 use sweet_grass_core::agent::Did;
 use sweet_grass_core::braid::{BraidSignature, Timestamp};
-use sweet_grass_core::Braid;
 
 use crate::Result;
 

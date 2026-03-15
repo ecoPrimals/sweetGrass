@@ -12,11 +12,11 @@ mod factory_tests {
     use super::super::*;
     use sweet_grass_core::test_fixtures::TEST_SOURCE_PRIMAL;
     use sweet_grass_core::{
+        ActivityType,
         agent::AgentRole,
         braid::{BraidId, ContentHash, SummaryType},
         contribution::{ContributionRecord, SessionContribution},
         entity::EntityReference,
-        ActivityType,
     };
 
     fn make_factory() -> BraidFactory {
@@ -182,10 +182,12 @@ mod factory_tests {
         factory.sign_placeholder(&mut braid, "key-1");
 
         assert!(braid.is_signed());
-        assert!(braid
-            .signature
-            .verification_method
-            .contains("did:key:z6MkTestFactory"));
+        assert!(
+            braid
+                .signature
+                .verification_method
+                .contains("did:key:z6MkTestFactory")
+        );
     }
 
     #[test]

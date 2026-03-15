@@ -3,8 +3,8 @@
 //! Provenance graph handlers.
 
 use axum::{
-    extract::{Path, Query, State},
     Json,
+    extract::{Path, Query, State},
 };
 use serde::{Deserialize, Serialize};
 use sweet_grass_core::entity::EntityReference;

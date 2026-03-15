@@ -8,14 +8,14 @@ use std::path::Path;
 use std::sync::Arc;
 use tracing::{debug, instrument};
 
-use sweet_grass_core::{agent::Did, Activity, ActivityId, Braid, BraidId, ContentHash};
+use sweet_grass_core::{Activity, ActivityId, Braid, BraidId, ContentHash, agent::Did};
 use sweet_grass_store::{
-    BraidStore, QueryFilter, QueryOrder, QueryResult, StoreError, DEFAULT_QUERY_LIMIT,
+    BraidStore, DEFAULT_QUERY_LIMIT, QueryFilter, QueryOrder, QueryResult, StoreError,
 };
 
+use crate::RedbConfig;
 use crate::error::RedbError;
 use crate::tables::{ACTIVITIES, BRAIDS, BY_AGENT, BY_HASH, BY_TAG, BY_TIME};
-use crate::RedbConfig;
 
 /// redb storage backend.
 pub struct RedbStore {
@@ -306,40 +306,40 @@ impl BraidStore for RedbStore {
                 let (_, guard) = item.map_err(|e| StoreError::Internal(e.to_string()))?;
                 let bytes = guard.value();
                 if let Ok(braid) = Self::deserialize_braid(bytes) {
-                    if let Some(hash) = &filter.data_hash {
-                        if &braid.data_hash != hash {
-                            continue;
-                        }
+                    if let Some(hash) = &filter.data_hash
+                        && &braid.data_hash != hash
+                    {
+                        continue;
                     }
-                    if let Some(agent) = &filter.attributed_to {
-                        if &braid.was_attributed_to != agent {
-                            continue;
-                        }
+                    if let Some(agent) = &filter.attributed_to
+                        && &braid.was_attributed_to != agent
+                    {
+                        continue;
                     }
-                    if let Some(mime) = &filter.mime_type {
-                        if &braid.mime_type != mime {
-                            continue;
-                        }
+                    if let Some(mime) = &filter.mime_type
+                        && &braid.mime_type != mime
+                    {
+                        continue;
                     }
-                    if let Some(tag) = &filter.tag {
-                        if !braid.metadata.tags.contains(tag) {
-                            continue;
-                        }
+                    if let Some(tag) = &filter.tag
+                        && !braid.metadata.tags.contains(tag)
+                    {
+                        continue;
                     }
-                    if let Some(bt) = &filter.braid_type {
-                        if &braid.braid_type != bt {
-                            continue;
-                        }
+                    if let Some(bt) = &filter.braid_type
+                        && &braid.braid_type != bt
+                    {
+                        continue;
                     }
-                    if let Some(after) = filter.created_after {
-                        if braid.generated_at_time < after {
-                            continue;
-                        }
+                    if let Some(after) = filter.created_after
+                        && braid.generated_at_time < after
+                    {
+                        continue;
                     }
-                    if let Some(before) = filter.created_before {
-                        if braid.generated_at_time > before {
-                            continue;
-                        }
+                    if let Some(before) = filter.created_before
+                        && braid.generated_at_time > before
+                    {
+                        continue;
                     }
                     braids.push(braid);
                 }

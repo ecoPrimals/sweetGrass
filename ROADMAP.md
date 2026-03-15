@@ -1,10 +1,21 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.11 (March 2026)
+**Current Version**: v0.7.12 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.12 — Edition 2024 Migration + Spring Absorption + Chaos Tests (March 2026)
+
+- [x] Edition 2024 + MSRV 1.87 + resolver 3
+- [x] Let-chains adoption (8 collapsible_if patterns modernized)
+- [x] Test env var safety (unsafe wrappers, cfg_attr forbid/deny pattern)
+- [x] `capability.list` evolved with dependency/cost metadata (airSpring niche pattern)
+- [x] 11 chaos/fault tests for attribution weights (groundSpring pattern)
+- [x] Remaining hardcoded paths extracted to identity constants
+- [x] `#[expect(reason)]` for benchmark lint suppressions
+- [x] 903 tests passing (was 892), 0 failures, 0 unsafe, 0 clippy warnings
 
 ### v0.7.11 — JSON-RPC 2.0 Spec Compliance + Deep Debt + Coverage Push (March 2026)
 
@@ -275,7 +286,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.11 | **March 2026** | JSON-RPC 2.0 Spec Compliance + Deep Debt + Coverage Push (DONE) |
+| v0.7.12 | **March 2026** | Edition 2024 Migration + Spring Absorption + Chaos Tests (DONE) |
+| v0.7.11 | March 2026 | JSON-RPC 2.0 Spec Compliance + Deep Debt + Coverage Push (DONE) |
 | v0.7.10 | March 2026 | Typed Error Evolution + Lint Hardening + Platform-Agnostic IPC (DONE) |
 | v0.7.9 | March 2026 | Deep Debt Audit: Pedantic Quality + Capability Discovery (DONE) |
 | v0.7.8 | March 2026 | Deep Debt Evolution: Zero-Copy + Benchmarks + Config (DONE) |

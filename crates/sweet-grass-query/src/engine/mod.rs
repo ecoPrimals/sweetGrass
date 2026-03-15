@@ -6,14 +6,14 @@
 //! computing attribution chains.
 
 use std::sync::Arc;
-use sweet_grass_core::{agent::Did, entity::EntityReference, Braid, BraidId, ContentHash};
+use sweet_grass_core::{Braid, BraidId, ContentHash, agent::Did, entity::EntityReference};
 use sweet_grass_factory::{AttributionCalculator, AttributionChain};
 use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder, QueryResult};
 
+use crate::Result;
 use crate::error::QueryError;
 use crate::provo::{JsonLdDocument, ProvoExport};
 use crate::traversal::{ProvenanceGraph, ProvenanceGraphBuilder};
-use crate::Result;
 
 /// Default maximum traversal depth for provenance graph building.
 pub const DEFAULT_MAX_DEPTH: u32 = 10;

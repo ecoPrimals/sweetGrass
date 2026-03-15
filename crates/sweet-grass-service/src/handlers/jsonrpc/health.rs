@@ -6,7 +6,7 @@ use sweet_grass_store::QueryFilter;
 
 use crate::state::AppState;
 
-use super::{internal, to_value, DispatchResult};
+use super::{DispatchResult, internal, to_value};
 
 pub(super) async fn handle_health(state: &AppState, _params: serde_json::Value) -> DispatchResult {
     let count = state

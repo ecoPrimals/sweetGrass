@@ -3,15 +3,15 @@
 //! Inter-primal Braid creation: `from_contribution`, `from_session`.
 
 use sweet_grass_core::{
+    ContentHash,
     activity::{Activity, ActivityMetadata, ActivityType},
     agent::AgentAssociation,
     braid::{Braid, BraidMetadata, EcoPrimalsAttributes, LoamCommitRef},
     contribution::{ContributionRecord, SessionContribution},
-    ContentHash,
 };
 
-use crate::error::FactoryError;
 use crate::Result;
+use crate::error::FactoryError;
 
 /// Parse `loam_entry` string into [`LoamCommitRef`].
 /// Format: `spine_id|entry_hash|index` (pipe-separated).

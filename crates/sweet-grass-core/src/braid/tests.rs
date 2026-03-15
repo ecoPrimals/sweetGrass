@@ -481,9 +481,11 @@ mod proptests {
             .size(100)
             .build();
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("was_attributed_to"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("was_attributed_to")
+        );
     }
 }

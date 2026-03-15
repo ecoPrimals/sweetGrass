@@ -7,7 +7,7 @@ use sweet_grass_core::braid::ContentHash;
 
 use crate::state::AppState;
 
-use super::{internal, parse_params, to_value, DispatchResult};
+use super::{DispatchResult, internal, parse_params, to_value};
 
 #[derive(Debug, Deserialize)]
 pub(super) struct AttributionParams {

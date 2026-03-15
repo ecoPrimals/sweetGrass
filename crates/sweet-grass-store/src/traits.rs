@@ -8,7 +8,7 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use sweet_grass_core::{
-    agent::Did, braid::Timestamp, Activity, ActivityId, Braid, BraidId, BraidType, ContentHash,
+    Activity, ActivityId, Braid, BraidId, BraidType, ContentHash, agent::Did, braid::Timestamp,
 };
 
 use crate::Result;

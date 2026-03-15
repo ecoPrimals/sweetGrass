@@ -6,19 +6,19 @@
 
 use std::sync::Arc;
 use sweet_grass_core::{
+    Braid,
     activity::{Activity, ActivityType, UsedEntity},
     agent::{AgentAssociation, AgentRole},
     braid::{BraidId, BraidMetadata, CompressionMeta, EcoPrimalsAttributes},
     entity::EntityReference,
-    Braid,
 };
 use sweet_grass_factory::BraidFactory;
 
+use crate::Result;
 use crate::analyzer::{SessionAnalysis, SessionAnalyzer};
 use crate::error::CompressionError;
 use crate::session::Session;
 use crate::strategy::{CompressionConfig, CompressionStrategy, DiscardReason};
-use crate::Result;
 
 /// Default source primal name when `SelfKnowledge` has not been used.
 ///

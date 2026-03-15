@@ -9,8 +9,8 @@ use tracing::{debug, info, instrument};
 
 use crate::factory::{BraidStoreFactory, StorageConfig};
 use crate::state::AppState;
-use sweet_grass_core::agent::Did;
 use sweet_grass_core::SelfKnowledge;
+use sweet_grass_core::agent::Did;
 
 /// Explicit bootstrap configuration (avoids env var mutation).
 ///
@@ -248,6 +248,7 @@ pub async fn create_app_state_from_env() -> Result<AppState, BootstrapError> {
 }
 
 #[cfg(test)]
+#[allow(unsafe_code)]
 #[expect(
     clippy::expect_used,
     reason = "test module: expect is standard in tests"
@@ -274,7 +275,9 @@ mod tests {
 
     fn clear_env() {
         for var in STORAGE_ENV_VARS {
-            std::env::remove_var(var);
+            unsafe {
+                std::env::remove_var(var);
+            }
         }
     }
 
@@ -296,9 +299,15 @@ mod tests {
     #[serial_test::serial]
     async fn test_infant_bootstrap_with_config() {
         clear_env();
-        std::env::set_var("PRIMAL_NAME", "sweetgrass-test");
-        std::env::set_var("PRIMAL_INSTANCE_ID", "test-123");
-        std::env::set_var("PRIMAL_CAPABILITIES", "signing,anchoring");
+        unsafe {
+            std::env::set_var("PRIMAL_NAME", "sweetgrass-test");
+        }
+        unsafe {
+            std::env::set_var("PRIMAL_INSTANCE_ID", "test-123");
+        }
+        unsafe {
+            std::env::set_var("PRIMAL_CAPABILITIES", "signing,anchoring");
+        }
 
         let result = infant_bootstrap().await.expect("should bootstrap");
 
@@ -350,8 +359,12 @@ mod tests {
     #[serial_test::serial]
     async fn test_infant_bootstrap_with_explicit_config_primal_identity() {
         clear_env();
-        std::env::set_var("PRIMAL_NAME", "sg-config-test");
-        std::env::set_var("PRIMAL_INSTANCE_ID", "cfg-instance-42");
+        unsafe {
+            std::env::set_var("PRIMAL_NAME", "sg-config-test");
+        }
+        unsafe {
+            std::env::set_var("PRIMAL_INSTANCE_ID", "cfg-instance-42");
+        }
 
         let config = BootstrapConfig {
             storage: crate::factory::StorageConfig {
@@ -377,7 +390,9 @@ mod tests {
     #[serial_test::serial]
     async fn test_infant_bootstrap_with_config_capabilities() {
         clear_env();
-        std::env::set_var("PRIMAL_CAPABILITIES", "signing,anchoring,session_events");
+        unsafe {
+            std::env::set_var("PRIMAL_CAPABILITIES", "signing,anchoring,session_events");
+        }
 
         let config = BootstrapConfig {
             storage: crate::factory::StorageConfig {

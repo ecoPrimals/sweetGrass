@@ -105,10 +105,10 @@ impl Indexes {
         {
             let mut index = self.derivation.write();
             for derived in &braid.was_derived_from {
-                if let Some(hash) = derived.content_hash() {
-                    if let Some(set) = index.get_mut(hash) {
-                        set.remove(&braid.id);
-                    }
+                if let Some(hash) = derived.content_hash()
+                    && let Some(set) = index.get_mut(hash)
+                {
+                    set.remove(&braid.id);
                 }
             }
         }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2024–2026 ecoPrimals Project
 
+#![allow(unsafe_code)]
 #![expect(
     clippy::expect_used,
     clippy::unwrap_used,
@@ -537,9 +538,15 @@ async fn test_cached_discovery_invalidate_forces_refresh() {
 
 #[tokio::test]
 async fn test_create_discovery_no_env() {
-    std::env::remove_var("DISCOVERY_ADDRESS");
-    std::env::remove_var("UNIVERSAL_ADAPTER_ADDRESS");
-    std::env::remove_var("DISCOVERY_BOOTSTRAP");
+    unsafe {
+        std::env::remove_var("DISCOVERY_ADDRESS");
+    }
+    unsafe {
+        std::env::remove_var("UNIVERSAL_ADAPTER_ADDRESS");
+    }
+    unsafe {
+        std::env::remove_var("DISCOVERY_BOOTSTRAP");
+    }
 
     let discovery = super::create_discovery().await;
     assert!(discovery.health().await);
@@ -547,9 +554,15 @@ async fn test_create_discovery_no_env() {
 
 #[tokio::test]
 async fn test_registry_from_env_missing() {
-    std::env::remove_var("DISCOVERY_ADDRESS");
-    std::env::remove_var("UNIVERSAL_ADAPTER_ADDRESS");
-    std::env::remove_var("DISCOVERY_BOOTSTRAP");
+    unsafe {
+        std::env::remove_var("DISCOVERY_ADDRESS");
+    }
+    unsafe {
+        std::env::remove_var("UNIVERSAL_ADAPTER_ADDRESS");
+    }
+    unsafe {
+        std::env::remove_var("DISCOVERY_BOOTSTRAP");
+    }
 
     let result = super::RegistryDiscovery::from_env().await;
     assert!(result.is_err());
@@ -560,23 +573,39 @@ async fn test_registry_from_env_missing() {
 
 #[tokio::test]
 async fn test_create_discovery_with_invalid_env_fallback() {
-    std::env::set_var("DISCOVERY_ADDRESS", crate::testing::TEST_INVALID_ADDR);
+    unsafe {
+        std::env::set_var("DISCOVERY_ADDRESS", crate::testing::TEST_INVALID_ADDR);
+    }
     let discovery = super::create_discovery().await;
-    std::env::remove_var("DISCOVERY_ADDRESS");
+    unsafe {
+        std::env::remove_var("DISCOVERY_ADDRESS");
+    }
 
     assert!(discovery.health().await);
 }
 
 #[tokio::test]
 async fn test_create_discovery_prefers_discovery_address() {
-    std::env::set_var("DISCOVERY_ADDRESS", crate::testing::TEST_INVALID_ADDR);
-    std::env::set_var("UNIVERSAL_ADAPTER_ADDRESS", "127.0.0.1:2");
-    std::env::set_var("DISCOVERY_BOOTSTRAP", "127.0.0.1:3");
+    unsafe {
+        std::env::set_var("DISCOVERY_ADDRESS", crate::testing::TEST_INVALID_ADDR);
+    }
+    unsafe {
+        std::env::set_var("UNIVERSAL_ADAPTER_ADDRESS", "127.0.0.1:2");
+    }
+    unsafe {
+        std::env::set_var("DISCOVERY_BOOTSTRAP", "127.0.0.1:3");
+    }
 
     let discovery = super::create_discovery().await;
-    std::env::remove_var("DISCOVERY_ADDRESS");
-    std::env::remove_var("UNIVERSAL_ADAPTER_ADDRESS");
-    std::env::remove_var("DISCOVERY_BOOTSTRAP");
+    unsafe {
+        std::env::remove_var("DISCOVERY_ADDRESS");
+    }
+    unsafe {
+        std::env::remove_var("UNIVERSAL_ADAPTER_ADDRESS");
+    }
+    unsafe {
+        std::env::remove_var("DISCOVERY_BOOTSTRAP");
+    }
 
     assert!(discovery.health().await);
 }

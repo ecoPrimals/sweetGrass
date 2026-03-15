@@ -60,15 +60,15 @@ fn matches_braid_type(braid: &Braid, filter: &QueryFilter) -> bool {
 
 /// Check time range match.
 const fn matches_time_range(braid: &Braid, filter: &QueryFilter) -> bool {
-    if let Some(after) = filter.created_after {
-        if braid.generated_at_time < after {
-            return false;
-        }
+    if let Some(after) = filter.created_after
+        && braid.generated_at_time < after
+    {
+        return false;
     }
-    if let Some(before) = filter.created_before {
-        if braid.generated_at_time > before {
-            return false;
-        }
+    if let Some(before) = filter.created_before
+        && braid.generated_at_time > before
+    {
+        return false;
     }
     true
 }

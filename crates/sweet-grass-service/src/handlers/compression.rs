@@ -2,10 +2,10 @@
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Compression handlers.
 
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{Json, extract::State, http::StatusCode};
 use serde::{Deserialize, Serialize};
 use sweet_grass_compression::{CompressionResult, Session, SessionOutcome, SessionVertex};
-use sweet_grass_core::{agent::Did, ActivityType, Braid};
+use sweet_grass_core::{ActivityType, Braid, agent::Did};
 
 use crate::{error::ServiceError, state::AppState};
 

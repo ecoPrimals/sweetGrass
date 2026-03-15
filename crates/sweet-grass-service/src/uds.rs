@@ -95,11 +95,11 @@ pub async fn start_uds_listener(
     let path = resolve_socket_path(primal_name);
 
     // Ensure parent directory exists
-    if let Some(parent) = path.parent() {
-        if !parent.exists() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| crate::ServiceError::Internal(format!("mkdir failed: {e}")))?;
-        }
+    if let Some(parent) = path.parent()
+        && !parent.exists()
+    {
+        std::fs::create_dir_all(parent)
+            .map_err(|e| crate::ServiceError::Internal(format!("mkdir failed: {e}")))?;
     }
 
     // Remove stale socket
@@ -182,6 +182,7 @@ pub fn cleanup_socket() {
 }
 
 #[cfg(test)]
+#[allow(unsafe_code)]
 #[expect(
     clippy::unwrap_used,
     clippy::expect_used,
@@ -193,19 +194,33 @@ mod tests {
     use sweet_grass_core::agent::Did;
 
     fn clear_env() {
-        std::env::remove_var("SWEETGRASS_SOCKET");
-        std::env::remove_var("BIOMEOS_SOCKET_DIR");
-        std::env::remove_var("BIOMEOS_FAMILY_ID");
-        std::env::remove_var("XDG_RUNTIME_DIR");
-        std::env::remove_var("USER");
-        std::env::remove_var("PRIMAL_NAME");
+        unsafe {
+            std::env::remove_var("SWEETGRASS_SOCKET");
+        }
+        unsafe {
+            std::env::remove_var("BIOMEOS_SOCKET_DIR");
+        }
+        unsafe {
+            std::env::remove_var("BIOMEOS_FAMILY_ID");
+        }
+        unsafe {
+            std::env::remove_var("XDG_RUNTIME_DIR");
+        }
+        unsafe {
+            std::env::remove_var("USER");
+        }
+        unsafe {
+            std::env::remove_var("PRIMAL_NAME");
+        }
     }
 
     #[test]
     #[serial]
     fn test_resolve_socket_explicit() {
         clear_env();
-        std::env::set_var("SWEETGRASS_SOCKET", "/custom/path.sock");
+        unsafe {
+            std::env::set_var("SWEETGRASS_SOCKET", "/custom/path.sock");
+        }
         assert_eq!(
             resolve_socket_path(None),
             PathBuf::from("/custom/path.sock")
@@ -216,7 +231,9 @@ mod tests {
     #[serial]
     fn test_resolve_socket_biomeos_dir() {
         clear_env();
-        std::env::set_var("BIOMEOS_SOCKET_DIR", "/run/biomeos");
+        unsafe {
+            std::env::set_var("BIOMEOS_SOCKET_DIR", "/run/biomeos");
+        }
         assert_eq!(
             resolve_socket_path(None),
             PathBuf::from("/run/biomeos/sweetgrass.sock")
@@ -227,8 +244,12 @@ mod tests {
     #[serial]
     fn test_resolve_socket_biomeos_dir_with_family() {
         clear_env();
-        std::env::set_var("BIOMEOS_SOCKET_DIR", "/run/biomeos");
-        std::env::set_var("BIOMEOS_FAMILY_ID", "alpha");
+        unsafe {
+            std::env::set_var("BIOMEOS_SOCKET_DIR", "/run/biomeos");
+        }
+        unsafe {
+            std::env::set_var("BIOMEOS_FAMILY_ID", "alpha");
+        }
         assert_eq!(
             resolve_socket_path(None),
             PathBuf::from("/run/biomeos/sweetgrass-alpha.sock")
@@ -239,7 +260,9 @@ mod tests {
     #[serial]
     fn test_resolve_socket_xdg() {
         clear_env();
-        std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
+        unsafe {
+            std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
+        }
         assert_eq!(
             resolve_socket_path(None),
             PathBuf::from("/run/user/1000/biomeos/sweetgrass.sock")
@@ -250,7 +273,9 @@ mod tests {
     #[serial]
     fn test_resolve_socket_fallback() {
         clear_env();
-        std::env::remove_var("USER");
+        unsafe {
+            std::env::remove_var("USER");
+        }
         let path = resolve_socket_path(None);
         let expected = std::env::temp_dir().join("sweetgrass.sock");
         assert_eq!(path, expected);
@@ -260,7 +285,9 @@ mod tests {
     #[serial]
     fn test_resolve_socket_user_fallback() {
         clear_env();
-        std::env::set_var("USER", "testuser");
+        unsafe {
+            std::env::set_var("USER", "testuser");
+        }
         let path = resolve_socket_path(None);
         let expected = std::env::temp_dir()
             .join("biomeos-testuser")
@@ -272,10 +299,18 @@ mod tests {
     #[serial]
     fn test_resolve_socket_priority_explicit_overrides_all() {
         clear_env();
-        std::env::set_var("SWEETGRASS_SOCKET", "/absolute/custom.sock");
-        std::env::set_var("BIOMEOS_SOCKET_DIR", "/run/biomeos");
-        std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
-        std::env::set_var("USER", "testuser");
+        unsafe {
+            std::env::set_var("SWEETGRASS_SOCKET", "/absolute/custom.sock");
+        }
+        unsafe {
+            std::env::set_var("BIOMEOS_SOCKET_DIR", "/run/biomeos");
+        }
+        unsafe {
+            std::env::set_var("XDG_RUNTIME_DIR", "/run/user/1000");
+        }
+        unsafe {
+            std::env::set_var("USER", "testuser");
+        }
 
         let path = resolve_socket_path(None);
         assert_eq!(path, PathBuf::from("/absolute/custom.sock"));
@@ -285,8 +320,12 @@ mod tests {
     #[serial]
     fn test_resolve_socket_family_id_in_fallback() {
         clear_env();
-        std::env::set_var("BIOMEOS_FAMILY_ID", "beta");
-        std::env::remove_var("USER");
+        unsafe {
+            std::env::set_var("BIOMEOS_FAMILY_ID", "beta");
+        }
+        unsafe {
+            std::env::remove_var("USER");
+        }
         let path = resolve_socket_path(None);
         let expected = std::env::temp_dir().join("sweetgrass-beta.sock");
         assert_eq!(path, expected);
@@ -296,7 +335,9 @@ mod tests {
     #[serial]
     fn test_resolve_socket_from_self_knowledge() {
         clear_env();
-        std::env::set_var("BIOMEOS_SOCKET_DIR", "/run/biomeos");
+        unsafe {
+            std::env::set_var("BIOMEOS_SOCKET_DIR", "/run/biomeos");
+        }
         // Primal name from SelfKnowledge overrides default
         let path = resolve_socket_path(Some("sweetgrass-prod"));
         assert_eq!(path, PathBuf::from("/run/biomeos/sweetgrass-prod.sock"));
@@ -306,7 +347,9 @@ mod tests {
     #[serial]
     fn test_cleanup_socket_nonexistent() {
         clear_env();
-        std::env::set_var("SWEETGRASS_SOCKET", "/nonexistent/path/socket.sock");
+        unsafe {
+            std::env::set_var("SWEETGRASS_SOCKET", "/nonexistent/path/socket.sock");
+        }
         // Should not panic when socket doesn't exist
         cleanup_socket();
     }
@@ -317,7 +360,9 @@ mod tests {
         clear_env();
         let dir = tempfile::tempdir().expect("tempdir");
         let sock_path = dir.path().join("cleanup-test.sock");
-        std::env::set_var("SWEETGRASS_SOCKET", sock_path.to_str().unwrap());
+        unsafe {
+            std::env::set_var("SWEETGRASS_SOCKET", sock_path.to_str().unwrap());
+        }
         std::fs::write(&sock_path, "").expect("create socket file");
         assert!(sock_path.exists());
         cleanup_socket();
@@ -332,7 +377,9 @@ mod tests {
 
         let dir = tempfile::tempdir().expect("tempdir");
         let sock_path = dir.path().join("test-sweetgrass.sock");
-        std::env::set_var("SWEETGRASS_SOCKET", sock_path.to_str().unwrap());
+        unsafe {
+            std::env::set_var("SWEETGRASS_SOCKET", sock_path.to_str().unwrap());
+        }
 
         let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTest"));
 
@@ -378,7 +425,9 @@ mod tests {
 
         let dir = tempfile::tempdir().expect("tempdir");
         let sock_path = dir.path().join("parse-error-test.sock");
-        std::env::set_var("SWEETGRASS_SOCKET", sock_path.to_str().unwrap());
+        unsafe {
+            std::env::set_var("SWEETGRASS_SOCKET", sock_path.to_str().unwrap());
+        }
 
         let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTest"));
 
@@ -423,7 +472,9 @@ mod tests {
 
         let dir = tempfile::tempdir().expect("tempdir");
         let sock_path = dir.path().join("empty-lines-test.sock");
-        std::env::set_var("SWEETGRASS_SOCKET", sock_path.to_str().unwrap());
+        unsafe {
+            std::env::set_var("SWEETGRASS_SOCKET", sock_path.to_str().unwrap());
+        }
 
         let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTest"));
 

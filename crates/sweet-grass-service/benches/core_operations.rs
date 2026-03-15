@@ -10,11 +10,11 @@
     reason = "benchmark harness requires direct assertions"
 )]
 
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use std::sync::Arc;
 use sweet_grass_compression::{
-    session::{Session, SessionOutcome, SessionVertex},
     CompressionEngine,
+    session::{Session, SessionOutcome, SessionVertex},
 };
 use sweet_grass_core::{agent::Did, entity::EntityReference, hash::sha256};
 use sweet_grass_factory::{AttributionCalculator, BraidFactory};
@@ -39,7 +39,10 @@ fn bench_braid_creation(c: &mut Criterion) {
     let factory = make_factory();
     let mut group = c.benchmark_group("braid_creation");
     for size in [1024_usize, 10 * 1024, 100 * 1024] {
-        #[allow(clippy::cast_possible_truncation)]
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "Benchmark data size is bounded by test parameters; usize mod 256 always fits in u8"
+        )]
         let data: Vec<u8> = (0..size).map(|i| (i % 256) as u8).collect();
         group.bench_with_input(
             BenchmarkId::new("from_data", format!("{}KB", size / 1024)),

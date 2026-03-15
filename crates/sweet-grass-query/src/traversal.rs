@@ -7,7 +7,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use sweet_grass_core::{entity::EntityReference, Activity, Braid, ContentHash};
+use sweet_grass_core::{Activity, Braid, ContentHash, entity::EntityReference};
 use sweet_grass_store::BraidStore;
 
 use crate::Result;
@@ -208,14 +208,14 @@ impl ProvenanceGraphBuilder {
             graph.entities.insert(hash_str.clone(), braid.clone());
 
             // Add activity if present
-            if self.include_activities {
-                if let Some(activity) = &braid.was_generated_by {
-                    let activity_id = activity.id.as_str().to_string();
-                    graph
-                        .activities
-                        .insert(activity_id.clone(), activity.clone());
-                    graph.generation_edges.insert(hash_str.clone(), activity_id);
-                }
+            if self.include_activities
+                && let Some(activity) = &braid.was_generated_by
+            {
+                let activity_id = activity.id.as_str().to_string();
+                graph
+                    .activities
+                    .insert(activity_id.clone(), activity.clone());
+                graph.generation_edges.insert(hash_str.clone(), activity_id);
             }
 
             // Collect derivation edges
