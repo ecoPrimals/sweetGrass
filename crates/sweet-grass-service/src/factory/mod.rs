@@ -116,7 +116,8 @@ impl BraidStoreFactory {
     ///
     /// Returns error if backend initialization fails.
     pub async fn from_env_with_name() -> Result<(Arc<dyn BraidStore>, String)> {
-        let backend = std::env::var("STORAGE_BACKEND").unwrap_or_else(|_| "memory".to_string());
+        let backend = std::env::var("STORAGE_BACKEND")
+            .unwrap_or_else(|_| sweet_grass_core::identity::DEFAULT_STORAGE_BACKEND.to_string());
 
         tracing::info!(backend = %backend, "Initializing storage backend from environment");
 
@@ -125,7 +126,7 @@ impl BraidStoreFactory {
                 tracing::info!("Using in-memory storage backend");
                 Ok((
                     Arc::new(MemoryStore::new()) as Arc<dyn BraidStore>,
-                    "memory".to_string(),
+                    sweet_grass_core::identity::DEFAULT_STORAGE_BACKEND.to_string(),
                 ))
             },
 
@@ -170,7 +171,7 @@ impl BraidStoreFactory {
         config: &StorageConfig,
     ) -> Result<(Arc<dyn BraidStore>, String)> {
         let backend = if config.backend.is_empty() {
-            "memory"
+            sweet_grass_core::identity::DEFAULT_STORAGE_BACKEND
         } else {
             config.backend.as_str()
         };
@@ -182,7 +183,7 @@ impl BraidStoreFactory {
                 tracing::info!("Using in-memory storage backend");
                 Ok((
                     Arc::new(MemoryStore::new()) as Arc<dyn BraidStore>,
-                    "memory".to_string(),
+                    sweet_grass_core::identity::DEFAULT_STORAGE_BACKEND.to_string(),
                 ))
             },
             "postgres" => Self::create_postgres_from_config(config)

@@ -1,6 +1,6 @@
 #!/bin/bash
 # SweetGrass Production Deployment Script
-# Version: v0.7.10
+# Version: v0.7.11
 # Date: March 15, 2026
 # Status: PRODUCTION READY
 
@@ -107,7 +107,7 @@ if check_health; then
     echo "  Provenance:  http://localhost:$PORT/api/v1/provenance"
     echo ""
     echo "To stop: kill $SERVICE_PID"
-    echo "To monitor: tail -f logs/sweetgrass.log"
+    echo "To monitor: journalctl -u sweetgrass -f  (systemd) or check stderr"
     echo ""
     
     # Keep running

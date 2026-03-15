@@ -5,6 +5,51 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.11] - 2026-03-15
+
+### JSON-RPC 2.0 Spec Compliance + Deep Debt + Coverage Push
+
+Full JSON-RPC 2.0 spec compliance with batch request and notification support.
+Hardcoded magic strings extracted to named identity constants. Property-based
+testing with proptest. Significant coverage push across health, memory store,
+and capability handlers. Smart test refactoring to maintain the 1000-line limit.
+
+### Added
+
+- **JSON-RPC 2.0 batch requests** — Array of requests returns array of responses
+  (spec Section 6). Empty batch returns `Invalid Request` error
+- **JSON-RPC 2.0 notifications** — Absent `id` field = notification, server returns
+  no response. `id: null` correctly treated as valid request (not notification).
+  All-notification batches return `204 No Content`
+- **`identity::UNKNOWN_AGENT_DID`** — Named constant replacing `"did:key:unknown"`
+- **`identity::MIME_MERKLE_ROOT`** — Named constant for `"application/x-merkle-root"`
+- **`identity::MIME_OCTET_STREAM`** — Named constant for `"application/octet-stream"`
+- **`identity::DEFAULT_STORAGE_BACKEND`** — Named constant for `"memory"`
+- **`DEFAULT_DB_PATH`** constants in redb and sled crates
+- **6 proptest strategies** — `BraidId`, `ContentHash`, `Did` roundtrips, hex
+  encode/decode, Braid builder invariants, Arc clone equality
+- **4 capability.list tests** — Domain grouping, method count, expected domains
+- **8 health handler tests** — Error paths, `PrimalStatus`, integration status
+- **18 MemoryStore tests** — Batch ops, edge cases, error paths, indexing
+
+### Changed
+
+- **`handle_jsonrpc` returns `Response`** — Supports single, batch, and notification
+  semantics with appropriate HTTP status codes
+- **`JsonRpcResponse` now `Serialize + Deserialize`** — `jsonrpc` field evolved from
+  `&'static str` to `Cow<'static, str>` for deserialization support
+- **UDS transport uses `process_single`** — Notification-aware, no response written
+  for notification requests
+- **`jsonrpc/tests.rs` smart-refactored** — 1053→768 LOC + `tests_protocol.rs` 302 LOC
+
+### Metrics
+
+- 892 tests (was 847), 0 failures, 0 unsafe, 0 clippy warnings
+- 112 .rs files, 34,445 LOC total
+- Max file: 804 lines (limit: 1000)
+
+---
+
 ## [0.7.10] - 2026-03-15
 
 ### Typed Error Evolution + Lint Hardening + Platform-Agnostic IPC

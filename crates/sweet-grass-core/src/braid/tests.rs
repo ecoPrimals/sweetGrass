@@ -122,6 +122,7 @@ mod unit_tests {
 mod proptests {
     use super::super::*;
     use crate::agent::Did;
+    use crate::hash::{hex_decode, hex_encode};
     use proptest::prelude::*;
 
     /// Generate arbitrary valid SHA256 hashes
@@ -227,6 +228,80 @@ mod proptests {
                 .expect("should build");
 
             prop_assert_eq!(braid.data_hash.as_str(), hash.as_str());
+        }
+
+        /// BraidId roundtrip: any non-empty string -> BraidId -> as_str matches original
+        #[test]
+        fn prop_braid_id_roundtrip(s in "[a-zA-Z0-9_-]{1,64}") {
+            let id = BraidId::from_string(&s);
+            prop_assert_eq!(id.as_str(), s.as_str());
+        }
+
+        /// ContentHash roundtrip: any non-empty string -> ContentHash -> as_str matches original
+        #[test]
+        fn prop_content_hash_roundtrip(s in "[a-zA-Z0-9:._-]{1,128}") {
+            let hash = ContentHash::new(&s);
+            prop_assert_eq!(hash.as_str(), s.as_str());
+        }
+
+        /// Did roundtrip: any string starting with "did:" -> Did -> as_str matches original
+        #[test]
+        fn prop_did_roundtrip(s in "did:[a-zA-Z0-9:._-]{1,100}") {
+            let did = Did::new(&s);
+            prop_assert_eq!(did.as_str(), s.as_str());
+        }
+
+        /// Hex encode-decode roundtrip: any Vec<u8> -> hex_encode -> hex_decode == original
+        #[test]
+        fn prop_hex_encode_decode_roundtrip(bytes in proptest::collection::vec(any::<u8>(), 0..256)) {
+            let encoded = hex_encode(&bytes);
+            let decoded = hex_decode(&encoded);
+            prop_assert_eq!(decoded, Some(bytes));
+        }
+
+        /// Braid builder always produces valid braid with correct fields
+        #[test]
+        fn prop_braid_builder_correct_fields(
+            hash in "[a-f0-9]{64}",
+            mime in "(application|text)/(json|plain|octet-stream)",
+            size in 0u64..10_000_000u64,
+            agent in "did:key:z6Mk[a-zA-Z0-9]{10,44}",
+        ) {
+            let data_hash = format!("sha256:{hash}");
+            let did = Did::new(&agent);
+            let braid = Braid::builder()
+                .data_hash(&data_hash)
+                .mime_type(&mime)
+                .size(size)
+                .attributed_to(did)
+                .build()
+                .expect("should build");
+
+            prop_assert_eq!(braid.data_hash.as_str(), data_hash.as_str());
+            prop_assert_eq!(braid.mime_type, mime);
+            prop_assert_eq!(braid.size, size);
+            prop_assert_eq!(braid.was_attributed_to.as_str(), agent.as_str());
+        }
+
+        /// BraidId clone produces eq value (Arc<str> invariant)
+        #[test]
+        fn prop_braid_id_clone_eq(s in "[a-zA-Z0-9_-]{1,64}") {
+            let id = BraidId::from_string(&s);
+            prop_assert_eq!(id.clone(), id);
+        }
+
+        /// ContentHash clone produces eq value (Arc<str> invariant)
+        #[test]
+        fn prop_content_hash_clone_eq(s in "[a-zA-Z0-9:._-]{1,128}") {
+            let hash = ContentHash::new(&s);
+            prop_assert_eq!(hash.clone(), hash);
+        }
+
+        /// Did clone produces eq value (Arc<str> invariant)
+        #[test]
+        fn prop_did_clone_eq(s in "did:[a-zA-Z0-9:._-]{1,100}") {
+            let did = Did::new(&s);
+            prop_assert_eq!(did.clone(), did);
         }
     }
 

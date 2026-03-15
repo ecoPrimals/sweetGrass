@@ -44,6 +44,9 @@ mod store;
 pub use error::{RedbError, Result};
 pub use store::RedbStore;
 
+/// Default database file path for redb backend.
+pub const DEFAULT_DB_PATH: &str = "./sweetgrass_redb";
+
 /// Configuration for redb store.
 #[derive(Clone, Debug)]
 pub struct RedbConfig {
@@ -54,7 +57,7 @@ pub struct RedbConfig {
 impl Default for RedbConfig {
     fn default() -> Self {
         Self {
-            path: "./sweetgrass_redb".to_string(),
+            path: DEFAULT_DB_PATH.to_string(),
         }
     }
 }

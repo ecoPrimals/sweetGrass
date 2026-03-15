@@ -31,7 +31,10 @@ mod provenance;
 use std::future::Future;
 use std::pin::Pin;
 
-use axum::{extract::State, Json};
+use axum::extract::State;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
+use axum::Json;
 use serde::Serialize;
 use tracing::instrument;
 
@@ -58,14 +61,18 @@ pub struct JsonRpcRequest {
     #[serde(default)]
     pub params: serde_json::Value,
     /// Caller-supplied request identifier.
+    ///
+    /// Defaults to `Null` when omitted. Notification detection (absent `id`)
+    /// is handled via raw JSON inspection in `process_single` before parsing.
+    #[serde(default)]
     pub id: serde_json::Value,
 }
 
 /// JSON-RPC 2.0 response envelope.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, serde::Deserialize)]
 pub struct JsonRpcResponse {
     /// Protocol version — always `"2.0"`.
-    pub jsonrpc: &'static str,
+    pub jsonrpc: std::borrow::Cow<'static, str>,
     /// Result on success.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub result: Option<serde_json::Value>,
@@ -77,7 +84,7 @@ pub struct JsonRpcResponse {
 }
 
 /// JSON-RPC 2.0 error object.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, serde::Deserialize)]
 pub struct JsonRpcError {
     /// Numeric error code per JSON-RPC 2.0 specification.
     pub code: i64,
@@ -88,10 +95,13 @@ pub struct JsonRpcError {
     pub data: Option<serde_json::Value>,
 }
 
+/// The JSON-RPC 2.0 version string.
+const JSONRPC_VERSION: std::borrow::Cow<'static, str> = std::borrow::Cow::Borrowed("2.0");
+
 impl JsonRpcResponse {
     const fn success(id: serde_json::Value, result: serde_json::Value) -> Self {
         Self {
-            jsonrpc: "2.0",
+            jsonrpc: JSONRPC_VERSION,
             result: Some(result),
             error: None,
             id,
@@ -100,7 +110,7 @@ impl JsonRpcResponse {
 
     fn error(id: serde_json::Value, code: i64, message: impl Into<String>) -> Self {
         Self {
-            jsonrpc: "2.0",
+            jsonrpc: JSONRPC_VERSION,
             result: None,
             error: Some(JsonRpcError {
                 code,
@@ -227,19 +237,23 @@ fn find_handler(method: &str) -> Option<DispatchFn> {
     METHODS.iter().find(|m| m.name == method).map(|m| m.handler)
 }
 
-/// `POST /jsonrpc` — JSON-RPC 2.0 dispatcher.
+/// Process a single JSON-RPC request, returning `None` for notifications.
 ///
-/// Routes semantic method names to the underlying service logic.
-/// Methods follow `{domain}.{operation}` naming per wateringHole standard.
-#[instrument(skip_all)]
-pub async fn handle_jsonrpc(
-    State(state): State<AppState>,
-    Json(request): Json<serde_json::Value>,
-) -> Json<JsonRpcResponse> {
-    let parsed: JsonRpcRequest = match serde_json::from_value(request) {
+/// A notification is a request without an `id` field (per JSON-RPC 2.0 spec,
+/// Section 4.1). The server MUST NOT reply to a notification. Note that
+/// `"id": null` is a valid request identifier, not a notification.
+///
+/// Used by both the HTTP handler and the UDS transport.
+pub(crate) async fn process_single(
+    state: &AppState,
+    raw: serde_json::Value,
+) -> Option<JsonRpcResponse> {
+    let is_notification = raw.as_object().is_some_and(|obj| !obj.contains_key("id"));
+
+    let parsed: JsonRpcRequest = match serde_json::from_value(raw) {
         Ok(r) => r,
         Err(e) => {
-            return Json(JsonRpcResponse::error(
+            return Some(JsonRpcResponse::error(
                 serde_json::Value::Null,
                 error_code::PARSE_ERROR,
                 format!("Parse error: {e}"),
@@ -247,20 +261,68 @@ pub async fn handle_jsonrpc(
         },
     };
 
+    if is_notification {
+        return None;
+    }
+
     if parsed.jsonrpc != "2.0" {
-        return Json(JsonRpcResponse::error(
+        return Some(JsonRpcResponse::error(
             parsed.id,
             error_code::INVALID_REQUEST,
             "Invalid JSON-RPC version, expected \"2.0\"",
         ));
     }
 
-    let result = dispatch(&state, &parsed.method, parsed.params).await;
+    let result = dispatch(state, &parsed.method, parsed.params).await;
 
-    match result {
-        Ok(value) => Json(JsonRpcResponse::success(parsed.id, value)),
-        Err(e) => Json(JsonRpcResponse::error(parsed.id, e.0, e.1)),
+    Some(match result {
+        Ok(value) => JsonRpcResponse::success(parsed.id, value),
+        Err(e) => JsonRpcResponse::error(parsed.id, e.0, e.1),
+    })
+}
+
+/// `POST /jsonrpc` — JSON-RPC 2.0 dispatcher with batch and notification support.
+///
+/// Per JSON-RPC 2.0 spec:
+/// - **Single request** (object): dispatched to the appropriate handler.
+/// - **Batch request** (array): each element processed independently;
+///   responses collected into an array.
+/// - **Notifications** (absent `id`): executed but produce no response.
+/// - **All-notification batch**: returns `204 No Content`.
+/// - **Empty batch**: returns an `Invalid Request` error.
+#[instrument(skip_all)]
+pub async fn handle_jsonrpc(
+    State(state): State<AppState>,
+    Json(request): Json<serde_json::Value>,
+) -> Response {
+    if let serde_json::Value::Array(batch) = request {
+        if batch.is_empty() {
+            return Json(JsonRpcResponse::error(
+                serde_json::Value::Null,
+                error_code::INVALID_REQUEST,
+                "Invalid Request: empty batch",
+            ))
+            .into_response();
+        }
+
+        let mut responses = Vec::with_capacity(batch.len());
+        for req in batch {
+            if let Some(resp) = process_single(&state, req).await {
+                responses.push(resp);
+            }
+        }
+
+        if responses.is_empty() {
+            return StatusCode::NO_CONTENT.into_response();
+        }
+
+        return Json(responses).into_response();
     }
+
+    (process_single(&state, request).await).map_or_else(
+        || StatusCode::NO_CONTENT.into_response(),
+        |resp| Json(resp).into_response(),
+    )
 }
 
 async fn dispatch(state: &AppState, method: &str, params: serde_json::Value) -> DispatchResult {
@@ -303,3 +365,5 @@ pub(crate) fn to_value<T: Serialize>(v: &T) -> DispatchResult {
 
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod tests_protocol;

@@ -159,15 +159,11 @@ async fn handle_uds_connection(
             },
         };
 
-        let response = crate::handlers::jsonrpc::handle_jsonrpc(
-            axum::extract::State(state.clone()),
-            axum::Json(request),
-        )
-        .await;
-
-        let mut resp = serde_json::to_string(&response.0)?;
-        resp.push('\n');
-        writer.write_all(resp.as_bytes()).await?;
+        if let Some(response) = crate::handlers::jsonrpc::process_single(&state, request).await {
+            let mut resp = serde_json::to_string(&response)?;
+            resp.push('\n');
+            writer.write_all(resp.as_bytes()).await?;
+        }
     }
 
     Ok(())

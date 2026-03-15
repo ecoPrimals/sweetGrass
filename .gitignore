@@ -5,7 +5,12 @@ Cargo.lock
 showcase/**/outputs/
 showcase/**/logs/
 showcase/**/pids/
+
+# Fuzz artifacts (cargo-fuzz)
+fuzz/corpus/
+fuzz/artifacts/
+fuzz/coverage/
+
 *.swp
 *.swo
 .DS_Store
-.cargo/

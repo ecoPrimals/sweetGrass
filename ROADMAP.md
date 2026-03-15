@@ -1,10 +1,25 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.10 (March 2026)
+**Current Version**: v0.7.11 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.11 — JSON-RPC 2.0 Spec Compliance + Deep Debt + Coverage Push (March 2026)
+
+- [x] JSON-RPC 2.0 batch request support (spec Section 6: array of requests/responses)
+- [x] JSON-RPC 2.0 notification support (spec Section 4.1: absent `id` = no response)
+- [x] `JsonRpcResponse`/`JsonRpcError` evolved to `Serialize + Deserialize` (`Cow<'static, str>` for version)
+- [x] Hardcoded constants extracted: `UNKNOWN_AGENT_DID`, `MIME_MERKLE_ROOT`, `MIME_OCTET_STREAM`, `DEFAULT_STORAGE_BACKEND`, `DEFAULT_DB_PATH`
+- [x] UDS transport evolved to use `process_single` (notification-aware)
+- [x] Property-based tests (proptest): 6 strategies for `BraidId`, `ContentHash`, `Did`, hex, Braid builder, Arc clone
+- [x] `capability.list` handler coverage: 4 tests (domains, methods, grouping, count)
+- [x] Health handler coverage: 8 new tests (error paths, `PrimalStatus`, integrations)
+- [x] `MemoryStore` coverage: 18 new tests (batch ops, edge cases, error paths, indexing)
+- [x] Protocol-level test extraction: `tests_protocol.rs` (batch, notification, capability)
+- [x] Smart refactor: `jsonrpc/tests.rs` 1053→768 LOC + `tests_protocol.rs` 302 LOC
+- [x] 892 tests passing (was 847), 0 failures, 0 unsafe, 0 clippy warnings
 
 ### v0.7.10 — Typed Error Evolution + Lint Hardening + Platform-Agnostic IPC (March 2026)
 
@@ -260,7 +275,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.10 | **March 2026** | Typed Error Evolution + Lint Hardening + Platform-Agnostic IPC (DONE) |
+| v0.7.11 | **March 2026** | JSON-RPC 2.0 Spec Compliance + Deep Debt + Coverage Push (DONE) |
+| v0.7.10 | March 2026 | Typed Error Evolution + Lint Hardening + Platform-Agnostic IPC (DONE) |
 | v0.7.9 | March 2026 | Deep Debt Audit: Pedantic Quality + Capability Discovery (DONE) |
 | v0.7.8 | March 2026 | Deep Debt Evolution: Zero-Copy + Benchmarks + Config (DONE) |
 | v0.7.7 | March 2026 | Deep Audit + Architecture Fix + UniBin (DONE) |

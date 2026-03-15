@@ -1,7 +1,7 @@
 # 🌾 SweetGrass — Development Guide
 
 **Last Updated**: March 15, 2026  
-**Version**: v0.7.10
+**Version**: v0.7.11
 
 ---
 
@@ -425,7 +425,7 @@ SELECT * FROM braids LIMIT 10;
 
 ```bash
 # Update Cargo.toml versions
-cargo set-version 0.7.10
+cargo set-version 0.7.11
 
 # Update CHANGELOG.md and ROADMAP.md
 ```
@@ -456,8 +456,8 @@ cargo build --release
 ### 4. Tag & Push
 
 ```bash
-git tag -a v0.7.10 -m "Release v0.7.10"
-git push origin v0.7.10
+git tag -a v0.7.11 -m "Release v0.7.11"
+git push origin v0.7.11
 ```
 
 ---

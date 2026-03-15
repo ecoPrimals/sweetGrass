@@ -36,7 +36,7 @@ cargo clean
 ## ✅ TEST COMMANDS
 
 ```bash
-# All tests (847 tests)
+# All tests (892 tests)
 cargo test --workspace
 
 # Unit tests only
@@ -69,7 +69,7 @@ cargo watch -x test
 ## 📊 COVERAGE COMMANDS
 
 ```bash
-# Generate HTML coverage report (91% region)
+# Generate HTML coverage report
 cargo llvm-cov --workspace --html
 
 # Open coverage report
@@ -362,7 +362,7 @@ cargo bench --workspace
 cargo build --release
 
 # 8. Tag release
-git tag -a v0.7.10 -m "Release v0.7.10"
+git tag -a v0.7.11 -m "Release v0.7.11"
 
 # 9. Push
 git push && git push --tags

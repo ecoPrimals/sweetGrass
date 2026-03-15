@@ -1,0 +1,19 @@
+# Local override: global target-dir is on a noexec mount.
+# Build artifacts go to a path on the exec-capable root filesystem.
+[build]
+target-dir = "/home/southgate/.cargo-build/sweetGrass/target"
+
+# ecoBin cross-compilation targets (pure Rust, no C deps in production).
+# Install with: rustup target add <target>
+#
+# Tier 1 (primary):
+#   x86_64-unknown-linux-gnu    — Linux AMD64
+#   aarch64-unknown-linux-gnu   — Linux ARM64 (Raspberry Pi 4+, cloud ARM)
+#
+# Tier 2 (portable):
+#   x86_64-unknown-linux-musl   — Static Linux AMD64 (Alpine, containers)
+#   aarch64-unknown-linux-musl  — Static Linux ARM64
+#   armv7-unknown-linux-gnueabihf — Linux ARMv7 (Raspberry Pi 2/3)
+#
+# Tier 3 (experimental):
+#   riscv64gc-unknown-linux-gnu — RISC-V 64-bit
