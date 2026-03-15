@@ -9,12 +9,12 @@
 //! rather than primal-specific names.
 
 #![cfg(any(test, feature = "test-support"))]
-#![allow(
-    clippy::expect_used,
-    clippy::unwrap_used,
+#![expect(
     clippy::cast_sign_loss,
-    clippy::option_if_let_else
+    reason = "test-only module; timestamp cast from i64 to u64 is safe in tests"
 )]
+
+use std::borrow::Cow;
 
 use async_trait::async_trait;
 
@@ -87,19 +87,19 @@ impl Default for MockSigningClient {
 #[async_trait]
 impl SigningClient for MockSigningClient {
     async fn sign(&self, _braid: &Braid) -> Result<BraidSignature> {
-        if let Some(sig) = &self.sign_result {
-            Ok(sig.clone())
-        } else {
-            // Generate a deterministic mock signature
-            let now = chrono::Utc::now();
-            Ok(BraidSignature {
-                sig_type: "Ed25519Signature2020".to_string(),
-                created: now.timestamp() as u64,
-                verification_method: format!("{}#keys-1", self.did.as_str()),
-                proof_purpose: "assertionMethod".to_string(),
-                proof_value: "mock-signature-value".to_string(),
-            })
-        }
+        self.sign_result.as_ref().map_or_else(
+            || {
+                let now = chrono::Utc::now();
+                Ok(BraidSignature {
+                    sig_type: Cow::Borrowed("Ed25519Signature2020"),
+                    created: now.timestamp() as u64,
+                    verification_method: Cow::Owned(format!("{}#keys-1", self.did.as_str())),
+                    proof_purpose: Cow::Borrowed("assertionMethod"),
+                    proof_value: Cow::Borrowed("mock-signature-value"),
+                })
+            },
+            |sig| Ok(sig.clone()),
+        )
     }
 
     async fn verify(&self, _braid: &Braid) -> Result<SignatureInfo> {

@@ -2,7 +2,11 @@
 //! Braid module tests.
 
 #[cfg(test)]
-#[allow(clippy::float_cmp, clippy::expect_used, clippy::unwrap_used)]
+#[expect(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    reason = "test module: expect/unwrap are standard in tests"
+)]
 mod unit_tests {
     use super::super::*;
     use crate::agent::Did;
@@ -109,7 +113,11 @@ mod unit_tests {
 
 /// Property-based tests using proptest
 #[cfg(test)]
-#[allow(clippy::expect_used, clippy::unwrap_used)]
+#[expect(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    reason = "test module: expect/unwrap are standard in tests"
+)]
 mod proptests {
     use super::super::*;
     use crate::agent::Did;

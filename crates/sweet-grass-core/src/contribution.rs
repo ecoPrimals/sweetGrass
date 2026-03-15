@@ -124,7 +124,10 @@ pub mod domain_key {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
+#[expect(
+    clippy::expect_used,
+    reason = "test module: expect is standard in tests"
+)]
 mod tests {
     use super::*;
     use crate::agent::Did;

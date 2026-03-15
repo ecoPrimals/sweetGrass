@@ -142,7 +142,10 @@ pub fn paginate(braids: Vec<Braid>, filter: &QueryFilter) -> (Vec<Braid>, bool) 
 }
 
 #[cfg(test)]
-#[allow(clippy::float_cmp, clippy::expect_used, clippy::unwrap_used)]
+#[expect(
+    clippy::expect_used,
+    reason = "test module: expect is standard in tests"
+)]
 mod tests {
     use super::*;
     use sweet_grass_core::agent::Did;

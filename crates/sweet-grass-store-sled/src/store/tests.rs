@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //! Unit tests for Sled store.
 
-#![allow(clippy::expect_used, clippy::unwrap_used)]
+#![expect(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    reason = "test file: expect/unwrap are standard in tests"
+)]
 
 use super::*;
 use sweet_grass_core::braid::BraidBuilder;

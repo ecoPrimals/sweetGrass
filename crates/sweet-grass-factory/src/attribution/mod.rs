@@ -308,10 +308,10 @@ pub fn calculate_rewards(chain: &AttributionChain, total_value: f64) -> Result<V
 }
 
 #[cfg(test)]
-#[allow(
-    clippy::float_cmp,
+#[expect(
     clippy::expect_used,
     clippy::unwrap_used,
-    clippy::manual_range_contains
+    clippy::manual_range_contains,
+    reason = "test module: expect/unwrap are standard in tests"
 )]
 mod tests;

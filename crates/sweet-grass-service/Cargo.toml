@@ -44,6 +44,9 @@ serde_json = { workspace = true }
 # Encoding
 base64 = { workspace = true }
 
+# Provenance trio canonical wire types
+provenance-trio-types = { workspace = true }
+
 # Error handling
 thiserror = { workspace = true }
 
@@ -70,6 +73,11 @@ tokio = { workspace = true, features = ["test-util", "macros"] }
 axum-test = "19"
 serial_test = "3"
 tempfile = "3"
+criterion = { workspace = true }
+
+[[bench]]
+name = "core_operations"
+harness = false
 
 [[bin]]
 name = "sweetgrass"

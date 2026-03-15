@@ -36,7 +36,7 @@ cargo clean
 ## ✅ TEST COMMANDS
 
 ```bash
-# All tests (843 tests)
+# All tests (853 tests)
 cargo test --workspace
 
 # Unit tests only
@@ -88,8 +88,8 @@ cargo llvm-cov --workspace --test integration
 ## 🎯 BENCHMARK COMMANDS
 
 ```bash
-# Run criterion benchmarks (when available)
-cargo bench --workspace
+# Run criterion benchmarks (7 groups: braid, store, hash, query, attribution, compression, traversal)
+cargo bench --package sweet-grass-service
 
 # Save baseline
 cargo bench -- --save-baseline main

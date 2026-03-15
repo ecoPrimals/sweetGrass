@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.7 | 849 tests | 91% region coverage | AGPL-3.0-only | Pure Rust | ecoBin compliant
+v0.7.8 | 853 tests | 91% region coverage | AGPL-3.0-only | Pure Rust | ecoBin compliant
 
 ---
 
@@ -175,17 +175,18 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.7 |
-| Tests | 849 passing |
+| Version | v0.7.8 |
+| Tests | 853 passing |
 | Region coverage | 91% (`cargo llvm-cov`) |
 | Line coverage | 89% (`cargo llvm-cov`) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates) |
 | Production unwraps | 0 |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
-| Max file size | 828 lines (limit: 1000) |
+| Max file size | 879 lines (limit: 1000) |
 | TODOs in source | 0 |
 | SPDX headers | All .rs files |
 | License | AGPL-3.0-only |
+| Benchmarks | 7 criterion groups |
 
 ### ecoBin Compliance
 
@@ -200,7 +201,11 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 ### Zero-Copy
 
-`BraidId` and `Did` use `Arc<str>` internally -- `.clone()` is O(1) atomic refcount increment.
+`ContentHash`, `BraidId`, `Did`, and `ActivityId` use `Arc<str>` internally — `.clone()` is O(1) atomic refcount increment. `BraidSignature` fields use `Cow<'static, str>` for zero-allocation static values. `BraidContext.imports` uses `IndexMap` for deterministic serialization.
+
+### Configuration
+
+TOML config file support with full hierarchy: CLI args > env vars > config file > defaults. XDG-compliant config search (`$SWEETGRASS_CONFIG`, `$XDG_CONFIG_HOME/sweetgrass/config.toml`, `~/.config/sweetgrass/config.toml`).
 
 ---
 

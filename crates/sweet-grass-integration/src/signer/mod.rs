@@ -47,7 +47,11 @@ pub use tarpc_client::{
 // ============================================================================
 
 #[cfg(test)]
-#[allow(clippy::expect_used, clippy::unwrap_used)]
+#[expect(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    reason = "test module: expect/unwrap are standard in tests"
+)]
 mod tests {
     use super::*;
     use crate::discovery::{DiscoveredPrimal, LocalDiscovery};
@@ -129,7 +133,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[allow(clippy::similar_names)]
     async fn test_legacy_signer_sign() {
         let client = Arc::new(testing::MockSigningClient::new());
         let signer = LegacySigner::new(client).await.expect("create signer");
@@ -227,11 +230,11 @@ mod tests {
     #[tokio::test]
     async fn test_mock_client_custom_signature() {
         let custom_sig = sweet_grass_core::braid::BraidSignature {
-            sig_type: "CustomType".to_string(),
+            sig_type: "CustomType".into(),
             created: 12345,
-            verification_method: "did:key:test#custom".to_string(),
-            proof_purpose: "assertionMethod".to_string(),
-            proof_value: "custom-proof".to_string(),
+            verification_method: "did:key:test#custom".to_string().into(),
+            proof_purpose: "assertionMethod".into(),
+            proof_value: "custom-proof".into(),
         };
 
         let client = testing::MockSigningClient::new().with_sign_result(custom_sig.clone());

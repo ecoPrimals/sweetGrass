@@ -247,7 +247,10 @@ pub async fn create_app_state_from_env() -> Result<AppState, BootstrapError> {
 }
 
 #[cfg(test)]
-#[allow(clippy::expect_used, clippy::unwrap_used)]
+#[expect(
+    clippy::expect_used,
+    reason = "test module: expect is standard in tests"
+)]
 mod tests {
     use std::sync::Arc;
 

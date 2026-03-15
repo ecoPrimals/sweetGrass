@@ -3,15 +3,18 @@
 //!
 //! Ensures migrations are idempotent and schema is correct.
 
-#![allow(clippy::unwrap_used, clippy::expect_used)] // Test code may use unwrap/expect for clarity
+#![expect(clippy::expect_used, reason = "test file: expect is standard in tests")]
 
 use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 
+/// Fallback PostgreSQL URL when TEST_DATABASE_URL is not set (e.g. local dev).
+const TEST_DATABASE_URL_FALLBACK: &str = "postgres://postgres:postgres@localhost/sweetgrass_test";
+
 /// Test helper to create a test database
 async fn create_test_db() -> PgPool {
     let database_url = std::env::var("TEST_DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://postgres:postgres@localhost/sweetgrass_test".to_string());
+        .unwrap_or_else(|_| TEST_DATABASE_URL_FALLBACK.to_string());
 
     PgPoolOptions::new()
         .max_connections(5)

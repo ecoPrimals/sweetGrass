@@ -5,6 +5,69 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.8] - 2026-03-14
+
+### Deep Debt Evolution — Zero-Copy + Idiomatic Rust + Benchmarks + Config
+
+Comprehensive debt resolution and modernization pass. Zero-copy types
+expanded, all `#[allow]` evolved to `#[expect(..., reason)]`, criterion
+benchmarks added, TOML config file support, large files smart-refactored,
+primal identity constants centralized, test addresses extracted to constants.
+
+### Changed
+
+- **`ActivityId(String)` → `ActivityId(Arc<str>)`** — O(1) clone, matching
+  `ContentHash`, `BraidId`, and `Did` zero-copy strategy. Custom `Deserialize`,
+  `From<&str>`, `From<String>` impls added.
+- **`BraidSignature` → `Cow<'static, str>`** — `sig_type`, `verification_method`,
+  `proof_purpose`, `proof_value` use `Cow<'static, str>`. Static values
+  (`Ed25519Signature2020`, `assertionMethod`) are borrowed (zero heap allocation).
+  Named constants: `SIG_TYPE_ED25519`, `PROOF_PURPOSE_ASSERTION`, etc.
+- **`BraidContext.imports` → `IndexMap`** — Deterministic serialization order
+  for content-addressed hashing and reproducible JSON-LD output.
+- **`#[allow]` → `#[expect(..., reason)]`** — All ~50+ `#[allow]` attributes
+  across 10 crates evolved to precise `#[expect]` with explicit reason strings.
+  Compiler flags any expectation that becomes unfulfilled.
+- **Primal identity centralized** — `sweet_grass_core::identity::PRIMAL_NAME`
+  and `PRIMAL_DISPLAY_NAME` replace scattered string literals in `primal_info`,
+  `config`, `health`, `uds`, `bootstrap`.
+- **Test addresses centralized** — `TEST_BIND_ADDR`, `TEST_REST_URL`,
+  `TEST_TARPC_ADDR`, `TEST_INVALID_ADDR` in `testing.rs` replace scattered
+  hardcoded addresses in discovery, signer, server tests.
+- **`factory.rs` (820L)** → `factory/mod.rs` (~310L) + `factory/tests.rs` (~330L)
+- **`listener/mod.rs` (703L)** → `listener/mod.rs` (~320L) +
+  `listener/testing.rs` + `listener/tests.rs`
+
+### Added
+
+- **Criterion benchmarks** — 7 benchmark groups: braid creation (1KB/10KB/100KB),
+  store put/get, content hashing, store query (100 braids), attribution
+  calculation, compression, provenance graph traversal.
+  Run with `cargo bench --package sweet-grass-service`.
+- **TOML config file support** — `SweetGrassConfig::load()` with full hierarchy:
+  env vars > config file > defaults. `SweetGrassConfig::from_file(path)` for
+  explicit loading. XDG-compliant search: `$SWEETGRASS_CONFIG` →
+  `$XDG_CONFIG_HOME/sweetgrass/config.toml` → `~/.config/sweetgrass/config.toml`.
+  New `ConfigError::Io` and `ConfigError::Parse` variants.
+- **`toml` workspace dependency** (0.8)
+- **`criterion` workspace dev-dependency** (0.5 with html_reports)
+
+### Metrics
+
+```
+Version:        0.7.8
+Tests:          853 passing (was 849)
+Region coverage: 91% (cargo llvm-cov)
+Line coverage:  89% (cargo llvm-cov)
+Clippy:         0 warnings (pedantic + nursery)
+Max file:       879 lines (limit: 1000)
+TODOs:          0 in source
+Unsafe:         0 (forbidden)
+Benchmarks:     7 criterion groups (new)
+```
+
+---
+
 ## [0.7.7] - 2026-03-14
 
 ### Deep Audit + Architecture Fix + UniBin Compliance

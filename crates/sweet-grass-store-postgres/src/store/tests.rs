@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-#![allow(clippy::expect_used, clippy::unwrap_used)]
+#![expect(clippy::unwrap_used, reason = "test file: unwrap is standard in tests")]
 
 use super::*;
 

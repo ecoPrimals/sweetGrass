@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-#![allow(
-    clippy::float_cmp,
+#![expect(
     clippy::expect_used,
     clippy::unwrap_used,
-    clippy::clone_on_ref_ptr
+    clippy::clone_on_ref_ptr,
+    reason = "test file: expect/unwrap are standard in tests"
 )]
 
 use super::*;
 use crate::rpc::SweetGrassRpcClient;
+
+/// Test bind address (OS-allocated port).
+const TEST_BIND_ADDR: &str = "127.0.0.1:0";
 use sweet_grass_compression::{SessionOutcome, SessionVertex};
 use sweet_grass_core::agent::Did;
 use sweet_grass_store::MemoryStore;
@@ -702,7 +705,7 @@ async fn test_create_meta_braid_single_braid() {
 
 #[tokio::test]
 async fn test_start_tarpc_server_binds_and_accepts() {
-    let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind");
+    let listener = std::net::TcpListener::bind(TEST_BIND_ADDR).expect("bind");
     let addr = listener.local_addr().expect("local_addr");
     drop(listener);
 

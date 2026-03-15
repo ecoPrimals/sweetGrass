@@ -357,7 +357,7 @@ pub mod testing {
 
         /// Set health status.
         #[must_use]
-        #[allow(dead_code)]
+        #[allow(dead_code)] // Mock method configured per-test scenario
         pub fn with_health(mut self, healthy: bool) -> Self {
             self.healthy = healthy;
             self
@@ -412,11 +412,15 @@ pub mod testing {
 }
 
 #[cfg(any(test, feature = "test-support"))]
-#[allow(unused_imports)]
+#[allow(unused_imports)] // Re-export for external consumers; may be unused in some builds
 pub use testing::MockAnchoringClient;
 
 #[cfg(test)]
-#[allow(clippy::float_cmp, clippy::expect_used, clippy::unwrap_used)]
+#[expect(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    reason = "test module: expect/unwrap are standard in tests"
+)]
 mod tests {
     use super::*;
     use sweet_grass_core::agent::Did;

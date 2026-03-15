@@ -237,7 +237,11 @@ impl IndexStore for MemoryStore {
 }
 
 #[cfg(test)]
-#[allow(clippy::float_cmp, clippy::expect_used, clippy::unwrap_used)]
+#[expect(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    reason = "test module: expect/unwrap are standard in tests"
+)]
 mod tests {
     use super::*;
     use sweet_grass_core::activity::ActivityType;

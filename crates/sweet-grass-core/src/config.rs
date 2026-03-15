@@ -17,7 +17,10 @@
 //! ```
 
 use serde::{Deserialize, Serialize};
+use std::path::Path;
 use std::time::Duration;
+
+use crate::identity;
 
 /// Capabilities that `SweetGrass` can require from other primals.
 /// Runtime discovery finds primals offering these capabilities.
@@ -84,6 +87,7 @@ impl std::fmt::Display for Capability {
 
 /// Network configuration for capability-based discovery.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct NetworkConfig {
     /// Listen address for tarpc service (primary protocol).
     /// If None, binds to an available port.
@@ -137,10 +141,17 @@ impl Default for NetworkConfig {
     }
 }
 
+/// Default primal name for config deserialization.
+fn default_name() -> String {
+    identity::PRIMAL_DISPLAY_NAME.to_string()
+}
+
 /// Configuration for `SweetGrass`.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct SweetGrassConfig {
     /// Primal name.
+    #[serde(default = "default_name")]
     pub name: String,
 
     /// Primal instance ID (auto-generated if None).
@@ -169,7 +180,7 @@ pub struct SweetGrassConfig {
 impl Default for SweetGrassConfig {
     fn default() -> Self {
         Self {
-            name: "SweetGrass".to_string(),
+            name: identity::PRIMAL_DISPLAY_NAME.to_string(),
             instance_id: None,
             network: NetworkConfig::default(),
             storage: StorageConfig::default(),
@@ -197,7 +208,78 @@ impl SweetGrassConfig {
     /// compatibility with validation errors.
     pub fn from_env() -> Result<Self, ConfigError> {
         let mut config = Self::default();
+        Self::apply_env_overrides(&mut config);
+        Ok(config)
+    }
 
+    /// Load configuration from a specific TOML file.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the file cannot be read or parsed.
+    pub fn from_file(path: impl AsRef<Path>) -> Result<Self, ConfigError> {
+        let path = path.as_ref();
+        let contents = std::fs::read_to_string(path).map_err(ConfigError::Io)?;
+        let config: Self = toml::from_str(&contents)
+            .map_err(|e| ConfigError::Parse(format!("{}: {e}", path.display())))?;
+        Ok(config)
+    }
+
+    /// Load configuration with full hierarchy: env vars > config file > defaults.
+    ///
+    /// Config file locations (checked in order):
+    /// 1. `SWEETGRASS_CONFIG` environment variable
+    /// 2. `$XDG_CONFIG_HOME/sweetgrass/config.toml`
+    /// 3. `~/.config/sweetgrass/config.toml`
+    ///
+    /// Values from environment variables override values from the config file.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the config file exists but cannot be parsed.
+    pub fn load() -> Result<Self, ConfigError> {
+        let mut config = match Self::find_config_path() {
+            Some(path) => Self::from_file(path)?,
+            None => Self::default(),
+        };
+
+        Self::apply_env_overrides(&mut config);
+        Ok(config)
+    }
+
+    /// Find config file path using standard locations.
+    fn find_config_path() -> Option<std::path::PathBuf> {
+        if let Ok(path) = std::env::var("SWEETGRASS_CONFIG") {
+            let p = std::path::PathBuf::from(path);
+            if p.is_file() {
+                return Some(p);
+            }
+        }
+
+        if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
+            let p = std::path::PathBuf::from(xdg)
+                .join("sweetgrass")
+                .join("config.toml");
+            if p.is_file() {
+                return Some(p);
+            }
+        }
+
+        if let Ok(home) = std::env::var("HOME") {
+            let p = std::path::PathBuf::from(home)
+                .join(".config")
+                .join("sweetgrass")
+                .join("config.toml");
+            if p.is_file() {
+                return Some(p);
+            }
+        }
+
+        None
+    }
+
+    /// Apply environment variable overrides to config.
+    fn apply_env_overrides(config: &mut Self) {
         if let Ok(name) = std::env::var("SWEETGRASS_NAME") {
             config.name = name;
         }
@@ -213,8 +295,6 @@ impl SweetGrassConfig {
         if let Ok(bootstrap) = std::env::var("SWEETGRASS_DISCOVERY_BOOTSTRAP") {
             config.network.discovery_bootstrap = Some(bootstrap);
         }
-
-        Ok(config)
     }
 }
 
@@ -232,6 +312,14 @@ pub enum ConfigError {
     /// Environment variable error.
     #[error("environment error: {0}")]
     Environment(String),
+
+    /// I/O error reading config file.
+    #[error("config file I/O error: {0}")]
+    Io(#[from] std::io::Error),
+
+    /// Config file parse error.
+    #[error("config file parse error: {0}")]
+    Parse(String),
 }
 
 /// Builder for `SweetGrass` configuration.
@@ -292,6 +380,7 @@ impl SweetGrassConfigBuilder {
 
 /// Storage backend configuration.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct StorageConfig {
     /// Storage backend type.
     pub backend: StorageBackend,
@@ -337,6 +426,7 @@ pub enum StorageBackend {
 
 /// Compression configuration.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct CompressionConfig {
     /// Minimum vertices for compression (below = single or none).
     pub min_vertices: usize,
@@ -380,6 +470,7 @@ impl Default for CompressionConfig {
 
 /// Query configuration.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct QueryConfig {
     /// Enable GraphQL API.
     pub graphql: bool,
@@ -416,6 +507,7 @@ impl Default for QueryConfig {
 
 /// Attribution calculation configuration.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct AttributionConfig {
     /// Maximum depth to traverse provenance graph.
     pub max_depth: u32,
@@ -462,6 +554,7 @@ impl Default for AttributionConfig {
 /// Uses capability-based configuration instead of primal names.
 /// Each capability is discovered at runtime via the universal adapter.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(default)]
 pub struct ListenerConfig {
     /// Enable session event listener (discovers `SessionEvents` capability).
     pub session_events: bool,
@@ -520,7 +613,11 @@ mod humantime_serde {
 }
 
 #[cfg(test)]
-#[allow(clippy::float_cmp, clippy::expect_used, clippy::unwrap_used)]
+#[expect(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    reason = "test module: expect/unwrap are standard in tests"
+)]
 mod tests {
     use super::*;
 
@@ -612,6 +709,96 @@ mod tests {
         // Actual env var testing would require setup/teardown
         let result = SweetGrassConfig::from_env();
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_config_from_file() {
+        let temp_dir = std::env::temp_dir();
+        let config_path = temp_dir.join("sweetgrass_test_config.toml");
+        let toml_content = r#"
+name = "FromFile"
+[compression]
+min_vertices = 42
+split_threshold = 200
+"#;
+        std::fs::write(&config_path, toml_content).expect("write temp config");
+        let result = SweetGrassConfig::from_file(&config_path);
+        let _ = std::fs::remove_file(&config_path);
+        let config = result.expect("should parse valid TOML");
+        assert_eq!(config.name, "FromFile");
+        assert_eq!(config.compression.min_vertices, 42);
+        assert_eq!(config.compression.split_threshold, 200);
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_load_env_overrides_file() {
+        let temp_dir = std::env::temp_dir();
+        let config_path = temp_dir.join("sweetgrass_test_env_override.toml");
+        let toml_content = r#"
+name = "FromFile"
+[network]
+tarpc_listen = "127.0.0.1:9999"
+"#;
+        std::fs::write(&config_path, toml_content).expect("write temp config");
+        std::env::set_var("SWEETGRASS_CONFIG", config_path.as_os_str());
+        std::env::set_var("SWEETGRASS_NAME", "FromEnv");
+        let result = SweetGrassConfig::load();
+        std::env::remove_var("SWEETGRASS_CONFIG");
+        std::env::remove_var("SWEETGRASS_NAME");
+        let _ = std::fs::remove_file(&config_path);
+        let config = result.expect("load should succeed");
+        assert_eq!(config.name, "FromEnv", "env var should override file");
+        assert_eq!(
+            config.network.tarpc_listen.as_deref(),
+            Some("127.0.0.1:9999"),
+            "file value should be used when env not set"
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn test_load_missing_file_returns_defaults() {
+        let temp_dir = std::env::temp_dir().join("sweetgrass_test_no_config");
+        let config_subdir = temp_dir.join(".config").join("sweetgrass");
+        std::fs::create_dir_all(&config_subdir).ok();
+        let old_xdg = std::env::var("XDG_CONFIG_HOME").ok();
+        let old_home = std::env::var("HOME").ok();
+        let old_sweetgrass_config = std::env::var("SWEETGRASS_CONFIG").ok();
+        std::env::remove_var("SWEETGRASS_CONFIG");
+        std::env::set_var("XDG_CONFIG_HOME", &temp_dir);
+        std::env::set_var("HOME", &temp_dir);
+        let result = SweetGrassConfig::load();
+        if let Some(x) = old_xdg {
+            std::env::set_var("XDG_CONFIG_HOME", x);
+        } else {
+            std::env::remove_var("XDG_CONFIG_HOME");
+        }
+        if let Some(h) = old_home {
+            std::env::set_var("HOME", h);
+        } else {
+            std::env::remove_var("HOME");
+        }
+        if let Some(c) = old_sweetgrass_config {
+            std::env::set_var("SWEETGRASS_CONFIG", c);
+        } else {
+            std::env::remove_var("SWEETGRASS_CONFIG");
+        }
+        let _ = std::fs::remove_dir_all(&temp_dir);
+        let config = result.expect("load should succeed with no file");
+        assert_eq!(config.name, identity::PRIMAL_DISPLAY_NAME);
+        assert_eq!(config.compression.split_threshold, 100);
+    }
+
+    #[test]
+    fn test_from_file_invalid_toml_returns_error() {
+        let temp_dir = std::env::temp_dir();
+        let config_path = temp_dir.join("sweetgrass_test_invalid.toml");
+        std::fs::write(&config_path, "name = [ invalid toml").expect("write invalid");
+        let result = SweetGrassConfig::from_file(&config_path);
+        let _ = std::fs::remove_file(&config_path);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), ConfigError::Parse(_)));
     }
 
     #[test]

@@ -327,7 +327,7 @@ builder.with_name(string_var)  // No clone!
 3. Complexity vs benefit trade-off
 4. Better to profile real workloads first
 
-**Recommendation**: Implement in v0.6.0 after production profiling
+**Recommendation**: Implement after production profiling in v0.8.0+
 
 ---
 
@@ -392,6 +392,5 @@ Focus on functions taking >5% of total time.
 
 **🌾 SweetGrass: Already fast. Zero-copy will make it faster. 🌾**
 
-*For current performance, see [EVOLUTION_COMPLETE_DEC_26_2025.md](./EVOLUTION_COMPLETE_DEC_26_2025.md)*  
-*For concurrency improvements, see [DEEP_DEBT_RESOLUTION_DEC_26_2025.md](./DEEP_DEBT_RESOLUTION_DEC_26_2025.md)*
+*See [CHANGELOG](../../CHANGELOG.md) for performance evolution history.*
 

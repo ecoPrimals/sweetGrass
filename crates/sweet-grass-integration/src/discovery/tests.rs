@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-#![allow(clippy::float_cmp, clippy::expect_used, clippy::unwrap_used)]
+#![expect(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    reason = "test file: expect/unwrap are standard in tests"
+)]
 
 use super::*;
 
@@ -381,11 +385,14 @@ async fn test_preferred_address_rest_fallback() {
         name: "fallback".to_string(),
         capabilities: vec![Capability::Signing],
         tarpc_address: None,
-        rest_address: Some("http://localhost:8080".to_string()),
+        rest_address: Some(crate::testing::TEST_REST_URL.to_string()),
         last_seen: std::time::SystemTime::now(),
         healthy: true,
     };
-    assert_eq!(primal.preferred_address(), Some("http://localhost:8080"));
+    assert_eq!(
+        primal.preferred_address(),
+        Some(crate::testing::TEST_REST_URL)
+    );
 }
 
 #[tokio::test]
@@ -410,8 +417,8 @@ async fn test_service_info_to_primal() {
         id: "svc-1".to_string(),
         name: "test-service".to_string(),
         version: "1.0.0".to_string(),
-        tarpc_address: Some("tcp://localhost:9000".to_string()),
-        rest_address: Some("http://localhost:8080".to_string()),
+        tarpc_address: Some(crate::testing::TEST_TARPC_URI.to_string()),
+        rest_address: Some(crate::testing::TEST_REST_URL.to_string()),
         capabilities: vec!["signing".to_string(), "anchoring".to_string()],
         last_seen: 1_700_000_000,
         healthy: true,
@@ -431,10 +438,10 @@ async fn test_discovery_error_display() {
     assert!(err.to_string().contains("Signing"));
 
     let err = DiscoveryError::ConnectionFailed {
-        address: "localhost:9000".to_string(),
+        address: crate::testing::TEST_TARPC_ADDR.to_string(),
         reason: "connection refused".to_string(),
     };
-    assert!(err.to_string().contains("localhost:9000"));
+    assert!(err.to_string().contains(crate::testing::TEST_TARPC_ADDR));
     assert!(err.to_string().contains("connection refused"));
 
     let err = DiscoveryError::ServiceUnavailable("down".to_string());
@@ -552,7 +559,7 @@ async fn test_registry_from_env_missing() {
 
 #[tokio::test]
 async fn test_create_discovery_with_invalid_env_fallback() {
-    std::env::set_var("DISCOVERY_ADDRESS", "127.0.0.1:1");
+    std::env::set_var("DISCOVERY_ADDRESS", crate::testing::TEST_INVALID_ADDR);
     let discovery = super::create_discovery().await;
     std::env::remove_var("DISCOVERY_ADDRESS");
 
@@ -561,7 +568,7 @@ async fn test_create_discovery_with_invalid_env_fallback() {
 
 #[tokio::test]
 async fn test_create_discovery_prefers_discovery_address() {
-    std::env::set_var("DISCOVERY_ADDRESS", "127.0.0.1:1");
+    std::env::set_var("DISCOVERY_ADDRESS", crate::testing::TEST_INVALID_ADDR);
     std::env::set_var("UNIVERSAL_ADAPTER_ADDRESS", "127.0.0.1:2");
     std::env::set_var("DISCOVERY_BOOTSTRAP", "127.0.0.1:3");
 
@@ -695,9 +702,12 @@ async fn test_cached_discovery_find_one_no_healthy_uses_cache() {
 
 #[tokio::test]
 async fn test_registry_discovery_connect_invalid_addr() {
-    let result = super::RegistryDiscovery::connect("127.0.0.1:1").await;
+    let result = super::RegistryDiscovery::connect(crate::testing::TEST_INVALID_ADDR).await;
     assert!(result.is_err());
     if let Err(err) = result {
-        assert!(err.to_string().contains("127.0.0.1:1") || err.to_string().contains("connection"));
+        assert!(
+            err.to_string().contains(crate::testing::TEST_INVALID_ADDR)
+                || err.to_string().contains("connection")
+        );
     }
 }

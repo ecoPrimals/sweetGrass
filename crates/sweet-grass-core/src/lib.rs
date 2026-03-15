@@ -42,6 +42,20 @@ pub mod primal_info;
 pub mod privacy;
 pub mod scyborg;
 
+/// Primal identity constants.
+///
+/// Centralized here so every crate references the same values
+/// instead of scattering string literals. In production the primal name
+/// comes from environment (`PRIMAL_NAME`) via [`SelfKnowledge`], but
+/// these constants serve as the canonical defaults.
+pub mod identity {
+    /// Canonical lowercase primal name (used for sockets, env defaults, IPC).
+    pub const PRIMAL_NAME: &str = "sweetgrass";
+
+    /// Human-readable display name (used in config defaults, logs, health).
+    pub const PRIMAL_DISPLAY_NAME: &str = "SweetGrass";
+}
+
 // Re-exports for convenience
 pub use activity::{Activity, ActivityId, ActivityType, EntityRole, UsedEntity};
 pub use agent::{Agent, AgentAssociation, AgentRole, AgentType, Did};

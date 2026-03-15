@@ -10,6 +10,8 @@ use axum::{extract::State, http::StatusCode, Json};
 use serde::Serialize;
 use sweet_grass_store::QueryFilter;
 
+use sweet_grass_core::identity;
+
 use crate::state::AppState;
 
 /// Health check response.
@@ -187,7 +189,7 @@ pub async fn health(State(state): State<AppState>) -> Result<Json<HealthResponse
     Ok(Json(HealthResponse {
         status,
         version: env!("CARGO_PKG_VERSION").to_string(),
-        service: "sweetgrass".to_string(),
+        service: identity::PRIMAL_NAME.to_string(),
         uptime_secs,
         store,
         integrations,
@@ -225,7 +227,7 @@ pub async fn health_detailed(
     Ok(Json(HealthResponse {
         status,
         version: env!("CARGO_PKG_VERSION").to_string(),
-        service: "sweetgrass".to_string(),
+        service: identity::PRIMAL_NAME.to_string(),
         uptime_secs,
         store,
         integrations: Some(integrations),
@@ -265,8 +267,6 @@ fn check_capability_env(env_var: &str) -> PrimalStatus {
 }
 
 /// Liveness probe.
-/// Axum handler signature requires async fn; liveness is sync but must match router expectations.
-#[allow(clippy::unused_async)]
 pub async fn liveness() -> StatusCode {
     StatusCode::OK
 }
@@ -280,7 +280,10 @@ pub async fn readiness(State(state): State<AppState>) -> StatusCode {
 }
 
 #[cfg(test)]
-#[allow(clippy::float_cmp, clippy::expect_used, clippy::unwrap_used)]
+#[expect(
+    clippy::unwrap_used,
+    reason = "test module: unwrap is standard in tests"
+)]
 mod tests {
     use super::*;
     use axum::extract::State;

@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //! Braid type definitions: `ContentHash`, `BraidId`, `BraidContext`, `BraidType`, etc.
 
-use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::Arc;
+
+use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::agent::Did;
@@ -258,6 +261,10 @@ pub const ECOP_VOCAB_URI: &str = "https://ecoprimals.io/vocab#";
 pub const ECOP_BASE_URI: &str = "https://ecoprimals.io/";
 
 /// JSON-LD context for semantic interpretation.
+///
+/// Uses [`IndexMap`] for vocabulary imports to guarantee deterministic
+/// serialization order — important for content-addressed hashing and
+/// reproducible JSON-LD output.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BraidContext {
     /// Base context URL.
@@ -268,14 +275,14 @@ pub struct BraidContext {
     #[serde(rename = "@version")]
     pub version: f32,
 
-    /// Vocabulary imports.
+    /// Vocabulary imports (insertion-ordered for deterministic serialization).
     #[serde(flatten)]
-    pub imports: HashMap<String, String>,
+    pub imports: IndexMap<String, String>,
 }
 
 impl Default for BraidContext {
     fn default() -> Self {
-        let mut imports = HashMap::new();
+        let mut imports = IndexMap::new();
         imports.insert("prov".to_string(), PROV_VOCAB_URI.to_string());
         imports.insert("xsd".to_string(), XSD_VOCAB_URI.to_string());
         imports.insert("schema".to_string(), SCHEMA_VOCAB_URI.to_string());
@@ -289,24 +296,37 @@ impl Default for BraidContext {
     }
 }
 
+/// Well-known signature type for Ed25519.
+const SIG_TYPE_ED25519: &str = "Ed25519Signature2020";
+/// Signature type for unsigned placeholders.
+const SIG_TYPE_UNSIGNED: &str = "Unsigned";
+/// Standard proof purpose for assertion signatures.
+const PROOF_PURPOSE_ASSERTION: &str = "assertionMethod";
+/// Proof purpose for pending/unsigned signatures.
+const PROOF_PURPOSE_PENDING: &str = "pending";
+
 /// Braid signature (W3C Data Integrity format).
+///
+/// Uses `Cow<'static, str>` for fields with well-known static values
+/// (`sig_type`, `proof_purpose`) to avoid unnecessary heap allocations
+/// while still supporting dynamic values.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BraidSignature {
     /// Signature type (e.g., `Ed25519Signature2020`).
     #[serde(rename = "type")]
-    pub sig_type: String,
+    pub sig_type: Cow<'static, str>,
 
     /// When the signature was created.
     pub created: Timestamp,
 
     /// Verification method (key reference).
-    pub verification_method: String,
+    pub verification_method: Cow<'static, str>,
 
     /// Proof purpose.
-    pub proof_purpose: String,
+    pub proof_purpose: Cow<'static, str>,
 
     /// Base64-encoded signature value.
-    pub proof_value: String,
+    pub proof_value: Cow<'static, str>,
 }
 
 impl BraidSignature {
@@ -315,11 +335,13 @@ impl BraidSignature {
     pub fn new_ed25519(did: &Did, key_id: &str, signature_bytes: &[u8]) -> Self {
         use base64::Engine;
         Self {
-            sig_type: "Ed25519Signature2020".to_string(),
+            sig_type: Cow::Borrowed(SIG_TYPE_ED25519),
             created: current_timestamp_nanos(),
-            verification_method: format!("{}#{key_id}", did.as_str()),
-            proof_purpose: "assertionMethod".to_string(),
-            proof_value: base64::engine::general_purpose::STANDARD.encode(signature_bytes),
+            verification_method: Cow::Owned(format!("{}#{key_id}", did.as_str())),
+            proof_purpose: Cow::Borrowed(PROOF_PURPOSE_ASSERTION),
+            proof_value: Cow::Owned(
+                base64::engine::general_purpose::STANDARD.encode(signature_bytes),
+            ),
         }
     }
 
@@ -327,11 +349,11 @@ impl BraidSignature {
     #[must_use]
     pub fn unsigned() -> Self {
         Self {
-            sig_type: "Unsigned".to_string(),
+            sig_type: Cow::Borrowed(SIG_TYPE_UNSIGNED),
             created: current_timestamp_nanos(),
-            verification_method: String::new(),
-            proof_purpose: "pending".to_string(),
-            proof_value: String::new(),
+            verification_method: Cow::Borrowed(""),
+            proof_purpose: Cow::Borrowed(PROOF_PURPOSE_PENDING),
+            proof_value: Cow::Borrowed(""),
         }
     }
 }

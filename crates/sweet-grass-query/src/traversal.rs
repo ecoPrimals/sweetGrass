@@ -245,11 +245,11 @@ impl Default for ProvenanceGraphBuilder {
 }
 
 #[cfg(test)]
-#[allow(
-    clippy::float_cmp,
+#[expect(
     clippy::expect_used,
     clippy::unwrap_used,
-    clippy::similar_names
+    clippy::similar_names,
+    reason = "test module: expect/unwrap are standard; similar_names for closely related variables"
 )]
 mod tests {
     use super::*;

@@ -2,7 +2,11 @@
 //! `BraidFactory` tests.
 
 #[cfg(test)]
-#[allow(clippy::float_cmp, clippy::expect_used, clippy::unwrap_used)]
+#[expect(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    reason = "test module: expect/unwrap are standard in tests"
+)]
 mod factory_tests {
     use super::super::*;
     use sweet_grass_core::test_fixtures::TEST_SOURCE_PRIMAL;

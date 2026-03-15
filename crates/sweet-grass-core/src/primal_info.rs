@@ -6,6 +6,7 @@
 use std::time::SystemTime;
 
 use crate::config::Capability;
+use crate::identity;
 
 /// What a primal knows about itself at startup (Infant Discovery).
 ///
@@ -94,7 +95,8 @@ impl SelfKnowledge {
     /// ```
     pub fn from_env() -> Result<Self, String> {
         Ok(Self {
-            name: std::env::var("PRIMAL_NAME").unwrap_or_else(|_| "sweetgrass".to_string()),
+            name: std::env::var("PRIMAL_NAME")
+                .unwrap_or_else(|_| identity::PRIMAL_NAME.to_string()),
             instance_id: std::env::var("PRIMAL_INSTANCE_ID")
                 .unwrap_or_else(|_| uuid::Uuid::new_v4().to_string()),
             capabilities: Self::parse_capabilities(),
@@ -150,7 +152,7 @@ impl SelfKnowledge {
 impl Default for SelfKnowledge {
     fn default() -> Self {
         Self {
-            name: "sweetgrass".to_string(),
+            name: identity::PRIMAL_NAME.to_string(),
             instance_id: uuid::Uuid::new_v4().to_string(),
             capabilities: Vec::new(),
             tarpc_port: 0, // Dynamic allocation
@@ -161,7 +163,11 @@ impl Default for SelfKnowledge {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::expect_used)]
+#[expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "test module: expect/unwrap are standard in tests"
+)]
 mod tests {
     use serial_test::serial;
 

@@ -39,12 +39,14 @@ pub(super) async fn handle_record_session(
 
 /// Record provenance from a rhizoCrypt dehydration event.
 ///
-/// Converts a `DehydrationSummary` into Braids with full DAG metadata.
+/// Accepts the canonical [`provenance_trio_types::DehydrationSummary`] wire
+/// format and converts to the internal representation before creating Braids.
 pub(super) async fn handle_record_dehydration(
     state: &AppState,
     params: serde_json::Value,
 ) -> DispatchResult {
-    let summary: DehydrationSummary = parse_params(params)?;
+    let wire: provenance_trio_types::DehydrationSummary = parse_params(params)?;
+    let summary: DehydrationSummary = wire.into();
 
     let make_ecop = |summary: &DehydrationSummary| {
         let compression = summary.compression_ratio.map(|ratio| CompressionMeta {

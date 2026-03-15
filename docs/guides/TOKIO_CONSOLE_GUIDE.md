@@ -379,6 +379,5 @@ tokio-console --log console.log
 
 **🌾 SweetGrass: Observable, debuggable, concurrent Rust. 🌾**
 
-*For performance analysis, see [EVOLUTION_COMPLETE_DEC_26_2025.md](./EVOLUTION_COMPLETE_DEC_26_2025.md)*  
-*For concurrency details, see [DEEP_DEBT_RESOLUTION_DEC_26_2025.md](./DEEP_DEBT_RESOLUTION_DEC_26_2025.md)*
+*See [CHANGELOG](../../CHANGELOG.md) for performance evolution history.*
 
