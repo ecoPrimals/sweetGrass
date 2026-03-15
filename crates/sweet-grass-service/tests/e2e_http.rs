@@ -16,7 +16,7 @@ use axum_test::TestServer;
 use serde_json::json;
 use sweet_grass_core::agent::Did;
 use sweet_grass_core::test_fixtures::TEST_SOURCE_PRIMAL;
-use sweet_grass_service::{create_router, AppState};
+use sweet_grass_service::{AppState, create_router};
 
 fn test_server() -> TestServer {
     let state = AppState::new_memory(Did::new("did:key:z6MkE2ETest"));

@@ -11,14 +11,14 @@
 )]
 
 use sweet_grass_core::{
+    Braid,
     activity::{Activity, ActivityType},
     agent::{AgentAssociation, AgentRole, Did},
     braid::BraidMetadata,
-    Braid,
 };
 use sweet_grass_integration::testing::postgres_test_url_for_port;
 use sweet_grass_store_postgres::{PostgresConfig, PostgresStore};
-use testcontainers::{runners::AsyncRunner, ContainerAsync};
+use testcontainers::{ContainerAsync, runners::AsyncRunner};
 use testcontainers_modules::postgres::Postgres;
 
 /// Helper to spin up a `PostgreSQL` container and return a connected store.

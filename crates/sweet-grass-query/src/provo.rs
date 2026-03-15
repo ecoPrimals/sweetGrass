@@ -6,11 +6,11 @@
 
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sweet_grass_core::{Activity, Braid};
 
-use crate::traversal::ProvenanceGraph;
 use crate::Result;
+use crate::traversal::ProvenanceGraph;
 
 /// JSON-LD document representation.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -285,10 +285,10 @@ impl ProvoExport {
         }
 
         // ecoPrimals extensions
-        if self.include_ecop {
-            if let Some(compute) = activity.ecop.compute_units {
-                act.insert("computeUnits".to_string(), json!(compute));
-            }
+        if self.include_ecop
+            && let Some(compute) = activity.ecop.compute_units
+        {
+            act.insert("computeUnits".to_string(), json!(compute));
         }
 
         json!(act)
@@ -481,8 +481,8 @@ mod tests {
 
     #[test]
     fn test_export_with_activity() {
-        use sweet_grass_core::activity::ActivityType;
         use sweet_grass_core::Activity;
+        use sweet_grass_core::activity::ActivityType;
 
         let mut braid = make_test_braid("sha256:with_activity", "did:key:z6MkTest");
         braid.was_generated_by = Some(Activity::builder(ActivityType::Creation).build());

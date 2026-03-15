@@ -21,9 +21,9 @@ use sweet_grass_core::agent::Did;
 use sweet_grass_core::braid::Timestamp;
 use sweet_grass_core::config::Capability;
 
+use crate::Result;
 use crate::discovery::{DiscoveredPrimal, PrimalDiscovery};
 use crate::error::IntegrationError;
-use crate::Result;
 
 /// Session event from a primal with `Capability::SessionEvents`.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -222,7 +222,7 @@ impl EventHandler {
 pub mod testing;
 
 #[cfg(any(test, feature = "test"))]
-#[allow(unused_imports)] // Re-export for external consumers; may be unused in some builds
+#[allow(unused_imports)]
 pub use testing::MockSessionEventsClient;
 
 #[cfg(test)]

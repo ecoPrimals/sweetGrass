@@ -3,16 +3,16 @@
 //! Braid management handlers.
 
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::StatusCode,
-    Json,
 };
 use serde::{Deserialize, Serialize};
 use sweet_grass_core::{
+    Braid,
     agent::Did,
     braid::{BraidId, BraidMetadata},
     entity::EntityReference,
-    Braid,
 };
 use sweet_grass_store::{QueryFilter, QueryOrder};
 

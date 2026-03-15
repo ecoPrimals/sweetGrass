@@ -5,6 +5,51 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.12] - 2026-03-15
+
+### Edition 2024 Migration + Spring Absorption + Chaos Tests
+
+Edition 2024 migration with MSRV 1.87. Let-chains for idiomatic pattern matching.
+Unsafe env var handling in tests properly wrapped per Edition 2024 semantics.
+Capability descriptors evolved with dependency/cost metadata per airSpring niche pattern.
+11 chaos/fault tests for attribution weight calculations. Remaining hardcoded
+storage paths extracted to identity constants.
+
+### Changed
+
+- **Edition 2024 + MSRV 1.87** — Workspace edition evolved from 2021 to 2024,
+  resolver from 2 to 3, `rust-version = "1.87"` set
+- **Let-chains adoption** — 8 collapsible `if let` patterns modernized across
+  factory/attribution, store/filter, store/indexes, query/provo, query/traversal,
+  store-postgres, store-redb, store-sled, service/uds
+- **Test env var safety** — All `set_var`/`remove_var` in tests wrapped in
+  `unsafe { }` blocks. Production crates use `cfg_attr(not(test), forbid(unsafe_code))`
+  with `cfg_attr(test, deny(unsafe_code))` to allow test opt-out
+- **`capability.list` evolved** — Now returns `protocol`, `transport`, and
+  per-operation `operations` metadata with `depends_on` and `cost` hints
+  (per airSpring niche architecture pattern)
+- **`#[expect(reason)]`** adopted for bench lint suppressions (self-cleaning)
+- **Hardcoded paths eliminated** — `DEFAULT_REDB_PATH`, `DEFAULT_SLED_PATH`
+  constants in `identity` module replace inline `"./data/sweetgrass.redb"` and
+  `"./data/sweetgrass"` in factory
+
+### Added
+
+- **11 chaos/fault tests** for attribution: zero-weight config, extreme decay
+  factors (0.0, 1.0), zero min_share, max_depth=0, empty contributors,
+  zero-share normalize, zero/large reward values, 100 contributors, 20-deep
+  derivation chain
+- **`identity::DEFAULT_REDB_PATH`** — `"./data/sweetgrass.redb"`
+- **`identity::DEFAULT_SLED_PATH`** — `"./data/sweetgrass"`
+
+### Metrics
+
+- 903 tests (was 892), 0 failures, 0 unsafe in production, 0 clippy warnings
+- Max file: 808 lines (limit: 1000)
+- Edition 2024, MSRV 1.87, resolver 3
+
+---
+
 ## [0.7.11] - 2026-03-15
 
 ### JSON-RPC 2.0 Spec Compliance + Deep Debt + Coverage Push

@@ -8,7 +8,7 @@ use sweet_grass_core::braid::BraidId;
 
 use crate::state::AppState;
 
-use super::{error_code, internal, parse_params, to_value, DispatchResult};
+use super::{DispatchResult, error_code, internal, parse_params, to_value};
 
 #[derive(Debug, Deserialize)]
 pub(super) struct AnchorBraidParams {

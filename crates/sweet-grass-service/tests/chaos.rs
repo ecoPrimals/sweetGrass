@@ -15,11 +15,11 @@
     reason = "test file: expect/unwrap are standard in tests"
 )]
 
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use async_trait::async_trait;
-use sweet_grass_core::{agent::Did, Activity, ActivityId, Braid, BraidId, ContentHash};
+use sweet_grass_core::{Activity, ActivityId, Braid, BraidId, ContentHash, agent::Did};
 use sweet_grass_factory::BraidFactory;
 use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder, QueryResult, Result, StoreError};
 

@@ -5,14 +5,14 @@
 //! Analyzes session structure to determine optimal compression strategy.
 
 use std::collections::HashSet;
-use sweet_grass_core::{agent::Did, ContentHash};
+use sweet_grass_core::{ContentHash, agent::Did};
 
+use crate::Result;
 use crate::session::{CompressionHint, Session, SessionOutcome};
 use crate::strategy::{
     BranchSpec, CompressionConfig, CompressionLevel, CompressionStrategy, DiscardReason,
     GroupingStrategy,
 };
-use crate::Result;
 
 /// Session analysis result.
 #[derive(Clone, Debug)]

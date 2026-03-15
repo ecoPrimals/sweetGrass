@@ -19,9 +19,9 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 
+use sweet_grass_core::Braid;
 use sweet_grass_core::agent::Did;
 use sweet_grass_core::braid::BraidSignature;
-use sweet_grass_core::Braid;
 
 use crate::Result;
 

@@ -27,7 +27,8 @@
 //! ```
 
 #![warn(missing_docs)]
-#![forbid(unsafe_code)]
+#![cfg_attr(not(test), forbid(unsafe_code))]
+#![cfg_attr(test, deny(unsafe_code))]
 
 pub mod activity;
 pub mod agent;
@@ -67,6 +68,12 @@ pub mod identity {
 
     /// Default storage backend when none is configured.
     pub const DEFAULT_STORAGE_BACKEND: &str = "memory";
+
+    /// Default redb storage file path.
+    pub const DEFAULT_REDB_PATH: &str = "./data/sweetgrass.redb";
+
+    /// Default sled storage directory path.
+    pub const DEFAULT_SLED_PATH: &str = "./data/sweetgrass";
 }
 
 // Re-exports for convenience

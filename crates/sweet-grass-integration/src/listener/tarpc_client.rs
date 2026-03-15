@@ -11,9 +11,9 @@ use tracing::{debug, instrument};
 use sweet_grass_compression::Session;
 
 use super::{SessionEvent, SessionEventStream, SessionEventsClient};
+use crate::Result;
 use crate::discovery::DiscoveredPrimal;
 use crate::error::IntegrationError;
-use crate::Result;
 
 /// tarpc service definition for session events.
 ///

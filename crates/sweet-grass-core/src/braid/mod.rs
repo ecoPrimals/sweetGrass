@@ -20,9 +20,9 @@ pub mod types;
 
 pub use builder::BraidBuilder;
 pub use types::{
-    current_timestamp_nanos, BraidContext, BraidId, BraidMetadata, BraidSignature, BraidType,
-    CompressionMeta, ContentHash, EcoPrimalsAttributes, LoamAnchor, LoamCommitRef, SummaryType,
-    Timestamp, ECOP_BASE_URI, ECOP_VOCAB_URI, PROV_VOCAB_URI, SCHEMA_VOCAB_URI, XSD_VOCAB_URI,
+    BraidContext, BraidId, BraidMetadata, BraidSignature, BraidType, CompressionMeta, ContentHash,
+    ECOP_BASE_URI, ECOP_VOCAB_URI, EcoPrimalsAttributes, LoamAnchor, LoamCommitRef, PROV_VOCAB_URI,
+    SCHEMA_VOCAB_URI, SummaryType, Timestamp, XSD_VOCAB_URI, current_timestamp_nanos,
 };
 
 /// A `SweetGrass` Braid (provenance record).

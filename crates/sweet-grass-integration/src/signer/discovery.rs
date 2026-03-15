@@ -15,13 +15,13 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use tracing::{debug, instrument, warn};
 
+use sweet_grass_core::Braid;
 use sweet_grass_core::agent::Did;
 use sweet_grass_core::config::Capability;
-use sweet_grass_core::Braid;
 
+use crate::Result;
 use crate::discovery::{DiscoveredPrimal, PrimalDiscovery};
 use crate::error::IntegrationError;
-use crate::Result;
 
 use super::traits::{Signer, SigningClient};
 

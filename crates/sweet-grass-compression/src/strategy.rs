@@ -236,12 +236,16 @@ mod tests {
 
     #[test]
     fn test_discard_reason_all_variants() {
-        assert!(DiscardReason::ExploratoryOnly
-            .to_string()
-            .contains("exploratory"));
-        assert!(DiscardReason::BelowThreshold
-            .to_string()
-            .contains("threshold"));
+        assert!(
+            DiscardReason::ExploratoryOnly
+                .to_string()
+                .contains("exploratory")
+        );
+        assert!(
+            DiscardReason::BelowThreshold
+                .to_string()
+                .contains("threshold")
+        );
         assert!(DiscardReason::Duplicate.to_string().contains("duplicate"));
         assert!(DiscardReason::Ephemeral.to_string().contains("ephemeral"));
     }

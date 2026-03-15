@@ -12,13 +12,13 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, instrument};
 
+use sweet_grass_core::Braid;
 use sweet_grass_core::braid::{BraidId, Timestamp};
 use sweet_grass_core::config::Capability;
-use sweet_grass_core::Braid;
 
+use crate::Result;
 use crate::discovery::{DiscoveredPrimal, PrimalDiscovery};
 use crate::error::IntegrationError;
-use crate::Result;
 
 /// Information about an anchor in a permanent storage primal.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -337,8 +337,8 @@ pub async fn create_anchoring_client_async(
 /// Test-only module containing mock implementations.
 #[cfg(any(test, feature = "test"))]
 pub mod testing {
-    use super::{async_trait, AnchorInfo, AnchorReceipt, AnchoringClient, Braid, BraidId, Result};
-    use parking_lot::{const_rwlock, RwLock};
+    use super::{AnchorInfo, AnchorReceipt, AnchoringClient, Braid, BraidId, Result, async_trait};
+    use parking_lot::{RwLock, const_rwlock};
 
     /// Mock anchoring client for testing.
     pub struct MockAnchoringClient {
@@ -358,7 +358,7 @@ pub mod testing {
 
         /// Set health status.
         #[must_use]
-        #[allow(dead_code)] // Mock method configured per-test scenario
+        #[allow(dead_code)]
         pub const fn with_health(mut self, healthy: bool) -> Self {
             self.healthy = healthy;
             self
@@ -413,7 +413,7 @@ pub mod testing {
 }
 
 #[cfg(any(test, feature = "test"))]
-#[allow(unused_imports)] // Re-export for external consumers; may be unused in some builds
+#[allow(unused_imports)]
 pub use testing::MockAnchoringClient;
 
 #[cfg(test)]

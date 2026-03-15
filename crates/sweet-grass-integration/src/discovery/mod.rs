@@ -282,7 +282,7 @@ impl PrimalDiscovery for CachedDiscovery {
 pub trait RegistryRpc {
     /// Discover services by capability.
     async fn discover_services(capability: String)
-        -> std::result::Result<Vec<ServiceInfo>, String>;
+    -> std::result::Result<Vec<ServiceInfo>, String>;
 
     /// Register a service.
     async fn register_service(info: ServiceInfo) -> std::result::Result<String, String>;

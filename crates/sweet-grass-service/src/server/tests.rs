@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2024–2026 ecoPrimals Project
 
+#![allow(unsafe_code)]
 #![expect(
     clippy::expect_used,
     clippy::unwrap_used,
@@ -559,9 +560,13 @@ async fn test_server_with_max_concurrent_requests() {
 
 #[tokio::test]
 async fn test_server_new_with_env_var() {
-    std::env::set_var("TARPC_MAX_CONCURRENT_REQUESTS", "99");
+    unsafe {
+        std::env::set_var("TARPC_MAX_CONCURRENT_REQUESTS", "99");
+    }
     let server = make_server();
-    std::env::remove_var("TARPC_MAX_CONCURRENT_REQUESTS");
+    unsafe {
+        std::env::remove_var("TARPC_MAX_CONCURRENT_REQUESTS");
+    }
 
     let status = server.health_check(context::current()).await.unwrap();
     assert_eq!(status.status, "UP");
@@ -569,9 +574,13 @@ async fn test_server_new_with_env_var() {
 
 #[tokio::test]
 async fn test_server_new_with_invalid_env_var_falls_back_to_default() {
-    std::env::set_var("TARPC_MAX_CONCURRENT_REQUESTS", "not-a-number");
+    unsafe {
+        std::env::set_var("TARPC_MAX_CONCURRENT_REQUESTS", "not-a-number");
+    }
     let server = make_server();
-    std::env::remove_var("TARPC_MAX_CONCURRENT_REQUESTS");
+    unsafe {
+        std::env::remove_var("TARPC_MAX_CONCURRENT_REQUESTS");
+    }
 
     let status = server.health_check(context::current()).await.unwrap();
     assert_eq!(status.status, "UP");

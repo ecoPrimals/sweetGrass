@@ -179,6 +179,7 @@ impl Default for SelfKnowledge {
 }
 
 #[cfg(test)]
+#[allow(unsafe_code)]
 #[expect(
     clippy::unwrap_used,
     clippy::expect_used,
@@ -190,11 +191,21 @@ mod tests {
     use super::*;
 
     fn clear_env() {
-        std::env::remove_var("PRIMAL_NAME");
-        std::env::remove_var("PRIMAL_INSTANCE_ID");
-        std::env::remove_var("PRIMAL_CAPABILITIES");
-        std::env::remove_var("TARPC_PORT");
-        std::env::remove_var("REST_PORT");
+        unsafe {
+            std::env::remove_var("PRIMAL_NAME");
+        }
+        unsafe {
+            std::env::remove_var("PRIMAL_INSTANCE_ID");
+        }
+        unsafe {
+            std::env::remove_var("PRIMAL_CAPABILITIES");
+        }
+        unsafe {
+            std::env::remove_var("TARPC_PORT");
+        }
+        unsafe {
+            std::env::remove_var("REST_PORT");
+        }
     }
 
     #[test]
@@ -213,11 +224,21 @@ mod tests {
     #[serial]
     fn test_self_knowledge_from_env_custom() {
         clear_env();
-        std::env::set_var("PRIMAL_NAME", "sweetgrass-test");
-        std::env::set_var("PRIMAL_INSTANCE_ID", "test-123");
-        std::env::set_var("PRIMAL_CAPABILITIES", "signing,anchoring");
-        std::env::set_var("TARPC_PORT", "9091");
-        std::env::set_var("REST_PORT", "9080");
+        unsafe {
+            std::env::set_var("PRIMAL_NAME", "sweetgrass-test");
+        }
+        unsafe {
+            std::env::set_var("PRIMAL_INSTANCE_ID", "test-123");
+        }
+        unsafe {
+            std::env::set_var("PRIMAL_CAPABILITIES", "signing,anchoring");
+        }
+        unsafe {
+            std::env::set_var("TARPC_PORT", "9091");
+        }
+        unsafe {
+            std::env::set_var("REST_PORT", "9080");
+        }
 
         let sk = SelfKnowledge::from_env().expect("should parse custom");
         assert_eq!(sk.name, "sweetgrass-test");
@@ -233,7 +254,9 @@ mod tests {
     #[serial]
     fn test_self_knowledge_custom_capability() {
         clear_env();
-        std::env::set_var("PRIMAL_CAPABILITIES", "signing,custom_feature");
+        unsafe {
+            std::env::set_var("PRIMAL_CAPABILITIES", "signing,custom_feature");
+        }
 
         let sk = SelfKnowledge::from_env().expect("should parse custom capability");
         assert_eq!(sk.capabilities.len(), 2);
@@ -245,7 +268,9 @@ mod tests {
     #[serial]
     fn test_self_knowledge_invalid_port() {
         clear_env();
-        std::env::set_var("TARPC_PORT", "not_a_number");
+        unsafe {
+            std::env::set_var("TARPC_PORT", "not_a_number");
+        }
 
         let result = SelfKnowledge::from_env();
         assert!(result.is_err());

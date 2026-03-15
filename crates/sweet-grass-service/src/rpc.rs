@@ -8,10 +8,10 @@
 use serde::{Deserialize, Serialize};
 use sweet_grass_compression::{CompressionResult, Session};
 use sweet_grass_core::{
+    Activity, AgentRole,
     agent::Did,
     braid::{Braid, BraidId, BraidMetadata, ContentHash, SummaryType, Timestamp},
     entity::EntityReference,
-    Activity, AgentRole,
 };
 use sweet_grass_factory::{AttributionChain, AttributionConfig};
 use sweet_grass_query::ProvenanceGraph;

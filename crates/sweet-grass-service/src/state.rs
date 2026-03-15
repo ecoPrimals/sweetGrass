@@ -5,8 +5,8 @@
 use std::sync::Arc;
 
 use sweet_grass_compression::CompressionEngine;
-use sweet_grass_core::agent::Did;
 use sweet_grass_core::SelfKnowledge;
+use sweet_grass_core::agent::Did;
 use sweet_grass_factory::BraidFactory;
 use sweet_grass_query::QueryEngine;
 use sweet_grass_store::{BraidStore, MemoryStore};

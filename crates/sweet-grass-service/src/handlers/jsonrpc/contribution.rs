@@ -10,7 +10,7 @@ use sweet_grass_core::{
 
 use crate::state::AppState;
 
-use super::{internal, parse_params, to_value, DispatchResult};
+use super::{DispatchResult, internal, parse_params, to_value};
 
 pub(super) async fn handle_record_contribution(
     state: &AppState,

@@ -230,7 +230,7 @@ impl BraidStoreFactory {
         let path = config
             .redb_path
             .as_deref()
-            .unwrap_or("./data/sweetgrass.redb");
+            .unwrap_or(sweet_grass_core::identity::DEFAULT_REDB_PATH);
         let redb_config = RedbConfig::new(path);
 
         tracing::info!(path = %path, "Opening redb database");
@@ -244,7 +244,10 @@ impl BraidStoreFactory {
     fn create_sled_from_config(config: &StorageConfig) -> Result<Arc<dyn BraidStore>> {
         use sweet_grass_store_sled::{SledConfig, SledStore};
 
-        let path = config.sled_path.as_deref().unwrap_or("./data/sweetgrass");
+        let path = config
+            .sled_path
+            .as_deref()
+            .unwrap_or(sweet_grass_core::identity::DEFAULT_SLED_PATH);
         let mut sled_config = SledConfig::new(path);
         if let Some(cache_mb) = config.sled_cache_size_mb {
             sled_config = sled_config.cache_capacity(cache_mb * 1024 * 1024);
@@ -327,8 +330,8 @@ impl BraidStoreFactory {
     pub(crate) fn build_redb_config() -> (sweet_grass_store_redb::RedbConfig, String) {
         use sweet_grass_store_redb::RedbConfig;
 
-        let path =
-            std::env::var("STORAGE_PATH").unwrap_or_else(|_| "./data/sweetgrass.redb".to_string());
+        let path = std::env::var("STORAGE_PATH")
+            .unwrap_or_else(|_| sweet_grass_core::identity::DEFAULT_REDB_PATH.to_string());
         let config = RedbConfig::new(&path);
 
         (config, path)
@@ -356,8 +359,8 @@ impl BraidStoreFactory {
     pub(crate) fn build_sled_config() -> (sweet_grass_store_sled::SledConfig, String) {
         use sweet_grass_store_sled::SledConfig;
 
-        let path =
-            std::env::var("STORAGE_PATH").unwrap_or_else(|_| "./data/sweetgrass".to_string());
+        let path = std::env::var("STORAGE_PATH")
+            .unwrap_or_else(|_| sweet_grass_core::identity::DEFAULT_SLED_PATH.to_string());
         let mut config = SledConfig::new(&path);
 
         // Apply optional cache size (convert MB to bytes idiomatically)

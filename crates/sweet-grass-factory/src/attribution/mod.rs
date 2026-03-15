@@ -13,13 +13,13 @@ pub use chain::{AttributionChain, ContributorShare};
 use std::collections::HashMap;
 use std::sync::Arc;
 use sweet_grass_core::{
+    Braid, ContentHash,
     agent::{AgentRole, Did},
     entity::EntityReference,
-    Braid, ContentHash,
 };
 
-use crate::error::FactoryError;
 use crate::Result;
+use crate::error::FactoryError;
 
 /// Default weight for the Curator role in attribution calculation.
 pub const DEFAULT_CURATOR_ROLE_WEIGHT: f64 = 0.10;
@@ -251,26 +251,26 @@ impl AttributionCalculator {
         )]
         let derivation_weight = effective_weight / braid.was_derived_from.len().max(1) as f64;
         for derived in &braid.was_derived_from {
-            if let Some(hash) = derived.content_hash() {
-                if let Some(parent) = resolve(hash) {
-                    self.calculate_recursive(
-                        &parent,
-                        chain,
-                        resolve,
-                        depth + 1,
-                        visited,
-                        derivation_weight,
-                    );
-                }
+            if let Some(hash) = derived.content_hash()
+                && let Some(parent) = resolve(hash)
+            {
+                self.calculate_recursive(
+                    &parent,
+                    chain,
+                    resolve,
+                    depth + 1,
+                    visited,
+                    derivation_weight,
+                );
             }
         }
     }
 
     fn infer_role_from_braid(braid: &Braid) -> AgentRole {
-        if let Some(activity) = &braid.was_generated_by {
-            if let Some(assoc) = activity.was_associated_with.first() {
-                return assoc.role.clone();
-            }
+        if let Some(activity) = &braid.was_generated_by
+            && let Some(assoc) = activity.was_associated_with.first()
+        {
+            return assoc.role.clone();
         }
 
         if braid.was_derived_from.is_empty() {

@@ -8,12 +8,12 @@ use std::path::Path;
 use std::sync::Arc;
 use tracing::{debug, instrument};
 
-use sweet_grass_core::{agent::Did, Activity, ActivityId, Braid, BraidId, ContentHash};
+use sweet_grass_core::{Activity, ActivityId, Braid, BraidId, ContentHash, agent::Did};
 use sweet_grass_store::{
-    BraidStore, QueryFilter, QueryOrder, QueryResult, StoreError, DEFAULT_QUERY_LIMIT,
+    BraidStore, DEFAULT_QUERY_LIMIT, QueryFilter, QueryOrder, QueryResult, StoreError,
 };
 
-use crate::{trees, Result, SledConfig, SledError};
+use crate::{Result, SledConfig, SledError, trees};
 
 /// Sled storage backend.
 pub struct SledStore {
@@ -314,28 +314,28 @@ impl BraidStore for SledStore {
 
                 if let Ok(braid) = Self::deserialize_braid(&value) {
                     // Apply filters
-                    if let Some(hash) = &filter.data_hash {
-                        if &braid.data_hash != hash {
-                            continue;
-                        }
+                    if let Some(hash) = &filter.data_hash
+                        && &braid.data_hash != hash
+                    {
+                        continue;
                     }
 
-                    if let Some(agent) = &filter.attributed_to {
-                        if &braid.was_attributed_to != agent {
-                            continue;
-                        }
+                    if let Some(agent) = &filter.attributed_to
+                        && &braid.was_attributed_to != agent
+                    {
+                        continue;
                     }
 
-                    if let Some(mime) = &filter.mime_type {
-                        if &braid.mime_type != mime {
-                            continue;
-                        }
+                    if let Some(mime) = &filter.mime_type
+                        && &braid.mime_type != mime
+                    {
+                        continue;
                     }
 
-                    if let Some(tag) = &filter.tag {
-                        if !braid.metadata.tags.contains(tag) {
-                            continue;
-                        }
+                    if let Some(tag) = &filter.tag
+                        && !braid.metadata.tags.contains(tag)
+                    {
+                        continue;
                     }
 
                     braids.push(braid);

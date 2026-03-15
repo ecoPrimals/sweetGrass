@@ -1,5 +1,5 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 members = [
     "crates/sweet-grass-core",
     "crates/sweet-grass-store",
@@ -14,8 +14,9 @@ members = [
 ]
 
 [workspace.package]
-version = "0.7.11"
-edition = "2021"
+version = "0.7.12"
+edition = "2024"
+rust-version = "1.87"
 license = "AGPL-3.0-only"
 repository = "https://github.com/ecoPrimals/sweetGrass"
 authors = ["ecoPrimals Project"]
@@ -80,7 +81,7 @@ serial_test = "3"
 criterion = { version = "0.5", features = ["html_reports"] }
 
 [workspace.lints.rust]
-unsafe_code = "forbid"
+unsafe_code = "deny"
 unused_must_use = "warn"
 
 [workspace.lints.clippy]

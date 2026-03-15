@@ -15,15 +15,15 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use tracing::{debug, instrument};
 
+use sweet_grass_core::Braid;
 use sweet_grass_core::agent::Did;
 use sweet_grass_core::braid::BraidSignature;
-use sweet_grass_core::Braid;
 
+use crate::Result;
 use crate::discovery::DiscoveredPrimal;
 use crate::error::IntegrationError;
-use crate::Result;
 
-use super::traits::{SignatureInfo, SigningClient, SIGNING_ALGORITHM};
+use super::traits::{SIGNING_ALGORITHM, SignatureInfo, SigningClient};
 
 /// tarpc service definition for signing capability.
 ///

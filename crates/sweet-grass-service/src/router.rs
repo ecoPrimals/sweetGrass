@@ -3,8 +3,8 @@
 //! Router configuration.
 
 use axum::{
-    routing::{delete, get, post},
     Router,
+    routing::{delete, get, post},
 };
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 

@@ -3,21 +3,21 @@
 //! `PostgreSQL` `BraidStore` implementation.
 
 use async_trait::async_trait;
-use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
+use sqlx::postgres::PgPoolOptions;
 use std::time::Duration;
 use tracing::{debug, instrument};
 
 use sweet_grass_core::{
+    Braid, BraidId, ContentHash,
     activity::{Activity, ActivityId, ActivityType},
     agent::Did,
-    Braid, BraidId, ContentHash,
 };
 use sweet_grass_store::{
-    BraidStore, QueryFilter, QueryOrder, QueryResult, StoreError, DEFAULT_QUERY_LIMIT,
+    BraidStore, DEFAULT_QUERY_LIMIT, QueryFilter, QueryOrder, QueryResult, StoreError,
 };
 
-use crate::{migrations, PostgresConfig, PostgresError, Result};
+use crate::{PostgresConfig, PostgresError, Result, migrations};
 
 // ============================================================================
 // Safe integer conversion helpers for PostgreSQL storage
@@ -638,10 +638,10 @@ fn row_to_braid(row: &sqlx::postgres::PgRow) -> sweet_grass_store::Result<Braid>
         braid.was_derived_from = derived;
     }
 
-    if let Some(gen_by) = was_generated_by {
-        if let Ok(activity) = serde_json::from_value(gen_by) {
-            braid.was_generated_by = Some(activity);
-        }
+    if let Some(gen_by) = was_generated_by
+        && let Ok(activity) = serde_json::from_value(gen_by)
+    {
+        braid.was_generated_by = Some(activity);
     }
 
     if let Ok(sig) = serde_json::from_value(signature) {

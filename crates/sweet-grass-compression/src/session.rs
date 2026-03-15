@@ -7,7 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
-use sweet_grass_core::{agent::Did, braid::Timestamp, ActivityType, ContentHash};
+use sweet_grass_core::{ActivityType, ContentHash, agent::Did, braid::Timestamp};
 
 /// A session vertex (node in the DAG).
 #[derive(Clone, Debug, Serialize, Deserialize)]

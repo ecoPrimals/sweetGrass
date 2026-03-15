@@ -529,10 +529,12 @@ async fn test_query_with_tag_filter() {
         .expect("query");
 
     assert_eq!(result.braids.len(), 1);
-    assert!(result.braids[0]
-        .metadata
-        .tags
-        .contains(&"important".to_string()));
+    assert!(
+        result.braids[0]
+            .metadata
+            .tags
+            .contains(&"important".to_string())
+    );
 }
 
 #[tokio::test]
@@ -652,11 +654,13 @@ async fn test_delete_removes_from_get_by_hash() {
     let braid = create_test_braid("sha256:delete_hash_cleanup");
 
     store.put(&braid).await.expect("put");
-    assert!(store
-        .get_by_hash(&braid.data_hash)
-        .await
-        .expect("get")
-        .is_some());
+    assert!(
+        store
+            .get_by_hash(&braid.data_hash)
+            .await
+            .expect("get")
+            .is_some()
+    );
 
     store.delete(&braid.id).await.expect("delete");
 

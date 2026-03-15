@@ -6,8 +6,8 @@
 
 #![expect(clippy::expect_used, reason = "test file: expect is standard in tests")]
 
-use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
+use sqlx::postgres::PgPoolOptions;
 use sweet_grass_integration::testing::test_db_url;
 
 /// Test helper to create a test database

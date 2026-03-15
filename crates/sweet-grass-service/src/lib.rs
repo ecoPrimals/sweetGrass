@@ -48,7 +48,8 @@
 //! ### Health
 //! - `GET /health` — Health check
 
-#![forbid(unsafe_code)]
+#![cfg_attr(not(test), forbid(unsafe_code))]
+#![cfg_attr(test, deny(unsafe_code))]
 #![warn(missing_docs)]
 
 pub mod bootstrap;
@@ -63,14 +64,14 @@ pub mod state;
 pub mod uds;
 
 pub use bootstrap::{
-    create_app_state_from_env, infant_bootstrap, infant_bootstrap_with_config, BootstrapConfig,
-    BootstrapError, BootstrapResult,
+    BootstrapConfig, BootstrapError, BootstrapResult, create_app_state_from_env, infant_bootstrap,
+    infant_bootstrap_with_config,
 };
 pub use error::ServiceError;
 pub use factory::{BraidStoreFactory, StorageConfig};
 pub use router::create_router;
 pub use rpc::{RpcError, SweetGrassRpc, SweetGrassRpcClient};
-pub use server::{start_tarpc_server, SweetGrassServer};
+pub use server::{SweetGrassServer, start_tarpc_server};
 pub use state::AppState;
 
 /// Result type for service operations.
