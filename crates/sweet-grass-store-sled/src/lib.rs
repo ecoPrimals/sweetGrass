@@ -67,6 +67,9 @@ pub mod trees {
     pub const ACTIVITIES: &str = "activities";
 }
 
+/// Default database directory path for Sled backend.
+pub const DEFAULT_DB_PATH: &str = "./sweetgrass_sled";
+
 /// Configuration for Sled store.
 #[derive(Clone, Debug)]
 pub struct SledConfig {
@@ -86,7 +89,7 @@ pub struct SledConfig {
 impl Default for SledConfig {
     fn default() -> Self {
         Self {
-            path: "./sweetgrass_sled".to_string(),
+            path: DEFAULT_DB_PATH.to_string(),
             cache_capacity: DEFAULT_CACHE_CAPACITY,
             flush_every_ms: Some(DEFAULT_FLUSH_EVERY_MS),
             use_compression: false, // Requires 'compression' feature in sled

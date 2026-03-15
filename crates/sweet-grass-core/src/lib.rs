@@ -55,6 +55,18 @@ pub mod identity {
 
     /// Human-readable display name (used in config defaults, logs, health).
     pub const PRIMAL_DISPLAY_NAME: &str = "SweetGrass";
+
+    /// Fallback DID when no agent is available (e.g. dehydration without operations).
+    pub const UNKNOWN_AGENT_DID: &str = "did:key:unknown";
+
+    /// MIME type for merkle root Braids produced during dehydration.
+    pub const MIME_MERKLE_ROOT: &str = "application/x-merkle-root";
+
+    /// MIME type for generic binary data (dehydration operations).
+    pub const MIME_OCTET_STREAM: &str = "application/octet-stream";
+
+    /// Default storage backend when none is configured.
+    pub const DEFAULT_STORAGE_BACKEND: &str = "memory";
 }
 
 // Re-exports for convenience

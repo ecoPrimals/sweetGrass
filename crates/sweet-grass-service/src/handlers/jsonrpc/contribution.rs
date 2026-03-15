@@ -69,7 +69,7 @@ pub(super) async fn handle_record_dehydration(
     for op in &summary.operations {
         let braid = sweet_grass_core::Braid::builder()
             .data_hash(op.content_hash.clone())
-            .mime_type("application/octet-stream")
+            .mime_type(sweet_grass_core::identity::MIME_OCTET_STREAM)
             .size(0)
             .attributed_to(op.agent.clone())
             .ecop(make_ecop(&summary))
@@ -81,15 +81,13 @@ pub(super) async fn handle_record_dehydration(
     }
 
     if braids.is_empty() {
-        let agent = summary
-            .agents
-            .first()
-            .cloned()
-            .unwrap_or_else(|| sweet_grass_core::agent::Did::new("did:key:unknown"));
+        let agent = summary.agents.first().cloned().unwrap_or_else(|| {
+            sweet_grass_core::agent::Did::new(sweet_grass_core::identity::UNKNOWN_AGENT_DID)
+        });
 
         let braid = sweet_grass_core::Braid::builder()
             .data_hash(summary.merkle_root.clone())
-            .mime_type("application/x-merkle-root")
+            .mime_type(sweet_grass_core::identity::MIME_MERKLE_ROOT)
             .size(32)
             .attributed_to(agent)
             .ecop(make_ecop(&summary))

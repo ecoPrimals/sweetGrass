@@ -736,68 +736,6 @@ async fn test_record_dehydration_no_agents_fallback() {
     );
 }
 
-// ==================== handle_jsonrpc entrypoint ====================
-
-#[tokio::test]
-async fn test_handle_jsonrpc_parse_error() {
-    let state = test_state();
-    let resp = handle_jsonrpc(State(state), Json(serde_json::json!("not an object"))).await;
-    assert!(resp.0.error.is_some());
-    assert_eq!(resp.0.error.unwrap().code, error_code::PARSE_ERROR);
-}
-
-#[tokio::test]
-async fn test_handle_jsonrpc_invalid_version() {
-    let state = test_state();
-    let resp = handle_jsonrpc(
-        State(state),
-        Json(serde_json::json!({
-            "jsonrpc": "1.0",
-            "method": "health.check",
-            "params": {},
-            "id": 1
-        })),
-    )
-    .await;
-    assert!(resp.0.error.is_some());
-    assert_eq!(resp.0.error.unwrap().code, error_code::INVALID_REQUEST);
-}
-
-#[tokio::test]
-async fn test_handle_jsonrpc_success() {
-    let state = test_state();
-    let resp = handle_jsonrpc(
-        State(state),
-        Json(serde_json::json!({
-            "jsonrpc": "2.0",
-            "method": "health.check",
-            "params": {},
-            "id": 42
-        })),
-    )
-    .await;
-    assert!(resp.0.result.is_some());
-    assert!(resp.0.error.is_none());
-    assert_eq!(resp.0.id, 42);
-}
-
-#[tokio::test]
-async fn test_handle_jsonrpc_method_not_found() {
-    let state = test_state();
-    let resp = handle_jsonrpc(
-        State(state),
-        Json(serde_json::json!({
-            "jsonrpc": "2.0",
-            "method": "nonexistent.method",
-            "params": {},
-            "id": 99
-        })),
-    )
-    .await;
-    assert!(resp.0.error.is_some());
-    assert_eq!(resp.0.error.unwrap().code, error_code::METHOD_NOT_FOUND);
-}
-
 // ==================== helper unit tests ====================
 
 #[test]

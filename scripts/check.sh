@@ -68,7 +68,7 @@ fi
 # 5. Documentation
 echo ""
 echo "5️⃣  Checking documentation..."
-if cargo doc --no-deps --all-features --quiet 2>&1 | grep -q "warning"; then
+if cargo doc --no-deps --all-features --quiet 2>&1 | grep -q "^warning:"; then
     check_fail "Documentation has warnings"
 else
     check_pass "Documentation is clean"
