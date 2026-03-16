@@ -1,8 +1,8 @@
 # SweetGrass — Specifications Index
 
-**Version**: 1.0.0  
+**Version**: 1.1.0  
 **Status**: Canonical  
-**Last Updated**: December 2025
+**Last Updated**: March 2026
 
 ---
 
@@ -41,7 +41,8 @@ sweetGrass/specs/
 ├── NICHE_PATTERNS.md              ← Configurable semantic patterns
 ├── ATTRIBUTION_GRAPH.md           ← Provenance for sunCloud
 ├── API_SPECIFICATION.md           ← tarpc, JSON-RPC, REST APIs
-└── INTEGRATION_SPECIFICATION.md   ← Primal integrations via tarpc
+├── INTEGRATION_SPECIFICATION.md   ← Primal integrations via tarpc
+└── CONTENT_CONVERGENCE.md         ← ⭐ Hash convergence & provenance intersection
 ```
 
 ---
@@ -72,6 +73,7 @@ sweetGrass/specs/
 | Document | Purpose |
 |----------|---------|
 | [API_SPECIFICATION.md](./API_SPECIFICATION.md) | tarpc service, JSON-RPC, REST endpoints |
+| [CONTENT_CONVERGENCE.md](./CONTENT_CONVERGENCE.md) | ⭐ Hash convergence, provenance intersection, linear↔branching duality |
 
 ---
 
@@ -175,6 +177,7 @@ axum = "0.7"                                        # HTTP fallback
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1.0 | Mar 2026 | Added CONTENT_CONVERGENCE specification |
 | 1.0.0 | Dec 2025 | Added PRIMAL_SOVEREIGNTY, tarpc APIs |
 | 0.2.0 | Dec 2025 | Added compression model, niche patterns |
 | 0.1.0 | Dec 2025 | Initial specification |

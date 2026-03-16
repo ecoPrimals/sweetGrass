@@ -382,4 +382,123 @@ mod tests {
 
         assert!(parsed.is_inline());
     }
+
+    #[test]
+    fn test_entity_reference_by_id() {
+        let braid_id = BraidId::from_string("urn:braid:uuid:test-123");
+        let entity = EntityReference::by_id(braid_id.clone());
+        assert!(matches!(&entity, EntityReference::ById { braid_id: id } if *id == braid_id));
+        assert!(entity.content_hash().is_none());
+        assert!(!entity.is_inline());
+        assert!(!entity.is_external());
+    }
+
+    #[test]
+    fn test_entity_reference_by_loam_entry() {
+        let entity = EntityReference::by_loam_entry("spine-1", "sha256:entryhash123");
+        assert_eq!(
+            entity.content_hash().map(ContentHash::as_str),
+            Some("sha256:entryhash123")
+        );
+        assert!(!entity.is_inline());
+        assert!(!entity.is_external());
+
+        let json = serde_json::to_string(&entity).expect("should serialize");
+        assert!(json.contains("spine-1"));
+        assert!(json.contains("sha256:entryhash123"));
+    }
+
+    #[test]
+    fn test_inline_entity_decode_hex() {
+        use crate::hash::hex_encode;
+        let data = b"hex encoded data";
+        let hex_data = hex_encode(data);
+        let hash = crate::hash::sha256(data);
+        let entity = InlineEntity {
+            content_type: "application/octet-stream".to_string(),
+            encoding: Encoding::Hex,
+            data: hex_data,
+            hash,
+        };
+
+        let decoded = entity.decode().expect("should decode hex");
+        assert_eq!(decoded, data);
+        assert!(entity.verify().expect("should verify"));
+    }
+
+    #[test]
+    fn test_inline_entity_decode_cow_hex() {
+        use crate::hash::hex_encode;
+        use std::borrow::Cow;
+        let data = b"hex cow test";
+        let hex_data = hex_encode(data);
+        let hash = crate::hash::sha256(data);
+        let entity = InlineEntity {
+            content_type: "application/octet-stream".to_string(),
+            encoding: Encoding::Hex,
+            data: hex_data,
+            hash,
+        };
+
+        let decoded = entity.decode_cow().expect("should decode hex");
+        assert!(matches!(decoded, Cow::Owned(_)), "Hex should be owned");
+        assert_eq!(decoded.as_ref(), data);
+    }
+
+    #[test]
+    fn test_decode_error_display() {
+        use crate::hash::HexDecodeError;
+        let odd_err = DecodeError::Hex(HexDecodeError::OddLength(5));
+        assert!(odd_err.to_string().contains("hex"));
+        assert!(odd_err.to_string().contains('5'));
+
+        let invalid_err = DecodeError::Hex(HexDecodeError::InvalidChar { position: 2 });
+        assert!(invalid_err.to_string().contains("hex"));
+        assert!(invalid_err.to_string().contains('2'));
+
+        let base64_err = DecodeError::Base64("invalid padding".to_string());
+        assert!(base64_err.to_string().contains("base64"));
+        assert!(base64_err.to_string().contains("invalid padding"));
+    }
+
+    #[test]
+    fn test_encoding_hex_variant() {
+        let hex = Encoding::Hex;
+        assert_eq!(hex, Encoding::Hex);
+        assert_ne!(hex, Encoding::Base64);
+        assert_ne!(hex, Encoding::Utf8);
+
+        let json = serde_json::to_string(&hex).expect("serialize");
+        assert_eq!(json, "\"hex\"");
+        let parsed: Encoding = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(parsed, Encoding::Hex);
+    }
+
+    #[test]
+    fn test_entity_reference_inline_with_verification() {
+        let entity = InlineEntity::text("verified content", "text/plain");
+        assert!(entity.verify().expect("verify"));
+
+        let ref_entity = EntityReference::inline(entity);
+        assert!(ref_entity.is_inline());
+        let hash = ref_entity.content_hash().expect("inline has content_hash");
+        assert!(hash.as_str().starts_with("sha256:"));
+
+        let EntityReference::Inline(inline_entity) = &ref_entity else {
+            panic!("expected Inline variant")
+        };
+        assert!(inline_entity.verify().expect("inline verify"));
+    }
+
+    #[test]
+    fn test_inline_entity_hex_decode_invalid() {
+        let entity = InlineEntity {
+            content_type: "application/octet-stream".to_string(),
+            encoding: Encoding::Hex,
+            data: "not-valid-hex!".to_string(),
+            hash: ContentHash::new("sha256:placeholder"),
+        };
+        assert!(entity.decode().is_err());
+        assert!(entity.decode_cow().is_err());
+    }
 }

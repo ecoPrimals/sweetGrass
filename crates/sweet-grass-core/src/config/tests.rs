@@ -3,15 +3,28 @@
 //! Config module tests.
 
 #![cfg(test)]
-#![allow(unsafe_code)]
 #![expect(
     clippy::expect_used,
     clippy::unwrap_used,
     reason = "test module: expect/unwrap are standard in tests"
 )]
 
+use std::collections::HashMap;
+
 use super::*;
 use crate::identity;
+
+fn mock_reader(vars: &[(&str, &str)]) -> impl Fn(&str) -> Option<String> + use<> {
+    let map: HashMap<String, String> = vars
+        .iter()
+        .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+        .collect();
+    move |key: &str| map.get(key).cloned()
+}
+
+fn empty_reader() -> impl Fn(&str) -> Option<String> {
+    |_: &str| None
+}
 
 #[test]
 fn test_default_config() {
@@ -125,7 +138,6 @@ split_threshold = 200
 }
 
 #[test]
-#[serial_test::serial]
 fn test_load_env_overrides_file() {
     let temp_dir = std::env::temp_dir();
     let config_path = temp_dir.join("sweetgrass_test_env_override.toml");
@@ -135,19 +147,14 @@ name = "FromFile"
 tarpc_listen = "127.0.0.1:9999"
 "#;
     std::fs::write(&config_path, toml_content).expect("write temp config");
-    unsafe {
-        std::env::set_var("SWEETGRASS_CONFIG", config_path.as_os_str());
-    }
-    unsafe {
-        std::env::set_var("SWEETGRASS_NAME", "FromEnv");
-    }
-    let result = SweetGrassConfig::load();
-    unsafe {
-        std::env::remove_var("SWEETGRASS_CONFIG");
-    }
-    unsafe {
-        std::env::remove_var("SWEETGRASS_NAME");
-    }
+
+    let path_str = config_path.to_str().expect("valid path").to_string();
+    let reader = mock_reader(&[
+        ("SWEETGRASS_CONFIG", &path_str),
+        ("SWEETGRASS_NAME", "FromEnv"),
+    ]);
+
+    let result = SweetGrassConfig::load_with_reader(reader);
     let _ = std::fs::remove_file(&config_path);
     let config = result.expect("load should succeed");
     assert_eq!(config.name, "FromEnv", "env var should override file");
@@ -159,53 +166,9 @@ tarpc_listen = "127.0.0.1:9999"
 }
 
 #[test]
-#[serial_test::serial]
 fn test_load_missing_file_returns_defaults() {
-    let temp_dir = std::env::temp_dir().join("sweetgrass_test_no_config");
-    let config_subdir = temp_dir.join(".config").join("sweetgrass");
-    std::fs::create_dir_all(&config_subdir).ok();
-    let old_xdg = std::env::var("XDG_CONFIG_HOME").ok();
-    let old_home = std::env::var("HOME").ok();
-    let old_sweetgrass_config = std::env::var("SWEETGRASS_CONFIG").ok();
-    unsafe {
-        std::env::remove_var("SWEETGRASS_CONFIG");
-    }
-    unsafe {
-        std::env::set_var("XDG_CONFIG_HOME", &temp_dir);
-    }
-    unsafe {
-        std::env::set_var("HOME", &temp_dir);
-    }
-    let result = SweetGrassConfig::load();
-    if let Some(x) = old_xdg {
-        unsafe {
-            std::env::set_var("XDG_CONFIG_HOME", x);
-        }
-    } else {
-        unsafe {
-            std::env::remove_var("XDG_CONFIG_HOME");
-        }
-    }
-    if let Some(h) = old_home {
-        unsafe {
-            std::env::set_var("HOME", h);
-        }
-    } else {
-        unsafe {
-            std::env::remove_var("HOME");
-        }
-    }
-    if let Some(c) = old_sweetgrass_config {
-        unsafe {
-            std::env::set_var("SWEETGRASS_CONFIG", c);
-        }
-    } else {
-        unsafe {
-            std::env::remove_var("SWEETGRASS_CONFIG");
-        }
-    }
-    let _ = std::fs::remove_dir_all(&temp_dir);
-    let config = result.expect("load should succeed with no file");
+    let config = SweetGrassConfig::load_with_reader(empty_reader())
+        .expect("load should succeed with no file");
     assert_eq!(config.name, identity::PRIMAL_DISPLAY_NAME);
     assert_eq!(config.compression.split_threshold, 100);
 }

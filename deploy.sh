@@ -17,7 +17,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration — all from env vars (capability-based, no hardcoding)
-PORT="${SWEETGRASS_HTTP_PORT:-${1:-8080}}"
+PORT="${SWEETGRASS_HTTP_PORT:-${1:-0}}"
 BACKEND="${STORAGE_BACKEND:-${2:-redb}}"
 
 echo -e "${BLUE}Configuration:${NC}"
@@ -37,9 +37,10 @@ echo -e "${BLUE}Verifying environment...${NC}"
 
 if [ "$BACKEND" = "postgres" ]; then
     if [ -z "$DATABASE_URL" ]; then
-        echo -e "${YELLOW}⚠️  DATABASE_URL not set. Using default.${NC}"
-        export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/sweetgrass"
-        echo "  Set: $DATABASE_URL"
+        echo -e "${YELLOW}⚠️  DATABASE_URL not set. PostgreSQL backend requires DATABASE_URL.${NC}"
+        echo "  Example: export DATABASE_URL='postgresql://user:pass@host:5432/sweetgrass'"
+        echo "  Exiting — no hardcoded credentials."
+        exit 1
     else
         echo "  ✅ DATABASE_URL configured"
     fi

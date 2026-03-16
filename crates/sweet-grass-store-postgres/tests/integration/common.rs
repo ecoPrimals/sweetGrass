@@ -5,10 +5,7 @@
 //! Note: Some helpers may be unused during incremental test refactoring.
 //! They are kept for future test modules being migrated.
 
-#![expect(
-    dead_code,
-    reason = "test helpers used by multiple integration test files"
-)]
+#![allow(dead_code)]
 
 use sweet_grass_core::{
     Braid,

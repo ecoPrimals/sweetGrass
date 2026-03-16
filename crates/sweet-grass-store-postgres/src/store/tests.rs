@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2024–2026 ecoPrimals Project
 
-#![allow(unsafe_code)]
 #![expect(clippy::unwrap_used, reason = "test file: unwrap is standard in tests")]
 
 use super::*;
@@ -34,23 +33,18 @@ fn test_postgres_config_builder() {
 }
 
 #[test]
-fn test_postgres_config_from_env() {
-    // Without DATABASE_URL set, should return None
-    unsafe {
-        std::env::remove_var("DATABASE_URL");
-    }
-    assert!(PostgresConfig::from_env().is_none());
+fn test_postgres_config_from_reader_missing() {
+    let config = PostgresConfig::from_reader(|_| None);
+    assert!(config.is_none());
+}
 
-    // With DATABASE_URL set, should return Some
-    unsafe {
-        std::env::set_var("DATABASE_URL", "postgresql://envtest");
-    }
-    let config = PostgresConfig::from_env();
+#[test]
+fn test_postgres_config_from_reader_present() {
+    let config = PostgresConfig::from_reader(|key| {
+        (key == "DATABASE_URL").then(|| "postgresql://envtest".to_string())
+    });
     assert!(config.is_some());
     assert_eq!(config.unwrap().database_url, "postgresql://envtest");
-    unsafe {
-        std::env::remove_var("DATABASE_URL");
-    }
 }
 
 // ========================================================================

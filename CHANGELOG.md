@@ -5,6 +5,49 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.15] - 2026-03-16
+
+### Deep Debt Evolution + Coverage Expansion + Convergence Specification
+
+Systematic completion of all remaining unsafe test code via DI pattern migration.
+Comprehensive coverage expansion across redb errors, entity decode paths, session
+DAG traversal, PROV-O export, and PostgreSQL integration. Smart refactoring of
+memory store module. Content Convergence specification for collision-preserving
+provenance indexing.
+
+### Added
+
+- **`SweetGrassConfig::load_with_reader()`** — DI-friendly config loading with injected env reader
+- **`BraidStoreFactory::config_from_reader()`** — Synchronous config builder from reader (separates non-Send reader from async boundary)
+- **`BraidStoreFactory::from_config_with_name()`** — Async factory from pre-built config
+- **`PostgresConfig::from_reader()`** — DI-friendly database config from reader
+- **PostgreSQL integration tests** — 4 new modules: `queries`, `schema`, `activities`, `concurrency` via `testcontainers`
+- **Coverage tests** — `RedbError` all variants + conversions, `EntityReference` decode paths, `Session` DAG traversal + max_depth, `ProvoExport` builder + graph + serialization
+- **`specs/CONTENT_CONVERGENCE.md`** — Specification for collision-preserving content hash indexing
+- **ISSUE-013** in `wateringHole/SPRING_EVOLUTION_ISSUES.md` — Content convergence ecosystem experiment
+- **`wateringHole/CONTENT_CONVERGENCE_EXPERIMENT_GUIDE.md`** — Spring participation guide
+
+### Changed
+
+- **`memory/mod.rs`** smart-refactored — tests extracted to `memory/tests.rs` (717→246 LOC production)
+- **`deploy.sh`** — removed hardcoded `DATABASE_URL` default, fail-fast on missing env, default port `0` (auto-allocate)
+- **`BraidStoreFactory`** — consolidated redundant `create_*_backend()` methods into `from_config_with_name()`
+- **`specs/00_SPECIFICATIONS_INDEX.md`** — added CONTENT_CONVERGENCE to document map
+
+### Removed
+
+- **All remaining `unsafe` blocks in tests** — factory, server, config, postgres, discovery tests migrated to DI
+- **All remaining `#![allow(unsafe_code)]`** — zero unsafe in entire workspace
+- **Redundant factory methods** — `create_postgres_backend()`, `create_redb_backend()`, `create_sled_backend()` consolidated
+
+### Metrics
+
+- 1,001 tests (was 933), 0 failures, 0 clippy warnings, 0 doc warnings
+- 0 unsafe blocks in entire workspace (production AND all tests)
+- 11 specification documents (was 10)
+- All files under 1000 LOC (max: 842)
+- Net +68 tests, refactored memory module from 717→246 LOC
+
 ## [0.7.14] - 2026-03-16
 
 ### DI Pattern + Unsafe Elimination + Dynamic Reconnection

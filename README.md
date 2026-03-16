@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.14 | 933 tests | Edition 2024 | AGPL-3.0-only | Pure Rust | ecoBin compliant
+v0.7.15 | 1,001 tests | Edition 2024 | AGPL-3.0-only | Pure Rust | ecoBin compliant
 
 ---
 
@@ -169,7 +169,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | [QUICK_COMMANDS.md](./QUICK_COMMANDS.md) | Command reference |
 | [ROADMAP.md](./ROADMAP.md) | Future plans |
 | [CHANGELOG.md](./CHANGELOG.md) | Version history |
-| [specs/](./specs/) | Technical specifications |
+| [specs/](./specs/) | Technical specifications (11 docs including Content Convergence) |
 | [docs/guides/](./docs/guides/) | Zero-copy, Tokio Console guides |
 | [showcase/](./showcase/) | Interactive demos |
 
@@ -179,8 +179,8 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.14 |
-| Tests | 933 passing |
+| Version | v0.7.15 |
+| Tests | 1,001 passing |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates, DI pattern in tests) |
 | Production unwraps | 0 |

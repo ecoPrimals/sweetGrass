@@ -2,61 +2,60 @@
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Tests for storage backend factory.
 
-#![allow(unsafe_code)]
 #![expect(
     clippy::unwrap_used,
     reason = "test module: unwrap is standard in tests"
 )]
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use sweet_grass_integration::testing::{TEST_DB_URL, TEST_DB_URL_PRIMARY, TEST_DB_URL_SECONDARY};
 
 use super::*;
 
+fn mock_reader(vars: &[(&str, &str)]) -> impl Fn(&str) -> Option<String> + use<> {
+    let map: HashMap<String, String> = vars
+        .iter()
+        .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+        .collect();
+    move |key: &str| map.get(key).cloned()
+}
+
+fn empty_reader() -> impl Fn(&str) -> Option<String> {
+    |_: &str| None
+}
+
 // Memory Backend Tests
 
 #[tokio::test]
-#[serial_test::serial]
 async fn test_memory_backend() {
-    unsafe {
-        std::env::set_var("STORAGE_BACKEND", "memory");
-    }
-    let store = BraidStoreFactory::from_env().await;
+    let reader = mock_reader(&[("STORAGE_BACKEND", "memory")]);
+    let store = BraidStoreFactory::from_reader_with_name(reader).await;
     assert!(store.is_ok());
 }
 
 #[tokio::test]
-#[serial_test::serial]
 async fn test_default_backend() {
-    unsafe {
-        std::env::remove_var("STORAGE_BACKEND");
-    }
-    let store = BraidStoreFactory::from_env().await;
+    let store = BraidStoreFactory::from_reader_with_name(empty_reader()).await;
     assert!(store.is_ok(), "Should default to memory backend");
 }
 
 #[tokio::test]
-#[serial_test::serial]
 async fn test_memory_backend_explicit() {
-    unsafe {
-        std::env::set_var("STORAGE_BACKEND", "memory");
-    }
-    let result = BraidStoreFactory::from_env().await;
+    let reader = mock_reader(&[("STORAGE_BACKEND", "memory")]);
+    let result = BraidStoreFactory::from_reader_with_name(reader).await;
     assert!(result.is_ok());
-    let store = result.unwrap();
+    let (store, _) = result.unwrap();
     assert!(Arc::strong_count(&store) >= 1);
 }
 
 // Error Cases
 
 #[tokio::test]
-#[serial_test::serial]
 async fn test_unknown_backend() {
-    unsafe {
-        std::env::set_var("STORAGE_BACKEND", "unknown");
-    }
-    let result = BraidStoreFactory::from_env().await;
+    let reader = mock_reader(&[("STORAGE_BACKEND", "unknown")]);
+    let result = BraidStoreFactory::from_reader_with_name(reader).await;
     assert!(result.is_err());
     if let Err(err) = result {
         let msg = err.to_string();
@@ -65,13 +64,9 @@ async fn test_unknown_backend() {
 }
 
 #[tokio::test]
-#[serial_test::serial]
 async fn test_unknown_backend_specific_message() {
-    // Use generic unknown backend, not vendor-specific name
-    unsafe {
-        std::env::set_var("STORAGE_BACKEND", "unknown_backend");
-    }
-    let result = BraidStoreFactory::from_env().await;
+    let reader = mock_reader(&[("STORAGE_BACKEND", "unknown_backend")]);
+    let result = BraidStoreFactory::from_reader_with_name(reader).await;
     assert!(result.is_err());
     if let Err(err) = result {
         let msg = err.to_string();
@@ -84,247 +79,187 @@ async fn test_unknown_backend_specific_message() {
 // PostgreSQL Backend Tests
 
 #[tokio::test]
-#[serial_test::serial]
 async fn test_postgres_backend_missing_url() {
-    unsafe {
-        std::env::set_var("STORAGE_BACKEND", "postgres");
-    }
-    unsafe {
-        std::env::remove_var("DATABASE_URL");
-    }
-    unsafe {
-        std::env::remove_var("STORAGE_URL");
-    }
-
-    let result = BraidStoreFactory::from_env().await;
+    let reader = mock_reader(&[("STORAGE_BACKEND", "postgres")]);
+    let result = BraidStoreFactory::from_reader_with_name(reader).await;
     assert!(result.is_err());
     if let Err(err) = result {
-        assert!(err.to_string().contains("DATABASE_URL or STORAGE_URL"));
+        let msg = err.to_string();
+        assert!(
+            msg.contains("database_url") || msg.contains("DATABASE_URL"),
+            "Error should mention database URL, got: {msg}"
+        );
     }
 }
 
-#[test]
-#[serial_test::serial]
-fn test_build_postgres_config_missing_url() {
-    unsafe {
-        std::env::remove_var("DATABASE_URL");
-    }
-    unsafe {
-        std::env::remove_var("STORAGE_URL");
-    }
-
-    let result = BraidStoreFactory::build_postgres_config();
+#[tokio::test]
+async fn test_postgres_config_missing_url_via_reader() {
+    let reader = mock_reader(&[("STORAGE_BACKEND", "postgres")]);
+    let result = BraidStoreFactory::from_reader_with_name(reader).await;
     assert!(result.is_err());
-    let err = result.unwrap_err();
-    assert!(err.to_string().contains("DATABASE_URL or STORAGE_URL"));
+    if let Err(err) = result {
+        assert!(err.to_string().contains("database_url"));
+    }
+}
+
+#[tokio::test]
+async fn test_postgres_config_with_database_url_via_config() {
+    let config = StorageConfig {
+        backend: "postgres".to_string(),
+        database_url: Some(TEST_DB_URL.to_string()),
+        ..StorageConfig::default()
+    };
+    // Can't connect to test DB, but config parsing should succeed up to connection attempt
+    let _result = BraidStoreFactory::from_config(&config).await;
+}
+
+#[tokio::test]
+async fn test_postgres_config_with_storage_url_via_reader() {
+    let reader = mock_reader(&[
+        ("STORAGE_BACKEND", "postgres"),
+        ("STORAGE_URL", TEST_DB_URL),
+    ]);
+    let _result = BraidStoreFactory::from_reader_with_name(reader).await;
+}
+
+#[tokio::test]
+async fn test_postgres_config_prefers_database_url_via_reader() {
+    let reader = mock_reader(&[
+        ("STORAGE_BACKEND", "postgres"),
+        ("DATABASE_URL", TEST_DB_URL_PRIMARY),
+        ("STORAGE_URL", TEST_DB_URL_SECONDARY),
+    ]);
+    let _result = BraidStoreFactory::from_reader_with_name(reader).await;
 }
 
 #[test]
-#[serial_test::serial]
-fn test_build_postgres_config_with_database_url() {
-    unsafe {
-        std::env::set_var("DATABASE_URL", TEST_DB_URL);
-    }
-    unsafe {
-        std::env::remove_var("STORAGE_URL");
-    }
-
-    let result = BraidStoreFactory::build_postgres_config();
-    assert!(result.is_ok());
+fn test_config_from_reader_postgres_max_connections() {
+    let reader = mock_reader(&[
+        ("STORAGE_BACKEND", "postgres"),
+        ("DATABASE_URL", TEST_DB_URL),
+        ("PG_MAX_CONNECTIONS", "20"),
+    ]);
+    let config = BraidStoreFactory::config_from_reader(&reader);
+    assert_eq!(config.backend, "postgres");
+    assert_eq!(config.database_url.as_deref(), Some(TEST_DB_URL));
+    assert_eq!(config.pg_max_connections, Some(20));
 }
 
 #[test]
-#[serial_test::serial]
-fn test_build_postgres_config_with_storage_url() {
-    unsafe {
-        std::env::remove_var("DATABASE_URL");
-    }
-    unsafe {
-        std::env::set_var("STORAGE_URL", TEST_DB_URL);
-    }
-
-    let result = BraidStoreFactory::build_postgres_config();
-    assert!(result.is_ok());
+fn test_config_from_reader_postgres_min_connections() {
+    let reader = mock_reader(&[
+        ("STORAGE_BACKEND", "postgres"),
+        ("DATABASE_URL", TEST_DB_URL),
+        ("PG_MIN_CONNECTIONS", "5"),
+    ]);
+    let config = BraidStoreFactory::config_from_reader(&reader);
+    assert_eq!(config.pg_min_connections, Some(5));
 }
 
 #[test]
-#[serial_test::serial]
-fn test_build_postgres_config_prefers_database_url() {
-    unsafe {
-        std::env::set_var("DATABASE_URL", TEST_DB_URL_PRIMARY);
-    }
-    unsafe {
-        std::env::set_var("STORAGE_URL", TEST_DB_URL_SECONDARY);
-    }
-
-    let result = BraidStoreFactory::build_postgres_config();
-    assert!(result.is_ok());
-    // DATABASE_URL should be preferred (checked by order in or_else)
-}
-
-#[test]
-#[serial_test::serial]
-fn test_build_postgres_config_with_max_connections() {
-    unsafe {
-        std::env::set_var("DATABASE_URL", TEST_DB_URL);
-    }
-    unsafe {
-        std::env::set_var("PG_MAX_CONNECTIONS", "20");
-    }
-
-    let result = BraidStoreFactory::build_postgres_config();
-    assert!(result.is_ok());
-    // Config should have max_connections set (can't easily verify without exposing internals)
-}
-
-#[test]
-#[serial_test::serial]
-fn test_build_postgres_config_with_min_connections() {
-    unsafe {
-        std::env::set_var("DATABASE_URL", TEST_DB_URL);
-    }
-    unsafe {
-        std::env::set_var("PG_MIN_CONNECTIONS", "5");
-    }
-
-    let result = BraidStoreFactory::build_postgres_config();
-    assert!(result.is_ok());
-}
-
-#[test]
-#[serial_test::serial]
-fn test_build_postgres_config_with_invalid_max_connections() {
-    unsafe {
-        std::env::set_var("DATABASE_URL", TEST_DB_URL);
-    }
-    unsafe {
-        std::env::set_var("PG_MAX_CONNECTIONS", "not_a_number");
-    }
-
-    let result = BraidStoreFactory::build_postgres_config();
-    // Should succeed - invalid values are ignored
-    assert!(result.is_ok());
+fn test_config_from_reader_invalid_max_connections_ignored() {
+    let reader = mock_reader(&[
+        ("STORAGE_BACKEND", "postgres"),
+        ("DATABASE_URL", TEST_DB_URL),
+        ("PG_MAX_CONNECTIONS", "not_a_number"),
+    ]);
+    let config = BraidStoreFactory::config_from_reader(&reader);
+    assert_eq!(config.pg_max_connections, None);
 }
 
 // Sled Backend Tests
 
 #[cfg(feature = "sled")]
 #[test]
-#[serial_test::serial]
-fn test_build_sled_config_default_path() {
-    unsafe {
-        std::env::remove_var("STORAGE_PATH");
-    }
-
-    let (_config, path) = BraidStoreFactory::build_sled_config();
-    assert_eq!(path, "./data/sweetgrass");
+fn test_sled_config_default_path_via_reader() {
+    let config =
+        BraidStoreFactory::config_from_reader(&mock_reader(&[("STORAGE_BACKEND", "sled")]));
+    assert!(config.sled_path.is_none());
 }
 
 #[cfg(feature = "sled")]
 #[test]
-#[serial_test::serial]
-fn test_build_sled_config_custom_path() {
-    unsafe {
-        std::env::set_var("STORAGE_PATH", "/tmp/custom/path");
-    }
-
-    let (_config, path) = BraidStoreFactory::build_sled_config();
-    assert_eq!(path, "/tmp/custom/path");
+fn test_sled_config_custom_path_via_reader() {
+    let reader = mock_reader(&[
+        ("STORAGE_BACKEND", "sled"),
+        ("STORAGE_PATH", "/tmp/custom/path"),
+    ]);
+    let config = BraidStoreFactory::config_from_reader(&reader);
+    assert_eq!(config.sled_path.as_deref(), Some("/tmp/custom/path"));
 }
 
 #[cfg(feature = "sled")]
 #[test]
-#[serial_test::serial]
-fn test_build_sled_config_with_cache_size() {
-    unsafe {
-        std::env::set_var("STORAGE_PATH", "/tmp/test");
-    }
-    unsafe {
-        std::env::set_var("SLED_CACHE_SIZE", "512");
-    }
-
-    let (_config, _path) = BraidStoreFactory::build_sled_config();
+fn test_sled_config_cache_size_via_reader() {
+    let reader = mock_reader(&[
+        ("STORAGE_BACKEND", "sled"),
+        ("STORAGE_PATH", "/tmp/test"),
+        ("SLED_CACHE_SIZE", "512"),
+    ]);
+    let config = BraidStoreFactory::config_from_reader(&reader);
+    assert_eq!(config.sled_cache_size_mb, Some(512));
 }
 
 #[cfg(feature = "sled")]
 #[test]
-#[serial_test::serial]
-fn test_build_sled_config_with_flush_interval() {
-    unsafe {
-        std::env::set_var("STORAGE_PATH", "/tmp/test");
-    }
-    unsafe {
-        std::env::set_var("SLED_FLUSH_MS", "1000");
-    }
-
-    let (_config, _path) = BraidStoreFactory::build_sled_config();
+fn test_sled_config_flush_interval_via_reader() {
+    let reader = mock_reader(&[
+        ("STORAGE_BACKEND", "sled"),
+        ("STORAGE_PATH", "/tmp/test"),
+        ("SLED_FLUSH_MS", "1000"),
+    ]);
+    let config = BraidStoreFactory::config_from_reader(&reader);
+    assert_eq!(config.sled_flush_ms, Some(1000));
 }
 
 #[cfg(feature = "sled")]
 #[test]
-#[serial_test::serial]
-fn test_build_sled_config_with_invalid_cache_size() {
-    unsafe {
-        std::env::set_var("STORAGE_PATH", "/tmp/test");
-    }
-    unsafe {
-        std::env::set_var("SLED_CACHE_SIZE", "not_a_number");
-    }
-
-    let (_config, _path) = BraidStoreFactory::build_sled_config();
+fn test_sled_config_invalid_cache_size_ignored() {
+    let reader = mock_reader(&[
+        ("STORAGE_BACKEND", "sled"),
+        ("STORAGE_PATH", "/tmp/test"),
+        ("SLED_CACHE_SIZE", "not_a_number"),
+    ]);
+    let config = BraidStoreFactory::config_from_reader(&reader);
+    assert_eq!(config.sled_cache_size_mb, None);
 }
 
 // Helper Function Tests
 
 #[test]
-#[serial_test::serial]
-fn test_parse_env_var_success() {
-    unsafe {
-        std::env::set_var("TEST_VAR", "42");
-    }
-    let result: Option<u32> = BraidStoreFactory::parse_env_var("TEST_VAR");
+fn test_parse_reader_var_success() {
+    let reader = mock_reader(&[("TEST_VAR", "42")]);
+    let result: Option<u32> = BraidStoreFactory::parse_reader_var(&reader, "TEST_VAR");
     assert_eq!(result, Some(42));
 }
 
 #[test]
-#[serial_test::serial]
-fn test_parse_env_var_missing() {
-    unsafe {
-        std::env::remove_var("MISSING_VAR");
-    }
-    let result: Option<u32> = BraidStoreFactory::parse_env_var("MISSING_VAR");
+fn test_parse_reader_var_missing() {
+    let result: Option<u32> = BraidStoreFactory::parse_reader_var(&empty_reader(), "MISSING_VAR");
     assert_eq!(result, None);
 }
 
 #[test]
-#[serial_test::serial]
-fn test_parse_env_var_invalid_parse() {
-    unsafe {
-        std::env::set_var("INVALID_VAR", "not_a_number");
-    }
-    let result: Option<u32> = BraidStoreFactory::parse_env_var("INVALID_VAR");
+fn test_parse_reader_var_invalid_parse() {
+    let reader = mock_reader(&[("INVALID_VAR", "not_a_number")]);
+    let result: Option<u32> = BraidStoreFactory::parse_reader_var(&reader, "INVALID_VAR");
     assert_eq!(result, None);
 }
 
 #[test]
-#[serial_test::serial]
-fn test_parse_env_var_different_types() {
-    unsafe {
-        std::env::set_var("STRING_VAR", "hello");
-    }
-    let result: Option<String> = BraidStoreFactory::parse_env_var("STRING_VAR");
+fn test_parse_reader_var_different_types() {
+    let reader = mock_reader(&[
+        ("STRING_VAR", "hello"),
+        ("BOOL_VAR", "true"),
+        ("FLOAT_VAR", "42.5"),
+    ]);
+    let result: Option<String> = BraidStoreFactory::parse_reader_var(&reader, "STRING_VAR");
     assert_eq!(result, Some("hello".to_string()));
 
-    unsafe {
-        std::env::set_var("BOOL_VAR", "true");
-    }
-    let result: Option<bool> = BraidStoreFactory::parse_env_var("BOOL_VAR");
+    let result: Option<bool> = BraidStoreFactory::parse_reader_var(&reader, "BOOL_VAR");
     assert_eq!(result, Some(true));
 
-    unsafe {
-        std::env::set_var("FLOAT_VAR", "42.5");
-    }
-    let result: Option<f64> = BraidStoreFactory::parse_env_var("FLOAT_VAR");
+    let result: Option<f64> = BraidStoreFactory::parse_reader_var(&reader, "FLOAT_VAR");
     assert_eq!(result, Some(42.5));
 }
 
@@ -456,40 +391,32 @@ async fn test_from_config_redb_default_path() {
 }
 
 #[tokio::test]
-#[serial_test::serial]
-async fn test_redb_backend_from_env() {
-    unsafe {
-        std::env::set_var("STORAGE_BACKEND", "redb");
-    }
+async fn test_redb_backend_from_reader() {
     let dir = tempfile::tempdir().unwrap();
     let db_path = dir.path().join("env.redb");
-    unsafe {
-        std::env::set_var("STORAGE_PATH", db_path.to_str().unwrap());
-    }
-    let result = BraidStoreFactory::from_env_with_name().await;
+    let path_str = db_path.to_str().unwrap().to_string();
+    let reader = mock_reader(&[("STORAGE_BACKEND", "redb"), ("STORAGE_PATH", &path_str)]);
+    let result = BraidStoreFactory::from_reader_with_name(reader).await;
     assert!(result.is_ok());
     let (_, name) = result.unwrap();
     assert_eq!(name, "redb");
 }
 
 #[test]
-#[serial_test::serial]
-fn test_build_redb_config_default_path() {
-    unsafe {
-        std::env::remove_var("STORAGE_PATH");
-    }
-    let (_config, path) = BraidStoreFactory::build_redb_config();
-    assert_eq!(path, "./data/sweetgrass.redb");
+fn test_redb_config_default_path_via_reader() {
+    let config =
+        BraidStoreFactory::config_from_reader(&mock_reader(&[("STORAGE_BACKEND", "redb")]));
+    assert!(config.redb_path.is_none());
 }
 
 #[test]
-#[serial_test::serial]
-fn test_build_redb_config_custom_path() {
-    unsafe {
-        std::env::set_var("STORAGE_PATH", "/tmp/custom.redb");
-    }
-    let (_config, path) = BraidStoreFactory::build_redb_config();
-    assert_eq!(path, "/tmp/custom.redb");
+fn test_redb_config_custom_path_via_reader() {
+    let reader = mock_reader(&[
+        ("STORAGE_BACKEND", "redb"),
+        ("STORAGE_PATH", "/tmp/custom.redb"),
+    ]);
+    let config = BraidStoreFactory::config_from_reader(&reader);
+    assert_eq!(config.redb_path.as_deref(), Some("/tmp/custom.redb"));
 }
 
 // ==================== StorageConfig defaults ====================

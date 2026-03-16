@@ -1,10 +1,22 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.14 (March 2026)
+**Current Version**: v0.7.15 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.15 — Deep Debt Evolution + Coverage Expansion + Convergence Spec (March 2026)
+
+- [x] **DI pattern extended** — `SweetGrassConfig::load_with_reader()`, `BraidStoreFactory::config_from_reader()`, `PostgresConfig::from_reader()`, server tests migrated to builder pattern
+- [x] **All remaining unsafe eliminated** — 5 additional test files migrated to DI (factory, server, config, postgres, discovery), zero unsafe in entire workspace
+- [x] **Coverage expansion** — redb error paths, entity decode, session DAG, PROV-O export, all tested
+- [x] **PostgreSQL integration tests** — queries, schema, activities, concurrency modules implemented via `testcontainers`
+- [x] **Smart refactor** — `memory/mod.rs` tests extracted to `memory/tests.rs` (717→246 LOC)
+- [x] **deploy.sh hardened** — removed hardcoded DB credentials, fail-fast on missing `DATABASE_URL`, default port auto-allocate
+- [x] **Hardcoding audit** — all production code confirmed env-driven and capability-based, mocks gated behind `#[cfg(test)]`
+- [x] **Content Convergence specification** — `specs/CONTENT_CONVERGENCE.md`, ISSUE-013 in wateringHole, experiment guide for Springs
+- [x] 1,001 tests passing (was 933), 0 failures, 0 clippy warnings, 0 unsafe
 
 ### v0.7.14 — DI Pattern + Unsafe Elimination + Dynamic Reconnection (March 2026)
 
@@ -228,9 +240,9 @@
 
 ## Next
 
-### v0.8.0 — Real Deployment (Q2 2026)
+### v0.8.0 — Real Deployment + Content Convergence Phase 1 (Q2 2026)
 
-**Goal**: Connect to production-deployed primals
+**Goal**: Connect to production-deployed primals, implement convergence tracking
 
 - [ ] Connect to deployed signing service (via Capability::Signing)
 - [ ] Connect to deployed session events service (via Capability::SessionEvents)
@@ -238,6 +250,10 @@
 - [ ] End-to-end multi-primal integration testing
 - [ ] Chemistry entity types for wetSpring (Molecule, BasisSet, DftCampaign)
 - [ ] Chemistry braid relations (DependsOn, ValidatedBy, ComputedWith, TrainedOn)
+- [ ] `ContentConvergence` and `ConvergentArrival` types in `sweet-grass-core`
+- [ ] Evolved `MemoryStore` indexes (collision-preserving)
+- [ ] `convergence.query` JSON-RPC method
+- [ ] PostgreSQL `content_convergence` table and migrations
 - [x] Coverage target: 90%+ with llvm-cov *(region coverage 91% in v0.7.5)*
 
 ### v0.9.0 — sunCloud Integration (Q3 2026)
@@ -312,7 +328,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.14 | **March 2026** | DI Pattern + Unsafe Elimination + Dynamic Reconnection (DONE) |
+| v0.7.15 | **March 2026** | Deep Debt Evolution + Coverage Expansion + Convergence Spec (DONE) |
+| v0.7.14 | March 2026 | DI Pattern + Unsafe Elimination + Dynamic Reconnection (DONE) |
 | v0.7.13 | March 2026 | Self-Knowledge Module + Resilience + biomeOS Deploy (DONE) |
 | v0.7.12 | March 2026 | Edition 2024 Migration + Spring Absorption + Chaos Tests (DONE) |
 | v0.7.11 | March 2026 | JSON-RPC 2.0 Spec Compliance + Deep Debt + Coverage Push (DONE) |

@@ -110,7 +110,15 @@ impl PostgresConfig {
     /// Returns `None` if the environment variable is not set.
     #[must_use]
     pub fn from_env() -> Option<Self> {
-        std::env::var("DATABASE_URL").ok().map(Self::new)
+        Self::from_reader(|key| std::env::var(key).ok())
+    }
+
+    /// Create config using an injectable key reader (DI-friendly).
+    ///
+    /// Tests inject a closure instead of mutating process-global env vars.
+    #[must_use]
+    pub fn from_reader(reader: impl Fn(&str) -> Option<String>) -> Option<Self> {
+        reader("DATABASE_URL").map(Self::new)
     }
 
     /// Set max connections.

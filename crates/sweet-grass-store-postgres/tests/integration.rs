@@ -41,11 +41,10 @@
 
 // New modular organization (fully migrated)
 mod integration {
+    pub mod activities;
     pub mod common;
+    pub mod concurrency;
     pub mod crud;
-    // Future modules:
-    // pub mod queries;
-    // pub mod schema;
-    // pub mod activities;
-    // pub mod concurrency;
+    pub mod queries;
+    pub mod schema;
 }

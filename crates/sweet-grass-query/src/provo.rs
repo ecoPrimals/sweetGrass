@@ -610,4 +610,233 @@ mod tests {
         assert_eq!(doc.context["Activity"], "prov:Activity");
         assert_eq!(doc.context["Agent"], "prov:Agent");
     }
+
+    // --- ProvoExport builder methods ---
+
+    #[test]
+    fn test_provo_export_include_metadata() {
+        let exporter = ProvoExport::new().include_metadata(false);
+        let braid = make_test_braid("sha256:builder_test", "did:key:z6MkTest");
+        let doc = exporter.export_braid(&braid).expect("should export");
+        assert!(!doc.graph.is_empty());
+    }
+
+    #[test]
+    fn test_provo_export_include_ecop() {
+        let exporter = ProvoExport::new().include_ecop(false);
+        let braid = make_test_braid("sha256:ecop_builder", "did:key:z6MkTest");
+        let doc = exporter.export_braid(&braid).expect("should export");
+        assert!(!doc.graph.is_empty());
+    }
+
+    #[test]
+    fn test_provo_export_builder_chain() {
+        let exporter = ProvoExport::new()
+            .include_metadata(false)
+            .include_ecop(true);
+        let braid = make_test_braid("sha256:chain", "did:key:z6MkTest");
+        let doc = exporter.export_braid(&braid).expect("should export");
+        assert_eq!(doc.graph.len(), 1);
+    }
+
+    // --- Export graph with entities and activities ---
+
+    #[test]
+    fn test_export_graph_with_entities() {
+        use std::collections::HashMap;
+
+        let braid1 = make_test_braid("sha256:entity1", "did:key:z6MkTest");
+        let braid2 = make_test_braid("sha256:entity2", "did:key:z6MkTest");
+
+        let mut entities = HashMap::new();
+        entities.insert("sha256:entity1".to_string(), braid1);
+        entities.insert("sha256:entity2".to_string(), braid2);
+
+        let graph = crate::traversal::ProvenanceGraph {
+            root: sweet_grass_core::EntityReference::by_hash("sha256:entity1"),
+            entities,
+            activities: HashMap::new(),
+            derivation_edges: HashMap::new(),
+            generation_edges: HashMap::new(),
+            depth: 0,
+            truncated: false,
+        };
+
+        let exporter = ProvoExport::new();
+        let doc = exporter.export_graph(&graph).expect("should export");
+
+        assert_eq!(doc.graph.len(), 2);
+    }
+
+    #[test]
+    fn test_export_graph_with_activities() {
+        use std::collections::HashMap;
+        use sweet_grass_core::{
+            Activity,
+            activity::ActivityType,
+            agent::{AgentAssociation, AgentRole},
+        };
+
+        let activity = Activity::builder(ActivityType::Derivation)
+            .associated_with(AgentAssociation::new(
+                Did::new("did:key:z6MkAgent"),
+                AgentRole::Creator,
+            ))
+            .compute_units(2.5)
+            .started_at(1000)
+            .ended_at(2000)
+            .build();
+
+        let mut braid = make_test_braid("sha256:with_act", "did:key:z6MkTest");
+        braid.was_generated_by = Some(activity.clone());
+
+        let mut entities = HashMap::new();
+        entities.insert("sha256:with_act".to_string(), braid);
+
+        let mut activities = HashMap::new();
+        activities.insert(activity.id.as_str().to_string(), activity);
+
+        let graph = crate::traversal::ProvenanceGraph {
+            root: sweet_grass_core::EntityReference::by_hash("sha256:with_act"),
+            entities,
+            activities,
+            derivation_edges: HashMap::new(),
+            generation_edges: HashMap::new(),
+            depth: 0,
+            truncated: false,
+        };
+
+        let exporter = ProvoExport::new();
+        let doc = exporter.export_graph(&graph).expect("should export");
+
+        assert_eq!(doc.graph.len(), 2);
+    }
+
+    #[test]
+    fn test_export_activity_with_associations_and_used() {
+        use sweet_grass_core::agent::{AgentAssociation, AgentRole};
+        use sweet_grass_core::{
+            Activity,
+            activity::{ActivityType, UsedEntity},
+            entity::EntityReference,
+        };
+
+        let activity = Activity::builder(ActivityType::Derivation)
+            .associated_with(AgentAssociation::new(
+                Did::new("did:key:z6MkAgent1"),
+                AgentRole::Creator,
+            ))
+            .associated_with(AgentAssociation::new(
+                Did::new("did:key:z6MkAgent2"),
+                AgentRole::Contributor,
+            ))
+            .uses(UsedEntity::new(EntityReference::by_hash("sha256:input")))
+            .compute_units(1.5)
+            .started_at(1000)
+            .ended_at(5000)
+            .build();
+
+        let mut braid = make_test_braid("sha256:full_activity", "did:key:z6MkTest");
+        braid.was_generated_by = Some(activity);
+
+        let exporter = ProvoExport::new();
+        let doc = exporter.export_braid(&braid).expect("should export");
+
+        assert_eq!(doc.graph.len(), 2);
+        let activity_node = doc
+            .graph
+            .iter()
+            .find(|n| n["@type"] == "Activity")
+            .expect("activity node");
+        assert!(activity_node["wasAssociatedWith"].is_array());
+        assert_eq!(
+            activity_node["wasAssociatedWith"].as_array().unwrap().len(),
+            2
+        );
+        assert!(activity_node["used"].is_array());
+        assert_eq!(activity_node["computeUnits"], 1.5);
+        assert!(activity_node.get("endedAtTime").is_some());
+    }
+
+    // --- JsonLdDocument serialization roundtrip ---
+
+    #[test]
+    fn test_json_ld_document_serialization_roundtrip() {
+        let mut doc = JsonLdDocument::new();
+        doc.add_node(serde_json::json!({
+            "@id": "test:entity1",
+            "@type": "Entity",
+            "dataHash": "sha256:abc123"
+        }));
+        doc.add_node(serde_json::json!({
+            "@id": "test:entity2",
+            "@type": "Entity",
+            "dataHash": "sha256:def456"
+        }));
+
+        let json = doc.to_json().expect("serialize");
+        let parsed: JsonLdDocument = serde_json::from_str(&json).expect("deserialize");
+
+        assert_eq!(parsed.graph.len(), 2);
+        assert!(parsed.context.is_object());
+    }
+
+    // --- timestamp_to_iso edge cases ---
+
+    #[test]
+    fn test_timestamp_conversion_far_future() {
+        // Far future timestamp (year 2540)
+        let ts = 18_000_000_000_000_000_000_u64;
+        let iso = timestamp_to_iso(ts);
+        assert!(iso.contains("2540"));
+    }
+
+    // --- Error path: JSON serialization with NaN (if possible) ---
+    // Note: Braid/Activity don't easily allow NaN. We test the Result type via to_json.
+    #[test]
+    fn test_to_json_success() {
+        let doc = JsonLdDocument::new();
+        let result = doc.to_json();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_to_json_compact_success() {
+        let doc = JsonLdDocument::new();
+        let result = doc.to_json_compact();
+        assert!(result.is_ok());
+    }
+
+    // --- Export with description metadata ---
+
+    #[test]
+    fn test_export_with_metadata_description() {
+        let mut braid = make_test_braid("sha256:desc_test", "did:key:z6MkTest");
+        braid.metadata.description = Some("A test description".to_string());
+
+        let exporter = ProvoExport::new().include_metadata(true);
+        let doc = exporter.export_braid(&braid).expect("should export");
+
+        let entity = &doc.graph[0];
+        assert_eq!(entity["rdfs:comment"], "A test description");
+    }
+
+    // --- Edge case: derivation with empty content_hash (filtered out) ---
+
+    #[test]
+    fn test_export_derivation_with_external_ref() {
+        let mut braid = make_test_braid("sha256:derived", "did:key:z6MkTest");
+        braid.was_derived_from = vec![
+            sweet_grass_core::EntityReference::by_hash("sha256:has_hash"),
+            sweet_grass_core::EntityReference::external("https://example.com/no-hash"),
+        ];
+
+        let exporter = ProvoExport::new();
+        let doc = exporter.export_braid(&braid).expect("should export");
+
+        let entity = &doc.graph[0];
+        let derived = entity["wasDerivedFrom"].as_array().unwrap();
+        assert_eq!(derived.len(), 1);
+        assert_eq!(derived[0], "sha256:has_hash");
+    }
 }

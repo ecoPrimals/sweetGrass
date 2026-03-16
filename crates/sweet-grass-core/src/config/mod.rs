@@ -209,7 +209,7 @@ impl SweetGrassConfig {
     /// compatibility with validation errors.
     pub fn from_env() -> Result<Self, ConfigError> {
         let mut config = Self::default();
-        Self::apply_env_overrides(&mut config);
+        Self::apply_env_overrides_from_reader(&mut config, &|key| std::env::var(key).ok());
         Ok(config)
     }
 
@@ -239,25 +239,37 @@ impl SweetGrassConfig {
     ///
     /// Returns error if the config file exists but cannot be parsed.
     pub fn load() -> Result<Self, ConfigError> {
-        let mut config = match Self::find_config_path() {
+        Self::load_with_reader(|key| std::env::var(key).ok())
+    }
+
+    /// Load configuration using an injectable key reader (DI-friendly).
+    ///
+    /// Tests inject a closure instead of mutating process-global env vars.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if the config file exists but cannot be parsed.
+    pub fn load_with_reader(reader: impl Fn(&str) -> Option<String>) -> Result<Self, ConfigError> {
+        let mut config = match Self::find_config_path_with_reader(&reader) {
             Some(path) => Self::from_file(path)?,
             None => Self::default(),
         };
 
-        Self::apply_env_overrides(&mut config);
+        Self::apply_env_overrides_from_reader(&mut config, &reader);
         Ok(config)
     }
 
-    /// Find config file path using standard locations.
-    fn find_config_path() -> Option<std::path::PathBuf> {
-        if let Ok(path) = std::env::var("SWEETGRASS_CONFIG") {
+    fn find_config_path_with_reader(
+        reader: &impl Fn(&str) -> Option<String>,
+    ) -> Option<std::path::PathBuf> {
+        if let Some(path) = reader("SWEETGRASS_CONFIG") {
             let p = std::path::PathBuf::from(path);
             if p.is_file() {
                 return Some(p);
             }
         }
 
-        if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
+        if let Some(xdg) = reader("XDG_CONFIG_HOME") {
             let p = std::path::PathBuf::from(xdg)
                 .join(crate::identity::PRIMAL_NAME)
                 .join("config.toml");
@@ -266,7 +278,7 @@ impl SweetGrassConfig {
             }
         }
 
-        if let Ok(home) = std::env::var("HOME") {
+        if let Some(home) = reader("HOME") {
             let p = std::path::PathBuf::from(home)
                 .join(".config")
                 .join(crate::identity::PRIMAL_NAME)
@@ -279,21 +291,23 @@ impl SweetGrassConfig {
         None
     }
 
-    /// Apply environment variable overrides to config.
-    fn apply_env_overrides(config: &mut Self) {
-        if let Ok(name) = std::env::var("SWEETGRASS_NAME") {
+    fn apply_env_overrides_from_reader(
+        config: &mut Self,
+        reader: &impl Fn(&str) -> Option<String>,
+    ) {
+        if let Some(name) = reader("SWEETGRASS_NAME") {
             config.name = name;
         }
 
-        if let Ok(tarpc) = std::env::var("SWEETGRASS_TARPC_LISTEN") {
+        if let Some(tarpc) = reader("SWEETGRASS_TARPC_LISTEN") {
             config.network.tarpc_listen = Some(tarpc);
         }
 
-        if let Ok(rest) = std::env::var("SWEETGRASS_REST_LISTEN") {
+        if let Some(rest) = reader("SWEETGRASS_REST_LISTEN") {
             config.network.rest_listen = Some(rest);
         }
 
-        if let Ok(bootstrap) = std::env::var("SWEETGRASS_DISCOVERY_BOOTSTRAP") {
+        if let Some(bootstrap) = reader("SWEETGRASS_DISCOVERY_BOOTSTRAP") {
             config.network.discovery_bootstrap = Some(bootstrap);
         }
     }

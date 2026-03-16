@@ -1,8 +1,8 @@
 # SweetGrass — Data Model Specification
 
-**Version**: 0.2.0  
-**Status**: Draft  
-**Last Updated**: December 2025
+**Version**: 0.3.0  
+**Status**: Active  
+**Last Updated**: March 2026
 
 ---
 
@@ -100,11 +100,17 @@ pub struct Braid {
     pub loam_anchor: Option<LoamAnchor>,
 }
 
-/// Braid identifier (URN format)
-pub type BraidId = String; // "urn:braid:sha256:abc123..."
+/// Braid identifier (URN format) — Arc<str> newtype for O(1) clone
+pub struct BraidId(Arc<str>); // "urn:braid:sha256:abc123..."
 
-/// Content-addressed hash
-pub type ContentHash = String; // "sha256:abc123..."
+/// Content-addressed hash — Arc<str> newtype for O(1) clone
+pub struct ContentHash(Arc<str>); // "sha256:abc123..."
+
+/// Agent decentralized identifier — Arc<str> newtype
+pub struct Did(Arc<str>); // "did:key:z6Mk..."
+
+/// Activity identifier — Arc<str> newtype for O(1) clone
+pub struct ActivityId(Arc<str>); // "urn:activity:uuid:..."
 
 /// Timestamp (nanoseconds since epoch)
 pub type Timestamp = u64;
@@ -243,7 +249,7 @@ pub struct Activity {
     pub ecop: ActivityEcoPrimals,
 }
 
-pub type ActivityId = String; // "urn:activity:uuid:..."
+// ActivityId defined in Section 2.1 as Arc<str> newtype
 ```
 
 ### 3.2 Activity Types
@@ -825,6 +831,7 @@ pub struct GraphStats {
 - [W3C Data Integrity](https://w3c.github.io/vc-data-integrity/) — Signatures
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — System architecture
 - [BRAID_COMPRESSION.md](./BRAID_COMPRESSION.md) — Compression model
+- [CONTENT_CONVERGENCE.md](./CONTENT_CONVERGENCE.md) — Hash convergence and provenance intersection
 
 ---
 

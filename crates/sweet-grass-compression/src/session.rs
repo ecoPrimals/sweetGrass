@@ -328,6 +328,10 @@ impl Session {
 }
 
 #[cfg(test)]
+#[expect(
+    clippy::expect_used,
+    reason = "test module: expect is standard in tests"
+)]
 mod tests {
     use super::*;
 
@@ -420,5 +424,336 @@ mod tests {
 
         assert_eq!(session.outcome, SessionOutcome::Committed);
         assert!(session.ended_at.is_some());
+    }
+
+    // --- SessionVertex builder methods ---
+
+    #[test]
+    fn test_vertex_with_size() {
+        let v = make_vertex("v1", "sha256:a").with_size(4096);
+        assert_eq!(v.size, 4096);
+    }
+
+    #[test]
+    fn test_vertex_with_parent() {
+        let v = make_vertex("v1", "sha256:a").with_parent("parent1");
+        assert_eq!(v.parents, vec!["parent1"]);
+
+        let v = v.with_parent("parent2");
+        assert_eq!(v.parents, vec!["parent1", "parent2"]);
+    }
+
+    #[test]
+    fn test_vertex_with_activity_type() {
+        let v = make_vertex("v1", "sha256:a").with_activity_type(ActivityType::Derivation);
+        assert_eq!(v.activity_type, ActivityType::Derivation);
+    }
+
+    #[test]
+    fn test_vertex_committed() {
+        let v = make_vertex("v1", "sha256:a").committed();
+        assert!(v.committed);
+    }
+
+    #[test]
+    fn test_vertex_is_root() {
+        let root = make_vertex("root", "sha256:r");
+        assert!(root.is_root());
+
+        let child = make_vertex("child", "sha256:c").with_parent("root");
+        assert!(!child.is_root());
+    }
+
+    // --- Session::unique_outputs() with various DAG shapes ---
+
+    #[test]
+    fn test_unique_outputs_single_tip() {
+        let mut session = Session::new("single-tip");
+        session.add_vertex(make_vertex("v1", "sha256:a").committed());
+        session.add_vertex(make_vertex("v2", "sha256:b").with_parent("v1").committed());
+
+        let outputs = session.unique_outputs();
+        assert_eq!(outputs.len(), 1);
+        assert_eq!(outputs[0].as_str(), "sha256:b");
+    }
+
+    #[test]
+    fn test_unique_outputs_excludes_uncommitted() {
+        let mut session = Session::new("uncommitted-tip");
+        session.add_vertex(make_vertex("v1", "sha256:a").committed());
+        session.add_vertex(make_vertex("v2", "sha256:b").with_parent("v1")); // not committed
+
+        // v1 has child v2 so v1 is not a tip; v2 is tip but uncommitted
+        let outputs = session.unique_outputs();
+        assert_eq!(outputs.len(), 0);
+    }
+
+    #[test]
+    fn test_unique_outputs_excludes_intermediate() {
+        let mut session = Session::new("intermediate");
+        session.add_vertex(make_vertex("v1", "sha256:a").committed());
+        session.add_vertex(make_vertex("v2", "sha256:b").with_parent("v1").committed());
+        session.add_vertex(make_vertex("v3", "sha256:c").with_parent("v2").committed());
+
+        let outputs = session.unique_outputs();
+        assert_eq!(outputs.len(), 1);
+        assert_eq!(outputs[0].as_str(), "sha256:c");
+    }
+
+    #[test]
+    fn test_unique_outputs_empty_session() {
+        let session = Session::new("empty");
+        assert!(session.unique_outputs().is_empty());
+    }
+
+    // --- Session::temporal_span() ---
+
+    #[test]
+    fn test_temporal_span_empty() {
+        let session = Session::new("empty");
+        assert_eq!(session.temporal_span(), 0);
+    }
+
+    #[test]
+    fn test_temporal_span_multiple_vertices() {
+        let mut session = Session::new("temporal");
+        let mut v1 = make_vertex("v1", "sha256:a");
+        v1.timestamp = 1000;
+        session.add_vertex(v1);
+
+        let mut v2 = make_vertex("v2", "sha256:b");
+        v2.timestamp = 5000;
+        session.add_vertex(v2.with_parent("v1"));
+
+        let mut v3 = make_vertex("v3", "sha256:c");
+        v3.timestamp = 3000;
+        session.add_vertex(v3.with_parent("v1"));
+
+        assert_eq!(session.temporal_span(), 4000); // 5000 - 1000
+    }
+
+    // --- Session::is_atomic() ---
+
+    #[test]
+    fn test_is_atomic_hint() {
+        let mut session = Session::new("atomic-hint");
+        session.compression_hint = CompressionHint::Atomic;
+        session.add_vertex(make_vertex("v1", "sha256:a"));
+        session.add_vertex(make_vertex("v2", "sha256:b").with_parent("v1"));
+
+        assert!(session.is_atomic());
+    }
+
+    #[test]
+    fn test_is_atomic_single_vertex() {
+        let mut session = Session::new("single");
+        session.add_vertex(make_vertex("v1", "sha256:a"));
+
+        assert!(session.is_atomic());
+    }
+
+    #[test]
+    fn test_is_atomic_false() {
+        let mut session = Session::new("multi");
+        session.add_vertex(make_vertex("v1", "sha256:a"));
+        session.add_vertex(make_vertex("v2", "sha256:b").with_parent("v1"));
+
+        assert!(!session.is_atomic());
+    }
+
+    // --- Session::has_single_outcome() ---
+
+    #[test]
+    fn test_has_single_outcome_one() {
+        let mut session = Session::new("one");
+        session.add_vertex(make_vertex("v1", "sha256:a").committed());
+        assert!(session.has_single_outcome());
+    }
+
+    #[test]
+    fn test_has_single_outcome_none() {
+        let session = Session::new("none");
+        assert!(session.has_single_outcome());
+    }
+
+    #[test]
+    fn test_has_single_outcome_multiple() {
+        let mut session = Session::new("multi");
+        session.add_vertex(make_vertex("root", "sha256:root").committed());
+        session.add_vertex(
+            make_vertex("b1", "sha256:b1")
+                .with_parent("root")
+                .committed(),
+        );
+        session.add_vertex(
+            make_vertex("b2", "sha256:b2")
+                .with_parent("root")
+                .committed(),
+        );
+        assert!(!session.has_single_outcome());
+    }
+
+    // --- SessionOutcome variants ---
+
+    #[test]
+    fn test_session_outcome_committed() {
+        assert_eq!(SessionOutcome::Committed, SessionOutcome::Committed);
+    }
+
+    #[test]
+    fn test_session_outcome_rollback() {
+        assert_eq!(SessionOutcome::Rollback, SessionOutcome::Rollback);
+    }
+
+    #[test]
+    fn test_session_outcome_in_progress() {
+        assert_eq!(SessionOutcome::InProgress, SessionOutcome::InProgress);
+    }
+
+    #[test]
+    fn test_session_outcome_noop() {
+        assert_eq!(SessionOutcome::NoOp, SessionOutcome::NoOp);
+    }
+
+    #[test]
+    fn test_session_outcome_default() {
+        assert_eq!(SessionOutcome::default(), SessionOutcome::InProgress);
+    }
+
+    // --- CompressionHint variants ---
+
+    #[test]
+    fn test_compression_hint_single() {
+        assert_eq!(CompressionHint::Single, CompressionHint::Single);
+    }
+
+    #[test]
+    fn test_compression_hint_auto() {
+        assert_eq!(CompressionHint::Auto, CompressionHint::Auto);
+    }
+
+    #[test]
+    fn test_compression_hint_atomic() {
+        assert_eq!(CompressionHint::Atomic, CompressionHint::Atomic);
+    }
+
+    #[test]
+    fn test_compression_hint_ephemeral() {
+        assert_eq!(CompressionHint::Ephemeral, CompressionHint::Ephemeral);
+    }
+
+    #[test]
+    fn test_compression_hint_important() {
+        assert_eq!(CompressionHint::Important, CompressionHint::Important);
+    }
+
+    #[test]
+    fn test_compression_hint_default() {
+        assert_eq!(CompressionHint::default(), CompressionHint::Auto);
+    }
+
+    // --- Session serialization roundtrip ---
+
+    #[test]
+    fn test_session_serialization_roundtrip() {
+        let mut session = Session::new("roundtrip");
+        session.add_vertex(
+            make_vertex("v1", "sha256:a")
+                .with_size(100)
+                .with_parent("nonexistent")
+                .with_activity_type(ActivityType::Creation)
+                .committed(),
+        );
+        session.outcome = SessionOutcome::Committed;
+        session.compression_hint = CompressionHint::Atomic;
+
+        let json = serde_json::to_string(&session).expect("serialize");
+        let restored: Session = serde_json::from_str(&json).expect("deserialize");
+
+        assert_eq!(restored.id, session.id);
+        assert_eq!(restored.vertex_count(), session.vertex_count());
+        assert_eq!(restored.outcome, session.outcome);
+        assert_eq!(restored.compression_hint, session.compression_hint);
+        assert_eq!(restored.vertices[0].size, 100);
+        assert!(restored.vertices[0].committed);
+    }
+
+    // --- Session::max_depth() with complex DAG shapes ---
+
+    #[test]
+    fn test_max_depth_diamond() {
+        // Diamond: root -> left, right -> tip
+        let mut session = Session::new("diamond");
+        session.add_vertex(make_vertex("root", "sha256:root").committed());
+        session.add_vertex(
+            make_vertex("left", "sha256:left")
+                .with_parent("root")
+                .committed(),
+        );
+        session.add_vertex(
+            make_vertex("right", "sha256:right")
+                .with_parent("root")
+                .committed(),
+        );
+        session.add_vertex(
+            make_vertex("tip", "sha256:tip")
+                .with_parent("left")
+                .with_parent("right")
+                .committed(),
+        );
+
+        assert_eq!(session.max_depth(), 2);
+    }
+
+    #[test]
+    fn test_max_depth_deep_chain() {
+        let mut session = Session::new("chain");
+        session.add_vertex(make_vertex("v0", "sha256:v0").committed());
+        session.add_vertex(make_vertex("v1", "sha256:v1").with_parent("v0").committed());
+        session.add_vertex(make_vertex("v2", "sha256:v2").with_parent("v1").committed());
+        session.add_vertex(make_vertex("v3", "sha256:v3").with_parent("v2").committed());
+        session.add_vertex(make_vertex("v4", "sha256:v4").with_parent("v3").committed());
+
+        assert_eq!(session.max_depth(), 4);
+    }
+
+    // --- Session::roots() and tips() edge cases ---
+
+    #[test]
+    fn test_roots_empty() {
+        let session = Session::new("empty");
+        assert!(session.roots().is_empty());
+    }
+
+    #[test]
+    fn test_tips_empty() {
+        let session = Session::new("empty");
+        assert!(session.tips().is_empty());
+    }
+
+    #[test]
+    fn test_roots_multiple() {
+        let mut session = Session::new("multi-root");
+        session.add_vertex(make_vertex("r1", "sha256:r1").committed());
+        session.add_vertex(make_vertex("r2", "sha256:r2").committed());
+        session.add_vertex(
+            make_vertex("merge", "sha256:m")
+                .with_parent("r1")
+                .with_parent("r2")
+                .committed(),
+        );
+
+        let roots = session.roots();
+        assert_eq!(roots.len(), 2);
+    }
+
+    #[test]
+    fn test_tips_single_vertex() {
+        let mut session = Session::new("single");
+        session.add_vertex(make_vertex("only", "sha256:only").committed());
+
+        let tips = session.tips();
+        assert_eq!(tips.len(), 1);
+        assert_eq!(tips[0].id, "only");
     }
 }

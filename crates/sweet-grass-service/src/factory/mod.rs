@@ -61,88 +61,52 @@ pub struct BraidStoreFactory;
 impl BraidStoreFactory {
     /// Create a storage backend from environment variables.
     ///
-    /// # Environment Configuration
-    ///
-    /// ## `STORAGE_BACKEND` (required)
-    ///
-    /// Selects the storage backend:
-    /// - `memory` — In-memory storage (ephemeral, for testing)
-    /// - `postgres` — `PostgreSQL` database (production)
-    /// - `redb` — Embedded redb database (Pure Rust, recommended)
-    /// - `sled` — Embedded Sled database (Pure Rust, legacy)
-    ///
-    /// Default: `memory`
-    ///
-    /// ## `PostgreSQL` Backend
-    ///
-    /// Requires one of:
-    /// - `DATABASE_URL` — Connection string
-    /// - `STORAGE_URL` — Alternative connection string
-    ///
-    /// Format: `postgresql://user:pass@host:port/database`
-    ///
-    /// Optional:
-    /// - `PG_MAX_CONNECTIONS` — Pool size (default: 10)
-    /// - `PG_MIN_CONNECTIONS` — Minimum connections (default: 2)
-    /// - `PG_CONNECT_TIMEOUT` — Timeout in seconds (default: 30)
-    ///
-    /// ## redb Backend (recommended embedded)
-    ///
-    /// Optional:
-    /// - `STORAGE_PATH` — Database file path (default: `./data/sweetgrass.redb`)
-    ///
-    /// ## Sled Backend (legacy)
-    ///
-    /// Optional:
-    /// - `STORAGE_PATH` — Directory path (default: `./data/sweetgrass`)
-    /// - `SLED_CACHE_SIZE` — Cache size in MB (default: 1024)
-    ///
     /// # Errors
     ///
-    /// Returns error if:
-    /// - Unknown backend type specified
-    /// - Required environment variables missing
-    /// - Backend initialization fails
+    /// Returns error if backend initialization fails.
     pub async fn from_env() -> Result<Arc<dyn BraidStore>> {
         Self::from_env_with_name().await.map(|(store, _)| store)
     }
 
     /// Create a storage backend from environment, returning the backend name.
     ///
-    /// This is the single authoritative path for storage discovery. Both
-    /// `infant_bootstrap` and direct callers use this — no redundant env checks.
-    ///
     /// # Errors
     ///
     /// Returns error if backend initialization fails.
     pub async fn from_env_with_name() -> Result<(Arc<dyn BraidStore>, String)> {
-        let backend = std::env::var("STORAGE_BACKEND")
-            .unwrap_or_else(|_| sweet_grass_core::identity::DEFAULT_STORAGE_BACKEND.to_string());
+        let config = Self::config_from_reader(&|key| std::env::var(key).ok());
+        Self::from_config_with_name(&config).await
+    }
 
-        tracing::info!(backend = %backend, "Initializing storage backend from environment");
+    /// Create a storage backend using an injectable key reader (DI-friendly).
+    ///
+    /// Tests inject a closure instead of mutating process-global env vars.
+    /// The reader is consumed synchronously before any async work begins,
+    /// so it does not need to be `Send` or `Sync`.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if backend initialization fails.
+    pub async fn from_reader_with_name(
+        reader: impl Fn(&str) -> Option<String>,
+    ) -> Result<(Arc<dyn BraidStore>, String)> {
+        let config = Self::config_from_reader(&reader);
+        Self::from_config_with_name(&config).await
+    }
 
-        match backend.as_str() {
-            "memory" => {
-                tracing::info!("Using in-memory storage backend");
-                Ok((
-                    Arc::new(MemoryStore::new()) as Arc<dyn BraidStore>,
-                    sweet_grass_core::identity::DEFAULT_STORAGE_BACKEND.to_string(),
-                ))
-            },
-
-            "postgres" => Self::create_postgres_backend()
-                .await
-                .map(|s| (s, "postgres".to_string())),
-
-            "redb" => Self::create_redb_backend().map(|s| (s, "redb".to_string())),
-
-            #[cfg(feature = "sled")]
-            "sled" => Self::create_sled_backend().map(|s| (s, "sled".to_string())),
-
-            other => Err(StoreError::Internal(format!(
-                "Unknown storage backend: '{other}'. Valid options: {}",
-                Self::valid_backends()
-            ))),
+    /// Build a `StorageConfig` from a key reader (synchronous, no Send required).
+    #[doc(hidden)]
+    pub(crate) fn config_from_reader(reader: &impl Fn(&str) -> Option<String>) -> StorageConfig {
+        StorageConfig {
+            backend: reader("STORAGE_BACKEND")
+                .unwrap_or_else(|| sweet_grass_core::identity::DEFAULT_STORAGE_BACKEND.to_string()),
+            database_url: reader("DATABASE_URL").or_else(|| reader("STORAGE_URL")),
+            sled_path: reader("STORAGE_PATH"),
+            redb_path: reader("STORAGE_PATH"),
+            pg_max_connections: Self::parse_reader_var(reader, "PG_MAX_CONNECTIONS"),
+            pg_min_connections: Self::parse_reader_var(reader, "PG_MIN_CONNECTIONS"),
+            sled_cache_size_mb: Self::parse_reader_var(reader, "SLED_CACHE_SIZE"),
+            sled_flush_ms: Self::parse_reader_var(reader, "SLED_FLUSH_MS"),
         }
     }
 
@@ -262,118 +226,13 @@ impl BraidStoreFactory {
         Ok(Arc::new(store) as Arc<dyn BraidStore>)
     }
 
-    /// Create `PostgreSQL` backend from environment.
-    async fn create_postgres_backend() -> Result<Arc<dyn BraidStore>> {
-        use sweet_grass_store_postgres::PostgresStore;
-
-        let config = Self::build_postgres_config()?;
-
-        tracing::info!("Connecting to PostgreSQL database");
-        let store = PostgresStore::connect(&config).await?;
-
-        tracing::info!("Running database migrations");
-        store.run_migrations().await?;
-
-        tracing::info!("PostgreSQL backend initialized");
-        Ok(Arc::new(store) as Arc<dyn BraidStore>)
-    }
-
-    /// Build PostgreSQL configuration from environment variables.
+    /// Parse a key from a reader as a specific type.
     #[doc(hidden)]
-    pub(crate) fn build_postgres_config() -> Result<sweet_grass_store_postgres::PostgresConfig> {
-        // Get connection URL (try DATABASE_URL first, then STORAGE_URL)
-        let url = std::env::var("DATABASE_URL")
-            .or_else(|_| std::env::var("STORAGE_URL"))
-            .map_err(|_| {
-                StoreError::Internal(
-                    "PostgreSQL backend requires DATABASE_URL or STORAGE_URL".to_string(),
-                )
-            })?;
-
-        let mut config = sweet_grass_store_postgres::PostgresConfig::new(&url);
-
-        // Apply optional connection pool settings (idiomatic pattern)
-        if let Some(max) = Self::parse_env_var("PG_MAX_CONNECTIONS") {
-            config = config.max_connections(max);
-        }
-
-        if let Some(min) = Self::parse_env_var("PG_MIN_CONNECTIONS") {
-            config = config.min_connections(min);
-        }
-
-        Ok(config)
-    }
-
-    /// Parse an environment variable as a specific type (helper for config building).
-    #[doc(hidden)]
-    pub(crate) fn parse_env_var<T: std::str::FromStr>(key: &str) -> Option<T> {
-        std::env::var(key).ok()?.parse().ok()
-    }
-
-    /// Create redb backend from environment.
-    fn create_redb_backend() -> Result<Arc<dyn BraidStore>> {
-        use sweet_grass_store_redb::RedbStore;
-
-        let (config, path) = Self::build_redb_config();
-
-        tracing::info!(path = %path, "Opening redb database");
-        let store = RedbStore::open(&config)?;
-
-        tracing::info!("redb backend initialized");
-        Ok(Arc::new(store) as Arc<dyn BraidStore>)
-    }
-
-    /// Build redb configuration from environment variables.
-    ///
-    /// Returns the config and the path for logging purposes.
-    #[doc(hidden)]
-    pub(crate) fn build_redb_config() -> (sweet_grass_store_redb::RedbConfig, String) {
-        use sweet_grass_store_redb::RedbConfig;
-
-        let path = std::env::var("STORAGE_PATH")
-            .unwrap_or_else(|_| sweet_grass_core::identity::DEFAULT_REDB_PATH.to_string());
-        let config = RedbConfig::new(&path);
-
-        (config, path)
-    }
-
-    #[cfg(feature = "sled")]
-    /// Create Sled backend from environment.
-    fn create_sled_backend() -> Result<Arc<dyn BraidStore>> {
-        use sweet_grass_store_sled::SledStore;
-
-        let (config, path) = Self::build_sled_config();
-
-        tracing::info!(path = %path, "Opening Sled database");
-        let store = SledStore::open(&config)?;
-
-        tracing::info!("Sled backend initialized");
-        Ok(Arc::new(store) as Arc<dyn BraidStore>)
-    }
-
-    #[cfg(feature = "sled")]
-    /// Build Sled configuration from environment variables.
-    ///
-    /// Returns the config and the path for logging purposes.
-    #[doc(hidden)]
-    pub(crate) fn build_sled_config() -> (sweet_grass_store_sled::SledConfig, String) {
-        use sweet_grass_store_sled::SledConfig;
-
-        let path = std::env::var("STORAGE_PATH")
-            .unwrap_or_else(|_| sweet_grass_core::identity::DEFAULT_SLED_PATH.to_string());
-        let mut config = SledConfig::new(&path);
-
-        // Apply optional cache size (convert MB to bytes idiomatically)
-        if let Some(cache_mb) = Self::parse_env_var::<u64>("SLED_CACHE_SIZE") {
-            config = config.cache_capacity(cache_mb * 1024 * 1024);
-        }
-
-        // Apply optional flush interval
-        if let Some(flush_ms) = Self::parse_env_var::<u64>("SLED_FLUSH_MS") {
-            config = config.flush_every_ms(Some(flush_ms));
-        }
-
-        (config, path)
+    pub(crate) fn parse_reader_var<T: std::str::FromStr>(
+        reader: &impl Fn(&str) -> Option<String>,
+        key: &str,
+    ) -> Option<T> {
+        reader(key)?.parse().ok()
     }
 
     /// List valid backend names (varies by enabled features).

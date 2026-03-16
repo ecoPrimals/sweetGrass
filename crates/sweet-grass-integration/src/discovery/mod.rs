@@ -381,10 +381,21 @@ impl RegistryDiscovery {
     ///
     /// Returns an error if no environment variable is set or connection fails.
     pub async fn from_env() -> Result<Self, DiscoveryError> {
-        let addr = std::env::var("DISCOVERY_ADDRESS")
-            .or_else(|_| std::env::var("UNIVERSAL_ADAPTER_ADDRESS"))
-            .or_else(|_| std::env::var("DISCOVERY_BOOTSTRAP"))
-            .map_err(|_| {
+        Self::from_reader(|key| std::env::var(key).ok()).await
+    }
+
+    /// Create from an injectable key reader (DI-friendly).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no address is found or connection fails.
+    pub async fn from_reader(
+        reader: impl Fn(&str) -> Option<String>,
+    ) -> Result<Self, DiscoveryError> {
+        let addr = reader("DISCOVERY_ADDRESS")
+            .or_else(|| reader("UNIVERSAL_ADAPTER_ADDRESS"))
+            .or_else(|| reader("DISCOVERY_BOOTSTRAP"))
+            .ok_or_else(|| {
                 DiscoveryError::ServiceUnavailable(
                     "No discovery address found. Set DISCOVERY_ADDRESS or UNIVERSAL_ADAPTER_ADDRESS environment variable".to_string(),
                 )
@@ -480,7 +491,14 @@ impl PrimalDiscovery for RegistryDiscovery {
 ///
 /// Otherwise, returns a local discovery instance for single-node deployments.
 pub async fn create_discovery() -> Arc<dyn PrimalDiscovery> {
-    match RegistryDiscovery::from_env().await {
+    create_discovery_with_reader(|key| std::env::var(key).ok()).await
+}
+
+/// Create a discovery client using an injectable key reader (DI-friendly).
+pub async fn create_discovery_with_reader(
+    reader: impl Fn(&str) -> Option<String>,
+) -> Arc<dyn PrimalDiscovery> {
+    match RegistryDiscovery::from_reader(reader).await {
         Ok(discovery) => {
             tracing::info!(
                 "Using network discovery service (universal adapter) for primal coordination"

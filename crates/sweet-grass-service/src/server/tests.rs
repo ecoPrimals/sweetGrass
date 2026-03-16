@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2024–2026 ecoPrimals Project
 
-#![allow(unsafe_code)]
 #![expect(
     clippy::expect_used,
     clippy::unwrap_used,
@@ -559,29 +558,24 @@ async fn test_server_with_max_concurrent_requests() {
 }
 
 #[tokio::test]
-async fn test_server_new_with_env_var() {
-    unsafe {
-        std::env::set_var("TARPC_MAX_CONCURRENT_REQUESTS", "99");
-    }
-    let server = make_server();
-    unsafe {
-        std::env::remove_var("TARPC_MAX_CONCURRENT_REQUESTS");
-    }
+async fn test_server_with_explicit_max_concurrent_requests() {
+    let store: Arc<dyn BraidStore> = Arc::new(MemoryStore::new());
+    let did = Did::new("did:key:z6MkTest");
+    let factory = Arc::new(BraidFactory::new(did));
+    let query = Arc::new(QueryEngine::new(store.clone()));
+    let compression = Arc::new(CompressionEngine::new(factory.clone()));
+    let attribution = Arc::new(AttributionCalculator::new());
+
+    let server = SweetGrassServer::new(store, factory, query, compression, attribution)
+        .with_max_concurrent_requests(99);
 
     let status = server.health_check(context::current()).await.unwrap();
     assert_eq!(status.status, "UP");
 }
 
 #[tokio::test]
-async fn test_server_new_with_invalid_env_var_falls_back_to_default() {
-    unsafe {
-        std::env::set_var("TARPC_MAX_CONCURRENT_REQUESTS", "not-a-number");
-    }
+async fn test_server_default_max_concurrent_requests() {
     let server = make_server();
-    unsafe {
-        std::env::remove_var("TARPC_MAX_CONCURRENT_REQUESTS");
-    }
-
     let status = server.health_check(context::current()).await.unwrap();
     assert_eq!(status.status, "UP");
 }
