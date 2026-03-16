@@ -236,31 +236,31 @@ docker-compose down -v
 
 ```bash
 # Memory storage (default)
-./target/release/sweetgrass
+./target/release/sweetgrass server
 
 # PostgreSQL
 DATABASE_URL=postgresql://user:pass@localhost:5432/sweetgrass \
-./target/release/sweetgrass
+./target/release/sweetgrass server
 
 # redb (recommended embedded)
 STORAGE_BACKEND=redb \
 STORAGE_PATH=/var/lib/sweetgrass/data.redb \
-./target/release/sweetgrass
+./target/release/sweetgrass server
 
 # With discovery
 DISCOVERY_ADDRESS=discovery.example.com:9090 \
 DATABASE_URL=postgresql://user:pass@localhost:5432/sweetgrass \
-./target/release/sweetgrass
+./target/release/sweetgrass server
 
 # Custom ports
 REST_PORT=8080 \
 TARPC_PORT=9090 \
-./target/release/sweetgrass
+./target/release/sweetgrass server
 
 # Debug logging
 RUST_LOG=debug \
 RUST_BACKTRACE=1 \
-./target/release/sweetgrass
+./target/release/sweetgrass server
 ```
 
 ---
@@ -341,7 +341,7 @@ cargo fmt --all
 cargo build --release
 
 # 8. Run
-./target/release/sweetgrass
+./target/release/sweetgrass server
 
 # Or all at once:
 cargo check && \
@@ -399,7 +399,7 @@ docker run -d \
 
 # Run service with PostgreSQL
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sweetgrass \
-./target/release/sweetgrass
+./target/release/sweetgrass server
 
 # Run integration tests
 cargo test --workspace --test '*' -- --ignored
@@ -526,7 +526,7 @@ ls specs/
 
 ```bash
 # Build, test, and run
-cargo build --release && cargo test --workspace && ./target/release/sweetgrass
+cargo build --release && cargo test --workspace && ./target/release/sweetgrass server
 
 # Full quality check
 cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all -- --check && cargo test --workspace

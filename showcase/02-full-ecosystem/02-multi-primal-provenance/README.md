@@ -178,5 +178,5 @@ Continue to: `../03-reward-distribution/`
 
 Learn how attribution enables fair reward distribution!
 
-(Note: Reward distribution requires sunCloud integration, planned for v0.3.0)
+(Note: Reward distribution requires sunCloud integration — future enhancement)
 

@@ -5,6 +5,47 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.13] - 2026-03-16
+
+### Niche Architecture + Resilience + Cross-Spring Absorption
+
+Full niche compliance with biomeOS deploy graph and capability registry.
+Resilience patterns for trio partner IPC. DI socket resolution for safe
+parallel tests. Error enum hardening across entire workspace.
+
+### Added
+
+- **`niche.rs` self-knowledge module** — 21 capabilities, 8 consumed capabilities,
+  4 dependencies, `operation_dependencies()`, `cost_estimates()`, `semantic_mappings()`
+  for biomeOS/Neural API integration
+- **`primal_names.rs`** — centralized external primal identifiers (8 primals)
+  and environment variable constants (groundSpring V106 / wetSpring V119 pattern)
+- **`config/capability_registry.toml`** — biomeOS-compatible capability registry
+  with all 21 methods across 8 domains
+- **`graphs/sweetgrass_deploy.toml`** — BYOB deploy graph with dependency ordering
+- **UniBin subcommands** — `sweetgrass capabilities` (offline dump) and
+  `sweetgrass socket` (print resolved socket path)
+- **`SocketConfig` DI pattern** — `resolve_socket_path_with(config)` for env-free
+  socket resolution in tests (airSpring V082 / biomeOS V239 pattern)
+- **Resilience module** — `CircuitBreaker` (lock-free atomics), `RetryPolicy`
+  (base-2 exponential backoff), `with_resilience()` async helper for trio IPC
+- **`ServiceError::Transport`** and **`ServiceError::Discovery`** IPC error variants
+- **9 DI-based socket resolution tests** (no `#[serial]`, no `unsafe`)
+
+### Changed
+
+- **`#[non_exhaustive]`** added to all 10 error enums across workspace
+- **`capability.list`** delegates to `niche.rs` single source of truth; response
+  now includes `consumed_capabilities` and `cost_estimates`
+- **UDS module** uses `primal_names::env_vars` constants instead of string literals
+
+### Metrics
+
+- 941 tests (was 903), 0 failures, 0 clippy warnings, 0 doc warnings
+- 3 new modules: `niche`, `primal_names`, `resilience`
+- 4 UniBin subcommands (was 2)
+- 2 biomeOS config files (was 0)
+
 ## [0.7.12] - 2026-03-15
 
 ### Edition 2024 Migration + Spring Absorption + Chaos Tests

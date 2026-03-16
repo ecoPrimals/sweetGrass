@@ -28,7 +28,6 @@
 #![warn(missing_docs)]
 #![cfg_attr(not(test), forbid(unsafe_code))]
 #![cfg_attr(test, deny(unsafe_code))]
-// Note: These pedantic lints are planned for cleanup in v0.3.0
 #![allow(clippy::missing_const_for_fn)]
 #![allow(clippy::missing_errors_doc)]
 

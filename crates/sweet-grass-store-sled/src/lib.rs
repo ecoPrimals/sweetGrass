@@ -35,7 +35,6 @@
 
 #![warn(missing_docs)]
 #![forbid(unsafe_code)]
-// Note: These pedantic lints are planned for cleanup in v0.3.0
 #![allow(clippy::missing_const_for_fn)]
 #![allow(clippy::missing_errors_doc)]
 

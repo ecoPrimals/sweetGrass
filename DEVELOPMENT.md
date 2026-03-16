@@ -1,6 +1,6 @@
 # 🌾 SweetGrass — Development Guide
 
-**Last Updated**: March 15, 2026  
+**Last Updated**: March 16, 2026  
 **Version**: v0.7.13
 
 ---
@@ -389,7 +389,7 @@ pub fn function(param: Type) -> Result<Output> {
 
 ```bash
 # Enable tracing
-RUST_LOG=debug cargo run
+RUST_LOG=debug cargo run --bin sweetgrass -- server
 
 # Specific module
 RUST_LOG=sweet_grass_service=debug cargo run

@@ -259,7 +259,7 @@ impl SweetGrassConfig {
 
         if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
             let p = std::path::PathBuf::from(xdg)
-                .join("sweetgrass")
+                .join(crate::identity::PRIMAL_NAME)
                 .join("config.toml");
             if p.is_file() {
                 return Some(p);
@@ -269,7 +269,7 @@ impl SweetGrassConfig {
         if let Ok(home) = std::env::var("HOME") {
             let p = std::path::PathBuf::from(home)
                 .join(".config")
-                .join("sweetgrass")
+                .join(crate::identity::PRIMAL_NAME)
                 .join("config.toml");
             if p.is_file() {
                 return Some(p);

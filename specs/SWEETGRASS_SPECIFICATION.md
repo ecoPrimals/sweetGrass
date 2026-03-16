@@ -1,10 +1,10 @@
 # SweetGrass — Semantic Provenance & Attribution Layer Specification
 
-**Version:** 0.1.0 (Draft)  
+**Version:** 0.7.13  
 **Status:** Architectural Specification  
 **Author:** ecoPrimals Project  
-**Date:** December 2025  
-**License:** AGPL-3.0  
+**Date:** March 2026  
+**License:** AGPL-3.0-only  
 
 ---
 
@@ -1280,22 +1280,22 @@ pub struct RewardDistribution {
 - [x] PROV-O JSON-LD export
 - [ ] Full-text search (planned v0.9.0+)
 
-### Phase 4: Economic Integration — PARTIAL (v0.7.0–v0.7.12)
+### Phase 4: Economic Integration — PARTIAL (v0.7.0–v0.7.13)
 - [x] Contribution calculation
 - [x] Attribution normalization and radiating attribution
 - [ ] sunCloud interface (planned v0.9.0)
 - [ ] Reward tracking (planned v0.9.0)
 
-### Phase 5: Protocol & Deployment — COMPLETE (v0.7.0–v0.7.12)
+### Phase 5: Protocol & Deployment — COMPLETE (v0.7.0–v0.7.13)
 - [x] tarpc primary RPC (pure Rust, no gRPC)
 - [x] JSON-RPC 2.0 with `{domain}.{operation}` naming
 - [x] REST fallback API
-- [x] UniBin binary (`sweetgrass server|status|--version`)
+- [x] UniBin binary (`sweetgrass server|status|capabilities|socket|--version`)
 - [x] `capability.list` for runtime discovery
 - [x] ecoBin compliance (pure Rust, no C deps)
 - [x] TOML config with XDG hierarchy
 
-### Phase 6: Hardening — IN PROGRESS (v0.7.9–v0.7.12)
+### Phase 6: Hardening — IN PROGRESS (v0.7.9–v0.7.13)
 - [x] `#![forbid(unsafe_code)]` on all crates
 - [x] Zero `unwrap`/`expect`/`panic!` in production
 - [x] SPDX headers and AGPL-3.0-only licensing
@@ -1330,9 +1330,9 @@ pub struct RewardDistribution {
 - [JSON-LD](https://json-ld.org/) — Linked Data in JSON
 - [W3C DIDs](https://www.w3.org/TR/did-core/) — Decentralized Identifiers
 - [Schema.org](https://schema.org/) — Shared vocabulary
-- [RhizoCrypt Specification](./RHIZOCRYPT_SPECIFICATION.md) — Ephemeral DAG
-- [LoamSpine Specification](./LOAMSPINE_SPECIFICATION.md) — Permanent storage
-- [BearDog Specification](../beardog/specs/) — Identity and signing
+- rhizoCrypt Specification — Ephemeral DAG (see `ecoPrimals/phase2/rhizoCrypt/`)
+- LoamSpine Specification — Permanent storage (see `ecoPrimals/phase2/loamSpine/`)
+- BearDog Specification — Identity and signing (see `ecoPrimals/phase1/beardog/`)
 
 ---
 
