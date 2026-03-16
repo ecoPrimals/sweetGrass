@@ -50,6 +50,7 @@ pub(super) fn handle_capability_list(
         "description": niche::NICHE_DESCRIPTION,
         "protocol": "jsonrpc-2.0",
         "transport": ["http", "uds"],
+        "capabilities": &methods,
         "domains": domains,
         "methods": methods,
         "operations": operations,

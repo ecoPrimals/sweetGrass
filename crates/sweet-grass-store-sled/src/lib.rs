@@ -66,7 +66,10 @@ pub mod trees {
     pub const ACTIVITIES: &str = "activities";
 }
 
-/// Default database directory path for Sled backend.
+/// Default database directory path for Sled backend (self-config).
+///
+/// Overridden by `SledConfig.path`. This is a local-development fallback;
+/// production deployments configure paths via `SweetGrassConfig`.
 pub const DEFAULT_DB_PATH: &str = "./sweetgrass_sled";
 
 /// Configuration for Sled store.

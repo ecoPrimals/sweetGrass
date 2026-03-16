@@ -149,16 +149,13 @@ async fn test_exists_correctness() {
 
 #[tokio::test]
 #[ignore = "Requires Docker"]
-async fn test_health_check() {
+async fn test_store_connectivity_via_count() {
     let (_container, store) = setup_postgres().await;
 
-    // PostgreSQL store doesn't have health_check method in current trait
-    // This is a placeholder for when it's added
-    // For now, test that we can query
     let count = store
         .count(&sweet_grass_store::QueryFilter::default())
         .await
-        .expect("count");
+        .expect("count query should succeed on healthy store");
 
     assert_eq!(count, 0);
 }

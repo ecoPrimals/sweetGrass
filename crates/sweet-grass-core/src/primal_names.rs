@@ -1,24 +1,22 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2024–2026 ecoPrimals Project
-//! Centralized primal name constants for IPC identifiers.
+//! Primal name constants and generic env var helpers.
 //!
-//! Single source of truth for external primal names used in socket paths,
-//! capability discovery, and environment variable lookups. Follows the
-//! groundSpring V106 / wetSpring V119 pattern.
+//! Follows the capability-based discovery principle: production code
+//! discovers primals at runtime via `capability.list` / `capability.call`.
+//! These constants serve as a canonical registry for logging, diagnostics,
+//! and environment variable naming.
 //!
-//! Production code MUST use capability-based discovery rather than
-//! hardcoding connections to specific primals. These constants exist
-//! for socket path construction and environment variable naming only.
+//! ## Generic socket env var pattern
+//!
+//! Instead of per-primal `RHIZOCRYPT_SOCKET`, `LOAMSPINE_SOCKET` constants,
+//! use [`socket_env_var`] to derive `{NAME}_SOCKET` from any primal name
+//! at runtime — no code change needed when new primals join the ecosystem.
 
-/// Socket and env var names for primals sweetGrass may interact with.
+/// Canonical primal names (lowercase, kebab-free).
 ///
-/// These are used exclusively for:
-/// - Constructing socket paths during discovery fallback
-/// - Environment variable naming (`{NAME}_SOCKET`, `{NAME}_ADDRESS`)
-/// - Logging and diagnostics
-///
-/// **Never** use these to hardcode a connection target. Use
-/// `capability.list` / `capability.call` for runtime routing.
+/// Used for logging, diagnostics, and constructing env var names via
+/// [`socket_env_var`]. **Never** use these to hardcode connection targets.
 pub mod names {
     /// `rhizoCrypt` — ephemeral DAG engine (provenance trio partner).
     pub const RHIZOCRYPT: &str = "rhizocrypt";
@@ -38,23 +36,41 @@ pub mod names {
     pub const BIOMEOS: &str = "biomeos";
 }
 
-/// Environment variable names for discovering primal sockets.
+/// Derive the `{NAME}_SOCKET` environment variable name for any primal.
+///
+/// This replaces per-primal constants (`RHIZOCRYPT_SOCKET`, etc.) with a
+/// generic pattern that works for any primal discovered at runtime.
+///
+/// # Example
+///
+/// ```
+/// use sweet_grass_core::primal_names::{socket_env_var, names};
+///
+/// assert_eq!(socket_env_var(names::RHIZOCRYPT), "RHIZOCRYPT_SOCKET");
+/// assert_eq!(socket_env_var("newprimal"), "NEWPRIMAL_SOCKET");
+/// ```
+#[must_use]
+pub fn socket_env_var(primal_name: &str) -> String {
+    format!("{}_SOCKET", primal_name.to_uppercase())
+}
+
+/// Derive the `{NAME}_ADDRESS` environment variable name for any primal.
+///
+/// Used for TCP/tarpc address override lookup during discovery.
+#[must_use]
+pub fn address_env_var(primal_name: &str) -> String {
+    format!("{}_ADDRESS", primal_name.to_uppercase())
+}
+
+/// Infrastructure environment variable names.
+///
+/// These are ecosystem-wide configuration, not primal-specific connections.
 pub mod env_vars {
-    /// Override socket path for `rhizoCrypt`.
-    pub const RHIZOCRYPT_SOCKET: &str = "RHIZOCRYPT_SOCKET";
-    /// Override socket path for `LoamSpine`.
-    pub const LOAMSPINE_SOCKET: &str = "LOAMSPINE_SOCKET";
-    /// Override socket path for `BearDog` (crypto).
-    pub const BEARDOG_SOCKET: &str = "BEARDOG_SOCKET";
-    /// Override socket path for `NestGate` (storage).
-    pub const NESTGATE_SOCKET: &str = "NESTGATE_SOCKET";
-    /// Override socket path for `Songbird` (discovery).
-    pub const SONGBIRD_SOCKET: &str = "SONGBIRD_SOCKET";
-    /// `biomeOS` socket directory.
+    /// `biomeOS` socket directory (where all primal sockets live).
     pub const BIOMEOS_SOCKET_DIR: &str = "BIOMEOS_SOCKET_DIR";
-    /// `biomeOS` family ID for multi-instance.
+    /// `biomeOS` family ID for multi-instance separation.
     pub const BIOMEOS_FAMILY_ID: &str = "BIOMEOS_FAMILY_ID";
-    /// XDG runtime directory.
+    /// XDG runtime directory (standard Linux convention).
     pub const XDG_RUNTIME_DIR: &str = "XDG_RUNTIME_DIR";
 }
 
@@ -84,13 +100,24 @@ mod tests {
     }
 
     #[test]
+    fn socket_env_var_pattern() {
+        assert_eq!(socket_env_var(names::RHIZOCRYPT), "RHIZOCRYPT_SOCKET");
+        assert_eq!(socket_env_var(names::LOAMSPINE), "LOAMSPINE_SOCKET");
+        assert_eq!(socket_env_var(names::BEARDOG), "BEARDOG_SOCKET");
+        assert_eq!(socket_env_var(names::NESTGATE), "NESTGATE_SOCKET");
+        assert_eq!(socket_env_var(names::SONGBIRD), "SONGBIRD_SOCKET");
+        assert_eq!(socket_env_var("newprimal"), "NEWPRIMAL_SOCKET");
+    }
+
+    #[test]
+    fn address_env_var_pattern() {
+        assert_eq!(address_env_var(names::RHIZOCRYPT), "RHIZOCRYPT_ADDRESS");
+        assert_eq!(address_env_var("newprimal"), "NEWPRIMAL_ADDRESS");
+    }
+
+    #[test]
     fn env_vars_are_uppercase() {
         let all = [
-            env_vars::RHIZOCRYPT_SOCKET,
-            env_vars::LOAMSPINE_SOCKET,
-            env_vars::BEARDOG_SOCKET,
-            env_vars::NESTGATE_SOCKET,
-            env_vars::SONGBIRD_SOCKET,
             env_vars::BIOMEOS_SOCKET_DIR,
             env_vars::BIOMEOS_FAMILY_ID,
             env_vars::XDG_RUNTIME_DIR,

@@ -15,13 +15,22 @@ pub const TEST_BIND_ADDR: &str = "127.0.0.1:0";
 /// Test base URL for mock HTTP services (OS-allocated port).
 pub const TEST_HTTP_BASE: &str = "http://127.0.0.1:0";
 
-/// Test REST URL for discovery test fixtures (arbitrary port, not for binding).
+/// Test REST URL for discovery test fixtures.
+///
+/// Used only as mock data in `DiscoveredPrimal` structs — never bound to.
+/// Capability-based discovery resolves real addresses at runtime.
 pub const TEST_REST_URL: &str = "http://localhost:8080";
 
-/// Test tarpc address for discovery test fixtures (arbitrary port, not for binding).
+/// Test tarpc address for discovery test fixtures.
+///
+/// Used only as mock data in `DiscoveredPrimal` structs — never bound to.
+/// Capability-based discovery resolves real addresses at runtime.
 pub const TEST_TARPC_ADDR: &str = "localhost:9000";
 
-/// Test tarpc URI for discovery test fixtures (arbitrary port, not for binding).
+/// Test tarpc URI for discovery test fixtures.
+///
+/// Used only as mock data in `DiscoveredPrimal` structs — never bound to.
+/// Capability-based discovery resolves real addresses at runtime.
 pub const TEST_TARPC_URI: &str = "tcp://localhost:9000";
 
 /// Invalid address for testing connection failure (reserved port).

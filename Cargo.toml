@@ -14,7 +14,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.7.15"
+version = "0.7.17"
 edition = "2024"
 rust-version = "1.87"
 license = "AGPL-3.0-only"
@@ -94,9 +94,9 @@ too_many_arguments = "warn"
 missing_panics_doc = "warn"
 missing_safety_doc = "warn"
 
-# Production code quality
-unwrap_used = "warn"
-expect_used = "warn"
+# Production code quality — deny matches rhizoCrypt + loamSpine trio partners
+unwrap_used = "deny"
+expect_used = "deny"
 clone_on_ref_ptr = "warn"
 
 # Specific pedantic overrides

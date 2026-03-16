@@ -4,6 +4,8 @@
 # Note: This configuration uses only stable rustfmt options.
 # Unstable options require nightly and are commented out for reference.
 
+# Workspace uses Edition 2024 (Cargo.toml), but stable rustfmt does not yet
+# support edition = "2024".  Upgrade this value once rustfmt gains support.
 edition = "2021"
 
 # Line width - keep reasonable for readability

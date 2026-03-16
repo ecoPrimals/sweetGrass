@@ -44,7 +44,10 @@ mod store;
 pub use error::{RedbError, Result};
 pub use store::RedbStore;
 
-/// Default database file path for redb backend.
+/// Default database file path for redb backend (self-config).
+///
+/// Overridden by `RedbConfig.path`. This is a local-development fallback;
+/// production deployments configure paths via `SweetGrassConfig`.
 pub const DEFAULT_DB_PATH: &str = "./sweetgrass_redb";
 
 /// Configuration for redb store.

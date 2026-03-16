@@ -228,6 +228,11 @@ async fn test_capability_list_returns_all_methods() {
     assert!(!result["version"].as_str().unwrap().is_empty());
     assert!(result["domains"].is_object());
     assert!(result["methods"].is_array());
+    assert!(
+        result["capabilities"].is_array(),
+        "neuralSpring S156 ecosystem compat: capabilities key must be present"
+    );
+    assert_eq!(result["capabilities"], result["methods"]);
 }
 
 #[tokio::test]

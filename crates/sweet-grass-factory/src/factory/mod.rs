@@ -10,8 +10,8 @@ use sweet_grass_core::{
     activity::{Activity, ActivityType, UsedEntity},
     agent::{AgentAssociation, AgentRole, Did},
     braid::{
-        Braid, BraidId, BraidMetadata, BraidSignature, BraidType, CompressionMeta,
-        EcoPrimalsAttributes, LoamCommitRef, SummaryType,
+        Braid, BraidId, BraidMetadata, BraidType, CompressionMeta, EcoPrimalsAttributes,
+        LoamCommitRef, SummaryType,
     },
     entity::EntityReference,
     hash::hex_encode,
@@ -361,13 +361,15 @@ impl BraidFactory {
     ///
     /// **This is NOT a cryptographic signature.** It derives a deterministic
     /// placeholder from the Braid's signing hash so that the signature field
-    /// is populated for local operations, testing, and pre-signing workflows.
+    /// is populated for testing and pre-signing workflows.
     ///
     /// For real Ed25519 signing, route through a primal offering
     /// [`Capability::Signing`] at runtime via capability-based discovery.
     ///
     /// [`Capability::Signing`]: sweet_grass_core::config::Capability::Signing
+    #[cfg(test)]
     pub fn sign_placeholder(&self, braid: &mut Braid, key_id: &str) {
+        use sweet_grass_core::braid::BraidSignature;
         let signing_hash = braid.compute_signing_hash();
         let placeholder_sig = signing_hash.as_str().as_bytes();
         braid.signature =

@@ -1,10 +1,38 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.15 (March 2026)
+**Current Version**: v0.7.17 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.17 — Ecosystem Absorption + Lint Tightening + Capability Evolution (March 2026)
+
+- [x] **Lint tightening** — `unwrap_used`/`expect_used` promoted from `warn` to `deny`, matching rhizoCrypt + loamSpine trio partners
+- [x] **deny.toml hardened** — `wildcards = "allow"` → `"deny"` per airSpring V084 ecosystem standard
+- [x] **capability.list evolved** — added `"capabilities"` key for neuralSpring S156 ecosystem compatibility (`parse_capability_list()` compat); test coverage added
+- [x] **provenance-trio-types Edition 2024** — upgraded from Edition 2021 to 2024 + MSRV 1.87 alignment across trio
+- [x] **Smart refactoring** — 4 more large files extracted to `mod.rs` + `tests.rs`:
+  - `anchor.rs` (687→446 production + 230 tests)
+  - `activity.rs` (621→494 production + 130 tests)
+  - `privacy.rs` (642→377 production + 268 tests)
+  - `engine.rs` (586→300 production + 281 tests)
+- [x] **primal_names evolved** — replaced 5 dead per-primal `{NAME}_SOCKET` constants with generic `socket_env_var()`/`address_env_var()` functions; any primal works without code changes
+- [x] **Storage path docs** — `DEFAULT_REDB_PATH`, `DEFAULT_SLED_PATH`, `DEFAULT_DB_PATH` documented as self-config fallbacks with env override guidance
+- [x] **Large file analysis** — remaining 500+ LOC files (store/mod.rs 714, config/mod.rs 630, server/mod.rs 573) confirmed as single-concern cohesive modules; no further splitting warranted
+- [x] 1,004 tests passing (was 1,001), 0 failures, 0 clippy warnings, 0 unsafe, docs build clean
+
+### v0.7.16 — Deep Audit Remediation + Smart Refactoring (March 2026)
+
+- [x] **SPDX header fix** — `memory/tests.rs` was the only file missing `SPDX-License-Identifier: AGPL-3.0-only`; now all 122 `.rs` files have headers
+- [x] **`sign_placeholder` isolated** — gated behind `#[cfg(any(test, feature = "test"))]`, no mock in production code path
+- [x] **Smart refactoring** — `provo.rs` (842→320 production + 522 tests), `session.rs` (759→329 production + 430 tests) extracted to `mod.rs` + `tests.rs` pattern
+- [x] **Postgres placeholder evolved** — `test_health_check` renamed to `test_store_connectivity_via_count`, placeholder comment removed
+- [x] **Testing constants documented** — `TEST_REST_URL`, `TEST_TARPC_ADDR`, `TEST_TARPC_URI` documented as mock fixture data (never bound to)
+- [x] **rustfmt.toml edition** — documented Edition 2024 mismatch (stable rustfmt does not yet support `edition = "2024"`)
+- [x] **Dependency audit verified** — zero C/C++ deps in production; `ring`/`cc` only in dev via testcontainers→bollard chain
+- [x] **ROADMAP accuracy** — clarified `bytes::Bytes` status (integration tarpc clients already use it)
+- [x] Full audit: 0 clippy warnings, 0 unsafe, 0 TODOs, 0 production unwraps, all files <1000 LOC, 1,001 tests passing
 
 ### v0.7.15 — Deep Debt Evolution + Coverage Expansion + Convergence Spec (March 2026)
 
@@ -288,7 +316,8 @@
 
 ### Performance
 - [x] Zero-copy expansion (ContentHash to newtype with Arc<str>) *(done in v0.7.1)*
-- [ ] Zero-copy: tarpc `Vec<u8>` → `bytes::Bytes` (wire protocol change, needs cross-primal coordination)
+- [x] Zero-copy: integration tarpc clients use `bytes::Bytes` for wire payloads (signer, anchor, listener)
+- [ ] Zero-copy: evolve `Braid.mime_type` from `String` to `Arc<str>` (permeates core types, cross-crate change)
 - [ ] Query performance benchmarks
 - [ ] PostgreSQL index tuning
 - [ ] Lazy loading for large provenance graphs
@@ -328,7 +357,9 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.15 | **March 2026** | Deep Debt Evolution + Coverage Expansion + Convergence Spec (DONE) |
+| v0.7.17 | **March 2026** | Ecosystem Absorption + Lint Tightening + Capability Evolution (DONE) |
+| v0.7.16 | March 2026 | Deep Audit Remediation + Smart Refactoring (DONE) |
+| v0.7.15 | March 2026 | Deep Debt Evolution + Coverage Expansion + Convergence Spec (DONE) |
 | v0.7.14 | March 2026 | DI Pattern + Unsafe Elimination + Dynamic Reconnection (DONE) |
 | v0.7.13 | March 2026 | Self-Knowledge Module + Resilience + biomeOS Deploy (DONE) |
 | v0.7.12 | March 2026 | Edition 2024 Migration + Spring Absorption + Chaos Tests (DONE) |

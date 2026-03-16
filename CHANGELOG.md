@@ -5,6 +5,70 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.17] - 2026-03-16
+
+### Ecosystem Absorption + Lint Tightening + Capability Evolution
+
+Absorbed patterns from hotSpring ecosystem review and wateringHole handoffs.
+Tightened lint configuration to match provenance trio partners. Evolved
+capability.list response for ecosystem compatibility. Smart-refactored four
+more large files. Evolved primal_names to generic capability-based pattern.
+
+### Added
+
+- **`socket_env_var()` and `address_env_var()`** — Generic env var helpers replacing dead per-primal constants; works for any primal name without code changes
+- **`"capabilities"` key in `capability.list`** — neuralSpring S156 ecosystem compatibility (alongside existing `"methods"`)
+- **Test for ecosystem compat** — `test_capability_list_returns_all_methods` now verifies `capabilities == methods`
+
+### Changed
+
+- **`unwrap_used`/`expect_used`** — promoted from `warn` to `deny` (matches rhizoCrypt + loamSpine trio partners)
+- **`deny.toml` wildcards** — `allow` → `deny` per airSpring V084 ecosystem standard
+- **`provenance-trio-types`** — Edition 2021 → 2024, MSRV 1.87, version 0.1.1
+- **Smart refactoring** — 4 files converted to directory modules with separate test files:
+  - `anchor.rs` (687→446 production + 230 tests)
+  - `activity.rs` (621→494 production + 130 tests)
+  - `privacy.rs` (642→377 production + 268 tests)
+  - `engine.rs` (586→300 production + 281 tests)
+- **Storage path defaults** — `DEFAULT_REDB_PATH`, `DEFAULT_SLED_PATH`, `DEFAULT_DB_PATH` documented as self-config with env override guidance
+
+### Removed
+
+- **5 dead per-primal socket constants** — `RHIZOCRYPT_SOCKET`, `LOAMSPINE_SOCKET`, `BEARDOG_SOCKET`, `NESTGATE_SOCKET`, `SONGBIRD_SOCKET` replaced by generic `socket_env_var()`
+
+### Metrics
+
+- 1,004 tests (was 1,001), 0 failures, 0 clippy warnings, 0 doc warnings
+- 125 .rs files (11 new from directory module splits), all with SPDX headers
+- Max file 808 lines (limit: 1000)
+- `unwrap_used`/`expect_used` = `deny` (previously `warn`)
+
+## [0.7.16] - 2026-03-16
+
+### Deep Audit Remediation + Smart Refactoring
+
+Comprehensive audit remediation including SPDX header fix, production mock
+isolation, smart refactoring of large files, and documentation of testing
+constants and zero-copy status.
+
+### Added
+
+- **SPDX header** on `memory/tests.rs` (was the only file missing it)
+
+### Changed
+
+- **`sign_placeholder`** — gated behind `#[cfg(test)]`, import moved inside function body
+- **`provo.rs`** — smart-refactored (842→320 production + 522 tests)
+- **`session.rs`** — smart-refactored (759→329 production + 430 tests)
+- **`test_health_check`** — renamed to `test_store_connectivity_via_count` with accurate docs
+- **Testing constants** — `TEST_REST_URL`, `TEST_TARPC_ADDR`, `TEST_TARPC_URI` documented as mock fixture data
+- **`rustfmt.toml`** — documented Edition 2024 mismatch (stable rustfmt limitation)
+
+### Metrics
+
+- 1,001 tests, 0 failures, 0 clippy warnings
+- Zero C/C++ deps in production; ring/cc dev-only via testcontainers
+
 ## [0.7.15] - 2026-03-16
 
 ### Deep Debt Evolution + Coverage Expansion + Convergence Specification

@@ -71,10 +71,16 @@ pub mod identity {
     /// Default storage backend when none is configured.
     pub const DEFAULT_STORAGE_BACKEND: &str = "memory";
 
-    /// Default redb storage file path.
+    /// Default redb storage file path (self-config).
+    ///
+    /// Overridden by `SweetGrassConfig.redb_path` or the `SWEETGRASS_REDB_PATH`
+    /// environment variable. This is a fallback for local development only.
     pub const DEFAULT_REDB_PATH: &str = "./data/sweetgrass.redb";
 
-    /// Default sled storage directory path.
+    /// Default sled storage directory path (self-config).
+    ///
+    /// Overridden by `SweetGrassConfig.sled_path` or the `SWEETGRASS_SLED_PATH`
+    /// environment variable. This is a fallback for local development only.
     pub const DEFAULT_SLED_PATH: &str = "./data/sweetgrass";
 }
 
