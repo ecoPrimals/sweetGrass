@@ -19,9 +19,30 @@ use std::path::PathBuf;
 use tracing::{debug, info, warn};
 
 use sweet_grass_core::identity;
+use sweet_grass_core::primal_names::env_vars;
 
 /// Default primal name when `SelfKnowledge` is unavailable.
 const DEFAULT_PRIMAL_NAME: &str = identity::PRIMAL_NAME;
+
+/// Injected socket resolution configuration.
+///
+/// Follows the airSpring / biomeOS `_with_config` DI pattern so tests
+/// can resolve socket paths without mutating process environment.
+#[derive(Debug, Clone, Default)]
+pub struct SocketConfig {
+    /// Explicit socket path override (like `SWEETGRASS_SOCKET` env var).
+    pub explicit_socket: Option<String>,
+    /// biomeOS socket directory (like `BIOMEOS_SOCKET_DIR` env var).
+    pub biomeos_socket_dir: Option<String>,
+    /// biomeOS family ID (like `BIOMEOS_FAMILY_ID` env var).
+    pub family_id: Option<String>,
+    /// XDG runtime directory (like `XDG_RUNTIME_DIR` env var).
+    pub xdg_runtime_dir: Option<String>,
+    /// System user (like `USER` env var).
+    pub user: Option<String>,
+    /// Override primal name (otherwise uses default).
+    pub primal_name: Option<String>,
+}
 
 /// Resolve the Unix domain socket path using XDG-compliant resolution.
 ///
@@ -37,7 +58,7 @@ pub fn resolve_socket_path(primal_name: Option<&str>) -> PathBuf {
     let name = primal_name
         .or(env_name.as_deref())
         .unwrap_or(DEFAULT_PRIMAL_NAME);
-    let family_id = std::env::var("BIOMEOS_FAMILY_ID").unwrap_or_default();
+    let family_id = std::env::var(env_vars::BIOMEOS_FAMILY_ID).unwrap_or_default();
     let sock_name = if family_id.is_empty() {
         format!("{name}.sock")
     } else {
@@ -51,14 +72,14 @@ pub fn resolve_socket_path(primal_name: Option<&str>) -> PathBuf {
     }
 
     // 2. BIOMEOS_SOCKET_DIR
-    if let Ok(dir) = std::env::var("BIOMEOS_SOCKET_DIR") {
+    if let Ok(dir) = std::env::var(env_vars::BIOMEOS_SOCKET_DIR) {
         let path = PathBuf::from(&dir).join(&sock_name);
         debug!(?path, "Using BIOMEOS_SOCKET_DIR");
         return path;
     }
 
     // 3. XDG_RUNTIME_DIR/biomeos/
-    if let Ok(xdg) = std::env::var("XDG_RUNTIME_DIR") {
+    if let Ok(xdg) = std::env::var(env_vars::XDG_RUNTIME_DIR) {
         let dir = PathBuf::from(&xdg).join("biomeos");
         let path = dir.join(&sock_name);
         debug!(?path, "Using XDG_RUNTIME_DIR/biomeos");
@@ -78,6 +99,41 @@ pub fn resolve_socket_path(primal_name: Option<&str>) -> PathBuf {
     let path = std::env::temp_dir().join(&sock_name);
     debug!(?path, "Using TMPDIR fallback");
     path
+}
+
+/// Resolve socket path with injected configuration (no env var reads).
+///
+/// DI-friendly variant for tests and embedded contexts. Follows the
+/// airSpring `_with` pattern adopted ecosystem-wide per biomeOS V239.
+#[must_use]
+pub fn resolve_socket_path_with(config: &SocketConfig) -> PathBuf {
+    let name = config.primal_name.as_deref().unwrap_or(DEFAULT_PRIMAL_NAME);
+    let family_id = config.family_id.as_deref().unwrap_or("");
+    let sock_name = if family_id.is_empty() {
+        format!("{name}.sock")
+    } else {
+        format!("{name}-{family_id}.sock")
+    };
+
+    if let Some(ref path) = config.explicit_socket {
+        return PathBuf::from(path);
+    }
+
+    if let Some(ref dir) = config.biomeos_socket_dir {
+        return PathBuf::from(dir).join(&sock_name);
+    }
+
+    if let Some(ref xdg) = config.xdg_runtime_dir {
+        return PathBuf::from(xdg).join("biomeos").join(&sock_name);
+    }
+
+    if let Some(ref user) = config.user {
+        return std::env::temp_dir()
+            .join(format!("biomeos-{user}"))
+            .join(&sock_name);
+    }
+
+    std::env::temp_dir().join(&sock_name)
 }
 
 /// Start the Unix domain socket JSON-RPC listener.
@@ -214,6 +270,117 @@ mod tests {
         }
     }
 
+    // ==================== DI-based tests (no env mutation, no #[serial]) ====================
+
+    #[test]
+    fn di_explicit_socket_override() {
+        let config = SocketConfig {
+            explicit_socket: Some("/custom/path.sock".to_string()),
+            biomeos_socket_dir: Some("/run/biomeos".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(
+            resolve_socket_path_with(&config),
+            PathBuf::from("/custom/path.sock")
+        );
+    }
+
+    #[test]
+    fn di_biomeos_dir() {
+        let config = SocketConfig {
+            biomeos_socket_dir: Some("/run/biomeos".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(
+            resolve_socket_path_with(&config),
+            PathBuf::from("/run/biomeos/sweetgrass.sock")
+        );
+    }
+
+    #[test]
+    fn di_biomeos_dir_with_family() {
+        let config = SocketConfig {
+            biomeos_socket_dir: Some("/run/biomeos".to_string()),
+            family_id: Some("alpha".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(
+            resolve_socket_path_with(&config),
+            PathBuf::from("/run/biomeos/sweetgrass-alpha.sock")
+        );
+    }
+
+    #[test]
+    fn di_xdg_runtime() {
+        let config = SocketConfig {
+            xdg_runtime_dir: Some("/run/user/1000".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(
+            resolve_socket_path_with(&config),
+            PathBuf::from("/run/user/1000/biomeos/sweetgrass.sock")
+        );
+    }
+
+    #[test]
+    fn di_user_fallback() {
+        let config = SocketConfig {
+            user: Some("testuser".to_string()),
+            ..Default::default()
+        };
+        let expected = std::env::temp_dir()
+            .join("biomeos-testuser")
+            .join("sweetgrass.sock");
+        assert_eq!(resolve_socket_path_with(&config), expected);
+    }
+
+    #[test]
+    fn di_temp_fallback() {
+        let config = SocketConfig::default();
+        let expected = std::env::temp_dir().join("sweetgrass.sock");
+        assert_eq!(resolve_socket_path_with(&config), expected);
+    }
+
+    #[test]
+    fn di_custom_primal_name() {
+        let config = SocketConfig {
+            biomeos_socket_dir: Some("/run/biomeos".to_string()),
+            primal_name: Some("sweetgrass-prod".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(
+            resolve_socket_path_with(&config),
+            PathBuf::from("/run/biomeos/sweetgrass-prod.sock")
+        );
+    }
+
+    #[test]
+    fn di_family_id_in_temp_fallback() {
+        let config = SocketConfig {
+            family_id: Some("beta".to_string()),
+            ..Default::default()
+        };
+        let expected = std::env::temp_dir().join("sweetgrass-beta.sock");
+        assert_eq!(resolve_socket_path_with(&config), expected);
+    }
+
+    #[test]
+    fn di_priority_explicit_overrides_all() {
+        let config = SocketConfig {
+            explicit_socket: Some("/absolute/custom.sock".to_string()),
+            biomeos_socket_dir: Some("/run/biomeos".to_string()),
+            xdg_runtime_dir: Some("/run/user/1000".to_string()),
+            user: Some("testuser".to_string()),
+            ..Default::default()
+        };
+        assert_eq!(
+            resolve_socket_path_with(&config),
+            PathBuf::from("/absolute/custom.sock")
+        );
+    }
+
+    // ==================== Env-based tests (legacy, still valid for production path) ====================
+
     #[test]
     #[serial]
     fn test_resolve_socket_explicit() {
@@ -338,7 +505,6 @@ mod tests {
         unsafe {
             std::env::set_var("BIOMEOS_SOCKET_DIR", "/run/biomeos");
         }
-        // Primal name from SelfKnowledge overrides default
         let path = resolve_socket_path(Some("sweetgrass-prod"));
         assert_eq!(path, PathBuf::from("/run/biomeos/sweetgrass-prod.sock"));
     }
@@ -350,7 +516,6 @@ mod tests {
         unsafe {
             std::env::set_var("SWEETGRASS_SOCKET", "/nonexistent/path/socket.sock");
         }
-        // Should not panic when socket doesn't exist
         cleanup_socket();
     }
 
@@ -366,7 +531,6 @@ mod tests {
         std::fs::write(&sock_path, "").expect("create socket file");
         assert!(sock_path.exists());
         cleanup_socket();
-        // Socket should be removed
         assert!(!sock_path.exists());
     }
 
@@ -388,7 +552,6 @@ mod tests {
             let _ = start_uds_listener(state_clone).await;
         });
 
-        // Give the listener time to bind
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
         let stream = tokio::net::UnixStream::connect(&sock_path)
@@ -443,7 +606,6 @@ mod tests {
             .expect("connect");
         let (reader, mut writer) = stream.into_split();
 
-        // Send malformed JSON
         writer
             .write_all(b"{ invalid json }\n")
             .await
@@ -490,7 +652,6 @@ mod tests {
             .expect("connect");
         let (reader, mut writer) = stream.into_split();
 
-        // Send empty line then valid request
         writer.write_all(b"\n").await.expect("write");
         let request = serde_json::json!({
             "jsonrpc": "2.0",
@@ -504,7 +665,6 @@ mod tests {
         writer.flush().await.expect("flush");
 
         let mut lines = BufReader::new(reader).lines();
-        // First line might be empty or we get response - skip empties in handler
         let response_line = lines.next_line().await.unwrap().expect("response");
         let response: serde_json::Value =
             serde_json::from_str(&response_line).expect("parse response");

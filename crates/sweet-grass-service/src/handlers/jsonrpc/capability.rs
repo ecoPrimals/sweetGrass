@@ -6,42 +6,11 @@
 //! every spring must respond to `capability.list` so that Songbird
 //! and other primals can discover what this primal offers at runtime.
 //!
-//! Evolved per airSpring niche pattern: capability descriptors include
-//! operation dependencies and cost hints for intelligent dispatch.
+//! Delegates to `sweet_grass_core::niche` for the canonical source of
+//! truth — no inline duplication of capability metadata.
 
 use super::{DispatchResult, METHODS, to_value};
 use crate::state::AppState;
-
-/// Operation dependency and cost metadata for capability discovery.
-///
-/// Follows the airSpring niche architecture pattern where capabilities
-/// include dependency information and cost estimates for intelligent
-/// dispatch and graph construction.
-fn capability_metadata() -> serde_json::Value {
-    serde_json::json!({
-        "braid.create":    { "depends_on": [], "cost": "low" },
-        "braid.get":       { "depends_on": [], "cost": "low" },
-        "braid.get_by_hash": { "depends_on": [], "cost": "low" },
-        "braid.query":     { "depends_on": [], "cost": "medium" },
-        "braid.delete":    { "depends_on": [], "cost": "low" },
-        "braid.commit":    { "depends_on": ["braid.create"], "cost": "medium" },
-        "anchoring.anchor":  { "depends_on": ["braid.create"], "cost": "high" },
-        "anchoring.verify":  { "depends_on": [], "cost": "medium" },
-        "provenance.graph":  { "depends_on": ["braid.create"], "cost": "medium" },
-        "provenance.export_provo": { "depends_on": ["braid.create"], "cost": "medium" },
-        "provenance.export_graph_provo": { "depends_on": ["braid.create"], "cost": "high" },
-        "attribution.chain": { "depends_on": ["braid.create"], "cost": "high" },
-        "attribution.calculate_rewards": { "depends_on": ["attribution.chain"], "cost": "high" },
-        "attribution.top_contributors": { "depends_on": ["braid.create"], "cost": "medium" },
-        "compression.compress_session": { "depends_on": ["braid.create"], "cost": "high" },
-        "compression.create_meta_braid": { "depends_on": ["compression.compress_session"], "cost": "medium" },
-        "contribution.record": { "depends_on": ["braid.create"], "cost": "low" },
-        "contribution.record_session": { "depends_on": ["braid.create"], "cost": "medium" },
-        "contribution.record_dehydration": { "depends_on": [], "cost": "medium" },
-        "health.check":    { "depends_on": [], "cost": "low" },
-        "capability.list": { "depends_on": [], "cost": "low" },
-    })
-}
 
 /// `capability.list` — advertise every domain, operation, dependency,
 /// and cost hint this primal serves.
@@ -53,6 +22,8 @@ pub(super) fn handle_capability_list(
     _state: &AppState,
     _params: serde_json::Value,
 ) -> DispatchResult {
+    use sweet_grass_core::niche;
+
     let methods: Vec<&str> = METHODS.iter().map(|m| m.name).collect();
 
     let mut domains = std::collections::BTreeMap::<&str, Vec<&str>>::new();
@@ -62,13 +33,27 @@ pub(super) fn handle_capability_list(
         }
     }
 
+    let mut operations = serde_json::Map::new();
+    for op in niche::operation_dependencies() {
+        operations.insert(
+            op.method.to_string(),
+            serde_json::json!({
+                "depends_on": op.depends_on,
+                "cost": op.cost,
+            }),
+        );
+    }
+
     to_value(&serde_json::json!({
-        "primal": sweet_grass_core::identity::PRIMAL_NAME,
+        "primal": niche::NICHE_ID,
         "version": env!("CARGO_PKG_VERSION"),
+        "description": niche::NICHE_DESCRIPTION,
         "protocol": "jsonrpc-2.0",
         "transport": ["http", "uds"],
         "domains": domains,
         "methods": methods,
-        "operations": capability_metadata(),
+        "operations": operations,
+        "consumed_capabilities": niche::CONSUMED_CAPABILITIES,
+        "cost_estimates": niche::cost_estimates().into_iter().collect::<std::collections::BTreeMap<_, _>>(),
     }))
 }

@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.12 | 903 tests | Edition 2024 | AGPL-3.0-only | Pure Rust | ecoBin compliant
+v0.7.13 | 941 tests | Edition 2024 | AGPL-3.0-only | Pure Rust | ecoBin compliant
 
 ---
 
@@ -60,7 +60,7 @@ curl http://localhost:8080/api/v1/braids
 
 | Crate | Purpose |
 |-------|---------|
-| `sweet-grass-core` | Braid, Agent, Activity, Entity, Contribution, DehydrationSummary, Config |
+| `sweet-grass-core` | Braid, Agent, Activity, Entity, Contribution, DehydrationSummary, Config, niche.rs self-knowledge |
 | `sweet-grass-store` | BraidStore trait + MemoryStore |
 | `sweet-grass-store-postgres` | PostgreSQL backend |
 | `sweet-grass-store-redb` | Embedded Pure Rust backend (redb, recommended) |
@@ -80,7 +80,7 @@ curl http://localhost:8080/api/v1/braids
 
 ### UniBin
 
-Single binary with subcommands (`sweetgrass server`, `sweetgrass status`), graceful shutdown, runtime backend selection.
+Single binary with subcommands (`sweetgrass server`, `sweetgrass status`, `sweetgrass capabilities`, `sweetgrass socket`), graceful shutdown, runtime backend selection. The `capabilities` subcommand dumps capability metadata offline; `socket` prints the resolved UDS path.
 
 ---
 
@@ -103,6 +103,10 @@ Single binary with subcommands (`sweetgrass server`, `sweetgrass status`), grace
 
 ### Error Types
 - **`CapabilityProvider { capability, message }`** — Ecosystem-consistent capability provider error variant
+- **`ServiceError::Transport` and `ServiceError::Discovery`** — IPC error variants for trio partner communication
+
+### Resilience
+- **CircuitBreaker + RetryPolicy** — `with_resilience()` async helper for trio partner IPC
 
 ### Storage Flexibility
 - **Memory**: Testing and development
@@ -175,8 +179,8 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.12 |
-| Tests | 903 passing |
+| Version | v0.7.13 |
+| Tests | 941 passing |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates) |
 | Production unwraps | 0 |

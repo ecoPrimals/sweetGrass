@@ -6,6 +6,7 @@ use thiserror::Error;
 
 /// Errors that can occur during store operations.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum StoreError {
     /// Braid not found.
     #[error("Braid not found: {0}")]

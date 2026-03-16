@@ -77,6 +77,7 @@ mod anchor;
 mod discovery;
 mod error;
 mod listener;
+pub mod resilience;
 pub mod signer;
 
 #[cfg(any(test, feature = "test"))]

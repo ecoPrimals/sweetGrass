@@ -12,6 +12,7 @@ use thiserror::Error;
 
 /// Service error types.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum ServiceError {
     /// Entity not found.
     #[error("not found: {0}")]
@@ -52,6 +53,19 @@ pub enum ServiceError {
     /// IO error (UDS, TCP, file operations).
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
+
+    /// IPC transport error (UDS/tarpc communication failure).
+    #[error("transport error: {0}")]
+    Transport(String),
+
+    /// Capability discovery failed for a required service.
+    #[error("discovery error ({capability}): {message}")]
+    Discovery {
+        /// The capability that could not be discovered.
+        capability: String,
+        /// Error detail.
+        message: String,
+    },
 }
 
 /// Error response body.
@@ -70,9 +84,10 @@ impl IntoResponse for ServiceError {
             Self::Store(_) | Self::Query(_) | Self::Factory(_) | Self::Compression(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "processing_error")
             },
-            Self::Io(_) | Self::Core(_) | Self::Internal(_) => {
+            Self::Io(_) | Self::Core(_) | Self::Internal(_) | Self::Transport(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "internal_error")
             },
+            Self::Discovery { .. } => (StatusCode::SERVICE_UNAVAILABLE, "discovery_error"),
         };
 
         let body = ErrorResponse {

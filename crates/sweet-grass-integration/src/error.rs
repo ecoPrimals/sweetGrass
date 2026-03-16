@@ -6,6 +6,7 @@ use thiserror::Error;
 
 /// Integration error types.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum IntegrationError {
     /// Discovery failed - no primal found offering required capability.
     #[error("Discovery error: {0}")]

@@ -8,6 +8,7 @@ use thiserror::Error;
 
 /// Errors specific to `SweetGrass`.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum SweetGrassError {
     // ==================== Braid Errors ====================
     /// Braid not found.

@@ -1,0 +1,132 @@
+# sweetGrass Capability Registry
+# biomeOS-compatible runtime capability overlay.
+# See: wateringHole SPRING_AS_NICHE_DEPLOYMENT_STANDARD
+#
+# biomeOS reads this file to discover sweetGrass capabilities
+# without requiring the primal to be running.
+
+[primal]
+name = "sweetgrass"
+version = "0.7.13"
+description = "Semantic provenance and attribution layer"
+license = "AGPL-3.0-only"
+protocol = "jsonrpc-2.0"
+transport = ["http", "uds"]
+
+[domains.braid]
+description = "Provenance record lifecycle"
+methods = ["create", "get", "get_by_hash", "query", "delete", "commit"]
+
+[domains.anchoring]
+description = "Cryptographic anchoring and verification"
+methods = ["anchor", "verify"]
+
+[domains.provenance]
+description = "Provenance graph traversal and export"
+methods = ["graph", "export_provo", "export_graph_provo"]
+
+[domains.attribution]
+description = "Fair credit attribution and reward calculation"
+methods = ["chain", "calculate_rewards", "top_contributors"]
+
+[domains.compression]
+description = "Session compression and meta-braid creation"
+methods = ["compress_session", "create_meta_braid"]
+
+[domains.contribution]
+description = "Contribution recording and dehydration intake"
+methods = ["record", "record_session", "record_dehydration"]
+
+[domains.health]
+description = "Health and readiness"
+methods = ["check"]
+
+[domains.capability]
+description = "Capability discovery"
+methods = ["list"]
+
+# Per-operation metadata for biomeOS dispatch graph
+
+[operations."braid.create"]
+depends_on = []
+cost = "low"
+
+[operations."braid.get"]
+depends_on = []
+cost = "low"
+
+[operations."braid.get_by_hash"]
+depends_on = []
+cost = "low"
+
+[operations."braid.query"]
+depends_on = []
+cost = "medium"
+
+[operations."braid.delete"]
+depends_on = []
+cost = "low"
+
+[operations."braid.commit"]
+depends_on = ["braid.create"]
+cost = "medium"
+
+[operations."anchoring.anchor"]
+depends_on = ["braid.create"]
+cost = "high"
+
+[operations."anchoring.verify"]
+depends_on = []
+cost = "medium"
+
+[operations."provenance.graph"]
+depends_on = ["braid.create"]
+cost = "medium"
+
+[operations."provenance.export_provo"]
+depends_on = ["braid.create"]
+cost = "medium"
+
+[operations."provenance.export_graph_provo"]
+depends_on = ["braid.create"]
+cost = "high"
+
+[operations."attribution.chain"]
+depends_on = ["braid.create"]
+cost = "high"
+
+[operations."attribution.calculate_rewards"]
+depends_on = ["attribution.chain"]
+cost = "high"
+
+[operations."attribution.top_contributors"]
+depends_on = ["braid.create"]
+cost = "medium"
+
+[operations."compression.compress_session"]
+depends_on = ["braid.create"]
+cost = "high"
+
+[operations."compression.create_meta_braid"]
+depends_on = ["compression.compress_session"]
+cost = "medium"
+
+[operations."contribution.record"]
+depends_on = ["braid.create"]
+cost = "low"
+
+[operations."contribution.record_session"]
+depends_on = ["braid.create"]
+cost = "medium"
+
+[operations."contribution.record_dehydration"]
+depends_on = []
+cost = "medium"
+
+[operations."health.check"]
+depends_on = []
+cost = "low"
+
+[operations."capability.list"]
+depends_on = []
+cost = "low"

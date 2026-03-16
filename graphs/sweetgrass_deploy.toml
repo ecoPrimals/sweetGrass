@@ -1,0 +1,57 @@
+# sweetGrass Deploy Graph for biomeOS BYOB Deployment
+# See: wateringHole SPRING_AS_NICHE_DEPLOYMENT_STANDARD
+#
+# Declares startup order and dependency topology for biomeOS
+# orchestration. sweetGrass is the last node in the provenance
+# trio sequence.
+
+[graph]
+name = "sweetgrass"
+version = "0.7.13"
+description = "Semantic provenance and attribution layer"
+
+# Binary to execute (UniBin pattern)
+binary = "sweetgrass"
+subcommand = "server"
+
+# Startup dependencies — ordered by boot sequence.
+# All dependencies use fallback = "skip" because sweetGrass
+# can operate standalone with degraded capability.
+
+[[dependencies]]
+capability = "crypto.sign"
+description = "Cryptographic signing for anchoring operations"
+required = false
+fallback = "skip"
+
+[[dependencies]]
+capability = "discovery.register"
+description = "Mesh registration and heartbeat"
+required = false
+fallback = "skip"
+
+[[dependencies]]
+capability = "dag.session.create"
+description = "rhizoCrypt DAG session management"
+required = false
+fallback = "skip"
+
+[[dependencies]]
+capability = "spine.create"
+description = "LoamSpine permanence anchoring"
+required = false
+fallback = "skip"
+
+# Startup ordering hint for biomeOS scheduler.
+# Lower priority = starts later (after dependencies).
+[scheduling]
+priority = 50
+startup_timeout_ms = 10000
+health_check = "health.check"
+readiness_probe = "capability.list"
+
+# Environment variables biomeOS should set before launch.
+[environment]
+SWEETGRASS_HTTP_ADDRESS = "0.0.0.0:0"
+SWEETGRASS_TARPC_ADDRESS = "0.0.0.0:0"
+STORAGE_BACKEND = "redb"

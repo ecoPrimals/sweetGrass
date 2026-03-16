@@ -6,6 +6,7 @@ use thiserror::Error;
 
 /// Errors that can occur during Braid factory operations.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum FactoryError {
     /// Missing required data.
     #[error("Missing required field: {0}")]

@@ -9,6 +9,7 @@ pub type Result<T> = std::result::Result<T, RedbError>;
 
 /// redb store error types.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum RedbError {
     /// Database open error.
     #[error("Database open error: {0}")]
