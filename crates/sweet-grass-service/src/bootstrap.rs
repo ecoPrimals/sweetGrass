@@ -181,12 +181,26 @@ pub async fn infant_bootstrap() -> Result<BootstrapResult, BootstrapError> {
 pub async fn infant_bootstrap_with_config(
     config: BootstrapConfig,
 ) -> Result<BootstrapResult, BootstrapError> {
-    info!("🌱 Infant Bootstrap: Starting with explicit configuration");
+    let reader = |key: &str| std::env::var(key).ok();
+    infant_bootstrap_with_config_and_reader(config, reader).await
+}
 
-    // Phase 1: Establish self-knowledge from environment
-    // (primal identity still comes from env — only storage is config-driven)
-    debug!("Phase 1: Establishing self-knowledge from environment");
-    let self_knowledge = SelfKnowledge::from_env()?;
+/// Fully DI-friendly bootstrap: explicit storage config + env reader.
+///
+/// Tests use this to avoid `unsafe` env var mutation entirely.
+///
+/// # Errors
+///
+/// Returns error if self-knowledge or storage initialization fails.
+#[instrument(skip(config, reader))]
+pub async fn infant_bootstrap_with_config_and_reader(
+    config: BootstrapConfig,
+    reader: impl Fn(&str) -> Option<String>,
+) -> Result<BootstrapResult, BootstrapError> {
+    info!("Infant Bootstrap: Starting with explicit configuration");
+
+    debug!("Phase 1: Establishing self-knowledge");
+    let self_knowledge = SelfKnowledge::from_reader(reader)?;
 
     info!(
         primal_name = %self_knowledge.name,
@@ -195,17 +209,14 @@ pub async fn infant_bootstrap_with_config(
         "Self-knowledge established"
     );
 
-    // Phase 2: Initialize storage from explicit config (no env mutation)
     debug!("Phase 2: Initializing storage from explicit config");
     let (store, backend_type) = BraidStoreFactory::from_config_with_name(&config.storage).await?;
 
     info!(backend = backend_type, "Storage backend initialized");
 
-    // Phase 3: Establish default agent identity
     debug!("Phase 3: Establishing default agent identity");
     let default_agent = Did::new(format!("did:primal:{}", self_knowledge.instance_id));
 
-    // Phase 4: Create application state
     debug!("Phase 4: Creating application state");
     let app_state = AppState::with_self_knowledge(
         store,
@@ -224,7 +235,7 @@ pub async fn infant_bootstrap_with_config(
     info!(
         primal_name = %self_knowledge.name,
         default_agent = %default_agent,
-        "🌾 Infant Bootstrap complete"
+        "Infant Bootstrap complete"
     );
 
     Ok(BootstrapResult {
@@ -249,105 +260,82 @@ pub async fn create_app_state_from_env() -> Result<AppState, BootstrapError> {
 }
 
 #[cfg(test)]
-#[allow(unsafe_code)]
 #[expect(
     clippy::expect_used,
     reason = "test module: expect is standard in tests"
 )]
 mod tests {
+    use std::collections::HashMap;
     use std::sync::Arc;
 
     use super::*;
     use sweet_grass_core::Capability;
 
-    // NOTE: These tests modify environment variables and should be run with --test-threads=1
-
-    /// All storage-related env vars that must be cleared for test isolation.
-    const STORAGE_ENV_VARS: &[&str] = &[
-        "PRIMAL_NAME",
-        "PRIMAL_INSTANCE_ID",
-        "PRIMAL_CAPABILITIES",
-        "DATABASE_URL",
-        "STORAGE_URL",
-        "STORAGE_BACKEND",
-        "STORAGE_PATH",
-        "SLED_PATH",
-    ];
-
-    fn clear_env() {
-        for var in STORAGE_ENV_VARS {
-            unsafe {
-                std::env::remove_var(var);
-            }
-        }
+    fn mock_reader(vars: &[(&str, &str)]) -> impl Fn(&str) -> Option<String> {
+        let map: HashMap<String, String> = vars
+            .iter()
+            .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+            .collect();
+        move |key: &str| map.get(key).cloned()
     }
 
-    #[tokio::test]
-    #[serial_test::serial]
-    async fn test_infant_bootstrap_defaults() {
-        clear_env();
-
-        let result = infant_bootstrap().await.expect("should bootstrap");
-
-        assert_eq!(result.self_knowledge.name, "sweetgrass");
-        assert!(!result.self_knowledge.instance_id.is_empty());
-        assert!(result.default_agent.as_str().starts_with("did:primal:"));
-        // Verify app state has a store
-        assert!(Arc::strong_count(&result.app_state.store) >= 1);
+    fn empty_reader() -> impl Fn(&str) -> Option<String> {
+        |_: &str| None
     }
 
-    #[tokio::test]
-    #[serial_test::serial]
-    async fn test_infant_bootstrap_with_config() {
-        clear_env();
-        unsafe {
-            std::env::set_var("PRIMAL_NAME", "sweetgrass-test");
-        }
-        unsafe {
-            std::env::set_var("PRIMAL_INSTANCE_ID", "test-123");
-        }
-        unsafe {
-            std::env::set_var("PRIMAL_CAPABILITIES", "signing,anchoring");
-        }
-
-        let result = infant_bootstrap().await.expect("should bootstrap");
-
-        assert_eq!(result.self_knowledge.name, "sweetgrass-test");
-        assert_eq!(result.self_knowledge.instance_id, "test-123");
-        assert_eq!(result.self_knowledge.capabilities.len(), 2);
-        assert!(result.self_knowledge.offers(&Capability::Signing));
-        assert_eq!(result.default_agent.as_str(), "did:primal:test-123");
-
-        clear_env();
-    }
-
-    #[tokio::test]
-    #[serial_test::serial]
-    async fn test_create_app_state_from_env() {
-        clear_env();
-
-        let app_state = create_app_state_from_env()
-            .await
-            .expect("should create app state");
-
-        // Verify app state has a store
-        assert!(Arc::strong_count(&app_state.store) >= 1);
-    }
-
-    #[tokio::test]
-    #[serial_test::serial]
-    async fn test_infant_bootstrap_with_explicit_config_memory() {
-        clear_env();
-        let config = BootstrapConfig {
+    fn memory_config() -> BootstrapConfig {
+        BootstrapConfig {
             storage: crate::factory::StorageConfig {
                 backend: "memory".to_string(),
                 ..Default::default()
             },
             primal_name: None,
             instance_id: None,
-        };
+        }
+    }
 
-        let result = infant_bootstrap_with_config(config)
+    #[tokio::test]
+    async fn test_infant_bootstrap_defaults() {
+        let result = infant_bootstrap_with_config_and_reader(memory_config(), empty_reader())
+            .await
+            .expect("should bootstrap");
+
+        assert_eq!(result.self_knowledge.name, "sweetgrass");
+        assert!(!result.self_knowledge.instance_id.is_empty());
+        assert!(result.default_agent.as_str().starts_with("did:primal:"));
+        assert!(Arc::strong_count(&result.app_state.store) >= 1);
+    }
+
+    #[tokio::test]
+    async fn test_infant_bootstrap_with_custom_identity() {
+        let reader = mock_reader(&[
+            ("PRIMAL_NAME", "sweetgrass-test"),
+            ("PRIMAL_INSTANCE_ID", "test-123"),
+            ("PRIMAL_CAPABILITIES", "signing,anchoring"),
+        ]);
+
+        let result = infant_bootstrap_with_config_and_reader(memory_config(), reader)
+            .await
+            .expect("should bootstrap");
+
+        assert_eq!(result.self_knowledge.name, "sweetgrass-test");
+        assert_eq!(result.self_knowledge.instance_id, "test-123");
+        assert_eq!(result.self_knowledge.capabilities.len(), 2);
+        assert!(result.self_knowledge.offers(&Capability::Signing));
+        assert_eq!(result.default_agent.as_str(), "did:primal:test-123");
+    }
+
+    #[tokio::test]
+    async fn test_create_app_state_from_env() {
+        let app_state = create_app_state_from_env()
+            .await
+            .expect("should create app state");
+        assert!(Arc::strong_count(&app_state.store) >= 1);
+    }
+
+    #[tokio::test]
+    async fn test_infant_bootstrap_with_explicit_config_memory() {
+        let result = infant_bootstrap_with_config_and_reader(memory_config(), empty_reader())
             .await
             .expect("should bootstrap with config");
 
@@ -357,66 +345,33 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial_test::serial]
     async fn test_infant_bootstrap_with_explicit_config_primal_identity() {
-        clear_env();
-        unsafe {
-            std::env::set_var("PRIMAL_NAME", "sg-config-test");
-        }
-        unsafe {
-            std::env::set_var("PRIMAL_INSTANCE_ID", "cfg-instance-42");
-        }
+        let reader = mock_reader(&[
+            ("PRIMAL_NAME", "sg-config-test"),
+            ("PRIMAL_INSTANCE_ID", "cfg-instance-42"),
+        ]);
 
-        let config = BootstrapConfig {
-            storage: crate::factory::StorageConfig {
-                backend: "memory".to_string(),
-                ..Default::default()
-            },
-            primal_name: None,
-            instance_id: None,
-        };
-
-        let result = infant_bootstrap_with_config(config)
+        let result = infant_bootstrap_with_config_and_reader(memory_config(), reader)
             .await
             .expect("bootstrap");
         assert_eq!(result.self_knowledge.name, "sg-config-test");
         assert_eq!(result.self_knowledge.instance_id, "cfg-instance-42");
         assert_eq!(result.default_agent.as_str(), "did:primal:cfg-instance-42");
         assert!(result.app_state.self_knowledge.is_some());
-
-        clear_env();
     }
 
     #[tokio::test]
-    #[serial_test::serial]
     async fn test_infant_bootstrap_with_config_capabilities() {
-        clear_env();
-        unsafe {
-            std::env::set_var("PRIMAL_CAPABILITIES", "signing,anchoring,session_events");
-        }
+        let reader = mock_reader(&[("PRIMAL_CAPABILITIES", "signing,anchoring,session_events")]);
 
-        let config = BootstrapConfig {
-            storage: crate::factory::StorageConfig {
-                backend: "memory".to_string(),
-                ..Default::default()
-            },
-            primal_name: None,
-            instance_id: None,
-        };
-
-        let result = infant_bootstrap_with_config(config)
+        let result = infant_bootstrap_with_config_and_reader(memory_config(), reader)
             .await
             .expect("bootstrap");
         assert_eq!(result.self_knowledge.capabilities.len(), 3);
-
-        clear_env();
     }
 
     #[tokio::test]
-    #[serial_test::serial]
     async fn test_infant_bootstrap_with_config_invalid_storage() {
-        clear_env();
-
         let config = BootstrapConfig {
             storage: crate::factory::StorageConfig {
                 backend: "invalid_backend".to_string(),
@@ -426,7 +381,7 @@ mod tests {
             instance_id: None,
         };
 
-        let result = infant_bootstrap_with_config(config).await;
+        let result = infant_bootstrap_with_config_and_reader(config, empty_reader()).await;
         assert!(result.is_err());
         if let Err(err) = result {
             assert!(err.to_string().contains("Unknown storage backend"));

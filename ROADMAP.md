@@ -1,10 +1,21 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.13 (March 2026)
+**Current Version**: v0.7.14 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.14 — DI Pattern + Unsafe Elimination + Dynamic Reconnection (March 2026)
+
+- [x] **DI-based environment reading** — `SelfKnowledge::from_reader()`, `infant_bootstrap_with_config_and_reader()`, `check_integrations_with_reader()` for testable env-free code paths
+- [x] **Unsafe code eliminated from tests** — All `unsafe { std::env::set_var }` and `std::env::remove_var` removed from `primal_info.rs`, `bootstrap.rs`, `health.rs`, `uds.rs` via DI pattern
+- [x] **`#[serial_test::serial]` removed** — Tests now thread-safe via injected readers, no global env mutation
+- [x] **Dynamic reconnection** — `AnchorManager::reconnect()` and `EventHandler::reconnect()` use `parking_lot::RwLock` for hot-swappable clients via capability discovery
+- [x] **Resilience compile-time safety** — `with_resilience()` refactored to eliminate `unwrap()` and `#[allow]` via `try_once()` helper
+- [x] **UDS explicit-path API** — `start_uds_listener_at()` and `cleanup_socket_at()` for direct path control
+- [x] **Redundant tests consolidated** — 8 duplicative env-based tests removed; remaining tests more robust
+- [x] 933 tests passing (was 941), 0 clippy warnings, 0 unsafe in tests or production
 
 ### v0.7.13 — Self-Knowledge Module + Resilience + biomeOS Deploy (March 2026)
 
@@ -301,7 +312,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.13 | **March 2026** | Self-Knowledge Module + Resilience + biomeOS Deploy (DONE) |
+| v0.7.14 | **March 2026** | DI Pattern + Unsafe Elimination + Dynamic Reconnection (DONE) |
+| v0.7.13 | March 2026 | Self-Knowledge Module + Resilience + biomeOS Deploy (DONE) |
 | v0.7.12 | March 2026 | Edition 2024 Migration + Spring Absorption + Chaos Tests (DONE) |
 | v0.7.11 | March 2026 | JSON-RPC 2.0 Spec Compliance + Deep Debt + Coverage Push (DONE) |
 | v0.7.10 | March 2026 | Typed Error Evolution + Lint Hardening + Platform-Agnostic IPC (DONE) |

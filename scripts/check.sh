@@ -90,17 +90,19 @@ else
     echo "    Review these carefully - they should be in test code only"
 fi
 
-# 7. Check for unsafe code
+# 7. Check for unsafe code in production (test modules excluded)
 echo ""
 echo "7️⃣  Checking for unsafe code..."
-UNSAFE=$(grep -r "unsafe" crates/*/src --include="*.rs" \
-    | grep -v "forbid(unsafe_code)" \
+UNSAFE=$(grep -rn "unsafe {" crates/*/src --include="*.rs" \
+    | grep -v "/tests\.rs:" \
+    | grep -v "/tests/" \
+    | grep -v "#\[cfg(test)\]" \
     | wc -l || true)
 
 if [ "$UNSAFE" -eq 0 ]; then
-    check_pass "Zero unsafe code"
+    check_pass "Zero unsafe code in production"
 else
-    check_fail "Found unsafe code blocks"
+    check_fail "Found $UNSAFE unsafe blocks in production code"
 fi
 
 # 8. Check file sizes

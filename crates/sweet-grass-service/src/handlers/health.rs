@@ -248,8 +248,13 @@ pub async fn health_detailed(
 /// Uses capability-based discovery to check integration status.
 /// No primal names are hardcoded - only capabilities.
 fn check_integrations() -> IntegrationStatus {
-    // Check discovery capability (required for other checks)
-    let discovery = check_capability_env("DISCOVERY_ADDRESS");
+    check_integrations_with_reader(|key| std::env::var(key).ok())
+}
+
+/// DI-friendly integration checker. Tests inject a reader
+/// instead of mutating process-global environment variables.
+fn check_integrations_with_reader(reader: impl Fn(&str) -> Option<String>) -> IntegrationStatus {
+    let discovery = check_capability(&reader, "DISCOVERY_ADDRESS");
 
     IntegrationStatus {
         signing: None,        // Discovered via Capability::Signing
@@ -260,19 +265,16 @@ fn check_integrations() -> IntegrationStatus {
     }
 }
 
-/// Check a capability via environment variable.
+/// Check a capability via a key reader.
 ///
 /// Environment variables follow the pattern: `{CAPABILITY}_ADDRESS`
-fn check_capability_env(env_var: &str) -> PrimalStatus {
-    std::env::var(env_var).map_or_else(
-        |_| PrimalStatus::unknown(),
-        |addr| PrimalStatus {
-            connected: false,
-            address: Some(addr),
-            last_seen: None,
-            error: Some("Not connected (health check only)".to_string()),
-        },
-    )
+fn check_capability(reader: &impl Fn(&str) -> Option<String>, env_var: &str) -> PrimalStatus {
+    reader(env_var).map_or_else(PrimalStatus::unknown, |addr| PrimalStatus {
+        connected: false,
+        address: Some(addr),
+        last_seen: None,
+        error: Some("Not connected (health check only)".to_string()),
+    })
 }
 
 /// Liveness probe.
@@ -289,7 +291,6 @@ pub async fn readiness(State(state): State<AppState>) -> StatusCode {
 }
 
 #[cfg(test)]
-#[allow(unsafe_code)]
 #[expect(
     clippy::unwrap_used,
     clippy::expect_used,
@@ -418,11 +419,7 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial_test::serial]
     async fn test_health_detailed() {
-        unsafe {
-            std::env::remove_var("DISCOVERY_ADDRESS");
-        }
         let state = create_test_state();
         let result = health_detailed(State(state)).await;
         assert!(result.is_ok());
@@ -528,22 +525,9 @@ mod tests {
         assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
     }
 
-    #[tokio::test]
-    #[serial_test::serial]
-    async fn test_health_detailed_integrations_discovery_unknown() {
-        unsafe {
-            std::env::remove_var("DISCOVERY_ADDRESS");
-        }
-
-        let state = create_test_state();
-        let result = health_detailed(State(state)).await;
-        assert!(result.is_ok());
-
-        let response = result.unwrap();
-        let integrations = response
-            .integrations
-            .as_ref()
-            .expect("should have integrations");
+    #[test]
+    fn test_integrations_discovery_unknown_via_reader() {
+        let integrations = check_integrations_with_reader(|_| None);
         let discovery = integrations
             .discovery
             .as_ref()
@@ -553,22 +537,11 @@ mod tests {
         assert!(discovery.error.is_none());
     }
 
-    #[tokio::test]
-    #[serial_test::serial]
-    async fn test_health_detailed_integrations_discovery_configured() {
-        unsafe {
-            std::env::set_var("DISCOVERY_ADDRESS", "localhost:9999");
-        }
-
-        let state = create_test_state();
-        let result = health_detailed(State(state)).await;
-        assert!(result.is_ok());
-
-        let response = result.unwrap();
-        let integrations = response
-            .integrations
-            .as_ref()
-            .expect("should have integrations");
+    #[test]
+    fn test_integrations_discovery_configured_via_reader() {
+        let integrations = check_integrations_with_reader(|key| {
+            (key == "DISCOVERY_ADDRESS").then(|| "localhost:9999".to_string())
+        });
         let discovery = integrations
             .discovery
             .as_ref()
@@ -576,10 +549,6 @@ mod tests {
         assert!(!discovery.connected);
         assert_eq!(discovery.address.as_deref(), Some("localhost:9999"));
         assert!(discovery.error.is_some());
-
-        unsafe {
-            std::env::remove_var("DISCOVERY_ADDRESS");
-        }
     }
 
     #[test]

@@ -5,6 +5,49 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.14] - 2026-03-16
+
+### DI Pattern + Unsafe Elimination + Dynamic Reconnection
+
+Dependency Injection pattern applied across all environment-reading code paths.
+All unsafe `std::env::set_var`/`remove_var` eliminated from tests. Dynamic
+client reconnection for resilient inter-primal communication.
+
+### Added
+
+- **`SelfKnowledge::from_reader()`** — DI-friendly constructor accepting env reader closure
+- **`infant_bootstrap_with_config_and_reader()`** — Full DI bootstrap (config + env reader)
+- **`check_integrations_with_reader()`** — DI-friendly health integration checks
+- **`start_uds_listener_at()`** — Explicit-path UDS listener (bypasses env lookup)
+- **`cleanup_socket_at()`** — Explicit-path UDS socket cleanup
+- **`AnchorManager::reconnect()`** — Hot-swap anchoring client via capability discovery
+- **`EventHandler::reconnect()`** — Hot-swap session events client via capability discovery
+- **`try_once()` helper** — Compile-time safe first-attempt for `with_resilience()`
+
+### Changed
+
+- **`AnchorManager::anchoring_client`** → `parking_lot::RwLock<Arc<dyn AnchoringClient>>`
+  for dynamic client replacement during reconnection
+- **`EventHandler::session_client`** → `parking_lot::RwLock<Arc<dyn SessionEventsClient>>`
+  for dynamic client replacement during reconnection
+- **`with_resilience()`** refactored to eliminate `unwrap()` and `#[allow(clippy::unwrap_used)]`
+  via separate first-attempt handling with `try_once()` helper
+- **`resolve_socket_path()`** now delegates to `resolve_socket_path_with()` internally
+
+### Removed
+
+- **All `unsafe { std::env::set_var }` / `remove_var`** from `primal_info.rs`, `bootstrap.rs`,
+  `health.rs`, `uds.rs` test modules — replaced by DI reader injection
+- **All `#[serial_test::serial]`** from refactored test modules — tests now thread-safe
+- **8 redundant env-based tests** in `uds.rs` — consolidated into DI-based equivalents
+
+### Metrics
+
+- 933 tests (was 941), 0 failures, 0 clippy warnings, 0 doc warnings
+- 0 unsafe blocks in tests or production (was ~20 unsafe env mutations in tests)
+- 0 `#[serial]` attributes in refactored modules (was ~15)
+- Net -197 LOC (333 added, 530 removed — cleaner, more robust code)
+
 ## [0.7.13] - 2026-03-16
 
 ### Niche Architecture + Resilience + Cross-Spring Absorption

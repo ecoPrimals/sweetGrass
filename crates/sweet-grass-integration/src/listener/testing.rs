@@ -16,7 +16,7 @@ pub struct MockSessionEventsClient {
     healthy: bool,
 }
 
-#[allow(dead_code)]
+#[allow(dead_code)] // Methods used by test binaries and downstream crates
 impl MockSessionEventsClient {
     /// Create a new mock client.
     #[must_use]

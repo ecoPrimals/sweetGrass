@@ -93,14 +93,8 @@ pub trait SessionEventStream: Send + Sync {
 
 /// Event handler that processes session events using discovery.
 pub struct EventHandler {
-    /// Discovery service for capability-based primal lookup.
-    /// Reserved for v0.8.0 deployment (reconnection and failover scenarios).
-    #[expect(
-        dead_code,
-        reason = "Reserved for v0.8.0 reconnection and failover; will be used when discovery-based reconnection is implemented"
-    )]
     discovery: Arc<dyn PrimalDiscovery>,
-    session_client: Arc<dyn SessionEventsClient>,
+    session_client: parking_lot::RwLock<Arc<dyn SessionEventsClient>>,
     compression: Arc<sweet_grass_compression::CompressionEngine>,
     store: Arc<dyn sweet_grass_store::BraidStore>,
 }
@@ -134,7 +128,7 @@ impl EventHandler {
 
         Ok(Self {
             discovery,
-            session_client,
+            session_client: parking_lot::RwLock::new(session_client),
             compression,
             store,
         })
@@ -149,10 +143,39 @@ impl EventHandler {
         let discovery = Arc::new(crate::discovery::LocalDiscovery::new());
         Self {
             discovery,
-            session_client: client,
+            session_client: parking_lot::RwLock::new(client),
             compression,
             store,
         }
+    }
+
+    /// Re-discover the session events primal and reconnect.
+    ///
+    /// Uses capability-based discovery to find a (possibly different) primal
+    /// offering `Capability::SessionEvents`, then replaces the active client.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no session-events-capable primal is discovered.
+    #[instrument(skip(self, client_factory))]
+    pub async fn reconnect<F>(&self, client_factory: F) -> Result<()>
+    where
+        F: FnOnce(&DiscoveredPrimal) -> Arc<dyn SessionEventsClient>,
+    {
+        debug!("Re-discovering session events capability for reconnection");
+
+        let primal = self
+            .discovery
+            .find_one(&Capability::SessionEvents)
+            .await
+            .map_err(|e| IntegrationError::Discovery(e.to_string()))?;
+
+        debug!(primal = %primal.name, "Reconnected to session events primal");
+
+        let new_client = client_factory(&primal);
+        *self.session_client.write() = new_client;
+
+        Ok(())
     }
 
     /// Start processing events.
@@ -162,7 +185,8 @@ impl EventHandler {
     /// Returns an error if subscribing to the event stream fails.
     #[instrument(skip(self))]
     pub async fn start(&self) -> Result<()> {
-        let mut stream = self.session_client.subscribe().await?;
+        let client = Arc::clone(&self.session_client.read());
+        let mut stream = client.subscribe().await?;
 
         while let Some(event) = stream.next().await {
             if let Err(e) = self.process_event(event).await {
@@ -207,10 +231,10 @@ impl EventHandler {
         Ok(())
     }
 
-    /// Get the underlying client.
+    /// Get the underlying client reference.
     #[must_use]
-    pub fn client(&self) -> &dyn SessionEventsClient {
-        self.session_client.as_ref()
+    pub fn client(&self) -> Arc<dyn SessionEventsClient> {
+        Arc::clone(&self.session_client.read())
     }
 }
 
@@ -222,7 +246,7 @@ impl EventHandler {
 pub mod testing;
 
 #[cfg(any(test, feature = "test"))]
-#[allow(unused_imports)]
+#[allow(unused_imports)] // Used by downstream crates via the `test` feature
 pub use testing::MockSessionEventsClient;
 
 #[cfg(test)]

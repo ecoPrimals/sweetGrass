@@ -215,20 +215,21 @@ where
     Fut: std::future::Future<Output = Result<T, E>>,
     E: std::fmt::Display,
 {
-    let mut last_err = None;
+    // Execute the first attempt unconditionally to guarantee we always have an
+    // error to return. This eliminates Option<E> and the need for any
+    // unwrap/expect.
+    let mut last_err = match try_once(&mut operation, breaker).await {
+        Ok(value) => return Ok(value),
+        Err(e) => e,
+    };
 
-    for attempt in 0..=policy.max_retries {
+    for attempt in 1..=policy.max_retries {
         if !breaker.allow_request() {
-            if let Some(err) = last_err {
-                return Err(err);
-            }
-            // Circuit was already open before any attempt — do one attempt
-            // anyway so we have an error to return.
-            match operation().await {
-                Ok(value) => return Ok(value),
-                Err(e) => return Err(e),
-            }
+            return Err(last_err);
         }
+
+        let delay = policy.delay_for_attempt(attempt.saturating_sub(1));
+        tokio::time::sleep(delay).await;
 
         match operation().await {
             Ok(value) => {
@@ -242,20 +243,39 @@ where
                     "Resilient operation failed, recording failure"
                 );
                 breaker.record_failure();
-                last_err = Some(e);
-
-                if policy.should_retry(attempt) {
-                    let delay = policy.delay_for_attempt(attempt);
-                    tokio::time::sleep(delay).await;
-                }
+                last_err = e;
             },
         }
     }
 
-    // The loop always executes at least once (attempt 0), so last_err is always Some
-    // at this point.
-    #[allow(clippy::unwrap_used)]
-    Err(last_err.unwrap())
+    Err(last_err)
+}
+
+async fn try_once<F, Fut, T, E>(operation: &mut F, breaker: &CircuitBreaker) -> Result<T, E>
+where
+    F: FnMut() -> Fut,
+    Fut: std::future::Future<Output = Result<T, E>>,
+    E: std::fmt::Display,
+{
+    if !breaker.allow_request() {
+        return operation().await;
+    }
+
+    match operation().await {
+        Ok(value) => {
+            breaker.record_success();
+            Ok(value)
+        },
+        Err(e) => {
+            tracing::debug!(
+                attempt = 0,
+                error = %e,
+                "Resilient operation failed, recording failure"
+            );
+            breaker.record_failure();
+            Err(e)
+        },
+    }
 }
 
 #[cfg(test)]

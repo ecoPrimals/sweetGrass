@@ -75,15 +75,8 @@ pub trait AnchoringClient: Send + Sync {
 
 /// Manages Braid anchoring using capability-based discovery.
 pub struct AnchorManager {
-    /// Discovery service for capability-based primal lookup.
-    /// Reserved for v0.8.0 deployment (reconnection and failover scenarios).
-    #[expect(
-        dead_code,
-        reason = "Reserved for v0.8.0 reconnection and failover; will be used when discovery-based reconnection is implemented"
-    )]
     discovery: Arc<dyn PrimalDiscovery>,
-    anchoring_client: Arc<dyn AnchoringClient>,
-    /// Braid store for fetching braids by ID in `anchor_by_id`.
+    anchoring_client: parking_lot::RwLock<Arc<dyn AnchoringClient>>,
     store: Arc<dyn sweet_grass_store::BraidStore>,
 }
 
@@ -115,7 +108,7 @@ impl AnchorManager {
 
         Ok(Self {
             discovery,
-            anchoring_client,
+            anchoring_client: parking_lot::RwLock::new(anchoring_client),
             store,
         })
     }
@@ -128,9 +121,39 @@ impl AnchorManager {
         let discovery = Arc::new(crate::discovery::LocalDiscovery::new());
         Self {
             discovery,
-            anchoring_client: client,
+            anchoring_client: parking_lot::RwLock::new(client),
             store,
         }
+    }
+
+    /// Re-discover the anchoring primal and reconnect.
+    ///
+    /// Uses capability-based discovery to find a (possibly different) primal
+    /// offering `Capability::Anchoring`, then replaces the active client.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no anchoring-capable primal is discovered or the
+    /// client factory fails.
+    #[instrument(skip(self, client_factory))]
+    pub async fn reconnect<F>(&self, client_factory: F) -> Result<()>
+    where
+        F: FnOnce(&DiscoveredPrimal) -> Arc<dyn AnchoringClient>,
+    {
+        debug!("Re-discovering anchoring capability for reconnection");
+
+        let primal = self
+            .discovery
+            .find_one(&Capability::Anchoring)
+            .await
+            .map_err(|e| IntegrationError::Discovery(e.to_string()))?;
+
+        debug!(primal = %primal.name, "Reconnected to anchoring primal");
+
+        let new_client = client_factory(&primal);
+        *self.anchoring_client.write() = new_client;
+
+        Ok(())
     }
 
     /// Anchor a Braid by ID.
@@ -145,7 +168,8 @@ impl AnchorManager {
                 IntegrationError::Anchoring(format!("Braid not found: {braid_id}"))
             })?;
 
-        self.anchoring_client.anchor(&braid, spine_id).await
+        let client = Arc::clone(&self.anchoring_client.read());
+        client.anchor(&braid, spine_id).await
     }
 
     /// Verify a Braid's anchor.
@@ -154,7 +178,8 @@ impl AnchorManager {
     ///
     /// Returns an error if the verification request fails.
     pub async fn verify(&self, braid_id: &BraidId) -> Result<Option<AnchorInfo>> {
-        self.anchoring_client.verify(braid_id).await
+        let client = Arc::clone(&self.anchoring_client.read());
+        client.verify(braid_id).await
     }
 
     /// Get all anchors for a Braid.
@@ -163,13 +188,14 @@ impl AnchorManager {
     ///
     /// Returns an error if the anchor lookup fails.
     pub async fn get_anchors(&self, braid_id: &BraidId) -> Result<Vec<AnchorInfo>> {
-        self.anchoring_client.get_anchors(braid_id).await
+        let client = Arc::clone(&self.anchoring_client.read());
+        client.get_anchors(braid_id).await
     }
 
-    /// Get the underlying client.
+    /// Get the underlying client reference.
     #[must_use]
-    pub fn client(&self) -> &dyn AnchoringClient {
-        self.anchoring_client.as_ref()
+    pub fn client(&self) -> Arc<dyn AnchoringClient> {
+        Arc::clone(&self.anchoring_client.read())
     }
 }
 
@@ -356,9 +382,9 @@ pub mod testing {
             }
         }
 
-        /// Set health status.
+        /// Set health status for testing failure scenarios.
         #[must_use]
-        #[allow(dead_code)]
+        #[allow(dead_code)] // Used by test binaries and downstream crates
         pub const fn with_health(mut self, healthy: bool) -> Self {
             self.healthy = healthy;
             self
@@ -413,7 +439,7 @@ pub mod testing {
 }
 
 #[cfg(any(test, feature = "test"))]
-#[allow(unused_imports)]
+#[allow(unused_imports)] // Used by downstream crates via the `test` feature
 pub use testing::MockAnchoringClient;
 
 #[cfg(test)]
@@ -515,7 +541,8 @@ mod tests {
         let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
 
         let manager = AnchorManager::with_client(client, store);
-        assert!(manager.client().health().await.expect("health"));
+        let client_ref = manager.client();
+        assert!(client_ref.health().await.expect("health"));
     }
 
     #[tokio::test]

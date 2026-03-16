@@ -108,41 +108,50 @@ impl SelfKnowledge {
     /// # }
     /// ```
     pub fn from_env() -> Result<Self, BootstrapEnvError> {
+        Self::from_reader(|key| std::env::var(key).ok())
+    }
+
+    /// Load self-knowledge from an arbitrary key reader.
+    ///
+    /// This is the DI-friendly core: tests inject a closure instead of
+    /// mutating process-global environment variables.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if port values are not valid numbers.
+    pub fn from_reader(reader: impl Fn(&str) -> Option<String>) -> Result<Self, BootstrapEnvError> {
         Ok(Self {
-            name: std::env::var("PRIMAL_NAME")
-                .unwrap_or_else(|_| identity::PRIMAL_NAME.to_string()),
-            instance_id: std::env::var("PRIMAL_INSTANCE_ID")
-                .unwrap_or_else(|_| uuid::Uuid::new_v4().to_string()),
-            capabilities: Self::parse_capabilities(),
-            tarpc_port: Self::parse_port("TARPC_PORT", 0)?,
-            rest_port: Self::parse_port("REST_PORT", 0)?,
+            name: reader("PRIMAL_NAME").unwrap_or_else(|| identity::PRIMAL_NAME.to_string()),
+            instance_id: reader("PRIMAL_INSTANCE_ID")
+                .unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
+            capabilities: Self::parse_capabilities_from(&reader),
+            tarpc_port: Self::parse_port_from("TARPC_PORT", 0, &reader)?,
+            rest_port: Self::parse_port_from("REST_PORT", 0, &reader)?,
             established_at: SystemTime::now(),
         })
     }
 
-    /// Parse capabilities from environment.
-    fn parse_capabilities() -> Vec<Capability> {
-        let caps_str = std::env::var("PRIMAL_CAPABILITIES").unwrap_or_default();
+    /// Parse capabilities from a key reader.
+    fn parse_capabilities_from(reader: &impl Fn(&str) -> Option<String>) -> Vec<Capability> {
+        let caps_str = reader("PRIMAL_CAPABILITIES").unwrap_or_default();
 
         if caps_str.is_empty() {
             return Vec::new();
         }
 
-        let mut capabilities = Vec::new();
-        for cap in caps_str.split(',') {
-            let cap = cap.trim();
-            // from_string always returns Some, treating unknowns as Custom
-            if let Some(capability) = Capability::from_string(cap) {
-                capabilities.push(capability);
-            }
-        }
-
-        capabilities
+        caps_str
+            .split(',')
+            .filter_map(|cap| Capability::from_string(cap.trim()))
+            .collect()
     }
 
-    /// Parse port from environment.
-    fn parse_port(var_name: &str, default: u16) -> Result<u16, BootstrapEnvError> {
-        std::env::var(var_name).map_or(Ok(default), |val| {
+    /// Parse port from a key reader.
+    fn parse_port_from(
+        var_name: &str,
+        default: u16,
+        reader: &impl Fn(&str) -> Option<String>,
+    ) -> Result<u16, BootstrapEnvError> {
+        reader(var_name).map_or(Ok(default), |val| {
             val.parse().map_err(|_| BootstrapEnvError::InvalidPort {
                 var_name: var_name.to_string(),
                 value: val,
@@ -179,68 +188,49 @@ impl Default for SelfKnowledge {
 }
 
 #[cfg(test)]
-#[allow(unsafe_code)]
 #[expect(
     clippy::unwrap_used,
     clippy::expect_used,
     reason = "test module: expect/unwrap are standard in tests"
 )]
 mod tests {
-    use serial_test::serial;
+    use std::collections::HashMap;
 
     use super::*;
 
-    fn clear_env() {
-        unsafe {
-            std::env::remove_var("PRIMAL_NAME");
-        }
-        unsafe {
-            std::env::remove_var("PRIMAL_INSTANCE_ID");
-        }
-        unsafe {
-            std::env::remove_var("PRIMAL_CAPABILITIES");
-        }
-        unsafe {
-            std::env::remove_var("TARPC_PORT");
-        }
-        unsafe {
-            std::env::remove_var("REST_PORT");
-        }
+    fn mock_reader(vars: &[(&str, &str)]) -> impl Fn(&str) -> Option<String> {
+        let map: HashMap<String, String> = vars
+            .iter()
+            .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+            .collect();
+        move |key: &str| map.get(key).cloned()
+    }
+
+    fn empty_reader() -> impl Fn(&str) -> Option<String> {
+        |_: &str| None
     }
 
     #[test]
-    #[serial]
-    fn test_self_knowledge_from_env_defaults() {
-        clear_env();
-        let sk = SelfKnowledge::from_env().expect("should parse defaults");
+    fn test_self_knowledge_defaults() {
+        let sk = SelfKnowledge::from_reader(empty_reader()).expect("should parse defaults");
         assert_eq!(sk.name, "sweetgrass");
         assert!(!sk.instance_id.is_empty());
-        assert_eq!(sk.capabilities.len(), 0);
+        assert!(sk.capabilities.is_empty());
         assert_eq!(sk.tarpc_port, 0);
         assert_eq!(sk.rest_port, 0);
     }
 
     #[test]
-    #[serial]
-    fn test_self_knowledge_from_env_custom() {
-        clear_env();
-        unsafe {
-            std::env::set_var("PRIMAL_NAME", "sweetgrass-test");
-        }
-        unsafe {
-            std::env::set_var("PRIMAL_INSTANCE_ID", "test-123");
-        }
-        unsafe {
-            std::env::set_var("PRIMAL_CAPABILITIES", "signing,anchoring");
-        }
-        unsafe {
-            std::env::set_var("TARPC_PORT", "9091");
-        }
-        unsafe {
-            std::env::set_var("REST_PORT", "9080");
-        }
+    fn test_self_knowledge_custom() {
+        let reader = mock_reader(&[
+            ("PRIMAL_NAME", "sweetgrass-test"),
+            ("PRIMAL_INSTANCE_ID", "test-123"),
+            ("PRIMAL_CAPABILITIES", "signing,anchoring"),
+            ("TARPC_PORT", "9091"),
+            ("REST_PORT", "9080"),
+        ]);
 
-        let sk = SelfKnowledge::from_env().expect("should parse custom");
+        let sk = SelfKnowledge::from_reader(reader).expect("should parse custom");
         assert_eq!(sk.name, "sweetgrass-test");
         assert_eq!(sk.instance_id, "test-123");
         assert_eq!(sk.capabilities.len(), 2);
@@ -251,28 +241,20 @@ mod tests {
     }
 
     #[test]
-    #[serial]
     fn test_self_knowledge_custom_capability() {
-        clear_env();
-        unsafe {
-            std::env::set_var("PRIMAL_CAPABILITIES", "signing,custom_feature");
-        }
+        let reader = mock_reader(&[("PRIMAL_CAPABILITIES", "signing,custom_feature")]);
 
-        let sk = SelfKnowledge::from_env().expect("should parse custom capability");
+        let sk = SelfKnowledge::from_reader(reader).expect("should parse custom capability");
         assert_eq!(sk.capabilities.len(), 2);
         assert!(sk.offers(&Capability::Signing));
         assert!(matches!(sk.capabilities[1], Capability::Custom(_)));
     }
 
     #[test]
-    #[serial]
     fn test_self_knowledge_invalid_port() {
-        clear_env();
-        unsafe {
-            std::env::set_var("TARPC_PORT", "not_a_number");
-        }
+        let reader = mock_reader(&[("TARPC_PORT", "not_a_number")]);
 
-        let result = SelfKnowledge::from_env();
+        let result = SelfKnowledge::from_reader(reader);
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(matches!(err, BootstrapEnvError::InvalidPort { .. }));
@@ -282,7 +264,6 @@ mod tests {
     #[test]
     fn test_self_knowledge_uptime() {
         let sk = SelfKnowledge::default();
-        // Uptime should be measurable immediately (even if < 1ms)
         let uptime = sk.uptime();
         assert!(uptime.as_nanos() > 0, "Uptime should be positive");
     }
@@ -293,5 +274,12 @@ mod tests {
         sk.capabilities.push(Capability::Signing);
         assert!(sk.offers(&Capability::Signing));
         assert!(!sk.offers(&Capability::Anchoring));
+    }
+
+    #[test]
+    fn test_from_env_delegates_to_from_reader() {
+        let result = SelfKnowledge::from_env();
+        assert!(result.is_ok(), "from_env should succeed with defaults");
+        assert_eq!(result.unwrap().name, "sweetgrass");
     }
 }
