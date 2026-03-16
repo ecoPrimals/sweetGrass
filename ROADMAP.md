@@ -1,10 +1,25 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.12 (March 2026)
+**Current Version**: v0.7.13 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.13 — Self-Knowledge Module + Resilience + biomeOS Deploy (March 2026)
+
+- [x] **niche.rs self-knowledge module** — `sweet_grass_core::niche` with CAPABILITIES (21 methods), CONSUMED_CAPABILITIES (8), DEPENDENCIES (4), operation_dependencies(), cost_estimates(), semantic_mappings()
+- [x] **primal_names.rs** — centralized external primal identifiers (rhizocrypt, loamspine, beardog, nestgate, songbird, toadstool, squirrel, biomeos) + env var constants
+- [x] **config/capability_registry.toml** — biomeOS-compatible capability registry with all 21 methods, 8 domains, per-operation depends_on/cost
+- [x] **graphs/sweetgrass_deploy.toml** — biomeOS BYOB deploy graph with dependency ordering
+- [x] **UniBin subcommands** — `sweetgrass capabilities` (offline capability dump) + `sweetgrass socket` (print resolved socket path)
+- [x] **SocketConfig DI pattern** — `resolve_socket_path_with(config)` for env-free socket resolution in tests (airSpring V082 pattern)
+- [x] **Resilience module** — CircuitBreaker + RetryPolicy + with_resilience() async helper for trio partner IPC
+- [x] **#[non_exhaustive]** on ALL 10 error enums across workspace
+- [x] **ServiceError::Transport and ServiceError::Discovery** — new IPC error variants
+- [x] **capability.list evolution** — now delegates to niche.rs, includes consumed_capabilities and cost_estimates in response
+- [x] **UDS module** uses primal_names::env_vars constants instead of string literals
+- [x] 941 tests passing (was 903), 0 clippy warnings, 0 rustfmt issues, 0 cargo doc warnings, Edition 2024, MSRV 1.87
 
 ### v0.7.12 — Edition 2024 Migration + Spring Absorption + Chaos Tests (March 2026)
 
@@ -286,7 +301,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.12 | **March 2026** | Edition 2024 Migration + Spring Absorption + Chaos Tests (DONE) |
+| v0.7.13 | **March 2026** | Self-Knowledge Module + Resilience + biomeOS Deploy (DONE) |
+| v0.7.12 | March 2026 | Edition 2024 Migration + Spring Absorption + Chaos Tests (DONE) |
 | v0.7.11 | March 2026 | JSON-RPC 2.0 Spec Compliance + Deep Debt + Coverage Push (DONE) |
 | v0.7.10 | March 2026 | Typed Error Evolution + Lint Hardening + Platform-Agnostic IPC (DONE) |
 | v0.7.9 | March 2026 | Deep Debt Audit: Pedantic Quality + Capability Discovery (DONE) |

@@ -82,6 +82,12 @@ enum Commands {
         #[arg(long, env = "SWEETGRASS_HTTP_ADDRESS")]
         address: String,
     },
+
+    /// Print all capabilities this primal offers (offline, no network).
+    Capabilities,
+
+    /// Print the resolved Unix domain socket path.
+    Socket,
 }
 
 #[tokio::main]
@@ -110,6 +116,8 @@ async fn main() {
             run_server(config).await
         },
         Commands::Status { address } => run_status(&address).await,
+        Commands::Capabilities => run_capabilities(),
+        Commands::Socket => run_socket(),
     };
 
     std::process::exit(code);
@@ -265,6 +273,64 @@ async fn shutdown_signal() {
     {
         let _ = ctrl_c.await;
         info!("Received shutdown signal");
+    }
+}
+
+fn run_capabilities() -> i32 {
+    use sweet_grass_core::niche;
+
+    println!(
+        "{} v{} — {}",
+        niche::NICHE_ID,
+        env!("CARGO_PKG_VERSION"),
+        niche::NICHE_DESCRIPTION,
+    );
+    println!();
+
+    let mut domains = std::collections::BTreeMap::<&str, Vec<&str>>::new();
+    for cap in niche::CAPABILITIES {
+        if let Some((domain, op)) = cap.split_once('.') {
+            domains.entry(domain).or_default().push(op);
+        }
+    }
+
+    println!("Capabilities ({} methods):", niche::CAPABILITIES.len());
+    for (domain, ops) in &domains {
+        println!("  {domain}:");
+        for op in ops {
+            println!("    - {domain}.{op}");
+        }
+    }
+    println!();
+
+    println!("Consumed capabilities:");
+    for cap in niche::CONSUMED_CAPABILITIES {
+        println!("  - {cap}");
+    }
+    println!();
+
+    println!("Dependencies:");
+    for dep in niche::DEPENDENCIES {
+        println!(
+            "  - {} (required: {}, fallback: {})",
+            dep.capability, dep.required, dep.fallback
+        );
+    }
+
+    exit_code::SUCCESS
+}
+
+fn run_socket() -> i32 {
+    #[cfg(unix)]
+    {
+        let path = sweet_grass_service::uds::resolve_socket_path(None);
+        println!("{}", path.display());
+        exit_code::SUCCESS
+    }
+    #[cfg(not(unix))]
+    {
+        eprintln!("Unix domain sockets are not available on this platform");
+        exit_code::GENERAL_ERROR
     }
 }
 

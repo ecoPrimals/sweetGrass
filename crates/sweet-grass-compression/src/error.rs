@@ -6,6 +6,7 @@ use thiserror::Error;
 
 /// Errors that can occur during compression.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum CompressionError {
     /// Session analysis failed.
     #[error("Analysis error: {0}")]

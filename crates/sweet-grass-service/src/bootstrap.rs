@@ -30,6 +30,7 @@ pub struct BootstrapConfig {
 
 /// Bootstrap error.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum BootstrapError {
     /// Failed to establish self-knowledge from environment.
     #[error("Self-knowledge error: {0}")]

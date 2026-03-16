@@ -9,6 +9,7 @@ pub type Result<T> = std::result::Result<T, PostgresError>;
 
 /// `PostgreSQL` store error types.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum PostgresError {
     /// Database connection error.
     #[error("Database connection error: {0}")]

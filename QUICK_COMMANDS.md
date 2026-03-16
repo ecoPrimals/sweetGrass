@@ -13,6 +13,22 @@ cargo build --release && ./target/release/sweetgrass server
 
 That's it! Service runs with zero config.
 
+### UniBin Subcommands
+
+```bash
+# Server (default)
+./target/release/sweetgrass server
+
+# Status (HTTP health check)
+./target/release/sweetgrass status
+
+# Capabilities (offline capability dump)
+./target/release/sweetgrass capabilities
+
+# Socket (print resolved UDS path)
+./target/release/sweetgrass socket
+```
+
 ---
 
 ## 🔨 BUILD COMMANDS
@@ -36,7 +52,7 @@ cargo clean
 ## ✅ TEST COMMANDS
 
 ```bash
-# All tests (903 tests)
+# All tests (941 tests)
 cargo test --workspace
 
 # Unit tests only
@@ -362,7 +378,7 @@ cargo bench --workspace
 cargo build --release
 
 # 8. Tag release
-git tag -a v0.7.12 -m "Release v0.7.12"
+git tag -a v0.7.13 -m "Release v0.7.13"
 
 # 9. Push
 git push && git push --tags

@@ -39,8 +39,10 @@ pub mod dehydration;
 pub mod entity;
 pub mod error;
 pub mod hash;
+pub mod niche;
 pub mod primal;
 pub mod primal_info;
+pub mod primal_names;
 pub mod privacy;
 pub mod scyborg;
 

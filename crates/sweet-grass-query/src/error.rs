@@ -6,6 +6,7 @@ use thiserror::Error;
 
 /// Errors that can occur during query operations.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum QueryError {
     /// Braid not found.
     #[error("Braid not found: {0}")]
