@@ -1,10 +1,23 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.19 (March 2026)
+**Current Version**: v0.7.20 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.20 — Ecosystem Absorption: IPC Timeout, extract_rpc_error, Capability Parsing, Proptest (March 2026)
+
+- [x] **`deny.toml` `yanked = "deny"`** — aligned with airSpring v0.8.7, neuralSpring S160 ecosystem standard; yanked crates now block builds
+- [x] **`IpcErrorPhase::Timeout` variant** — explicit timeout phase aligned with neuralSpring S160 `IpcError::Timeout`; integrated into `is_retriable()` and `is_timeout_likely()` classification
+- [x] **`extract_rpc_error()` helper** — extracts `(code, message)` from JSON-RPC 2.0 error responses; aligned with airSpring v0.8.7 and neuralSpring S160 patterns
+- [x] **`extract_capabilities()` dual-format parser** — parses both flat array (`{"methods": [...]}`) and structured domain (`{"domains": {"braid": ["create"]}}`) formats from `capability.list` responses; handles `result` wrapper and `capabilities` alias for ecosystem compat
+- [x] **Proptest properties** — `extract_rpc_error` roundtrip, never-panics fuzzing, `IpcErrorPhase` display/retriable consistency, `extract_capabilities` flat roundtrip and never-panics fuzzing
+- [x] **`require_braid_by_hash()` refactor** — server/mod.rs: 4 methods deduplicated via shared helper; eliminates repeated `get_by_hash + ok_or_else(NotFound)` pattern
+- [x] **`ValidatedFilter` + `bind_filter!` macro** — store-postgres: eliminated duplicated WHERE clause building and parameter binding between main query and count query
+- [x] **`#[allow(unused_imports)]` removed** — aligned `lib.rs` mock re-exports to `#[cfg(any(test, feature = "test"))]`, eliminating 2 unnecessary `#[allow]` attributes
+- [x] **`discovery` module public** — enables `sweet_grass_integration::discovery::extract_capabilities` path; doc fields added to `DiscoveryError::ConnectionFailed`
+- [x] 1,049 tests (was 1,030 — +19 new), 0 clippy warnings, 0 unsafe
 
 ### v0.7.19 — Ecosystem Absorption: Health Probes, DispatchOutcome, OrExit (March 2026)
 

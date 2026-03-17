@@ -246,7 +246,6 @@ impl EventHandler {
 pub mod testing;
 
 #[cfg(any(test, feature = "test"))]
-#[allow(unused_imports)]
 pub use testing::MockSessionEventsClient;
 
 #[cfg(test)]

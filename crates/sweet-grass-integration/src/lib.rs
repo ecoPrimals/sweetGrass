@@ -74,8 +74,8 @@
 #![warn(missing_docs)]
 
 mod anchor;
-mod discovery;
-mod error;
+pub mod discovery;
+pub mod error;
 mod listener;
 pub mod resilience;
 pub mod signer;
@@ -90,8 +90,9 @@ pub use anchor::{
 };
 pub use discovery::{
     CachedDiscovery, DiscoveredPrimal, LocalDiscovery, PrimalDiscovery, RegistryDiscovery,
+    extract_capabilities,
 };
-pub use error::IntegrationError;
+pub use error::{IntegrationError, IpcErrorPhase, extract_rpc_error};
 pub use listener::{
     EventHandler, SessionEventStream, SessionEventsClient, create_session_events_client_async,
     tarpc_client::TarpcSessionEventsClient,
@@ -101,12 +102,12 @@ pub use sweet_grass_core::config::Capability;
 
 pub use discovery::create_discovery;
 
-// Test support (mocks only)
-#[cfg(test)]
+// Test support (mocks only — gated to test builds)
+#[cfg(any(test, feature = "test"))]
 pub use anchor::MockAnchoringClient;
-#[cfg(test)]
+#[cfg(any(test, feature = "test"))]
 pub use listener::MockSessionEventsClient;
-#[cfg(test)]
+#[cfg(any(test, feature = "test"))]
 pub use signer::testing::MockSigningClient;
 
 // Type aliases for documentation (not deprecated)

@@ -704,3 +704,88 @@ async fn test_registry_discovery_connect_invalid_addr() {
         );
     }
 }
+
+// ── extract_capabilities tests ────────────────────────────────────────────
+
+#[test]
+fn extract_capabilities_flat_array() {
+    let resp = serde_json::json!({"methods": ["braid.create", "health.check", "braid.get"]});
+    let caps = super::extract_capabilities(&resp);
+    assert_eq!(caps, vec!["braid.create", "braid.get", "health.check"]);
+}
+
+#[test]
+fn extract_capabilities_capabilities_alias() {
+    let resp = serde_json::json!({"capabilities": ["store.put", "store.get"]});
+    let caps = super::extract_capabilities(&resp);
+    assert_eq!(caps, vec!["store.get", "store.put"]);
+}
+
+#[test]
+fn extract_capabilities_structured_domains() {
+    let resp = serde_json::json!({
+        "domains": {
+            "braid": ["create", "get"],
+            "health": ["check", "liveness"]
+        }
+    });
+    let caps = super::extract_capabilities(&resp);
+    assert_eq!(
+        caps,
+        vec![
+            "braid.create",
+            "braid.get",
+            "health.check",
+            "health.liveness"
+        ]
+    );
+}
+
+#[test]
+fn extract_capabilities_result_wrapper() {
+    let resp = serde_json::json!({
+        "jsonrpc": "2.0",
+        "result": {"methods": ["a.b", "c.d"]},
+        "id": 1
+    });
+    assert_eq!(super::extract_capabilities(&resp), vec!["a.b", "c.d"]);
+}
+
+#[test]
+fn extract_capabilities_empty() {
+    let resp = serde_json::json!({});
+    assert!(super::extract_capabilities(&resp).is_empty());
+}
+
+#[test]
+fn extract_capabilities_deduplicates() {
+    let resp = serde_json::json!({"methods": ["a.b", "a.b", "c.d"]});
+    assert_eq!(super::extract_capabilities(&resp), vec!["a.b", "c.d"]);
+}
+
+// ── extract_capabilities proptest ─────────────────────────────────────────
+
+proptest::proptest! {
+    #[test]
+    fn extract_capabilities_flat_roundtrip(
+        methods in proptest::collection::vec("[a-z]{1,8}\\.[a-z]{1,8}", 0..20)
+    ) {
+        let resp = serde_json::json!({"methods": methods});
+        let caps = super::extract_capabilities(&resp);
+        for cap in &caps {
+            proptest::prop_assert!(cap.contains('.'));
+        }
+        let mut expected: Vec<String> = methods;
+        expected.sort();
+        expected.dedup();
+        proptest::prop_assert_eq!(caps, expected);
+    }
+
+    #[test]
+    fn extract_capabilities_never_panics(s in "\\PC{0,200}") {
+        let val: std::result::Result<serde_json::Value, _> = serde_json::from_str(&s);
+        if let Ok(v) = val {
+            let _ = super::extract_capabilities(&v);
+        }
+    }
+}

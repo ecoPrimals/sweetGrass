@@ -5,6 +5,39 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.20] - 2026-03-16
+
+### Ecosystem Absorption: IPC Timeout, extract_rpc_error, Capability Parsing, Proptest
+
+Deep debt solutions: IPC timeout variant, JSON-RPC error extraction, dual-format
+capability parsing for ecosystem interop, property-based testing, smart refactoring
+of duplicated query logic and braid-lookup patterns. All `#[allow(unused_imports)]`
+eliminated via cfg alignment.
+
+### Added
+
+- **`IpcErrorPhase::Timeout` variant** — Explicit timeout phase aligned with neuralSpring S160. Integrated into `is_retriable()` (true) and `is_timeout_likely()` (true) classification helpers.
+- **`extract_rpc_error()` helper** — Extracts `(code, message)` from JSON-RPC 2.0 error responses. Handles missing message (defaults to "unknown error"). Aligned with airSpring v0.8.7 and neuralSpring S160 ecosystem patterns.
+- **`extract_capabilities()` dual-format parser** — Parses both flat array (`{"methods": [...]}`) and structured domain (`{"domains": {"braid": ["create"]}}`) formats from `capability.list` responses. Handles `result` wrapper, `capabilities` alias, deduplication, and sorting.
+- **Proptest properties (6)** — `extract_rpc_error` roundtrip + never-panics, `IpcErrorPhase` display/retriable consistency, `extract_capabilities` flat roundtrip + never-panics.
+- **19 new tests** — IpcErrorPhase::Timeout (3), extract_rpc_error (4), extract_capabilities (6), proptest properties (6). Total: 1,049 tests.
+
+### Changed
+
+- **`deny.toml` `yanked = "deny"`** — Yanked crates now block builds (was `"warn"`). Aligned with airSpring v0.8.7 ecosystem standard.
+- **`require_braid_by_hash()` refactor** — Server RPC: 4 methods (`attribution_chain`, `calculate_rewards`, `top_contributors`, `export_provo`) deduplicated via shared helper method.
+- **`ValidatedFilter` + `bind_filter!` macro** — store-postgres: eliminated duplicated WHERE clause building and parameter binding between main query and count query. Single source of truth for filter conditions.
+- **`#[allow(unused_imports)]` removed (2)** — `lib.rs` mock re-exports aligned to `#[cfg(any(test, feature = "test"))]`, removing need for `#[allow]` on listener/mod.rs and anchor/mod.rs re-exports.
+- **`discovery` module public** — Enables direct path `discovery::extract_capabilities`. Doc fields added to `DiscoveryError::ConnectionFailed`.
+- **`error` module public** — Enables direct path `error::extract_rpc_error` and `error::IpcErrorPhase`.
+
+### Metrics
+
+- 1,049 tests passing (up from 1,030 — +19 new)
+- 0 clippy warnings (pedantic + nursery)
+- 0 unsafe blocks
+- 2 `#[allow]` attributes remaining (both `dead_code` on test-feature-gated mock impls — correct pattern)
+
 ## [0.7.19] - 2026-03-16
 
 ### Ecosystem Absorption: Health Probes, IPC Helpers, DispatchOutcome, OrExit

@@ -1,7 +1,7 @@
 # 🌾 SweetGrass — Development Guide
 
 **Last Updated**: March 16, 2026  
-**Version**: v0.7.19
+**Version**: v0.7.20
 
 ---
 
@@ -188,7 +188,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 1,030 tests passing
+- **Overall**: 1,049 tests passing
 - **Target**: 90%+ (achieved)
 
 ### Per-Crate Coverage
@@ -425,7 +425,7 @@ SELECT * FROM braids LIMIT 10;
 
 ```bash
 # Update Cargo.toml versions
-cargo set-version 0.7.19
+cargo set-version 0.7.20
 
 # Update CHANGELOG.md and ROADMAP.md
 ```
@@ -456,8 +456,8 @@ cargo build --release
 ### 4. Tag & Push
 
 ```bash
-git tag -a v0.7.19 -m "Release v0.7.19"
-git push origin v0.7.19
+git tag -a v0.7.20 -m "Release v0.7.20"
+git push origin v0.7.20
 ```
 
 ---

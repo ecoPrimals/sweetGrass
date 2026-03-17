@@ -24,6 +24,87 @@ use crate::{PostgresConfig, PostgresError, Result, migrations};
 use row_mapping::i64_to_u64;
 use row_mapping::{i64_to_usize, row_to_activity, row_to_braid, u64_to_i64};
 
+/// Pre-validated filter parameters, ready for binding without error handling.
+struct ValidatedFilter<'a> {
+    filter: &'a QueryFilter,
+    created_after_i64: Option<i64>,
+    created_before_i64: Option<i64>,
+}
+
+impl<'a> ValidatedFilter<'a> {
+    fn new(filter: &'a QueryFilter) -> sweet_grass_store::Result<Self> {
+        let created_after_i64 = filter.created_after.map(u64_to_i64).transpose()?;
+        let created_before_i64 = filter.created_before.map(u64_to_i64).transpose()?;
+        Ok(Self {
+            filter,
+            created_after_i64,
+            created_before_i64,
+        })
+    }
+
+    fn where_clause(&self) -> String {
+        let mut conditions = vec!["1=1".to_string()];
+        let mut n = 0u32;
+        let mut next = || {
+            n += 1;
+            n
+        };
+        if self.filter.data_hash.is_some() {
+            conditions.push(format!("data_hash = ${}", next()));
+        }
+        if self.filter.attributed_to.is_some() {
+            conditions.push(format!("attributed_to = ${}", next()));
+        }
+        if self.filter.created_after.is_some() {
+            conditions.push(format!("generated_at_time >= ${}", next()));
+        }
+        if self.filter.created_before.is_some() {
+            conditions.push(format!("generated_at_time <= ${}", next()));
+        }
+        if self.filter.mime_type.is_some() {
+            conditions.push(format!("mime_type = ${}", next()));
+        }
+        if self.filter.tag.is_some() {
+            conditions.push(format!(
+                "braid_id IN (SELECT braid_id FROM braid_tags WHERE tag = ${})",
+                next()
+            ));
+        }
+        if self.filter.braid_type.is_some() {
+            conditions.push(format!("braid_type = ${}", next()));
+        }
+        conditions.join(" AND ")
+    }
+}
+
+macro_rules! bind_filter {
+    ($query:expr, $vf:expr) => {{
+        let mut q = $query;
+        if let Some(hash) = &$vf.filter.data_hash {
+            q = q.bind(hash.as_str());
+        }
+        if let Some(agent) = &$vf.filter.attributed_to {
+            q = q.bind(agent.as_str());
+        }
+        if let Some(ts) = $vf.created_after_i64 {
+            q = q.bind(ts);
+        }
+        if let Some(ts) = $vf.created_before_i64 {
+            q = q.bind(ts);
+        }
+        if let Some(mime) = &$vf.filter.mime_type {
+            q = q.bind(mime.as_str());
+        }
+        if let Some(tag) = &$vf.filter.tag {
+            q = q.bind(tag.as_str());
+        }
+        if let Some(braid_type) = &$vf.filter.braid_type {
+            q = q.bind(format!("{braid_type:?}"));
+        }
+        q
+    }};
+}
+
 /// `PostgreSQL` storage backend.
 #[derive(Clone)]
 pub struct PostgresStore {
@@ -261,39 +342,8 @@ impl BraidStore for PostgresStore {
         filter: &QueryFilter,
         order: QueryOrder,
     ) -> sweet_grass_store::Result<QueryResult> {
-        let mut conditions = vec!["1=1".to_string()];
-        let mut param_count = 0;
-
-        if filter.data_hash.is_some() {
-            param_count += 1;
-            conditions.push(format!("data_hash = ${param_count}"));
-        }
-        if filter.attributed_to.is_some() {
-            param_count += 1;
-            conditions.push(format!("attributed_to = ${param_count}"));
-        }
-        if filter.created_after.is_some() {
-            param_count += 1;
-            conditions.push(format!("generated_at_time >= ${param_count}"));
-        }
-        if filter.created_before.is_some() {
-            param_count += 1;
-            conditions.push(format!("generated_at_time <= ${param_count}"));
-        }
-        if filter.mime_type.is_some() {
-            param_count += 1;
-            conditions.push(format!("mime_type = ${param_count}"));
-        }
-        if filter.tag.is_some() {
-            param_count += 1;
-            conditions.push(format!(
-                "braid_id IN (SELECT braid_id FROM braid_tags WHERE tag = ${param_count})"
-            ));
-        }
-        if filter.braid_type.is_some() {
-            param_count += 1;
-            conditions.push(format!("braid_type = ${param_count}"));
-        }
+        let vf = ValidatedFilter::new(filter)?;
+        let where_clause = vf.where_clause();
 
         let order_clause = match order {
             QueryOrder::NewestFirst => "generated_at_time DESC",
@@ -315,32 +365,9 @@ impl BraidStore for PostgresStore {
             ORDER BY {order_clause}
             LIMIT {limit} OFFSET {offset}
             ",
-            where_clause = conditions.join(" AND "),
         );
 
-        let mut q = sqlx::query(&query);
-        if let Some(hash) = &filter.data_hash {
-            q = q.bind(hash.as_str());
-        }
-        if let Some(agent) = &filter.attributed_to {
-            q = q.bind(agent.as_str());
-        }
-        if let Some(after) = filter.created_after {
-            q = q.bind(u64_to_i64(after)?);
-        }
-        if let Some(before) = filter.created_before {
-            q = q.bind(u64_to_i64(before)?);
-        }
-        if let Some(mime) = &filter.mime_type {
-            q = q.bind(mime.as_str());
-        }
-        if let Some(tag) = &filter.tag {
-            q = q.bind(tag.as_str());
-        }
-        if let Some(braid_type) = &filter.braid_type {
-            q = q.bind(format!("{braid_type:?}"));
-        }
-
+        let q = bind_filter!(sqlx::query(&query), &vf);
         let rows = q
             .fetch_all(&self.pool)
             .await
@@ -351,34 +378,8 @@ impl BraidStore for PostgresStore {
             .filter_map(|row| row_to_braid(row).ok())
             .collect();
 
-        // Get total count with same conditions and binds
-        let count_query = format!(
-            "SELECT COUNT(*) FROM braids WHERE {}",
-            conditions.join(" AND ")
-        );
-        let mut count_q = sqlx::query_scalar::<_, i64>(&count_query);
-        if let Some(hash) = &filter.data_hash {
-            count_q = count_q.bind(hash.as_str());
-        }
-        if let Some(agent) = &filter.attributed_to {
-            count_q = count_q.bind(agent.as_str());
-        }
-        if let Some(after) = filter.created_after {
-            count_q = count_q.bind(u64_to_i64(after)?);
-        }
-        if let Some(before) = filter.created_before {
-            count_q = count_q.bind(u64_to_i64(before)?);
-        }
-        if let Some(mime) = &filter.mime_type {
-            count_q = count_q.bind(mime.as_str());
-        }
-        if let Some(tag) = &filter.tag {
-            count_q = count_q.bind(tag.as_str());
-        }
-        if let Some(braid_type) = &filter.braid_type {
-            count_q = count_q.bind(format!("{braid_type:?}"));
-        }
-
+        let count_query = format!("SELECT COUNT(*) FROM braids WHERE {where_clause}");
+        let count_q = bind_filter!(sqlx::query_scalar::<_, i64>(&count_query), &vf);
         let total: i64 = count_q.fetch_one(&self.pool).await.unwrap_or(0);
 
         let total_usize = i64_to_usize(total);

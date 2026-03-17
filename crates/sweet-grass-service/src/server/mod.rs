@@ -114,6 +114,14 @@ impl SweetGrassServer {
         self.store_backend = backend.into();
         self
     }
+
+    async fn require_braid_by_hash(&self, hash: &ContentHash) -> Result<Braid, RpcError> {
+        self.store
+            .get_by_hash(hash)
+            .await
+            .map_err(|e| RpcError::Store(e.to_string()))?
+            .ok_or_else(|| RpcError::NotFound(format!("Braid not found: {hash}")))
+    }
 }
 
 impl SweetGrassRpc for SweetGrassServer {
@@ -210,18 +218,9 @@ impl SweetGrassRpc for SweetGrassServer {
         hash: ContentHash,
         config: AttributionConfig,
     ) -> Result<AttributionChain, RpcError> {
-        let braid = self
-            .store
-            .get_by_hash(&hash)
-            .await
-            .map_err(|e| RpcError::Store(e.to_string()))?
-            .ok_or_else(|| RpcError::NotFound(format!("Braid not found: {hash}")))?;
-
-        // Use provided config for attribution calculation
+        let braid = self.require_braid_by_hash(&hash).await?;
         let calculator = AttributionCalculator::with_config(config);
-        let chain = calculator.calculate_single(&braid);
-
-        Ok(chain)
+        Ok(calculator.calculate_single(&braid))
     }
 
     #[instrument(skip(self, _ctx))]
@@ -231,13 +230,7 @@ impl SweetGrassRpc for SweetGrassServer {
         hash: ContentHash,
         total_value: f64,
     ) -> Result<Vec<RewardShare>, RpcError> {
-        let braid = self
-            .store
-            .get_by_hash(&hash)
-            .await
-            .map_err(|e| RpcError::Store(e.to_string()))?
-            .ok_or_else(|| RpcError::NotFound(format!("Braid not found: {hash}")))?;
-
+        let braid = self.require_braid_by_hash(&hash).await?;
         let chain = self.attribution.calculate_single(&braid);
 
         let rewards = chain
@@ -261,13 +254,7 @@ impl SweetGrassRpc for SweetGrassServer {
         hash: ContentHash,
         limit: u32,
     ) -> Result<Vec<RewardShare>, RpcError> {
-        let braid = self
-            .store
-            .get_by_hash(&hash)
-            .await
-            .map_err(|e| RpcError::Store(e.to_string()))?
-            .ok_or_else(|| RpcError::NotFound(format!("Braid not found: {hash}")))?;
-
+        let braid = self.require_braid_by_hash(&hash).await?;
         let chain = self.attribution.calculate_single(&braid);
 
         let mut contributors: Vec<RewardShare> = chain
@@ -399,13 +386,7 @@ impl SweetGrassRpc for SweetGrassServer {
         _ctx: Context,
         hash: ContentHash,
     ) -> Result<JsonLdDocument, RpcError> {
-        let braid = self
-            .store
-            .get_by_hash(&hash)
-            .await
-            .map_err(|e| RpcError::Store(e.to_string()))?
-            .ok_or_else(|| RpcError::NotFound(format!("Braid not found: {hash}")))?;
-
+        let braid = self.require_braid_by_hash(&hash).await?;
         let json_ld = self
             .query
             .export_braid_provo(&braid.data_hash)
