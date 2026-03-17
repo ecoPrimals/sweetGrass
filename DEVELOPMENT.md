@@ -1,7 +1,7 @@
 # 🌾 SweetGrass — Development Guide
 
 **Last Updated**: March 16, 2026  
-**Version**: v0.7.18
+**Version**: v0.7.19
 
 ---
 
@@ -188,7 +188,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 1,017 tests passing
+- **Overall**: 1,030 tests passing
 - **Target**: 90%+ (achieved)
 
 ### Per-Crate Coverage
@@ -456,8 +456,8 @@ cargo build --release
 ### 4. Tag & Push
 
 ```bash
-git tag -a v0.7.18 -m "Release v0.7.18"
-git push origin v0.7.18
+git tag -a v0.7.19 -m "Release v0.7.19"
+git push origin v0.7.19
 ```
 
 ---

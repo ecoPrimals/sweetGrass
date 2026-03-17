@@ -204,8 +204,8 @@ async fn test_record_session_dispatch() {
 fn test_dispatch_table_completeness() {
     assert_eq!(
         METHODS.len(),
-        22,
-        "dispatch table should have all 22 methods"
+        24,
+        "dispatch table should have all 24 methods"
     );
 
     let expected = [
@@ -230,6 +230,8 @@ fn test_dispatch_table_completeness() {
         "contribution.record_dehydration",
         "pipeline.attribute",
         "health.check",
+        "health.liveness",
+        "health.readiness",
         "capability.list",
     ];
     for name in expected {
@@ -767,9 +769,35 @@ async fn test_pipeline_attribute_empty_summaries() {
     });
 
     let result = dispatch(&state, "pipeline.attribute", params).await;
-    assert!(result.is_ok(), "pipeline.attribute with empty summaries should succeed");
+    assert!(
+        result.is_ok(),
+        "pipeline.attribute with empty summaries should succeed"
+    );
     let val = result.unwrap();
-    assert!(val["braid_ref"].is_null(), "no braid_ref when no contributions");
+    assert!(
+        val["braid_ref"].is_null(),
+        "no braid_ref when no contributions"
+    );
+}
+
+// ==================== health domain extended ====================
+
+#[tokio::test]
+async fn test_health_liveness() {
+    let state = test_state();
+    let result = dispatch(&state, "health.liveness", serde_json::json!({})).await;
+    assert!(result.is_ok());
+    let val = result.unwrap();
+    assert_eq!(val["alive"], true);
+}
+
+#[tokio::test]
+async fn test_health_readiness() {
+    let state = test_state();
+    let result = dispatch(&state, "health.readiness", serde_json::json!({})).await;
+    assert!(result.is_ok());
+    let val = result.unwrap();
+    assert_eq!(val["ready"], true);
 }
 
 // ==================== helper unit tests ====================
@@ -801,4 +829,30 @@ fn test_internal_error() {
     let err = internal("something went wrong");
     assert_eq!(err.0, error_code::INTERNAL_ERROR);
     assert!(err.1.contains("something went wrong"));
+}
+
+// ==================== DispatchOutcome ====================
+
+#[tokio::test]
+async fn test_dispatch_outcome_protocol_error_for_unknown_method() {
+    let state = test_state();
+    let outcome = dispatch_classified(&state, "no.such.method", serde_json::json!({})).await;
+    assert!(outcome.is_protocol_error());
+}
+
+#[tokio::test]
+async fn test_dispatch_outcome_success_for_health() {
+    let state = test_state();
+    let outcome = dispatch_classified(&state, "health.check", serde_json::json!({})).await;
+    assert!(!outcome.is_protocol_error());
+    assert!(matches!(outcome, DispatchOutcome::Success(_)));
+}
+
+#[tokio::test]
+async fn test_dispatch_outcome_application_error_for_not_found() {
+    let state = test_state();
+    let outcome =
+        dispatch_classified(&state, "braid.get", serde_json::json!({"id": "missing"})).await;
+    assert!(!outcome.is_protocol_error());
+    assert!(outcome.is_application_error());
 }

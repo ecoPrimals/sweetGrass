@@ -2,7 +2,7 @@
 
 **The Attribution Layer for ecoPrimals**
 
-**Version**: 0.7.18 | **Status**: Production Ready | **Tests**: 1,017 passing | **Edition**: 2024
+**Version**: 0.7.19 | **Status**: Production Ready | **Tests**: 1,030 passing | **Edition**: 2024
 
 ---
 
@@ -465,6 +465,6 @@ cat README.md
 
 ---
 
-*SweetGrass v0.7.18 - ecoPrimals Phase 2*  
+*SweetGrass v0.7.19 - ecoPrimals Phase 2*  
 *March 16, 2026*
 

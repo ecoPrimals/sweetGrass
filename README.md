@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.18 | 1,017 tests | Edition 2024 | AGPL-3.0-only | Pure Rust | ecoBin compliant
+v0.7.19 | 1,030 tests | Edition 2024 | AGPL-3.0-only | Pure Rust | ecoBin compliant
 
 ---
 
@@ -179,8 +179,8 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.18 |
-| Tests | 1,017 passing |
+| Version | v0.7.19 |
+| Tests | 1,030 passing |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates, DI pattern in tests) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
@@ -190,7 +190,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | SPDX + copyright | All 125 .rs files |
 | License | AGPL-3.0-only |
 | Benchmarks | 7 criterion groups |
-| JSON-RPC methods | 21 (batch + notification support) |
+| JSON-RPC methods | 24 (batch + notification support) |
 | Property-based tests | proptest (11 strategies) |
 | Chaos/fault tests | 11 attribution + 17 service scenarios |
 

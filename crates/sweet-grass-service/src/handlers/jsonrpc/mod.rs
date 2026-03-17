@@ -17,7 +17,7 @@
 //! | `compression` | compress_session, create_meta_braid                              |
 //! | `contribution`| record, record_session, record_dehydration                       |
 //! | `pipeline`    | attribute (provenance trio coordination)                          |
-//! | `health`      | check                                                            |
+//! | `health`      | check, liveness, readiness                                       |
 //! | `capability`  | list                                                             |
 
 mod anchoring;
@@ -132,6 +132,49 @@ type DispatchFn = for<'a> fn(
     serde_json::Value,
 ) -> Pin<Box<dyn Future<Output = DispatchResult> + Send + 'a>>;
 
+/// Outcome of a JSON-RPC dispatch, separating protocol errors from
+/// application-level errors (aligned with rhizoCrypt `DispatchOutcome`).
+///
+/// Protocol errors (parse, invalid version, method not found) are
+/// handled before the handler runs. Application errors come from
+/// the handler itself and carry domain-specific codes.
+#[derive(Debug)]
+pub(crate) enum DispatchOutcome {
+    /// Handler executed and returned a JSON result.
+    Success(serde_json::Value),
+    /// Protocol violation — the request never reached a handler.
+    ProtocolError { code: i64, message: String },
+    /// Handler ran but returned a domain error.
+    ApplicationError { code: i64, message: String },
+}
+
+impl DispatchOutcome {
+    /// Whether this outcome represents a protocol-level failure (retriable
+    /// at the transport layer, not the application layer).
+    #[cfg(test)]
+    #[must_use]
+    pub(crate) const fn is_protocol_error(&self) -> bool {
+        matches!(self, Self::ProtocolError { .. })
+    }
+
+    /// Whether this outcome represents an application-level error
+    /// (handler ran but failed).
+    #[cfg(test)]
+    #[must_use]
+    pub(crate) const fn is_application_error(&self) -> bool {
+        matches!(self, Self::ApplicationError { .. })
+    }
+
+    fn into_response(self, id: serde_json::Value) -> JsonRpcResponse {
+        match self {
+            Self::Success(value) => JsonRpcResponse::success(id, value),
+            Self::ProtocolError { code, message } | Self::ApplicationError { code, message } => {
+                JsonRpcResponse::error(id, code, message)
+            },
+        }
+    }
+}
+
 pub(super) struct MethodEntry {
     pub(super) name: &'static str,
     handler: DispatchFn,
@@ -227,10 +270,18 @@ static METHODS: &[MethodEntry] = &[
         name: "pipeline.attribute",
         handler: |s, p| Box::pin(contribution::handle_pipeline_attribute(s, p)),
     },
-    // Health
+    // Health (wateringHole PRIMAL_IPC_PROTOCOL v3.0)
     MethodEntry {
         name: "health.check",
         handler: |s, p| Box::pin(health::handle_health(s, p)),
+    },
+    MethodEntry {
+        name: "health.liveness",
+        handler: |s, p| Box::pin(async move { health::handle_liveness(s, p) }),
+    },
+    MethodEntry {
+        name: "health.readiness",
+        handler: |s, p| Box::pin(health::handle_readiness(s, p)),
     },
     // Capability discovery (wateringHole SPRING_AS_NICHE_DEPLOYMENT_STANDARD)
     MethodEntry {
@@ -272,19 +323,17 @@ pub(crate) async fn process_single(
     }
 
     if parsed.jsonrpc != "2.0" {
-        return Some(JsonRpcResponse::error(
-            parsed.id,
-            error_code::INVALID_REQUEST,
-            "Invalid JSON-RPC version, expected \"2.0\"",
-        ));
+        return Some(
+            DispatchOutcome::ProtocolError {
+                code: error_code::INVALID_REQUEST,
+                message: "Invalid JSON-RPC version, expected \"2.0\"".into(),
+            }
+            .into_response(parsed.id),
+        );
     }
 
-    let result = dispatch(state, &parsed.method, parsed.params).await;
-
-    Some(match result {
-        Ok(value) => JsonRpcResponse::success(parsed.id, value),
-        Err(e) => JsonRpcResponse::error(parsed.id, e.0, e.1),
-    })
+    let outcome = dispatch_classified(state, &parsed.method, parsed.params).await;
+    Some(outcome.into_response(parsed.id))
 }
 
 /// `POST /jsonrpc` — JSON-RPC 2.0 dispatcher with batch and notification support.
@@ -331,6 +380,7 @@ pub async fn handle_jsonrpc(
     )
 }
 
+#[cfg(test)]
 async fn dispatch(state: &AppState, method: &str, params: serde_json::Value) -> DispatchResult {
     match find_handler(method) {
         Some(handler) => handler(state, params).await,
@@ -338,6 +388,25 @@ async fn dispatch(state: &AppState, method: &str, params: serde_json::Value) -> 
             error_code::METHOD_NOT_FOUND,
             format!("Method not found: {method}"),
         )),
+    }
+}
+
+/// Dispatch with protocol/application error classification.
+async fn dispatch_classified(
+    state: &AppState,
+    method: &str,
+    params: serde_json::Value,
+) -> DispatchOutcome {
+    let Some(handler) = find_handler(method) else {
+        return DispatchOutcome::ProtocolError {
+            code: error_code::METHOD_NOT_FOUND,
+            message: format!("Method not found: {method}"),
+        };
+    };
+
+    match handler(state, params).await {
+        Ok(value) => DispatchOutcome::Success(value),
+        Err((code, message)) => DispatchOutcome::ApplicationError { code, message },
     }
 }
 

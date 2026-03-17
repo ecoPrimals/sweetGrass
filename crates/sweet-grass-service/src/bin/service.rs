@@ -19,18 +19,12 @@
 use std::net::SocketAddr;
 
 use clap::{Parser, Subcommand};
+use sweet_grass_service::exit::{OrExit, exit_code};
 use sweet_grass_service::{
     BootstrapConfig, StorageConfig, SweetGrassServer, create_router, infant_bootstrap_with_config,
     start_tarpc_server,
 };
 use tracing::info;
-
-mod exit_code {
-    pub const SUCCESS: i32 = 0;
-    pub const GENERAL_ERROR: i32 = 1;
-    pub const CONFIG_ERROR: i32 = 2;
-    pub const NETWORK_ERROR: i32 = 3;
-}
 
 #[derive(Parser, Debug)]
 #[command(name = "sweetgrass")]
@@ -232,10 +226,10 @@ async fn run_server(config: ServerConfig) -> i32 {
 }
 
 fn parse_addr(addr: &str, label: &str) -> Result<SocketAddr, i32> {
-    addr.parse().map_err(|e| {
-        tracing::error!("Invalid {label} address '{addr}': {e}");
-        exit_code::CONFIG_ERROR
-    })
+    addr.parse().or_exit(
+        exit_code::CONFIG_ERROR,
+        &format!("invalid {label} address '{addr}'"),
+    )
 }
 
 fn spawn_tarpc_server(tarpc_addr: SocketAddr, state: &sweet_grass_service::AppState) {
@@ -329,7 +323,7 @@ fn run_socket() -> i32 {
     }
     #[cfg(not(unix))]
     {
-        eprintln!("Unix domain sockets are not available on this platform");
+        tracing::error!("Unix domain sockets are not available on this platform");
         exit_code::GENERAL_ERROR
     }
 }
@@ -345,7 +339,7 @@ async fn run_status(address: &str) -> i32 {
             exit_code::SUCCESS
         },
         Err(e) => {
-            eprintln!("Cannot reach SweetGrass at {address}: {e}");
+            tracing::error!("Cannot reach SweetGrass at {address}: {e}");
             exit_code::NETWORK_ERROR
         },
     }

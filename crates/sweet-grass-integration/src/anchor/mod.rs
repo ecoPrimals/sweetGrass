@@ -384,7 +384,7 @@ pub mod testing {
 
         /// Set health status for testing failure scenarios.
         #[must_use]
-        #[allow(dead_code)] // Used by test binaries and downstream crates
+        #[allow(dead_code)]
         pub const fn with_health(mut self, healthy: bool) -> Self {
             self.healthy = healthy;
             self
@@ -439,7 +439,7 @@ pub mod testing {
 }
 
 #[cfg(any(test, feature = "test"))]
-#[allow(unused_imports)] // Used by downstream crates via the `test` feature
+#[allow(unused_imports)]
 pub use testing::MockAnchoringClient;
 
 #[cfg(test)]

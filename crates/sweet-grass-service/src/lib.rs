@@ -54,6 +54,7 @@
 
 pub mod bootstrap;
 pub mod error;
+pub mod exit;
 pub mod factory;
 pub mod handlers;
 pub mod router;

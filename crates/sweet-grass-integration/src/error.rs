@@ -31,6 +31,44 @@ pub enum IpcErrorPhase {
     JsonRpcError(i64),
 }
 
+impl IpcErrorPhase {
+    /// Whether this phase represents a transport-level failure that may
+    /// succeed on retry (network flake, temporary overload).
+    ///
+    /// Aligned with loamSpine `IpcPhase::is_recoverable()` and rhizoCrypt
+    /// `should_retry()` gating.
+    #[must_use]
+    pub const fn is_retriable(&self) -> bool {
+        matches!(
+            self,
+            Self::Connect | Self::Write | Self::Read | Self::HttpStatus(502..=504)
+        )
+    }
+
+    /// Whether this phase likely indicates a timeout rather than a hard error.
+    #[must_use]
+    pub const fn is_timeout_likely(&self) -> bool {
+        matches!(self, Self::Read | Self::HttpStatus(504))
+    }
+
+    /// Whether the remote primal reported "method not found" (-32601).
+    #[must_use]
+    pub const fn is_method_not_found(&self) -> bool {
+        matches!(self, Self::JsonRpcError(-32601))
+    }
+
+    /// Whether this is an application-level error (remote primal understood
+    /// the request but returned an error). Not retriable — the request itself
+    /// is the problem.
+    #[must_use]
+    pub const fn is_application_error(&self) -> bool {
+        matches!(
+            self,
+            Self::JsonRpcError(_) | Self::HttpStatus(400 | 404 | 422)
+        )
+    }
+}
+
 impl fmt::Display for IpcErrorPhase {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -182,5 +220,49 @@ mod tests {
             IpcErrorPhase::HttpStatus(404),
             IpcErrorPhase::HttpStatus(503)
         );
+    }
+
+    #[test]
+    fn is_retriable_transport_errors() {
+        assert!(IpcErrorPhase::Connect.is_retriable());
+        assert!(IpcErrorPhase::Write.is_retriable());
+        assert!(IpcErrorPhase::Read.is_retriable());
+        assert!(IpcErrorPhase::HttpStatus(503).is_retriable());
+        assert!(IpcErrorPhase::HttpStatus(502).is_retriable());
+        assert!(IpcErrorPhase::HttpStatus(504).is_retriable());
+
+        assert!(!IpcErrorPhase::InvalidJson.is_retriable());
+        assert!(!IpcErrorPhase::NoResult.is_retriable());
+        assert!(!IpcErrorPhase::JsonRpcError(-32600).is_retriable());
+        assert!(!IpcErrorPhase::HttpStatus(400).is_retriable());
+        assert!(!IpcErrorPhase::HttpStatus(404).is_retriable());
+    }
+
+    #[test]
+    fn is_timeout_likely() {
+        assert!(IpcErrorPhase::Read.is_timeout_likely());
+        assert!(IpcErrorPhase::HttpStatus(504).is_timeout_likely());
+        assert!(!IpcErrorPhase::Connect.is_timeout_likely());
+        assert!(!IpcErrorPhase::Write.is_timeout_likely());
+    }
+
+    #[test]
+    fn is_method_not_found() {
+        assert!(IpcErrorPhase::JsonRpcError(-32601).is_method_not_found());
+        assert!(!IpcErrorPhase::JsonRpcError(-32600).is_method_not_found());
+        assert!(!IpcErrorPhase::Connect.is_method_not_found());
+    }
+
+    #[test]
+    fn is_application_error() {
+        assert!(IpcErrorPhase::JsonRpcError(-32600).is_application_error());
+        assert!(IpcErrorPhase::JsonRpcError(-32601).is_application_error());
+        assert!(IpcErrorPhase::HttpStatus(400).is_application_error());
+        assert!(IpcErrorPhase::HttpStatus(404).is_application_error());
+        assert!(IpcErrorPhase::HttpStatus(422).is_application_error());
+
+        assert!(!IpcErrorPhase::Connect.is_application_error());
+        assert!(!IpcErrorPhase::Read.is_application_error());
+        assert!(!IpcErrorPhase::HttpStatus(503).is_application_error());
     }
 }

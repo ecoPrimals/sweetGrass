@@ -1,12 +1,12 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.18 (March 2026)
+**Current Version**: v0.7.19 (March 2026)
 
 ---
 
 ## Completed
 
-### v0.7.18 — Deep Execution: tarpc 0.37 + Structured IPC + Pipeline Integration (March 2026)
+### v0.7.19 — Deep Execution: tarpc 0.37 + Structured IPC + Pipeline Integration (March 2026)
 
 - [x] **tarpc 0.34 → 0.37** — aligned with rhizoCrypt, biomeOS, barraCuda, coralReef; `tokio-serde` 0.9, `opentelemetry` 0.30
 - [x] **Structured IPC errors** — `IpcErrorPhase` enum (Connect, Write, Read, InvalidJson, HttpStatus, NoResult, JsonRpcError) with `IntegrationError::Ipc { phase, message }` variant; aligned with rhizoCrypt + healthSpring V28
@@ -14,7 +14,7 @@
 - [x] **NDJSON streaming types** — `StreamItem` enum (Data, Progress, End, Error) with `to_ndjson_line()` / `parse_ndjson_line()`; aligned with rhizoCrypt streaming module
 - [x] **`pipeline.attribute` handler** — new JSON-RPC method consuming `provenance_trio_types::PipelineRequest`, creating attribution braids per agent contribution, returning `PipelineResult` with `braid_ref`
 - [x] **Smart refactor: store-postgres** — `row_mapping.rs` extracted (row_to_braid, row_to_activity, parse_activity_type, i64/u64 conversions); mod.rs 714→516 lines
-- [x] 1,017 tests passing (was 1,004), 0 failures, 0 clippy warnings, 0 unsafe, docs build clean
+- [x] 1,030 tests passing (was 1,017), 0 failures, 0 clippy warnings, 0 unsafe, docs build clean
 
 ### v0.7.17 — Ecosystem Absorption + Lint Tightening + Capability Evolution (March 2026)
 
@@ -367,7 +367,7 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.18 | **March 2026** | Deep Execution: tarpc 0.37 + Structured IPC + Pipeline Integration (DONE) |
+| v0.7.19 | **March 2026** | Deep Execution: tarpc 0.37 + Structured IPC + Pipeline Integration (DONE) |
 | v0.7.17 | March 2026 | Ecosystem Absorption + Lint Tightening + Capability Evolution (DONE) |
 | v0.7.16 | March 2026 | Deep Audit Remediation + Smart Refactoring (DONE) |
 | v0.7.15 | March 2026 | Deep Debt Evolution + Coverage Expansion + Convergence Spec (DONE) |

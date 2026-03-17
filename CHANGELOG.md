@@ -5,6 +5,40 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.19] - 2026-03-16
+
+### Ecosystem Absorption: Health Probes, IPC Helpers, DispatchOutcome, OrExit
+
+Comprehensive absorption of ecosystem patterns: wateringHole protocol v3.0 health
+probes, IpcErrorPhase retry/classification helpers from rhizoCrypt/loamSpine,
+DispatchOutcome for protocol vs application error separation (rhizoCrypt/biomeOS),
+and OrExit trait for zero-panic binary validation (biomeOS).
+
+### Added
+
+- **`health.liveness` + `health.readiness` JSON-RPC methods** — wateringHole `PRIMAL_IPC_PROTOCOL` v3.0, aligned with coralReef/healthSpring implementations. Liveness is zero-cost (no store query); readiness gates on store availability.
+- **`health_liveness()` + `health_readiness()` tarpc methods** — Binary RPC equivalents of the JSON-RPC health probes.
+- **`IpcErrorPhase` classification helpers** — `is_retriable()` (transport flakes), `is_timeout_likely()`, `is_method_not_found()`, `is_application_error()` for retry gating and circuit breaker integration.
+- **`DispatchOutcome` enum** — Separates protocol errors (parse, method not found) from application errors (handler failures) in JSON-RPC dispatch. Aligned with rhizoCrypt/biomeOS `DispatchOutcome`.
+- **`OrExit<T>` trait** — Zero-panic exit helpers for `UniBin` binaries. Replaces `unwrap()`/`expect()` with structured logging + exit codes. Implements for `Result<T, E>` and `Option<T>`. Aligned with biomeOS `OrExit` pattern.
+- **`exit` module** — `exit_code` constants (SUCCESS, GENERAL_ERROR, CONFIG_ERROR, NETWORK_ERROR) centralized per wateringHole `UNIBIN_ARCHITECTURE_STANDARD`.
+- **13 new tests** — IpcErrorPhase helpers (4), health.liveness/readiness dispatch (2), DispatchOutcome classification (3), OrExit (4). Total: 1,030 tests.
+
+### Changed
+
+- **Method count** — 22 → 24 JSON-RPC methods (added `health.liveness`, `health.readiness`)
+- **`eprintln!` → `tracing::error!`** — Binary entrypoint uses structured logging throughout
+- **`#[allow]` → `#[expect(reason)]`** — Migrated where lint expectations are compile-time stable; retained `#[allow]` only for conditionally-compiled items
+- **`dispatch_classified()`** — New dispatch path using `DispatchOutcome` in `process_single`; old `dispatch()` retained for test compatibility
+- **Binary (`service.rs`)** — Uses centralized `exit::exit_code` and `OrExit` trait for address parsing
+
+### Metrics
+
+- 24 JSON-RPC methods (up from 22)
+- 1,030 tests passing (up from 1,017)
+- 0 clippy warnings (pedantic + nursery)
+- 0 `eprintln!` in production code
+
 ## [0.7.18] - 2026-03-16
 
 ### Deep Execution: tarpc 0.37 + Structured IPC + Pipeline Integration

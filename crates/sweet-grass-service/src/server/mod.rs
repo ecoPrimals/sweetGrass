@@ -516,6 +516,14 @@ impl SweetGrassRpc for SweetGrassServer {
         })
     }
 
+    async fn health_liveness(self, _ctx: Context) -> bool {
+        true
+    }
+
+    async fn health_readiness(self, _ctx: Context) -> bool {
+        self.store.count(&QueryFilter::default()).await.is_ok()
+    }
+
     async fn status(self, _ctx: Context) -> Result<ServiceStatus, RpcError> {
         let count = self
             .store

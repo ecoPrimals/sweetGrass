@@ -245,6 +245,12 @@ pub trait SweetGrassRpc {
     /// Health check.
     async fn health_check() -> Result<HealthStatus, RpcError>;
 
+    /// Lightweight liveness probe (wateringHole protocol v3.0).
+    async fn health_liveness() -> bool;
+
+    /// Readiness probe — ready to accept work (wateringHole protocol v3.0).
+    async fn health_readiness() -> bool;
+
     /// Get service status.
     async fn status() -> Result<ServiceStatus, RpcError>;
 }

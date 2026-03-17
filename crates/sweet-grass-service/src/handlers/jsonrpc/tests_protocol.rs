@@ -303,5 +303,5 @@ async fn test_capability_list_method_count() {
     .unwrap();
     let result = resp.result.unwrap();
     let methods = result["methods"].as_array().unwrap();
-    assert_eq!(methods.len(), 22);
+    assert_eq!(methods.len(), 24);
 }
