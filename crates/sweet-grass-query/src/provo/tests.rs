@@ -251,7 +251,7 @@ fn test_export_preserves_data_hash() {
 #[test]
 fn test_export_preserves_mime_type() {
     let mut braid = make_test_braid("sha256:mime_test", "did:key:z6MkTest");
-    braid.mime_type = "application/json".to_string();
+    braid.mime_type = "application/json".into();
 
     let exporter = ProvoExport::new();
     let doc = exporter.export_braid(&braid).expect("should export");

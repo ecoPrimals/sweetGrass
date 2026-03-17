@@ -2,6 +2,8 @@
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! `BraidBuilder` - builder pattern for constructing Braids.
 
+use std::sync::Arc;
+
 use crate::activity::Activity;
 use crate::agent::Did;
 use crate::entity::EntityReference;
@@ -98,9 +100,10 @@ impl BraidBuilder {
         let data_hash = self
             .data_hash
             .ok_or_else(|| crate::SweetGrassError::Validation("data_hash is required".into()))?;
-        let mime_type = self
+        let mime_type: Arc<str> = self
             .mime_type
-            .ok_or_else(|| crate::SweetGrassError::Validation("mime_type is required".into()))?;
+            .ok_or_else(|| crate::SweetGrassError::Validation("mime_type is required".into()))?
+            .into();
         let size = self
             .size
             .ok_or_else(|| crate::SweetGrassError::Validation("size is required".into()))?;

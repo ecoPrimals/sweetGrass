@@ -238,7 +238,7 @@ impl BraidStore for PostgresStore {
         )
         .bind(braid_id)
         .bind(braid.data_hash.as_str())
-        .bind(&braid.mime_type)
+        .bind(&*braid.mime_type)
         .bind(u64_to_i64(braid.size)?)
         .bind(braid.was_attributed_to.as_str())
         .bind(u64_to_i64(braid.generated_at_time)?)

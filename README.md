@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.20 | 1,049 tests | Edition 2024 | AGPL-3.0-only | Pure Rust | ecoBin compliant
+v0.7.21 | 1,077 tests | Edition 2024 | AGPL-3.0-only | Pure Rust | ecoBin compliant
 
 ---
 
@@ -179,15 +179,16 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.20 |
-| Tests | 1,049 passing |
+| Version | v0.7.21 |
+| Tests | 1,077 passing |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates, DI pattern in tests) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery + `missing_errors_doc` + `missing_const_for_fn`, `-D warnings`) |
 | Max file size | 808 lines (limit: 1000) |
+| .rs files | 133 (38,744 LOC) |
 | TODOs in source | 0 |
-| SPDX + copyright | All 128 .rs files |
+| SPDX + copyright | All 133 .rs files |
 | License | AGPL-3.0-only |
 | Benchmarks | 7 criterion groups |
 | JSON-RPC methods | 24 (batch + notification support) |
@@ -207,7 +208,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 ### Zero-Copy
 
-`ContentHash`, `BraidId`, `Did`, and `ActivityId` use `Arc<str>` internally — `.clone()` is O(1) atomic refcount increment. `BraidSignature` fields use `Cow<'static, str>` for zero-allocation static values. `BraidContext.imports` uses `IndexMap` for deterministic serialization.
+`ContentHash`, `BraidId`, `Did`, `ActivityId`, and `Braid.mime_type` use `Arc<str>` internally — `.clone()` is O(1) atomic refcount increment. MIME type indexes (`MemoryStore`, `AgentContributions`) share the same `Arc<str>`, eliminating per-query allocations on hot paths. `BraidSignature` fields use `Cow<'static, str>` for zero-allocation static values. `BraidContext.imports` uses `IndexMap` for deterministic serialization.
 
 ### Configuration
 

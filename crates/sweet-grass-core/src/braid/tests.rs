@@ -70,7 +70,7 @@ mod unit_tests {
             .expect("should build");
 
         assert_eq!(braid.data_hash.as_str(), "sha256:abc123");
-        assert_eq!(braid.mime_type, "application/json");
+        assert_eq!(&*braid.mime_type, "application/json");
         assert_eq!(braid.size, 1024);
         assert_eq!(braid.was_attributed_to, did);
         assert!(!braid.is_signed());
@@ -278,7 +278,7 @@ mod proptests {
                 .expect("should build");
 
             prop_assert_eq!(braid.data_hash.as_str(), data_hash.as_str());
-            prop_assert_eq!(braid.mime_type, mime);
+            prop_assert_eq!(&*braid.mime_type, mime);
             prop_assert_eq!(braid.size, size);
             prop_assert_eq!(braid.was_attributed_to.as_str(), agent.as_str());
         }

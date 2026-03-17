@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2024–2026 ecoPrimals Project
-//! Tests for the JSON-RPC 2.0 dispatch handler.
+//! Core tests for JSON-RPC 2.0 dispatch: protocol, braid CRUD, health,
+//! helpers, and `DispatchOutcome` classification.
+//!
+//! Domain-specific handler tests live in sibling modules:
+//! - `tests_anchoring` — `anchoring.*`
+//! - `tests_attribution` — `attribution.*`
+//! - `tests_compression` — `compression.*`
+//! - `tests_contribution` — `contribution.*` + `pipeline.*`
+//! - `tests_provenance` — `provenance.*`
 
 #![expect(clippy::unwrap_used, reason = "test file: unwrap is standard in tests")]
 
@@ -344,442 +352,6 @@ async fn test_braid_query_with_order() {
     assert_eq!(result["total_count"], 2);
 }
 
-// ==================== anchoring domain ====================
-
-#[tokio::test]
-async fn test_anchor_braid() {
-    let state = test_state();
-    let hex = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
-    let braid = dispatch(
-        &state,
-        "braid.create",
-        serde_json::json!({"data_hash": format!("sha256:{hex}"), "mime_type": "application/octet-stream", "size": 0}),
-    )
-    .await
-    .unwrap();
-    let braid_id = braid["@id"].as_str().unwrap();
-
-    let result = dispatch(
-        &state,
-        "anchoring.anchor",
-        serde_json::json!({"braid_id": braid_id, "spine_id": "main"}),
-    )
-    .await
-    .unwrap();
-    assert_eq!(result["spine_id"], "main");
-    assert_eq!(result["anchored"], false);
-    assert_eq!(result["status"], "prepared");
-    assert!(result["content_hash"].is_string());
-}
-
-#[tokio::test]
-async fn test_anchor_braid_not_found() {
-    let state = test_state();
-    let result = dispatch(
-        &state,
-        "anchoring.anchor",
-        serde_json::json!({"braid_id": "nonexistent"}),
-    )
-    .await;
-    assert_eq!(result.unwrap_err().0, error_code::NOT_FOUND);
-}
-
-#[tokio::test]
-async fn test_anchor_braid_non_sha256() {
-    let state = test_state();
-    let braid = dispatch(
-        &state,
-        "braid.create",
-        serde_json::json!({"data_hash": "sha256:tooshort", "mime_type": "text/plain", "size": 1}),
-    )
-    .await
-    .unwrap();
-    let braid_id = braid["@id"].as_str().unwrap();
-
-    let result = dispatch(
-        &state,
-        "anchoring.anchor",
-        serde_json::json!({"braid_id": braid_id}),
-    )
-    .await;
-    assert_eq!(result.unwrap_err().0, error_code::INVALID_PARAMS);
-}
-
-#[tokio::test]
-async fn test_verify_anchor() {
-    let state = test_state();
-    let braid = dispatch(
-        &state,
-        "braid.create",
-        serde_json::json!({"data_hash": "sha256:verifytest", "mime_type": "text/plain", "size": 1}),
-    )
-    .await
-    .unwrap();
-    let braid_id = braid["@id"].as_str().unwrap();
-
-    let result = dispatch(
-        &state,
-        "anchoring.verify",
-        serde_json::json!({"braid_id": braid_id}),
-    )
-    .await
-    .unwrap();
-    assert_eq!(result["anchored"], false);
-    assert_eq!(result["verification_status"], "pending_integration");
-}
-
-#[tokio::test]
-async fn test_verify_anchor_not_found() {
-    let state = test_state();
-    let result = dispatch(
-        &state,
-        "anchoring.verify",
-        serde_json::json!({"braid_id": "nonexistent"}),
-    )
-    .await;
-    assert_eq!(result.unwrap_err().0, error_code::NOT_FOUND);
-}
-
-// ==================== provenance domain ====================
-
-#[tokio::test]
-async fn test_provenance_graph() {
-    let state = test_state();
-    dispatch(
-        &state,
-        "braid.create",
-        serde_json::json!({"data_hash": "sha256:provgraph", "mime_type": "text/plain", "size": 1}),
-    )
-    .await
-    .unwrap();
-
-    let result = dispatch(
-        &state,
-        "provenance.graph",
-        serde_json::json!({"entity": {"data_hash": "sha256:provgraph"}}),
-    )
-    .await;
-    assert!(
-        result.is_ok(),
-        "provenance.graph should succeed: {result:?}"
-    );
-}
-
-#[tokio::test]
-async fn test_export_provo() {
-    let state = test_state();
-    dispatch(
-        &state,
-        "braid.create",
-        serde_json::json!({"data_hash": "sha256:provohash", "mime_type": "text/plain", "size": 10}),
-    )
-    .await
-    .unwrap();
-
-    let result = dispatch(
-        &state,
-        "provenance.export_provo",
-        serde_json::json!({"hash": "sha256:provohash"}),
-    )
-    .await;
-    assert!(result.is_ok(), "exportProvo should succeed: {result:?}");
-}
-
-#[tokio::test]
-async fn test_export_graph_provo() {
-    let state = test_state();
-    dispatch(
-        &state,
-        "braid.create",
-        serde_json::json!({"data_hash": "sha256:graphprovohash", "mime_type": "text/plain", "size": 10}),
-    )
-    .await
-    .unwrap();
-
-    let result = dispatch(
-        &state,
-        "provenance.export_graph_provo",
-        serde_json::json!({"entity": {"data_hash": "sha256:graphprovohash"}}),
-    )
-    .await;
-    assert!(
-        result.is_ok(),
-        "exportGraphProvo should succeed: {result:?}"
-    );
-}
-
-// ==================== attribution domain ====================
-
-#[tokio::test]
-async fn test_attribution_chain() {
-    let state = test_state();
-    dispatch(
-        &state,
-        "braid.create",
-        serde_json::json!({"data_hash": "sha256:attrchain", "mime_type": "text/plain", "size": 10}),
-    )
-    .await
-    .unwrap();
-
-    let result = dispatch(
-        &state,
-        "attribution.chain",
-        serde_json::json!({"hash": "sha256:attrchain"}),
-    )
-    .await;
-    assert!(
-        result.is_ok(),
-        "attribution.chain should succeed: {result:?}"
-    );
-}
-
-#[tokio::test]
-async fn test_calculate_rewards() {
-    let state = test_state();
-    dispatch(
-        &state,
-        "braid.create",
-        serde_json::json!({"data_hash": "sha256:rewardshash", "mime_type": "text/plain", "size": 10}),
-    )
-    .await
-    .unwrap();
-
-    let result = dispatch(
-        &state,
-        "attribution.calculate_rewards",
-        serde_json::json!({"hash": "sha256:rewardshash", "value": 100.0}),
-    )
-    .await
-    .unwrap();
-    assert!(result.is_array());
-    let arr = result.as_array().unwrap();
-    assert!(!arr.is_empty());
-    let total: f64 = arr.iter().map(|r| r["amount"].as_f64().unwrap()).sum();
-    assert!((total - 100.0).abs() < 0.01);
-}
-
-#[tokio::test]
-async fn test_top_contributors() {
-    let state = test_state();
-    dispatch(
-        &state,
-        "braid.create",
-        serde_json::json!({"data_hash": "sha256:topcontrib", "mime_type": "text/plain", "size": 10}),
-    )
-    .await
-    .unwrap();
-
-    let result = dispatch(
-        &state,
-        "attribution.top_contributors",
-        serde_json::json!({"hash": "sha256:topcontrib", "limit": 5}),
-    )
-    .await
-    .unwrap();
-    assert!(result.is_array());
-}
-
-#[tokio::test]
-async fn test_top_contributors_default_limit() {
-    let state = test_state();
-    dispatch(
-        &state,
-        "braid.create",
-        serde_json::json!({"data_hash": "sha256:topdefault", "mime_type": "text/plain", "size": 10}),
-    )
-    .await
-    .unwrap();
-
-    let result = dispatch(
-        &state,
-        "attribution.top_contributors",
-        serde_json::json!({"hash": "sha256:topdefault"}),
-    )
-    .await
-    .unwrap();
-    assert!(result.is_array());
-}
-
-// ==================== compression domain ====================
-
-#[tokio::test]
-async fn test_compress_session() {
-    let state = test_state();
-    let params = serde_json::json!({
-        "id": "compress-session-1",
-        "vertices": [{
-            "id": "v1",
-            "data_hash": "sha256:compresstest",
-            "mime_type": "text/plain",
-            "agent": "did:key:z6MkTest",
-            "size": 100,
-            "parents": [],
-            "timestamp": 1000,
-            "activity_type": "Creation",
-            "committed": true
-        }],
-        "started_at": 1000,
-        "outcome": "Committed",
-        "compression_hint": "Auto",
-        "compute_units": 1.0
-    });
-
-    let result = dispatch(&state, "compression.compress_session", params).await;
-    assert!(result.is_ok(), "compress should succeed: {result:?}");
-}
-
-#[tokio::test]
-async fn test_create_meta_braid() {
-    let state = test_state();
-    let b1 = dispatch(
-        &state,
-        "braid.create",
-        serde_json::json!({"data_hash": "sha256:meta1", "mime_type": "text/plain", "size": 1}),
-    )
-    .await
-    .unwrap();
-    let b2 = dispatch(
-        &state,
-        "braid.create",
-        serde_json::json!({"data_hash": "sha256:meta2", "mime_type": "text/plain", "size": 2}),
-    )
-    .await
-    .unwrap();
-
-    let result = dispatch(
-        &state,
-        "compression.create_meta_braid",
-        serde_json::json!({
-            "braid_ids": [b1["@id"], b2["@id"]],
-            "summary_type": {"Session": {"session_id": "meta-session"}}
-        }),
-    )
-    .await;
-    assert!(result.is_ok(), "createMetaBraid should succeed: {result:?}");
-}
-
-// ==================== contribution domain extended ====================
-
-#[tokio::test]
-async fn test_record_dehydration_with_operations() {
-    let state = test_state();
-    let params = serde_json::json!({
-        "source_primal": TEST_SOURCE_PRIMAL,
-        "session_id": "dehydrate-session-1",
-        "merkle_root": "sha256:merkleroot01",
-        "vertex_count": 10,
-        "branch_count": 3,
-        "agents": ["did:key:z6MkAlice"],
-        "operations": [{
-            "op_type": "create",
-            "content_hash": "sha256:op1hash",
-            "agent": "did:key:z6MkAlice",
-            "timestamp": 500_000
-        }],
-        "session_start": 100_000,
-        "dehydrated_at": 200_000,
-        "niche": "rootpulse",
-        "compression_ratio": 0.42
-    });
-
-    let result = dispatch(&state, "contribution.record_dehydration", params).await;
-    assert!(
-        result.is_ok(),
-        "recordDehydration should succeed: {result:?}"
-    );
-    let resp = result.unwrap();
-    assert_eq!(resp["session_id"], "dehydrate-session-1");
-    assert_eq!(resp["braids_created"], 1);
-}
-
-#[tokio::test]
-async fn test_record_dehydration_empty_operations() {
-    let state = test_state();
-    let params = serde_json::json!({
-        "source_primal": TEST_SOURCE_PRIMAL,
-        "session_id": "dehydrate-empty-ops",
-        "merkle_root": "sha256:emptymerkle",
-        "vertex_count": 5,
-        "branch_count": 1,
-        "agents": ["did:key:z6MkSolo"],
-        "operations": [],
-        "session_start": 100_000,
-        "dehydrated_at": 200_000
-    });
-
-    let result = dispatch(&state, "contribution.record_dehydration", params).await;
-    assert!(
-        result.is_ok(),
-        "dehydration with empty ops should succeed: {result:?}"
-    );
-    let resp = result.unwrap();
-    assert_eq!(resp["braids_created"], 1);
-    assert_eq!(resp["merkle_root"], "sha256:emptymerkle");
-}
-
-#[tokio::test]
-async fn test_record_dehydration_no_agents_fallback() {
-    let state = test_state();
-    let params = serde_json::json!({
-        "source_primal": TEST_SOURCE_PRIMAL,
-        "session_id": "dehydrate-no-agents",
-        "merkle_root": "sha256:noagentmerkle",
-        "vertex_count": 1,
-        "branch_count": 0,
-        "agents": [],
-        "operations": [],
-        "session_start": 0,
-        "dehydrated_at": 1
-    });
-
-    let result = dispatch(&state, "contribution.record_dehydration", params).await;
-    assert!(
-        result.is_ok(),
-        "dehydration with no agents should use fallback DID"
-    );
-}
-
-// ==================== pipeline domain ====================
-
-#[tokio::test]
-async fn test_pipeline_attribute_creates_braids() {
-    let state = test_state();
-    let params = serde_json::json!({
-        "session_id": "sess-pipeline-001",
-        "agent_did": "did:key:z6MkPipelineAgent",
-        "agent_summaries": [
-            {"agent_did": "did:key:z6MkContributor1", "description": "primary", "weight": 0.7},
-            {"agent_did": "did:key:z6MkContributor2", "description": "reviewer", "weight": 0.3}
-        ]
-    });
-
-    let result = dispatch(&state, "pipeline.attribute", params).await;
-    assert!(result.is_ok(), "pipeline.attribute should succeed");
-    let val = result.unwrap();
-    assert!(val["braid_ref"].is_string(), "should have a braid_ref");
-}
-
-#[tokio::test]
-async fn test_pipeline_attribute_empty_summaries() {
-    let state = test_state();
-    let params = serde_json::json!({
-        "session_id": "sess-empty-001",
-        "agent_did": "did:key:z6MkEmptyAgent",
-        "agent_summaries": []
-    });
-
-    let result = dispatch(&state, "pipeline.attribute", params).await;
-    assert!(
-        result.is_ok(),
-        "pipeline.attribute with empty summaries should succeed"
-    );
-    let val = result.unwrap();
-    assert!(
-        val["braid_ref"].is_null(),
-        "no braid_ref when no contributions"
-    );
-}
-
 // ==================== health domain extended ====================
 
 #[tokio::test]
@@ -855,4 +427,65 @@ async fn test_dispatch_outcome_application_error_for_not_found() {
         dispatch_classified(&state, "braid.get", serde_json::json!({"id": "missing"})).await;
     assert!(!outcome.is_protocol_error());
     assert!(outcome.is_application_error());
+}
+
+// ==================== Braid Commit Coverage ====================
+
+#[tokio::test]
+async fn test_braid_commit_success() {
+    let state = test_state();
+    let hex = "c".repeat(64);
+    let created = dispatch(
+        &state,
+        "braid.create",
+        serde_json::json!({"data_hash": format!("sha256:{hex}"), "mime_type": "text/plain", "size": 10}),
+    ).await.unwrap();
+    let braid_id = created["@id"].as_str().unwrap();
+
+    let result = dispatch(
+        &state,
+        "braid.commit",
+        serde_json::json!({"braid_id": braid_id}),
+    )
+    .await
+    .unwrap();
+    assert_eq!(result["spine_id"], "default");
+    assert!(result["uuid"].is_string());
+    assert!(result["data_hash_bytes"].is_string());
+    assert_eq!(result["is_signed"], false);
+}
+
+#[tokio::test]
+async fn test_braid_commit_missing_braid() {
+    let state = test_state();
+    let result = dispatch(
+        &state,
+        "braid.commit",
+        serde_json::json!({"braid_id": "urn:braid:uuid:00000000-0000-0000-0000-000000000000"}),
+    )
+    .await;
+    assert!(result.is_err());
+    let (code, _) = result.unwrap_err();
+    assert_eq!(code, error_code::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn test_braid_commit_custom_spine() {
+    let state = test_state();
+    let hex = "d".repeat(64);
+    let created = dispatch(
+        &state,
+        "braid.create",
+        serde_json::json!({"data_hash": format!("sha256:{hex}"), "mime_type": "text/plain", "size": 5}),
+    ).await.unwrap();
+    let braid_id = created["@id"].as_str().unwrap();
+
+    let result = dispatch(
+        &state,
+        "braid.commit",
+        serde_json::json!({"braid_id": braid_id, "spine_id": "my-spine"}),
+    )
+    .await
+    .unwrap();
+    assert_eq!(result["spine_id"], "my-spine");
 }

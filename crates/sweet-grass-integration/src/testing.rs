@@ -90,6 +90,7 @@ pub fn postgres_test_url_for_port(port: u16) -> String {
     clippy::expect_used,
     reason = "test helper: panic on system failure is acceptable"
 )]
+#[must_use]
 pub fn allocate_test_port() -> u16 {
     TcpListener::bind(TEST_BIND_ADDR)
         .expect("OS should allocate port")
@@ -107,6 +108,7 @@ pub fn allocate_test_port() -> u16 {
 /// ```rust,ignore
 /// let [tarpc_port, rest_port] = allocate_test_ports::<2>();
 /// ```
+#[must_use]
 pub fn allocate_test_ports<const N: usize>() -> [u16; N] {
     let mut ports = [0u16; N];
     for port in &mut ports {

@@ -89,7 +89,7 @@ async fn test_query_with_filter() {
 
     let braid1 = create_test_braid("sha256:filter1");
     let mut braid2 = create_test_braid("sha256:filter2");
-    braid2.mime_type = "application/json".to_string();
+    braid2.mime_type = "application/json".into();
 
     store.put(&braid1).await.expect("put");
     store.put(&braid2).await.expect("put");
@@ -101,7 +101,7 @@ async fn test_query_with_filter() {
         .expect("query");
 
     assert_eq!(result.braids.len(), 1);
-    assert_eq!(result.braids[0].mime_type, "application/json");
+    assert_eq!(&*result.braids[0].mime_type, "application/json");
 }
 
 #[tokio::test]
@@ -757,7 +757,7 @@ async fn test_count_with_filter() {
 
     let braid1 = create_test_braid("sha256:count_filter1");
     let mut braid2 = create_test_braid("sha256:count_filter2");
-    braid2.mime_type = "application/json".to_string();
+    braid2.mime_type = "application/json".into();
 
     store.put(&braid1).await.expect("put");
     store.put(&braid2).await.expect("put");

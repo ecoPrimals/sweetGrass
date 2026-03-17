@@ -5,6 +5,35 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.21] - 2026-03-17
+
+### Deep Audit: Zero-Copy, Handler Coverage, Test Refactor
+
+Comprehensive audit execution: zero-copy `Arc<str>` for `Braid.mime_type` across
+all crates, hardcoded primal name eliminated, 28 new JSON-RPC handler tests, and
+smart refactor of 1448-line test file into domain-organized submodules.
+
+### Added
+
+- **28 new JSON-RPC handler tests** — Extended coverage across `anchoring.*`, `attribution.*`, `braid.commit`, `compression.*`, `provenance.*`, `contribution.*`, and `pipeline.*` methods. Total: 1,077 tests (up from 1,049).
+- **5 domain test modules** — `tests_anchoring`, `tests_attribution`, `tests_compression`, `tests_contribution`, `tests_provenance` — smart refactor of `jsonrpc/tests.rs` (was 1,448 lines, violated 1,000-line limit).
+
+### Changed
+
+- **`Braid.mime_type: String` → `Arc<str>`** — Zero-copy optimization across all crates: `sweet-grass-core` (braid, builder), `sweet-grass-store` (memory indexes), `sweet-grass-store-sled`, `sweet-grass-store-redb`, `sweet-grass-store-postgres` (bind), `sweet-grass-query` (engine, `AgentContributions.by_mime_type`).
+- **Hardcoded `"sweetgrass"` → `PRIMAL_NAME`** — `jsonrpc/contribution.rs` now uses canonical `sweet_grass_core::identity::PRIMAL_NAME` constant.
+- **`#[must_use]` on test port allocators** — `allocate_test_port()` and `allocate_test_ports()` in `sweet-grass-integration` annotated per clippy pedantic.
+- **Float comparison** — `assert_eq!` on `f64` replaced with epsilon-based `assert!` to satisfy clippy `float_cmp`.
+
+### Metrics
+
+- 1,077 tests passing (up from 1,049 — +28 new)
+- 133 .rs files (up from 128 — +5 domain test modules)
+- 0 clippy warnings (pedantic + nursery)
+- 0 unsafe blocks
+- Max file size: 808 lines (was 1,448 — refactored)
+- All files under 1,000 lines
+
 ## [0.7.20] - 2026-03-16
 
 ### Ecosystem Absorption: IPC Timeout, extract_rpc_error, Capability Parsing, Proptest

@@ -96,7 +96,7 @@ async fn test_query_by_mime_type() {
         .expect("query");
 
     assert_eq!(result.total_count, 1);
-    assert_eq!(result.braids[0].mime_type, "application/json");
+    assert_eq!(&*result.braids[0].mime_type, "application/json");
 }
 
 #[tokio::test]

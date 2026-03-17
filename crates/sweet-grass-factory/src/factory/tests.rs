@@ -33,7 +33,7 @@ mod factory_tests {
             .expect("should create");
 
         assert!(braid.data_hash.as_str().starts_with("sha256:"));
-        assert_eq!(braid.mime_type, "text/plain");
+        assert_eq!(&*braid.mime_type, "text/plain");
         assert_eq!(braid.size, 13);
         assert_eq!(braid.ecop.source_primal, Some("unknown".to_string()));
     }
@@ -50,7 +50,7 @@ mod factory_tests {
             .from_json(&Data { value: 42 }, None)
             .expect("should create");
 
-        assert_eq!(braid.mime_type, "application/json");
+        assert_eq!(&*braid.mime_type, "application/json");
     }
 
     #[test]

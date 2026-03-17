@@ -110,7 +110,7 @@ async fn test_agent_contributions() {
     braid1.size = 100;
     let mut braid2 = make_test_braid("sha256:a2", agent);
     braid2.size = 200;
-    braid2.mime_type = "text/plain".to_string();
+    braid2.mime_type = "text/plain".into();
 
     store.put(&braid1).await.expect("store");
     store.put(&braid2).await.expect("store");

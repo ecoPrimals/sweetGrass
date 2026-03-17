@@ -317,7 +317,7 @@ impl BraidStore for RedbStore {
                         continue;
                     }
                     if let Some(mime) = &filter.mime_type
-                        && &braid.mime_type != mime
+                        && &*braid.mime_type != mime
                     {
                         continue;
                     }

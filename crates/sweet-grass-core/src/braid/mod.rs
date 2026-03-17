@@ -8,6 +8,8 @@
 //! - Who contributed (agents with roles)
 //! - Where it came from (derivation chain)
 
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 use crate::activity::Activity;
@@ -47,7 +49,10 @@ pub struct Braid {
     pub data_hash: ContentHash,
 
     /// MIME type of the data.
-    pub mime_type: String,
+    ///
+    /// Uses `Arc<str>` for O(1) clone — MIME types are read-heavy and frequently
+    /// cloned during indexing, filtering, and serialization.
+    pub mime_type: Arc<str>,
 
     /// Size of the data in bytes.
     pub size: u64,

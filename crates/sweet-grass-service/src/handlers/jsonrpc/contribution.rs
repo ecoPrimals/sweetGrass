@@ -38,7 +38,7 @@ pub(super) async fn handle_pipeline_attribute(
             .size(0)
             .attributed_to(agent)
             .ecop(EcoPrimalsAttributes {
-                source_primal: Some("sweetgrass".to_string()),
+                source_primal: Some(sweet_grass_core::identity::PRIMAL_NAME.to_owned()),
                 rhizo_session: Some(request.session_id.clone()),
                 niche: request.niche.clone(),
                 ..EcoPrimalsAttributes::default()

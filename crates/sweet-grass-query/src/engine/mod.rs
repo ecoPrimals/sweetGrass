@@ -273,7 +273,7 @@ impl QueryEngine {
         let mut by_mime_type = std::collections::HashMap::new();
         for braid in &braids {
             *by_mime_type
-                .entry(braid.mime_type.clone())
+                .entry(std::sync::Arc::clone(&braid.mime_type))
                 .or_insert(0usize) += 1;
         }
 
@@ -331,7 +331,9 @@ pub struct AgentContributions {
     pub total_size: u64,
 
     /// Breakdown by MIME type.
-    pub by_mime_type: std::collections::HashMap<String, usize>,
+    ///
+    /// Keyed on `Arc<str>` to share allocations with `Braid.mime_type` (O(1) clone).
+    pub by_mime_type: std::collections::HashMap<std::sync::Arc<str>, usize>,
 }
 
 #[cfg(test)]

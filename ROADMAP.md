@@ -1,10 +1,20 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.20 (March 2026)
+**Current Version**: v0.7.21 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.21 — Deep Audit: Zero-Copy, Handler Coverage, Test Refactor (March 2026)
+
+- [x] **`Braid.mime_type: String` → `Arc<str>`** — zero-copy optimization across all 7 crates; MIME type indexes share `Arc<str>` eliminating per-query allocations on hot paths
+- [x] **Hardcoded primal name eliminated** — `jsonrpc/contribution.rs` now uses canonical `sweet_grass_core::identity::PRIMAL_NAME` constant
+- [x] **28 new JSON-RPC handler tests** — extended coverage across anchoring, attribution, braid commit, compression, provenance, contribution, and pipeline methods
+- [x] **Smart test refactor** — `jsonrpc/tests.rs` (1,448 lines → 480) split into 5 domain test modules: `tests_anchoring`, `tests_attribution`, `tests_compression`, `tests_contribution`, `tests_provenance`
+- [x] **`#[must_use]` on test port allocators** — clippy pedantic compliance for `allocate_test_port()` and `allocate_test_ports()`
+- [x] **Float comparison fix** — epsilon-based `assert!` replacing strict `assert_eq!` on `f64` values
+- [x] 1,077 tests (was 1,049 — +28 new), 133 .rs files, 0 clippy warnings, max file 808 lines
 
 ### v0.7.20 — Ecosystem Absorption: IPC Timeout, extract_rpc_error, Capability Parsing, Proptest (March 2026)
 

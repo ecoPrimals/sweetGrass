@@ -441,4 +441,14 @@ pub(crate) fn to_value<T: Serialize>(v: &T) -> DispatchResult {
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
+mod tests_anchoring;
+#[cfg(test)]
+mod tests_attribution;
+#[cfg(test)]
+mod tests_compression;
+#[cfg(test)]
+mod tests_contribution;
+#[cfg(test)]
 mod tests_protocol;
+#[cfg(test)]
+mod tests_provenance;

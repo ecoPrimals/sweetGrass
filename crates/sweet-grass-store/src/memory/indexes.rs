@@ -11,6 +11,7 @@
 //! - MIME type → Braid IDs
 
 use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
 
 use parking_lot::RwLock;
 use sweet_grass_core::{Braid, BraidId, ContentHash};
@@ -33,7 +34,9 @@ pub(super) struct Indexes {
     pub tag: RwLock<HashMap<String, HashSet<BraidId>>>,
 
     /// Index: MIME type → Braid IDs.
-    pub mime: RwLock<HashMap<String, HashSet<BraidId>>>,
+    ///
+    /// Keyed on `Arc<str>` to share allocations with `Braid.mime_type` (O(1) clone).
+    pub mime: RwLock<HashMap<Arc<str>, HashSet<BraidId>>>,
 }
 
 impl Indexes {
@@ -89,7 +92,7 @@ impl Indexes {
 
         self.mime
             .write()
-            .entry(braid.mime_type.clone())
+            .entry(Arc::clone(&braid.mime_type))
             .or_default()
             .insert(id);
     }

@@ -164,7 +164,7 @@ async fn test_query_with_filter() {
         .await
         .expect("query");
     assert_eq!(result.braids.len(), 1);
-    assert_eq!(result.braids[0].mime_type, "application/json");
+    assert_eq!(&*result.braids[0].mime_type, "application/json");
 }
 
 #[tokio::test]
