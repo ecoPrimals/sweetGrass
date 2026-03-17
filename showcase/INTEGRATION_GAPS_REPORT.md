@@ -1,5 +1,10 @@
 # 🔍 SweetGrass Integration Gaps Report
 
+> **HISTORICAL** — This report is from December 2025 (v0.5.x era). Many gaps
+> identified here have since been resolved (e.g., `SongbirdDiscovery` →
+> `RegistryDiscovery`, capability-based discovery, DI patterns). Retained as
+> fossil record of the project's evolution.
+
 **Date**: December 27, 2025  
 **Purpose**: Honest assessment of inter-primal integrations  
 **Pattern**: Transparent gap discovery (following Songbird/NestGate examples)

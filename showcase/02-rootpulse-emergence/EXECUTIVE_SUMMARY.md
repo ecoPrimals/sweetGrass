@@ -1,7 +1,12 @@
 # 🎊 RootPulse Emergence Showcase — Executive Summary
 
+> **HISTORICAL** — December 2025 planning document. Only levels 01-vision
+> and 02-semantic-tracking were built. Levels 03-08 were planned but not
+> implemented. Core concepts have been realized in the main codebase.
+> Retained as fossil record.
+
 **Date**: December 27, 2025  
-**Status**: ✅ **BUILDOUT COMPLETE**  
+**Status**: ⚠️ **PARTIALLY BUILT** (see note above)  
 **Mission**: Demonstrate SweetGrass semantic attribution in emergent VCS
 
 ---

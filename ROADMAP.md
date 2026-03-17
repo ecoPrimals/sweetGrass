@@ -6,7 +6,18 @@
 
 ## Completed
 
-### v0.7.19 — Deep Execution: tarpc 0.37 + Structured IPC + Pipeline Integration (March 2026)
+### v0.7.19 — Ecosystem Absorption: Health Probes, DispatchOutcome, OrExit (March 2026)
+
+- [x] **`health.liveness` + `health.readiness`** — wateringHole `PRIMAL_IPC_PROTOCOL` v3.0 JSON-RPC + tarpc methods; aligned with coralReef + healthSpring
+- [x] **`IpcErrorPhase` classification helpers** — `is_retriable()`, `is_timeout_likely()`, `is_method_not_found()`, `is_application_error()` for retry gating and circuit breaker integration
+- [x] **`DispatchOutcome` enum** — protocol vs application error separation in JSON-RPC dispatch; aligned with rhizoCrypt/biomeOS pattern
+- [x] **`OrExit<T>` trait** — zero-panic binary validation with structured exit codes; aligned with biomeOS pattern
+- [x] **`exit` module** — centralized exit codes per wateringHole `UNIBIN_ARCHITECTURE_STANDARD`
+- [x] **`eprintln!` → `tracing::error!`** — structured logging throughout binary entrypoint
+- [x] **`#[allow]` audit** — retained only for conditionally-compiled items; all others verified
+- [x] 1,030 tests (was 1,017), 24 JSON-RPC methods (was 22), 0 clippy warnings, 0 unsafe
+
+### v0.7.18 — Deep Execution: tarpc 0.37 + Structured IPC + Pipeline Integration (March 2026)
 
 - [x] **tarpc 0.34 → 0.37** — aligned with rhizoCrypt, biomeOS, barraCuda, coralReef; `tokio-serde` 0.9, `opentelemetry` 0.30
 - [x] **Structured IPC errors** — `IpcErrorPhase` enum (Connect, Write, Read, InvalidJson, HttpStatus, NoResult, JsonRpcError) with `IntegrationError::Ipc { phase, message }` variant; aligned with rhizoCrypt + healthSpring V28
@@ -14,7 +25,7 @@
 - [x] **NDJSON streaming types** — `StreamItem` enum (Data, Progress, End, Error) with `to_ndjson_line()` / `parse_ndjson_line()`; aligned with rhizoCrypt streaming module
 - [x] **`pipeline.attribute` handler** — new JSON-RPC method consuming `provenance_trio_types::PipelineRequest`, creating attribution braids per agent contribution, returning `PipelineResult` with `braid_ref`
 - [x] **Smart refactor: store-postgres** — `row_mapping.rs` extracted (row_to_braid, row_to_activity, parse_activity_type, i64/u64 conversions); mod.rs 714→516 lines
-- [x] 1,030 tests passing (was 1,017), 0 failures, 0 clippy warnings, 0 unsafe, docs build clean
+- [x] 1,017 tests passing, 0 failures, 0 clippy warnings, 0 unsafe, docs build clean
 
 ### v0.7.17 — Ecosystem Absorption + Lint Tightening + Capability Evolution (March 2026)
 
@@ -30,7 +41,7 @@
 - [x] **primal_names evolved** — replaced 5 dead per-primal `{NAME}_SOCKET` constants with generic `socket_env_var()`/`address_env_var()` functions; any primal works without code changes
 - [x] **Storage path docs** — `DEFAULT_REDB_PATH`, `DEFAULT_SLED_PATH`, `DEFAULT_DB_PATH` documented as self-config fallbacks with env override guidance
 - [x] **Large file analysis** — remaining 500+ LOC files (store/mod.rs 714, config/mod.rs 630, server/mod.rs 573) confirmed as single-concern cohesive modules; no further splitting warranted
-- [x] 1,004 tests passing (was 1,001), 0 failures, 0 clippy warnings, 0 unsafe, docs build clean
+- [x] 1,004 tests passing, 0 failures, 0 clippy warnings, 0 unsafe, docs build clean
 
 ### v0.7.16 — Deep Audit Remediation + Smart Refactoring (March 2026)
 
@@ -367,7 +378,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.19 | **March 2026** | Deep Execution: tarpc 0.37 + Structured IPC + Pipeline Integration (DONE) |
+| v0.7.19 | **March 2026** | Ecosystem Absorption: Health Probes, DispatchOutcome, OrExit (DONE) |
+| v0.7.18 | March 2026 | Deep Execution: tarpc 0.37 + Structured IPC + Pipeline Integration (DONE) |
 | v0.7.17 | March 2026 | Ecosystem Absorption + Lint Tightening + Capability Evolution (DONE) |
 | v0.7.16 | March 2026 | Deep Audit Remediation + Smart Refactoring (DONE) |
 | v0.7.15 | March 2026 | Deep Debt Evolution + Coverage Expansion + Convergence Spec (DONE) |

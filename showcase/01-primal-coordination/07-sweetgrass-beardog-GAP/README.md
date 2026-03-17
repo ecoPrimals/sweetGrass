@@ -1,6 +1,10 @@
 # 🌾🐻🐕 SweetGrass + BearDog: Signing Gap Analysis
 
-**Status:** ⚠️ **INTEGRATION GAP IDENTIFIED**
+> **HISTORICAL** — December 2025 gap analysis. Signing integration has since
+> evolved to capability-based `Capability::Signing` discovery with tarpc
+> clients. Retained as fossil record.
+
+**Status:** ⚠️ **INTEGRATION GAP IDENTIFIED** (since resolved)
 
 ---
 

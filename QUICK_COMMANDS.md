@@ -175,6 +175,15 @@ curl http://localhost:8080/live
 # Kubernetes readiness
 curl http://localhost:8080/ready
 
+# JSON-RPC health probes (wateringHole protocol v3.0)
+curl -X POST http://localhost:8080/jsonrpc \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"health.liveness","params":{},"id":1}'
+
+curl -X POST http://localhost:8080/jsonrpc \
+  -H 'Content-Type: application/json' \
+  -d '{"jsonrpc":"2.0","method":"health.readiness","params":{},"id":1}'
+
 # Pretty JSON
 curl http://localhost:8080/health/detailed | jq
 ```

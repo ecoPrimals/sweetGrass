@@ -425,7 +425,7 @@ SELECT * FROM braids LIMIT 10;
 
 ```bash
 # Update Cargo.toml versions
-cargo set-version 0.7.14
+cargo set-version 0.7.19
 
 # Update CHANGELOG.md and ROADMAP.md
 ```

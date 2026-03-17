@@ -1,8 +1,13 @@
 # 🌳 RootPulse Emergence Showcase — SweetGrass Integration
 
+> **HISTORICAL** — This planning document is from the v0.5.x era. The planned
+> directories (03-braid-formation through 08-proof-of-emergence) were never
+> built. Core concepts have been implemented in the main codebase instead.
+> Retained as fossil record.
+
 **Purpose**: Demonstrate SweetGrass's role in emergent version control  
 **Philosophy**: "Show semantic attribution, then validate piecewise"  
-**Status**: 📋 Planning Complete → 🏗️ Ready to Build
+**Status**: 📋 Planning Complete (not executed — see note above)
 
 ---
 

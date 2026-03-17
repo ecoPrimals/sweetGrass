@@ -73,7 +73,7 @@ curl http://localhost:8080/api/v1/braids
 
 ### Protocol Stack
 
-- **JSON-RPC 2.0** (primary): `POST /jsonrpc` with 21 semantic methods, batch requests, and notification support (`braid.create`, `braid.commit`, `contribution.record`, `capability.list`, `health.check`, etc.)
+- **JSON-RPC 2.0** (primary): `POST /jsonrpc` with 24 semantic methods, batch requests, and notification support (`braid.create`, `braid.commit`, `contribution.record`, `capability.list`, `health.check`, `health.liveness`, `health.readiness`, etc.)
 - **Unix domain socket** (biomeOS IPC): Newline-delimited JSON-RPC 2.0 over UDS with XDG-compliant path resolution
 - **tarpc** (high-performance binary): Pure Rust RPC, no gRPC/protobuf
 - **REST** (HTTP/JSON): `/api/v1/braids` for debugging and admin

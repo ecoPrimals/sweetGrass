@@ -1,6 +1,10 @@
 # 🐻 BearDog Integration Gap — Honest Assessment
+
+> **HISTORICAL** — December 2025 gap analysis. Architecture has since evolved
+> to capability-based discovery with DI patterns. Retained as fossil record.
+
 **Date**: December 28, 2025  
-**Status**: ⚠️ **ARCHITECTURE MISMATCH DISCOVERED**
+**Status**: ⚠️ **ARCHITECTURE MISMATCH DISCOVERED** (since resolved)
 
 ---
 
