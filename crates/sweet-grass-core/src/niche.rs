@@ -40,6 +40,9 @@ pub const CAPABILITIES: &[&str] = &[
     "contribution.record_session",
     "contribution.record_dehydration",
     "health.check",
+    "health.liveness",
+    "health.readiness",
+    "pipeline.attribute",
     "capability.list",
 ];
 
@@ -131,6 +134,9 @@ pub fn operation_dependencies() -> Vec<OperationMeta> {
         OperationMeta::new("contribution.record_session", &["braid.create"], "medium"),
         OperationMeta::new("contribution.record_dehydration", &[], "medium"),
         OperationMeta::new("health.check", &[], "low"),
+        OperationMeta::new("health.liveness", &[], "low"),
+        OperationMeta::new("health.readiness", &[], "low"),
+        OperationMeta::new("pipeline.attribute", &["braid.create"], "medium"),
         OperationMeta::new("capability.list", &[], "low"),
     ]
 }
@@ -148,6 +154,7 @@ pub fn cost_estimates() -> Vec<(&'static str, &'static str)> {
         ("compression", "high"),
         ("contribution", "low"),
         ("health", "low"),
+        ("pipeline", "medium"),
         ("capability", "low"),
     ]
 }
@@ -175,6 +182,9 @@ pub fn semantic_mappings() -> Vec<(&'static str, &'static str)> {
         ("record contribution", "contribution.record"),
         ("record dehydration", "contribution.record_dehydration"),
         ("health check", "health.check"),
+        ("is alive", "health.liveness"),
+        ("is ready", "health.readiness"),
+        ("attribute pipeline", "pipeline.attribute"),
         ("list capabilities", "capability.list"),
     ]
 }

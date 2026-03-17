@@ -141,11 +141,11 @@ Vendor lock-in                   Community-driven crates
 ### Required Crates (Pure Rust)
 
 ```toml
-tarpc = { version = "0.34", features = ["full"] }  # RPC
+tarpc = { version = "0.37", features = ["full"] }  # RPC
 serde = { version = "1.0", features = ["derive"] }  # Serialization
 bincode = "1.3"                                     # Binary format
 tokio = { version = "1.40", features = ["full"] }   # Async
-axum = "0.7"                                        # HTTP fallback
+axum = "0.8"                                        # HTTP fallback
 ```
 
 ### Forbidden Crates

@@ -310,7 +310,7 @@ Step 3: Level 2 demo 1 (20 min) → Multi-contributor chains
 
 ```bash
 cd 00-local-primal/01-hello-provenance
-./demo-hello-provenance.sh
+./demo-first-braid.sh
 ```
 
 ---
@@ -320,7 +320,7 @@ cd 00-local-primal/01-hello-provenance
 
 ```bash
 cd 00-local-primal/02-attribution-basics
-./demo-attribution-basics.sh
+./demo-fair-credit.sh
 ```
 
 **Example**:

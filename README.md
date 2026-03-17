@@ -151,10 +151,10 @@ cargo llvm-cov --workspace
 ### Configuration
 
 ```bash
-STORAGE_BACKEND=redb          # or: memory, postgres, sled (with --features sled)
-DATABASE_URL=postgresql://... # for postgres backend
-HTTP_LISTEN=0.0.0.0:8080
-TARPC_LISTEN=0.0.0.0:8091
+STORAGE_BACKEND=redb                     # or: memory, postgres, sled (with --features sled)
+DATABASE_URL=postgresql://...            # for postgres backend
+SWEETGRASS_HTTP_ADDRESS=0.0.0.0:8080    # REST + JSON-RPC endpoint
+SWEETGRASS_TARPC_ADDRESS=0.0.0.0:8091   # Binary RPC endpoint
 ```
 
 See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
@@ -187,7 +187,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Clippy | 0 warnings (pedantic + nursery + `missing_errors_doc` + `missing_const_for_fn`, `-D warnings`) |
 | Max file size | 808 lines (limit: 1000) |
 | TODOs in source | 0 |
-| SPDX + copyright | All 125 .rs files |
+| SPDX + copyright | All 128 .rs files |
 | License | AGPL-3.0-only |
 | Benchmarks | 7 criterion groups |
 | JSON-RPC methods | 24 (batch + notification support) |

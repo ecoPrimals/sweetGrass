@@ -2,7 +2,7 @@
 
 **Date**: March 17, 2026  
 **Source**: wateringHole handoffs pulled March 16–17, 2026  
-**sweetGrass Version**: v0.7.19  
+**sweetGrass Version**: v0.7.20  
 **Purpose**: Summarize NEW handoff content and absorption priorities for sweetGrass
 
 ---

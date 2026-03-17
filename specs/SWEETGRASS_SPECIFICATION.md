@@ -1,6 +1,6 @@
 # SweetGrass — Semantic Provenance & Attribution Layer Specification
 
-**Version:** 0.7.14  
+**Version:** 0.7.20  
 **Status:** Architectural Specification  
 **Author:** ecoPrimals Project  
 **Date:** March 2026  
@@ -1046,7 +1046,8 @@ is the required baseline protocol. Method names follow `{domain}.{operation}` pe
 | `attribution`  | chain, calculate\_rewards, top\_contributors                      |
 | `compression`  | compress\_session, create\_meta\_braid                            |
 | `contribution` | record, record\_session, record\_dehydration                      |
-| `health`       | check                                                             |
+| `health`       | check, liveness, readiness                                        |
+| `pipeline`     | attribute                                                         |
 | `capability`   | list                                                              |
 
 ### 8.2 REST API

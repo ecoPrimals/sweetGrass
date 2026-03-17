@@ -345,13 +345,7 @@ cargo install cargo-flamegraph
 
 ```bash
 # Profile compression
-cargo flamegraph --bin service -- compress --sessions 1000
-
-# Profile queries
-cargo flamegraph --bin service -- query --batch 1000
-
-# Profile attribution
-cargo flamegraph --bin service -- attribute --braids 1000
+cargo flamegraph --bin sweetgrass -- server
 ```
 
 ### 3. Analyze Results

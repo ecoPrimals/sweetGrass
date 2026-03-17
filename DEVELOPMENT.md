@@ -506,7 +506,7 @@ cargo bench
 cargo install flamegraph
 
 # Profile
-cargo flamegraph --bin service
+cargo flamegraph --bin sweetgrass
 
 # Open flamegraph.svg
 ```

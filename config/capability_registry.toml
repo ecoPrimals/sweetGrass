@@ -38,8 +38,12 @@ description = "Contribution recording and dehydration intake"
 methods = ["record", "record_session", "record_dehydration"]
 
 [domains.health]
-description = "Health and readiness"
-methods = ["check"]
+description = "Health, liveness, and readiness probes"
+methods = ["check", "liveness", "readiness"]
+
+[domains.pipeline]
+description = "Pipeline integration for provenance-trio coordination"
+methods = ["attribute"]
 
 [domains.capability]
 description = "Capability discovery"
@@ -126,6 +130,18 @@ cost = "medium"
 [operations."health.check"]
 depends_on = []
 cost = "low"
+
+[operations."health.liveness"]
+depends_on = []
+cost = "low"
+
+[operations."health.readiness"]
+depends_on = []
+cost = "low"
+
+[operations."pipeline.attribute"]
+depends_on = ["braid.create"]
+cost = "medium"
 
 [operations."capability.list"]
 depends_on = []
