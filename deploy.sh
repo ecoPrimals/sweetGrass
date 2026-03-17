@@ -1,6 +1,6 @@
 #!/bin/bash
 # SweetGrass Production Deployment Script
-# Version: v0.7.17
+# Version: v0.7.18
 # Date: March 15, 2026
 # Status: PRODUCTION READY
 

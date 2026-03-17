@@ -13,7 +13,7 @@ use sweet_grass_compression::Session;
 use super::{SessionEvent, SessionEventStream, SessionEventsClient};
 use crate::Result;
 use crate::discovery::DiscoveredPrimal;
-use crate::error::IntegrationError;
+use crate::error::{IntegrationError, IpcErrorPhase};
 
 /// tarpc service definition for session events.
 ///
@@ -51,9 +51,9 @@ impl TarpcSessionEventsClient {
 
         debug!("Connecting to session events service at {}", addr);
 
-        let transport = tcp::connect(addr, Bincode::default)
-            .await
-            .map_err(|e| IntegrationError::Connection(format!("Failed to connect: {e}")))?;
+        let transport = tcp::connect(addr, Bincode::default).await.map_err(|e| {
+            IntegrationError::ipc(IpcErrorPhase::Connect, format!("session_events: {e}"))
+        })?;
 
         let client =
             SessionEventsRpcClient::new(tarpc::client::Config::default(), transport).spawn();
@@ -82,7 +82,7 @@ impl SessionEventsClient for TarpcSessionEventsClient {
             .client
             .subscribe(tarpc::context::current())
             .await
-            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
+            .map_err(|e| IntegrationError::ipc(IpcErrorPhase::Read, format!("subscribe: {e}")))?
             .map_err(IntegrationError::Subscription)?;
 
         let events: Vec<SessionEvent> = serde_json::from_slice(&events_bytes)
@@ -98,7 +98,7 @@ impl SessionEventsClient for TarpcSessionEventsClient {
             .client
             .get_session(tarpc::context::current(), session_id.to_string())
             .await
-            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
+            .map_err(|e| IntegrationError::ipc(IpcErrorPhase::Read, format!("get_session: {e}")))?
             .map_err(IntegrationError::Subscription)?;
 
         match session_bytes {
@@ -115,8 +115,8 @@ impl SessionEventsClient for TarpcSessionEventsClient {
         self.client
             .health(tarpc::context::current())
             .await
-            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
-            .map_err(IntegrationError::Connection)
+            .map_err(|e| IntegrationError::ipc(IpcErrorPhase::Read, format!("health: {e}")))?
+            .map_err(|e| IntegrationError::ipc(IpcErrorPhase::Read, e))
     }
 }
 

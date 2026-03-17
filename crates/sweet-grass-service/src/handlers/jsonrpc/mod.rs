@@ -16,6 +16,7 @@
 //! | `attribution` | chain, calculate_rewards, top_contributors                       |
 //! | `compression` | compress_session, create_meta_braid                              |
 //! | `contribution`| record, record_session, record_dehydration                       |
+//! | `pipeline`    | attribute (provenance trio coordination)                          |
 //! | `health`      | check                                                            |
 //! | `capability`  | list                                                             |
 
@@ -220,6 +221,11 @@ static METHODS: &[MethodEntry] = &[
     MethodEntry {
         name: "contribution.record_dehydration",
         handler: |s, p| Box::pin(contribution::handle_record_dehydration(s, p)),
+    },
+    // Pipeline (provenance trio coordination)
+    MethodEntry {
+        name: "pipeline.attribute",
+        handler: |s, p| Box::pin(contribution::handle_pipeline_attribute(s, p)),
     },
     // Health
     MethodEntry {

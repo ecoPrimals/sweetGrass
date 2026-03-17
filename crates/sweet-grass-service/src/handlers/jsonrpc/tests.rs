@@ -204,8 +204,8 @@ async fn test_record_session_dispatch() {
 fn test_dispatch_table_completeness() {
     assert_eq!(
         METHODS.len(),
-        21,
-        "dispatch table should have all 21 methods"
+        22,
+        "dispatch table should have all 22 methods"
     );
 
     let expected = [
@@ -228,6 +228,7 @@ fn test_dispatch_table_completeness() {
         "contribution.record",
         "contribution.record_session",
         "contribution.record_dehydration",
+        "pipeline.attribute",
         "health.check",
         "capability.list",
     ];
@@ -734,6 +735,41 @@ async fn test_record_dehydration_no_agents_fallback() {
         result.is_ok(),
         "dehydration with no agents should use fallback DID"
     );
+}
+
+// ==================== pipeline domain ====================
+
+#[tokio::test]
+async fn test_pipeline_attribute_creates_braids() {
+    let state = test_state();
+    let params = serde_json::json!({
+        "session_id": "sess-pipeline-001",
+        "agent_did": "did:key:z6MkPipelineAgent",
+        "agent_summaries": [
+            {"agent_did": "did:key:z6MkContributor1", "description": "primary", "weight": 0.7},
+            {"agent_did": "did:key:z6MkContributor2", "description": "reviewer", "weight": 0.3}
+        ]
+    });
+
+    let result = dispatch(&state, "pipeline.attribute", params).await;
+    assert!(result.is_ok(), "pipeline.attribute should succeed");
+    let val = result.unwrap();
+    assert!(val["braid_ref"].is_string(), "should have a braid_ref");
+}
+
+#[tokio::test]
+async fn test_pipeline_attribute_empty_summaries() {
+    let state = test_state();
+    let params = serde_json::json!({
+        "session_id": "sess-empty-001",
+        "agent_did": "did:key:z6MkEmptyAgent",
+        "agent_summaries": []
+    });
+
+    let result = dispatch(&state, "pipeline.attribute", params).await;
+    assert!(result.is_ok(), "pipeline.attribute with empty summaries should succeed");
+    let val = result.unwrap();
+    assert!(val["braid_ref"].is_null(), "no braid_ref when no contributions");
 }
 
 // ==================== helper unit tests ====================

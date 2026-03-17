@@ -18,7 +18,7 @@ use sweet_grass_core::config::Capability;
 
 use crate::Result;
 use crate::discovery::{DiscoveredPrimal, PrimalDiscovery};
-use crate::error::IntegrationError;
+use crate::error::{IntegrationError, IpcErrorPhase};
 
 /// Information about an anchor in a permanent storage primal.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -245,9 +245,9 @@ impl TarpcAnchoringClient {
 
         debug!("Connecting to anchoring service at {}", addr);
 
-        let transport = tcp::connect(addr, Bincode::default)
-            .await
-            .map_err(|e| IntegrationError::Connection(format!("Failed to connect: {e}")))?;
+        let transport = tcp::connect(addr, Bincode::default).await.map_err(|e| {
+            IntegrationError::ipc(IpcErrorPhase::Connect, format!("anchoring: {e}"))
+        })?;
 
         let client = AnchoringRpcClient::new(tarpc::client::Config::default(), transport).spawn();
 
@@ -280,7 +280,7 @@ impl AnchoringClient for TarpcAnchoringClient {
             .client
             .anchor(tarpc::context::current(), braid_bytes, spine_id.to_string())
             .await
-            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
+            .map_err(|e| IntegrationError::ipc(IpcErrorPhase::Read, format!("anchor: {e}")))?
             .map_err(IntegrationError::Anchoring)?;
 
         let receipt: AnchorReceipt = serde_json::from_slice(&receipt_bytes)
@@ -294,7 +294,7 @@ impl AnchoringClient for TarpcAnchoringClient {
             .client
             .verify(tarpc::context::current(), braid_id.to_string())
             .await
-            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
+            .map_err(|e| IntegrationError::ipc(IpcErrorPhase::Read, format!("verify: {e}")))?
             .map_err(IntegrationError::Anchoring)?;
 
         match anchor_bytes {
@@ -312,7 +312,7 @@ impl AnchoringClient for TarpcAnchoringClient {
             .client
             .get_anchors(tarpc::context::current(), braid_id.to_string())
             .await
-            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
+            .map_err(|e| IntegrationError::ipc(IpcErrorPhase::Read, format!("get_anchors: {e}")))?
             .map_err(IntegrationError::Anchoring)?;
 
         let anchors: Vec<AnchorInfo> = serde_json::from_slice(&anchors_bytes)
@@ -325,8 +325,8 @@ impl AnchoringClient for TarpcAnchoringClient {
         self.client
             .health(tarpc::context::current())
             .await
-            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
-            .map_err(IntegrationError::Connection)
+            .map_err(|e| IntegrationError::ipc(IpcErrorPhase::Read, format!("health: {e}")))?
+            .map_err(|e| IntegrationError::ipc(IpcErrorPhase::Read, e))
     }
 }
 

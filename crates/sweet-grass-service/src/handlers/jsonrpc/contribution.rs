@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 // Copyright (C) 2024–2026 ecoPrimals Project
-//! Contribution domain handlers: record, `record_session`, `record_dehydration`.
+//! Contribution domain handlers: record, `record_session`, `record_dehydration`,
+//! `pipeline_attribute`.
 
 use sweet_grass_core::{
     braid::{CompressionMeta, EcoPrimalsAttributes},
@@ -11,6 +12,54 @@ use sweet_grass_core::{
 use crate::state::AppState;
 
 use super::{DispatchResult, internal, parse_params, to_value};
+
+/// Handle pipeline attribution request from the provenance trio pipeline.
+///
+/// Accepts a [`provenance_trio_types::PipelineRequest`] and creates attribution
+/// braids for the session's agent contributions, returning a
+/// [`provenance_trio_types::PipelineResult`]-compatible response with the
+/// `braid_ref` set.
+pub(super) async fn handle_pipeline_attribute(
+    state: &AppState,
+    params: serde_json::Value,
+) -> DispatchResult {
+    let request: provenance_trio_types::PipelineRequest = parse_params(params)?;
+
+    let mut braid_ids = Vec::new();
+
+    for contribution in &request.agent_summaries {
+        let agent = sweet_grass_core::agent::Did::new(&contribution.agent_did);
+        let braid = sweet_grass_core::Braid::builder()
+            .data_hash(format!(
+                "pipeline:{}:{}",
+                request.session_id, contribution.agent_did
+            ))
+            .mime_type(sweet_grass_core::identity::MIME_OCTET_STREAM)
+            .size(0)
+            .attributed_to(agent)
+            .ecop(EcoPrimalsAttributes {
+                source_primal: Some("sweetgrass".to_string()),
+                rhizo_session: Some(request.session_id.clone()),
+                niche: request.niche.clone(),
+                ..EcoPrimalsAttributes::default()
+            })
+            .build()
+            .map_err(internal)?;
+
+        state.store.put(&braid).await.map_err(internal)?;
+        braid_ids.push(braid.id.to_string());
+    }
+
+    let braid_ref = braid_ids.first().cloned();
+
+    to_value(&provenance_trio_types::PipelineResult {
+        dehydration_merkle_root: String::new(),
+        commit_ref: String::new(),
+        braid_ref,
+        signature: None,
+        content_ref: None,
+    })
+}
 
 pub(super) async fn handle_record_contribution(
     state: &AppState,

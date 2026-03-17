@@ -21,7 +21,7 @@ use sweet_grass_core::braid::BraidSignature;
 
 use crate::Result;
 use crate::discovery::DiscoveredPrimal;
-use crate::error::IntegrationError;
+use crate::error::{IntegrationError, IpcErrorPhase};
 
 use super::traits::{SIGNING_ALGORITHM, SignatureInfo, SigningClient};
 
@@ -84,7 +84,7 @@ impl TarpcSigningClient {
 
         let transport = tcp::connect(addr, Bincode::default)
             .await
-            .map_err(|e| IntegrationError::Connection(format!("Failed to connect: {e}")))?;
+            .map_err(|e| IntegrationError::ipc(IpcErrorPhase::Connect, format!("signing: {e}")))?;
 
         let client = SigningRpcClient::new(tarpc::client::Config::default(), transport).spawn();
 
@@ -120,7 +120,7 @@ impl SigningClient for TarpcSigningClient {
             .client
             .sign_braid(tarpc::context::current(), braid_bytes)
             .await
-            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
+            .map_err(|e| IntegrationError::ipc(IpcErrorPhase::Read, format!("sign_braid: {e}")))?
             .map_err(IntegrationError::Signing)?;
 
         let signature: BraidSignature = serde_json::from_slice(&result)
@@ -139,7 +139,7 @@ impl SigningClient for TarpcSigningClient {
             .client
             .verify_braid(tarpc::context::current(), braid_bytes)
             .await
-            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
+            .map_err(|e| IntegrationError::ipc(IpcErrorPhase::Read, format!("verify_braid: {e}")))?
             .map_err(IntegrationError::Signing)?;
 
         let signer = braid.was_attributed_to.clone();
@@ -160,7 +160,7 @@ impl SigningClient for TarpcSigningClient {
             .client
             .current_did(tarpc::context::current())
             .await
-            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
+            .map_err(|e| IntegrationError::ipc(IpcErrorPhase::Read, format!("current_did: {e}")))?
             .map_err(IntegrationError::Signing)?;
 
         Ok(Did::new(did_str))
@@ -171,7 +171,7 @@ impl SigningClient for TarpcSigningClient {
             .client
             .resolve_did(tarpc::context::current(), did.as_str().to_string())
             .await
-            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
+            .map_err(|e| IntegrationError::ipc(IpcErrorPhase::Read, format!("resolve_did: {e}")))?
             .map_err(IntegrationError::Signing)?;
 
         match doc_str {
@@ -188,8 +188,8 @@ impl SigningClient for TarpcSigningClient {
         self.client
             .health(tarpc::context::current())
             .await
-            .map_err(|e| IntegrationError::Rpc(e.to_string()))?
-            .map_err(IntegrationError::Connection)
+            .map_err(|e| IntegrationError::ipc(IpcErrorPhase::Read, format!("health: {e}")))?
+            .map_err(|e| IntegrationError::ipc(IpcErrorPhase::Read, e))
     }
 }
 

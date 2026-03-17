@@ -5,6 +5,42 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.18] - 2026-03-16
+
+### Deep Execution: tarpc 0.37 + Structured IPC + Pipeline Integration
+
+Major ecosystem alignment: upgraded tarpc to 0.37 (matching rhizoCrypt, biomeOS,
+barraCuda, coralReef), added structured IPC error phases for observability,
+implemented NDJSON streaming types for pipeline coordination, and wired
+provenance-trio-types pipeline into a new `pipeline.attribute` JSON-RPC handler.
+
+### Added
+
+- **`IpcErrorPhase` enum** — Structured IPC error phases (Connect, Write, Read, InvalidJson, HttpStatus, NoResult, JsonRpcError) with `IntegrationError::Ipc { phase, message }` variant, aligned with rhizoCrypt + healthSpring V28
+- **`StreamItem` enum** — NDJSON streaming types (Data, Progress, End, Error) with `to_ndjson_line()` / `parse_ndjson_line()`, aligned with rhizoCrypt streaming module
+- **`pipeline.attribute` JSON-RPC method** — Consumes `PipelineRequest` from provenance-trio-types, creates attribution braids per agent contribution, returns `PipelineResult` with `braid_ref`
+- **`streaming` module** — New module in `sweet-grass-service` for NDJSON pipeline streaming
+- **`row_mapping` module** — Extracted from `store-postgres/store/mod.rs` for row-to-domain conversions
+
+### Changed
+
+- **tarpc 0.34 → 0.37** — Major RPC framework upgrade, aligned with rhizoCrypt and ecosystem
+- **All tarpc clients** — Signing, anchoring, listener clients migrated from flat `IntegrationError::Rpc(String)` to structured `IntegrationError::ipc(IpcErrorPhase::Read, ...)` errors
+- **`store-postgres/store/mod.rs`** — Smart refactored from 714 → 516 lines (row mapping extracted to `row_mapping.rs`)
+- **Method count** — 21 → 22 JSON-RPC methods (added `pipeline.attribute`)
+
+### Metrics
+
+- 1,017 tests passing (was 1,004), 0 failures
+- 0 clippy warnings, 0 unsafe blocks, docs build clean
+- tarpc version aligned with ecosystem (0.37)
+
+### Upstream Impact
+
+- rhizoCrypt: `pipeline.attribute` enables the rhizoCrypt → sweetGrass attribution step
+- biomeOS: NDJSON streaming types enable future real-time pipeline monitoring
+- provenance-trio-types: `PipelineRequest`/`PipelineResult` now consumed in production
+
 ## [0.7.17] - 2026-03-16
 
 ### Ecosystem Absorption + Lint Tightening + Capability Evolution
