@@ -268,7 +268,21 @@ pub trait BraidStore: Send + Sync {
     }
 
     /// Get a Braid by content hash.
+    ///
+    /// When multiple braids share the same content hash (provenance
+    /// convergence), returns one arbitrarily. Use
+    /// [`get_all_by_hash`](Self::get_all_by_hash) to retrieve all.
     async fn get_by_hash(&self, hash: &ContentHash) -> Result<Option<Braid>>;
+
+    /// Get all Braids sharing a content hash (content convergence).
+    ///
+    /// Independent provenance paths may produce identical content;
+    /// this method returns every braid at the convergence point.
+    /// Backends that do not support 1:many hash indexing fall back
+    /// to wrapping the single-result `get_by_hash`.
+    async fn get_all_by_hash(&self, hash: &ContentHash) -> Result<Vec<Braid>> {
+        Ok(self.get_by_hash(hash).await?.into_iter().collect())
+    }
 
     /// Delete a Braid.
     async fn delete(&self, id: &BraidId) -> Result<bool>;

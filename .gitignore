@@ -11,6 +11,11 @@ fuzz/corpus/
 fuzz/artifacts/
 fuzz/coverage/
 
+# Environment files (may contain secrets)
+.env
+.env.*
+!env.example
+
 *.swp
 *.swo
 .DS_Store

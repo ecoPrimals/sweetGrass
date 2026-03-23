@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.22 | 1,084 tests | Edition 2024 | AGPL-3.0-only | Pure Rust | ecoBin compliant | Sovereign types
+v0.7.23 | 1,099 tests | Edition 2024 | AGPL-3.0-only | Pure Rust | ecoBin compliant | Sovereign types
 
 ---
 
@@ -73,7 +73,8 @@ curl http://localhost:8080/api/v1/braids
 
 ### Protocol Stack
 
-- **JSON-RPC 2.0** (primary): `POST /jsonrpc` with 24 semantic methods, batch requests, and notification support (`braid.create`, `braid.commit`, `contribution.record`, `capability.list`, `health.check`, `health.liveness`, `health.readiness`, etc.)
+- **JSON-RPC 2.0** (primary): `POST /jsonrpc` with 27 semantic methods, batch requests, and notification support (`braid.create`, `braid.commit`, `contribution.record`, `capabilities.list`, `tools.list`, `tools.call`, `health.check`, `health.liveness`, `health.readiness`, etc.)
+- **MCP tool exposure**: `tools.list` + `tools.call` for Squirrel AI coordination (airSpring v0.10 pattern)
 - **Unix domain socket** (biomeOS IPC): Newline-delimited JSON-RPC 2.0 over UDS with XDG-compliant path resolution
 - **tarpc** (high-performance binary): Pure Rust RPC, no gRPC/protobuf
 - **REST** (HTTP/JSON): `/api/v1/braids` for debugging and admin
@@ -179,9 +180,9 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.22 |
-| Tests | 1,084 passing |
-| Coverage | 90.0% lines (llvm-cov) |
+| Version | v0.7.23 |
+| Tests | 1,099 passing |
+| Coverage | 90.0%+ lines (llvm-cov) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates, DI pattern in tests) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
@@ -193,7 +194,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | License | AGPL-3.0-only |
 | cargo deny | advisories ok, bans ok, licenses ok, sources ok |
 | Benchmarks | 7 criterion groups |
-| JSON-RPC methods | 24 (batch + notification support) |
+| JSON-RPC methods | 27 (batch + notification + MCP tool exposure) |
 | Property-based tests | proptest (11 strategies) |
 | Chaos/fault tests | 11 attribution + 17 service scenarios |
 

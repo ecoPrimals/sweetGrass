@@ -212,8 +212,8 @@ async fn test_record_session_dispatch() {
 fn test_dispatch_table_completeness() {
     assert_eq!(
         METHODS.len(),
-        24,
-        "dispatch table should have all 24 methods"
+        27,
+        "dispatch table should have all 27 methods"
     );
 
     let expected = [
@@ -240,7 +240,10 @@ fn test_dispatch_table_completeness() {
         "health.check",
         "health.liveness",
         "health.readiness",
+        "capabilities.list",
         "capability.list",
+        "tools.list",
+        "tools.call",
     ];
     for name in expected {
         assert!(find_handler(name).is_some(), "missing handler for: {name}");

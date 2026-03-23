@@ -18,7 +18,9 @@
 //! | `contribution`| record, record_session, record_dehydration                       |
 //! | `pipeline`    | attribute (provenance trio coordination)                          |
 //! | `health`      | check, liveness, readiness                                       |
-//! | `capability`  | list                                                             |
+//! | `capabilities`| list (canonical per wateringHole v2.1)                            |
+//! | `capability`  | list (alias)                                                     |
+//! | `tools`       | list, call (MCP exposure for Squirrel AI coordination)            |
 
 mod anchoring;
 mod attribution;
@@ -283,14 +285,28 @@ static METHODS: &[MethodEntry] = &[
         name: "health.readiness",
         handler: |s, p| Box::pin(health::handle_readiness(s, p)),
     },
-    // Capability discovery (wateringHole SPRING_AS_NICHE_DEPLOYMENT_STANDARD)
+    // Capability discovery (wateringHole SEMANTIC_METHOD_NAMING v2.1)
+    // `capabilities.list` is canonical; `capability.list` retained as alias
+    MethodEntry {
+        name: "capabilities.list",
+        handler: |s, p| Box::pin(async move { capability::handle_capability_list(s, p) }),
+    },
     MethodEntry {
         name: "capability.list",
         handler: |s, p| Box::pin(async move { capability::handle_capability_list(s, p) }),
     },
+    // MCP tool exposure (airSpring v0.10 pattern for Squirrel AI coordination)
+    MethodEntry {
+        name: "tools.list",
+        handler: |s, p| Box::pin(async move { capability::handle_tools_list(s, p) }),
+    },
+    MethodEntry {
+        name: "tools.call",
+        handler: |s, p| Box::pin(capability::handle_tools_call(s, p)),
+    },
 ];
 
-fn find_handler(method: &str) -> Option<DispatchFn> {
+pub(super) fn find_handler(method: &str) -> Option<DispatchFn> {
     METHODS.iter().find(|m| m.name == method).map(|m| m.handler)
 }
 

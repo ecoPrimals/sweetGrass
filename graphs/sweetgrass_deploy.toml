@@ -7,7 +7,7 @@
 
 [graph]
 name = "sweetgrass"
-version = "0.7.22"
+version = "0.7.23"
 description = "Semantic provenance and attribution layer"
 
 # Binary to execute (UniBin pattern)
@@ -48,7 +48,7 @@ fallback = "skip"
 priority = 50
 startup_timeout_ms = 10000
 health_check = "health.check"
-readiness_probe = "capability.list"
+readiness_probe = "capabilities.list"
 
 # Environment variables biomeOS should set before launch.
 [environment]

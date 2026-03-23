@@ -340,7 +340,7 @@ impl BraidStore for RedbStore {
                         continue;
                     }
                     if let Some(bt) = &filter.braid_type
-                        && &braid.braid_type != bt
+                        && std::mem::discriminant(&braid.braid_type) != std::mem::discriminant(bt)
                     {
                         continue;
                     }
@@ -351,6 +351,16 @@ impl BraidStore for RedbStore {
                     }
                     if let Some(before) = filter.created_before
                         && braid.generated_at_time > before
+                    {
+                        continue;
+                    }
+                    if let Some(ref primal) = filter.source_primal
+                        && braid.ecop.source_primal.as_deref() != Some(primal)
+                    {
+                        continue;
+                    }
+                    if let Some(ref niche) = filter.niche
+                        && braid.ecop.niche.as_deref() != Some(niche)
                     {
                         continue;
                     }

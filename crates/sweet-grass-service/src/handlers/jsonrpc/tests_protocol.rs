@@ -284,7 +284,9 @@ async fn test_capability_list_has_expected_domains() {
     assert!(domains.contains_key("provenance"));
     assert!(domains.contains_key("compression"));
     assert!(domains.contains_key("contribution"));
+    assert!(domains.contains_key("capabilities"));
     assert!(domains.contains_key("capability"));
+    assert!(domains.contains_key("tools"));
 }
 
 #[tokio::test]
@@ -303,5 +305,181 @@ async fn test_capability_list_method_count() {
     .unwrap();
     let result = resp.result.unwrap();
     let methods = result["methods"].as_array().unwrap();
-    assert_eq!(methods.len(), 24);
+    assert_eq!(methods.len(), 27);
+}
+
+// ==================== capabilities.list (canonical per wateringHole v2.1) ========
+
+#[tokio::test]
+async fn test_capabilities_list_canonical_returns_same_as_alias() {
+    let state = test_state();
+    let canonical = process_single(
+        &state,
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "capabilities.list",
+            "params": {},
+            "id": 1
+        }),
+    )
+    .await
+    .unwrap();
+    let alias = process_single(
+        &state,
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "capability.list",
+            "params": {},
+            "id": 2
+        }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(canonical.result, alias.result);
+}
+
+// ==================== tools.list (MCP exposure) ====================
+
+#[tokio::test]
+async fn test_tools_list_returns_tools_array() {
+    let state = test_state();
+    let resp = process_single(
+        &state,
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "tools.list",
+            "params": {},
+            "id": 1
+        }),
+    )
+    .await
+    .unwrap();
+    let result = resp.result.unwrap();
+    let tools = result["tools"].as_array().unwrap();
+    assert!(
+        !tools.is_empty(),
+        "tools.list must return at least one tool"
+    );
+
+    let first = &tools[0];
+    assert!(first["name"].is_string(), "tool must have a name");
+    assert!(
+        first["description"].is_string(),
+        "tool must have a description"
+    );
+    assert!(
+        first["inputSchema"].is_object(),
+        "tool must have an inputSchema"
+    );
+}
+
+#[tokio::test]
+async fn test_tools_list_includes_braid_create() {
+    let state = test_state();
+    let resp = process_single(
+        &state,
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "tools.list",
+            "params": {},
+            "id": 1
+        }),
+    )
+    .await
+    .unwrap();
+    let result = resp.result.unwrap();
+    let tools = result["tools"].as_array().unwrap();
+    let names: Vec<&str> = tools.iter().filter_map(|t| t["name"].as_str()).collect();
+    assert!(
+        names.contains(&"braid.create"),
+        "tools.list must include braid.create"
+    );
+    assert!(
+        names.contains(&"braid.query"),
+        "tools.list must include braid.query"
+    );
+    assert!(
+        names.contains(&"health.check"),
+        "tools.list must include health.check"
+    );
+    assert!(
+        names.contains(&"capabilities.list"),
+        "tools.list must include capabilities.list"
+    );
+}
+
+// ==================== tools.call (MCP invocation) ====================
+
+#[tokio::test]
+async fn test_tools_call_dispatches_health_check() {
+    let state = test_state();
+    let resp = process_single(
+        &state,
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "tools.call",
+            "params": {"name": "health.check", "arguments": {}},
+            "id": 1
+        }),
+    )
+    .await
+    .unwrap();
+    let result = resp.result.unwrap();
+    assert_eq!(result["isError"], false);
+    let content = result["content"].as_array().unwrap();
+    assert!(!content.is_empty());
+    assert_eq!(content[0]["type"], "text");
+}
+
+#[tokio::test]
+async fn test_tools_call_unknown_tool_returns_error() {
+    let state = test_state();
+    let resp = process_single(
+        &state,
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "tools.call",
+            "params": {"name": "nonexistent.tool", "arguments": {}},
+            "id": 1
+        }),
+    )
+    .await
+    .unwrap();
+    assert!(resp.error.is_some());
+    assert_eq!(resp.error.unwrap().code, error_code::METHOD_NOT_FOUND);
+}
+
+#[tokio::test]
+async fn test_tools_call_missing_name_returns_invalid_params() {
+    let state = test_state();
+    let resp = process_single(
+        &state,
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "tools.call",
+            "params": {},
+            "id": 1
+        }),
+    )
+    .await
+    .unwrap();
+    assert!(resp.error.is_some());
+    assert_eq!(resp.error.unwrap().code, error_code::INVALID_PARAMS);
+}
+
+// ==================== DispatchOutcome classification ====================
+
+#[tokio::test]
+async fn test_dispatch_outcome_protocol_error_for_unknown_method() {
+    let state = test_state();
+    let outcome =
+        super::dispatch_classified(&state, "nonexistent.nope", serde_json::json!({})).await;
+    assert!(outcome.is_protocol_error());
+}
+
+#[tokio::test]
+async fn test_dispatch_outcome_success_for_health_check() {
+    let state = test_state();
+    let outcome = super::dispatch_classified(&state, "health.check", serde_json::json!({})).await;
+    assert!(matches!(outcome, super::DispatchOutcome::Success(_)));
 }

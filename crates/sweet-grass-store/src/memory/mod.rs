@@ -110,6 +110,15 @@ impl BraidStore for MemoryStore {
             .and_then(|id| self.braids.read().get(&id).cloned()))
     }
 
+    async fn get_all_by_hash(&self, hash: &ContentHash) -> Result<Vec<Braid>> {
+        let ids = self.indexes.get_all_by_hash(hash.as_str());
+        let braids = self.braids.read();
+        Ok(ids
+            .iter()
+            .filter_map(|id| braids.get(id).cloned())
+            .collect())
+    }
+
     async fn delete(&self, id: &BraidId) -> Result<bool> {
         let braid = self.braids.write().shift_remove(id);
         Ok(braid.is_some_and(|b| {

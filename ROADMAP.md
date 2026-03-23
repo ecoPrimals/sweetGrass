@@ -1,10 +1,21 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.22 (March 2026)
+**Current Version**: v0.7.23 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.23 — Ecosystem Absorption: MCP Tool Exposure, Canonical Capabilities (March 2026)
+
+- [x] **MCP `tools.list` + `tools.call`** — expose braid operations as MCP tools for Squirrel AI coordination (airSpring v0.10 pattern); McpTool descriptors with JSON Schema inputSchema
+- [x] **`capabilities.list` canonical method** — wateringHole SEMANTIC_METHOD_NAMING v2.1 canonical name; `capability.list` retained as backward-compatible alias
+- [x] **Niche self-knowledge expanded** — 24 → 27 capabilities, operation_dependencies, cost_estimates, semantic_mappings updated
+- [x] **`DispatchOutcome` validated** — already aligned with rhizoCrypt v0.13.0 pattern (Success/ProtocolError/ApplicationError)
+- [x] **Atomic socket test isolation validated** — already uses `tempdir()` + explicit `start_uds_listener_at` paths (ludoSpring V28 pattern)
+- [x] **Pure Rust dependency stack confirmed** — cargo-deny: advisories ok, bans ok, licenses ok, sources ok; zero C/C++ deps
+- [x] **8 new protocol tests** — canonical/alias equivalence, tools.list structure/contents, tools.call dispatch/error, DispatchOutcome classification
+- [x] 1,099 tests (was 1,084 — +15 new), 27 JSON-RPC methods (was 24), 0 clippy warnings, 0 unsafe
 
 ### v0.7.22 — Sovereignty: Remove provenance-trio-types, Inline Wire Types (March 2026)
 
@@ -410,7 +421,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.22 | **March 2026** | Sovereignty: Remove provenance-trio-types, Inline Wire Types (DONE) |
+| v0.7.23 | **March 2026** | Ecosystem Absorption: MCP Tool Exposure, Canonical Capabilities (DONE) |
+| v0.7.22 | March 2026 | Sovereignty: Remove provenance-trio-types, Inline Wire Types (DONE) |
 | v0.7.21 | March 2026 | Deep Audit: Zero-Copy, Handler Coverage, Test Refactor (DONE) |
 | v0.7.20 | March 2026 | Ecosystem Absorption: IPC Timeout, extract_rpc_error, Proptest (DONE) |
 | v0.7.19 | March 2026 | Ecosystem Absorption: Health Probes, DispatchOutcome, OrExit (DONE) |

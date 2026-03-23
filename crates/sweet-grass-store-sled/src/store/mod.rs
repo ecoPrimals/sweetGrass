@@ -326,31 +326,51 @@ impl BraidStore for SledStore {
                 let (_, value) = item.map_err(|e| StoreError::Internal(e.to_string()))?;
 
                 if let Ok(braid) = Self::deserialize_braid(&value) {
-                    // Apply filters
                     if let Some(hash) = &filter.data_hash
                         && &braid.data_hash != hash
                     {
                         continue;
                     }
-
                     if let Some(agent) = &filter.attributed_to
                         && &braid.was_attributed_to != agent
                     {
                         continue;
                     }
-
                     if let Some(mime) = &filter.mime_type
                         && &*braid.mime_type != mime
                     {
                         continue;
                     }
-
                     if let Some(tag) = &filter.tag
                         && !braid.metadata.tags.contains(tag)
                     {
                         continue;
                     }
-
+                    if let Some(bt) = &filter.braid_type
+                        && std::mem::discriminant(&braid.braid_type) != std::mem::discriminant(bt)
+                    {
+                        continue;
+                    }
+                    if let Some(after) = filter.created_after
+                        && braid.generated_at_time < after
+                    {
+                        continue;
+                    }
+                    if let Some(before) = filter.created_before
+                        && braid.generated_at_time > before
+                    {
+                        continue;
+                    }
+                    if let Some(ref primal) = filter.source_primal
+                        && braid.ecop.source_primal.as_deref() != Some(primal)
+                    {
+                        continue;
+                    }
+                    if let Some(ref niche) = filter.niche
+                        && braid.ecop.niche.as_deref() != Some(niche)
+                    {
+                        continue;
+                    }
                     braids.push(braid);
                 }
             }

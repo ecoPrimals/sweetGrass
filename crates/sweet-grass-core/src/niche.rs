@@ -43,7 +43,10 @@ pub const CAPABILITIES: &[&str] = &[
     "health.liveness",
     "health.readiness",
     "pipeline.attribute",
+    "capabilities.list",
     "capability.list",
+    "tools.list",
+    "tools.call",
 ];
 
 /// Capabilities this primal consumes from other primals at runtime.
@@ -137,7 +140,10 @@ pub fn operation_dependencies() -> Vec<OperationMeta> {
         OperationMeta::new("health.liveness", &[], "low"),
         OperationMeta::new("health.readiness", &[], "low"),
         OperationMeta::new("pipeline.attribute", &["braid.create"], "medium"),
+        OperationMeta::new("capabilities.list", &[], "low"),
         OperationMeta::new("capability.list", &[], "low"),
+        OperationMeta::new("tools.list", &[], "low"),
+        OperationMeta::new("tools.call", &[], "low"),
     ]
 }
 
@@ -155,7 +161,9 @@ pub fn cost_estimates() -> Vec<(&'static str, &'static str)> {
         ("contribution", "low"),
         ("health", "low"),
         ("pipeline", "medium"),
+        ("capabilities", "low"),
         ("capability", "low"),
+        ("tools", "low"),
     ]
 }
 
@@ -185,7 +193,9 @@ pub fn semantic_mappings() -> Vec<(&'static str, &'static str)> {
         ("is alive", "health.liveness"),
         ("is ready", "health.readiness"),
         ("attribute pipeline", "pipeline.attribute"),
-        ("list capabilities", "capability.list"),
+        ("list capabilities", "capabilities.list"),
+        ("what tools do you have", "tools.list"),
+        ("run a tool", "tools.call"),
     ]
 }
 

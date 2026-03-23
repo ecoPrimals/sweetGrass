@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.23] - 2026-03-23
+
+### Ecosystem Absorption & MCP Tool Exposure
+
+Absorbed patterns from ecosystem springs and primals: MCP tool exposure
+(airSpring v0.10), canonical `capabilities.list` naming (wateringHole v2.1),
+and `DispatchOutcome` error classification alignment (rhizoCrypt v0.13.0).
+
+### Added
+
+- **MCP `tools.list` + `tools.call`** — expose braid operations as MCP tools for Squirrel AI coordination (airSpring v0.10 pattern); includes `McpTool` schema descriptors with JSON Schema `inputSchema` for each tool
+- **`capabilities.list` canonical method** — registered as the wateringHole SEMANTIC_METHOD_NAMING v2.1 canonical name; `capability.list` retained as alias for backward compatibility
+- **8 new protocol tests** — `capabilities.list` canonical/alias equivalence, `tools.list` structure/contents, `tools.call` dispatch/error/missing-name, `DispatchOutcome` classification tests
+- **Niche self-knowledge expanded** — `niche.rs` now declares `capabilities.list`, `tools.list`, `tools.call` in CAPABILITIES, operation_dependencies, cost_estimates, and semantic_mappings
+
+### Changed
+
+- **JSON-RPC dispatch table** — 24 → 27 methods (added `capabilities.list`, `tools.list`, `tools.call`)
+- **`find_handler` visibility** — `fn` → `pub(super) fn` to support `tools.call` cross-module dispatch
+- **README** — updated method count (27), test count (1,099), added MCP tool exposure to protocol stack
+
+## [0.7.22] - 2026-03-17
+
 ### Deep Debt Resolution, Error Propagation & Standards Compliance
 
 Comprehensive audit and debt resolution sprint: dependency advisory fix,

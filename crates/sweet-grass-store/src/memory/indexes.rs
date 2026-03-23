@@ -20,9 +20,19 @@ use sweet_grass_core::{Braid, BraidId, ContentHash};
 ///
 /// Uses `parking_lot::RwLock` for lock-free, panic-safe synchronization.
 /// All operations are infallible since `parking_lot` does not poison locks.
+///
+/// ## Content Convergence
+///
+/// The hash index preserves 1:many mappings — when independent agents
+/// produce braids with identical content hashes, all provenance paths
+/// are retained rather than silently overwriting.
+/// See `specs/CONTENT_CONVERGENCE.md`.
 pub(super) struct Indexes {
-    /// Index: content hash → Braid ID.
-    pub hash: RwLock<HashMap<ContentHash, BraidId>>,
+    /// Index: content hash → Braid IDs (collision-preserving).
+    ///
+    /// Multiple braids may share the same content hash when independent
+    /// provenance paths converge on identical content.
+    pub hash: RwLock<HashMap<ContentHash, HashSet<BraidId>>>,
 
     /// Index: agent DID → Braid IDs.
     pub agent: RwLock<HashMap<String, HashSet<BraidId>>>,
@@ -66,7 +76,9 @@ impl Indexes {
 
         self.hash
             .write()
-            .insert(braid.data_hash.clone(), id.clone());
+            .entry(braid.data_hash.clone())
+            .or_default()
+            .insert(id.clone());
 
         self.agent
             .write()
@@ -99,7 +111,15 @@ impl Indexes {
 
     /// Remove a Braid from all secondary indexes.
     pub fn remove(&self, braid: &Braid) {
-        self.hash.write().remove(&braid.data_hash);
+        {
+            let mut hash_idx = self.hash.write();
+            if let Some(set) = hash_idx.get_mut(&braid.data_hash) {
+                set.remove(&braid.id);
+                if set.is_empty() {
+                    hash_idx.remove(&braid.data_hash);
+                }
+            }
+        }
 
         if let Some(set) = self.agent.write().get_mut(braid.was_attributed_to.as_str()) {
             set.remove(&braid.id);
@@ -130,9 +150,24 @@ impl Indexes {
         }
     }
 
-    /// Get Braid ID by content hash.
+    /// Get a single Braid ID by content hash (backward-compatible).
+    ///
+    /// When multiple braids share a content hash (provenance convergence),
+    /// returns one arbitrarily. Use [`get_all_by_hash`](Self::get_all_by_hash)
+    /// to retrieve all convergent braids.
     pub fn get_by_hash(&self, hash: &str) -> Option<BraidId> {
-        self.hash.read().get(hash).cloned()
+        self.hash
+            .read()
+            .get(hash)
+            .and_then(|set| set.iter().next().cloned())
+    }
+
+    /// Get all Braid IDs sharing a content hash (content convergence).
+    ///
+    /// Returns all braids that produced identical content via independent
+    /// provenance paths. Empty set if no braids match.
+    pub fn get_all_by_hash(&self, hash: &str) -> HashSet<BraidId> {
+        self.hash.read().get(hash).cloned().unwrap_or_default()
     }
 
     /// Get Braid IDs by agent DID.
@@ -307,6 +342,55 @@ mod tests {
         assert!(indexes.get_by_tag("tag2").is_empty());
         assert!(indexes.get_by_derivation("sha256:parent").is_empty());
         assert!(indexes.get_by_mime("application/json").is_empty());
+    }
+
+    #[test]
+    fn test_content_convergence_multiple_braids_same_hash() {
+        let indexes = Indexes::new();
+        let mut braid1 = make_test_braid("sha256:converged", "did:key:z6MkAlice");
+        let mut braid2 = make_test_braid("sha256:converged", "did:key:z6MkBob");
+        braid1.id = BraidId::new();
+        braid2.id = BraidId::new();
+
+        indexes.add(&braid1);
+        indexes.add(&braid2);
+
+        let all = indexes.get_all_by_hash("sha256:converged");
+        assert_eq!(all.len(), 2);
+        assert!(all.contains(&braid1.id));
+        assert!(all.contains(&braid2.id));
+
+        let single = indexes.get_by_hash("sha256:converged");
+        assert!(single.is_some());
+    }
+
+    #[test]
+    fn test_content_convergence_remove_preserves_others() {
+        let indexes = Indexes::new();
+        let mut braid1 = make_test_braid("sha256:converged", "did:key:z6MkAlice");
+        let mut braid2 = make_test_braid("sha256:converged", "did:key:z6MkBob");
+        braid1.id = BraidId::new();
+        braid2.id = BraidId::new();
+
+        indexes.add(&braid1);
+        indexes.add(&braid2);
+        assert_eq!(indexes.get_all_by_hash("sha256:converged").len(), 2);
+
+        indexes.remove(&braid1);
+
+        let remaining = indexes.get_all_by_hash("sha256:converged");
+        assert_eq!(remaining.len(), 1);
+        assert!(remaining.contains(&braid2.id));
+
+        indexes.remove(&braid2);
+        assert!(indexes.get_all_by_hash("sha256:converged").is_empty());
+        assert!(indexes.get_by_hash("sha256:converged").is_none());
+    }
+
+    #[test]
+    fn test_get_all_by_hash_empty() {
+        let indexes = Indexes::new();
+        assert!(indexes.get_all_by_hash("sha256:nonexistent").is_empty());
     }
 
     #[test]

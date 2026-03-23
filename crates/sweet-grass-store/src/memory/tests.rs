@@ -471,3 +471,46 @@ async fn test_default_store() {
     let store = MemoryStore::default();
     assert!(store.is_empty());
 }
+
+#[tokio::test]
+async fn test_content_convergence_get_all_by_hash() {
+    let store = MemoryStore::new();
+    let mut braid1 = make_test_braid("sha256:converged", "did:key:z6MkAlice");
+    let mut braid2 = make_test_braid("sha256:converged", "did:key:z6MkBob");
+    braid1.id = sweet_grass_core::BraidId::new();
+    braid2.id = sweet_grass_core::BraidId::new();
+
+    store.put(&braid1).await.expect("put first");
+    store.put(&braid2).await.expect("put second");
+
+    let all = store
+        .get_all_by_hash(&braid1.data_hash)
+        .await
+        .expect("get_all");
+    assert_eq!(all.len(), 2);
+}
+
+#[tokio::test]
+async fn test_content_convergence_single_still_works() {
+    let store = MemoryStore::new();
+    let braid = make_test_braid("sha256:single", "did:key:z6MkAlice");
+
+    store.put(&braid).await.expect("put");
+
+    let single = store.get_by_hash(&braid.data_hash).await.expect("get");
+    assert!(single.is_some());
+
+    let all = store
+        .get_all_by_hash(&braid.data_hash)
+        .await
+        .expect("get_all");
+    assert_eq!(all.len(), 1);
+}
+
+#[tokio::test]
+async fn test_content_convergence_empty_hash() {
+    let store = MemoryStore::new();
+    let hash = sweet_grass_core::ContentHash::new("sha256:nonexistent".to_string());
+    let all = store.get_all_by_hash(&hash).await.expect("get_all");
+    assert!(all.is_empty());
+}
