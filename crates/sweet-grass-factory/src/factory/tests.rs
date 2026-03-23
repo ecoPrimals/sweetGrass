@@ -9,6 +9,8 @@
     reason = "test module: expect/unwrap are standard in tests"
 )]
 mod factory_tests {
+    use std::sync::Arc;
+
     use super::super::*;
     use sweet_grass_core::test_fixtures::TEST_SOURCE_PRIMAL;
     use sweet_grass_core::{
@@ -35,7 +37,7 @@ mod factory_tests {
         assert!(braid.data_hash.as_str().starts_with("sha256:"));
         assert_eq!(&*braid.mime_type, "text/plain");
         assert_eq!(braid.size, 13);
-        assert_eq!(braid.ecop.source_primal, Some("unknown".to_string()));
+        assert_eq!(braid.ecop.source_primal.as_deref(), Some("unknown"));
     }
 
     #[test]
@@ -135,11 +137,11 @@ mod factory_tests {
 
         let braid = factory
             .from_loam_entry(&LoamEntryParams {
-                spine_id: "spine-1".to_string(),
+                spine_id: Arc::from("spine-1"),
                 entry_hash: ContentHash::new("sha256:entry123"),
                 index: 42,
                 data_hash: ContentHash::new("sha256:data456"),
-                mime_type: "application/json".to_string(),
+                mime_type: Arc::from("application/json"),
                 size: 1024,
                 metadata: None,
             })
@@ -147,7 +149,7 @@ mod factory_tests {
 
         assert!(braid.ecop.loam_commit.is_some());
         let commit = braid.ecop.loam_commit.unwrap();
-        assert_eq!(commit.spine_id, "spine-1");
+        assert_eq!(&*commit.spine_id, "spine-1");
         assert_eq!(commit.index, 42);
     }
 
@@ -198,7 +200,7 @@ mod factory_tests {
             .from_data(b"test", "text/plain", None)
             .expect("should create");
 
-        assert_eq!(braid.ecop.niche, Some("distributed-science".to_string()));
+        assert_eq!(braid.ecop.niche.as_deref(), Some("distributed-science"));
     }
 
     #[test]
@@ -210,8 +212,8 @@ mod factory_tests {
             .expect("should create");
 
         assert_eq!(
-            braid.ecop.source_primal,
-            Some(TEST_SOURCE_PRIMAL.to_string())
+            braid.ecop.source_primal.as_deref(),
+            Some(TEST_SOURCE_PRIMAL)
         );
     }
 
@@ -233,7 +235,7 @@ mod factory_tests {
             .from_data(b"test", "text/plain", None)
             .expect("should create");
 
-        assert_eq!(braid.ecop.source_primal, Some("test-primal".to_string()));
+        assert_eq!(braid.ecop.source_primal.as_deref(), Some("test-primal"));
     }
 
     #[test]
@@ -258,8 +260,8 @@ mod factory_tests {
         assert_eq!(braid.was_attributed_to.as_str(), "did:key:z6MkContributor");
         assert_eq!(braid.generated_at_time, 1_000_000_000);
         assert_eq!(
-            braid.ecop.source_primal,
-            Some(TEST_SOURCE_PRIMAL.to_string())
+            braid.ecop.source_primal.as_deref(),
+            Some(TEST_SOURCE_PRIMAL)
         );
         assert_eq!(braid.ecop.rhizo_session, Some("session-xyz".to_string()));
         assert!(braid.was_generated_by.is_some());
@@ -319,8 +321,8 @@ mod factory_tests {
         assert_eq!(braids.len(), 2);
         assert_eq!(braids[0].data_hash.as_str(), "sha256:hash1");
         assert_eq!(braids[1].data_hash.as_str(), "sha256:hash2");
-        assert_eq!(braids[0].ecop.niche, Some("chemistry".to_string()));
-        assert_eq!(braids[1].ecop.niche, Some("chemistry".to_string()));
+        assert_eq!(braids[0].ecop.niche.as_deref(), Some("chemistry"));
+        assert_eq!(braids[1].ecop.niche.as_deref(), Some("chemistry"));
         assert_eq!(
             braids[0].ecop.rhizo_session,
             Some("session-batch".to_string())
@@ -394,7 +396,7 @@ mod factory_tests {
             .loam_commit
             .as_ref()
             .expect("loam_commit set");
-        assert_eq!(loam.spine_id, "main");
+        assert_eq!(&*loam.spine_id, "main");
         assert_eq!(loam.entry_hash.as_str(), "sha256:entry123");
         assert_eq!(loam.index, 7);
     }

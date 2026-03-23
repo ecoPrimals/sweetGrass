@@ -7,6 +7,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.25] - 2026-03-23
+
+### Coverage Push and Test Hygiene
+
+Pushed line coverage from ~78% to **90.47%** (`cargo llvm-cov`), refactored
+oversized test files, added ecoPrimals footer per `PUBLIC_SURFACE_STANDARD`,
+and ran PII audit (Layer 4).
+
+### Added
+
+- **15 new tests** across error variants, provenance traversal edge cases,
+  handler coverage (`create_provenance_braid`, list filters, agent/tag/offset),
+  and sled config/constants — total: 1,121 tests passing
+- **README ecoPrimals footer** — per `PUBLIC_SURFACE_STANDARD` Layer 2
+
+### Changed
+
+- **Sled tests smart refactor** — split 922-line monolithic `store/tests.rs`
+  into `tests/mod.rs` (core CRUD, 230 lines), `tests/query.rs` (419 lines),
+  and `tests/edge.rs` (257 lines) organized by functional concern
+- **Max file size** reduced from 922 to 826 lines
+
+### Verified
+
+- **PII scan (Layer 4)**: no email leaks, no home paths, no private IPs,
+  no API keys; git authors use project identities
+- **Coverage artifacts**: cleaned phantom 0% entries from stale profraw data
+- `cargo fmt` — 0 diffs
+- `cargo clippy` (pedantic + nursery, `-D warnings`) — 0 warnings
+- `cargo doc` — 0 warnings
+- All 1,121 tests passing, 0 failures
+
+## [0.7.24] - 2026-03-23
+
+### Deep Debt: Zero-Copy Phase 2, Public Surface, Comprehensive Audit
+
+Cross-crate `Arc<str>` migration for zero-copy provenance attributes,
+public surface standard compliance, and full audit remediation.
+
+### Added
+
+- **`CONTEXT.md`** — AI-readable context block per wateringHole `PUBLIC_SURFACE_STANDARD` (Layer 3)
+- **`CONTRIBUTING.md`** — contributor guide with code standards, PR checklist, and ecosystem principles
+
+### Changed
+
+- **Zero-copy Phase 2: `EcoPrimalsAttributes.source_primal`** — `Option<String>` → `Option<Arc<str>>` across all 10 crates; every Braid created by a factory/engine instance now shares the source primal string via O(1) atomic refcount clone instead of O(n) heap allocation
+- **Zero-copy Phase 2: `EcoPrimalsAttributes.niche`** — `Option<String>` → `Option<Arc<str>>` (same pattern)
+- **Zero-copy Phase 2: `LoamCommitRef.spine_id`** — `String` → `Arc<str>`
+- **Zero-copy Phase 2: `BraidFactory` internals** — `source_primal: String` → `Arc<str>`, `niche: Option<String>` → `Option<Arc<str>>`
+- **Zero-copy Phase 2: `LoamEntryParams`** — `spine_id: String` → `Arc<str>`, `mime_type: String` → `Arc<str>`
+- **Zero-copy Phase 2: `CompressionEngine.source_primal`** — `String` → `Arc<str>`
+- **README metrics** — test count 1,106 (was 1,099), accurate coverage 78% (was overstated at 90%+), max file 922 lines, LOC 39,574
+
+### Verified
+
+- 1,106 tests passing, 0 failures
+- 0 clippy warnings (pedantic + nursery, `-D warnings`)
+- 0 doc warnings (`cargo doc --all-features --no-deps`)
+- 0 format issues (`cargo fmt --all -- --check`)
+- 0 unsafe blocks (`#![forbid(unsafe_code)]` all crates)
+- 0 TODOs/FIXMEs/HACKs in source
+- 0 production unwraps (`unwrap_used`/`expect_used` = `deny`)
+- All 133 .rs files under 1000 lines (max 922)
+- All 133 .rs files have SPDX headers
+- All mocks test-gated (`#[cfg(any(test, feature = "test"))]`)
+- All dependencies pure Rust in production (`sled` feature-gated as legacy)
+
 ## [0.7.23] - 2026-03-23
 
 ### Ecosystem Absorption & MCP Tool Exposure

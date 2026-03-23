@@ -86,7 +86,7 @@ impl AppState {
         ));
         let query = Arc::new(QueryEngine::new(Arc::clone(&store)));
         let compression = Arc::new(
-            CompressionEngine::new(Arc::clone(&factory)).with_source(&self_knowledge.name),
+            CompressionEngine::new(Arc::clone(&factory)).with_source(self_knowledge.name.as_str()),
         );
 
         Self {

@@ -2,6 +2,8 @@
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Inter-primal Braid creation: `from_contribution`, `from_session`.
 
+use std::sync::Arc;
+
 use sweet_grass_core::{
     ContentHash,
     activity::{Activity, ActivityMetadata, ActivityType},
@@ -23,7 +25,7 @@ fn parse_loam_entry(s: Option<&str>) -> Option<LoamCommitRef> {
     }
     let index = parts[2].parse::<u64>().ok()?;
     Some(LoamCommitRef {
-        spine_id: parts[0].to_string(),
+        spine_id: Arc::from(parts[0]),
         entry_hash: ContentHash::new(parts[1]),
         index,
     })
@@ -64,10 +66,10 @@ impl super::BraidFactory {
             metadata.description = Some(desc.clone());
         }
 
-        let source_primal = record
-            .source_primal
-            .clone()
-            .unwrap_or_else(|| self.source_primal.clone());
+        let source_primal = record.source_primal.as_ref().map_or_else(
+            || Arc::clone(&self.source_primal),
+            |s| Arc::from(s.as_str()),
+        );
 
         let ecop = EcoPrimalsAttributes {
             source_primal: Some(source_primal),
@@ -119,7 +121,7 @@ impl super::BraidFactory {
             let mut braid = self.from_contribution(&record)?;
 
             if let Some(ref niche) = session.niche {
-                braid.ecop.niche = Some(niche.clone());
+                braid.ecop.niche = Some(Arc::from(niche.as_str()));
             }
             if let Some(ref loam) = loam_commit {
                 braid.ecop.loam_commit = Some(loam.clone());

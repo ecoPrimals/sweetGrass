@@ -1,7 +1,7 @@
 # 🌾 SweetGrass — Development Guide
 
 **Last Updated**: March 23, 2026  
-**Version**: v0.7.23
+**Version**: v0.7.25
 
 ---
 
@@ -188,7 +188,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 1,099 tests passing
+- **Overall**: 1,128 tests passing (~90% line coverage)
 - **Target**: 90%+ line coverage on core crates (achieved)
 
 ### Per-Crate Coverage

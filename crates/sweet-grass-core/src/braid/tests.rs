@@ -347,7 +347,7 @@ mod proptests {
     fn test_braid_builder_ecop() {
         let did = Did::new("did:key:z6MkBuilderEcop");
         let ecop = EcoPrimalsAttributes {
-            source_primal: Some("test-primal".to_string()),
+            source_primal: Some(std::sync::Arc::from("test-primal")),
             ..EcoPrimalsAttributes::default()
         };
         let braid = Braid::builder()
@@ -359,7 +359,7 @@ mod proptests {
             .build()
             .expect("should build");
 
-        assert_eq!(braid.ecop.source_primal, Some("test-primal".to_string()));
+        assert_eq!(braid.ecop.source_primal.as_deref(), Some("test-primal"));
     }
 
     #[test]

@@ -8,6 +8,8 @@
     reason = "test file: expect/unwrap are standard in tests"
 )]
 
+use std::sync::Arc;
+
 use super::*;
 use sweet_grass_core::braid::BraidBuilder;
 use tempfile::TempDir;
@@ -726,7 +728,7 @@ async fn test_query_filter_source_primal() {
     let (store, _temp) = create_test_store();
 
     let mut braid = create_test_braid("sha256:source_primal");
-    braid.ecop.source_primal = Some("sweetGrass".to_string());
+    braid.ecop.source_primal = Some(Arc::from("sweetGrass"));
     store.put(&braid).await.expect("put");
 
     let matching = QueryFilter {
@@ -755,7 +757,7 @@ async fn test_query_filter_niche() {
     let (store, _temp) = create_test_store();
 
     let mut braid = create_test_braid("sha256:niche_filter");
-    braid.ecop.niche = Some("chemistry".to_string());
+    braid.ecop.niche = Some(Arc::from("chemistry"));
     store.put(&braid).await.expect("put");
 
     let matching = QueryFilter {

@@ -379,15 +379,18 @@ pub struct LoamAnchor {
 }
 
 /// ecoPrimals-specific Braid attributes.
+///
+/// String fields use `Arc<str>` for O(1) clone — these values are shared
+/// across all Braids created by the same factory/engine instance.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct EcoPrimalsAttributes {
     /// Source primal that created this Braid.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub source_primal: Option<String>,
+    pub source_primal: Option<Arc<str>>,
 
     /// Niche context.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub niche: Option<String>,
+    pub niche: Option<Arc<str>>,
 
     /// `RhizoCrypt` session reference.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -410,7 +413,7 @@ pub struct EcoPrimalsAttributes {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct LoamCommitRef {
     /// Spine ID.
-    pub spine_id: String,
+    pub spine_id: Arc<str>,
     /// Entry hash.
     pub entry_hash: ContentHash,
     /// Entry index.

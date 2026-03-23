@@ -1,10 +1,32 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.23 (March 2026)
+**Current Version**: v0.7.25 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.25 — Coverage Push, Test Hygiene, PUBLIC_SURFACE_STANDARD Compliance (March 2026)
+
+- [x] **90% line coverage achieved** — pushed from ~78% to 90.47% via targeted tests for error variants, provenance traversal, handler gaps, and sled config
+- [x] **Sled tests smart refactored** — 922-line monolith split into 3 focused modules (mod.rs + query.rs + edge.rs) by functional concern
+- [x] **PII audit (Layer 4)** — clean: no emails, home paths, private IPs, or API keys in codebase
+- [x] **README ecoPrimals footer** — per PUBLIC_SURFACE_STANDARD Layer 2
+- [x] **Arc\<str\> filter verification** — confirmed `p.as_ref() == primal.as_str()` correctly compares `Arc<str>` ↔ `String` in `memory/filter.rs`
+- [x] **Coverage artifacts cleaned** — phantom 0% entries from stale profraw data eliminated
+- [x] 1,121 tests (was 1,106 — +15 new), max file 826 lines (was 922), 136 .rs files (39,903 LOC)
+
+### v0.7.24 — Deep Debt: Zero-Copy Phase 2, Public Surface, Comprehensive Audit (March 2026)
+
+- [x] **Zero-copy Phase 2: `EcoPrimalsAttributes` fields** — `source_primal` and `niche` evolved from `Option<String>` to `Option<Arc<str>>` across all 10 crates; every Braid shares source identity via O(1) atomic clone
+- [x] **Zero-copy Phase 2: `LoamCommitRef.spine_id`** — `String` → `Arc<str>`
+- [x] **Zero-copy Phase 2: `BraidFactory` + `CompressionEngine`** — internal `source_primal` and `niche` evolved to `Arc<str>`
+- [x] **Zero-copy Phase 2: `LoamEntryParams`** — `spine_id` and `mime_type` evolved to `Arc<str>`
+- [x] **`CONTEXT.md` created** — AI-readable context block per wateringHole `PUBLIC_SURFACE_STANDARD` Layer 3
+- [x] **`CONTRIBUTING.md` created** — contributor guide with code standards, PR checklist, ecosystem principles
+- [x] **Comprehensive audit verified** — 1,106 tests, 0 clippy warnings, 0 doc warnings, 0 unsafe, 0 production unwraps, 0 TODOs, all files <1000 LOC, all mocks test-gated, all deps pure Rust
+- [x] **README metrics corrected** — accurate test count (1,106), honest coverage (78% excluding Postgres runtime), max file 922 lines
+- [x] **Build environment documented** — `.cargo/config.toml` local target-dir override for `noexec` mount workaround
 
 ### v0.7.23 — Ecosystem Absorption: MCP Tool Exposure, Canonical Capabilities (March 2026)
 
@@ -421,7 +443,9 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.23 | **March 2026** | Ecosystem Absorption: MCP Tool Exposure, Canonical Capabilities (DONE) |
+| v0.7.25 | **March 2026** | Coverage Push, Test Hygiene, PUBLIC_SURFACE_STANDARD Compliance (DONE) |
+| v0.7.24 | March 2026 | Deep Debt: Zero-Copy Phase 2, Public Surface, Audit (DONE) |
+| v0.7.23 | March 2026 | Ecosystem Absorption: MCP Tool Exposure, Canonical Capabilities (DONE) |
 | v0.7.22 | March 2026 | Sovereignty: Remove provenance-trio-types, Inline Wire Types (DONE) |
 | v0.7.21 | March 2026 | Deep Audit: Zero-Copy, Handler Coverage, Test Refactor (DONE) |
 | v0.7.20 | March 2026 | Ecosystem Absorption: IPC Timeout, extract_rpc_error, Proptest (DONE) |

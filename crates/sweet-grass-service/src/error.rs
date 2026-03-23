@@ -156,4 +156,58 @@ mod tests {
         let err: ServiceError = json_err.unwrap_err().into();
         assert!(matches!(err, ServiceError::Serialization(_)));
     }
+
+    #[test]
+    fn test_into_response_serialization() {
+        let err = ServiceError::Serialization("bad json".to_string());
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn test_into_response_store_error() {
+        let store_err = sweet_grass_store::StoreError::Internal("db down".to_string());
+        let err = ServiceError::from(store_err);
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[test]
+    fn test_into_response_io_error() {
+        let io_err = std::io::Error::new(std::io::ErrorKind::NotFound, "file missing");
+        let err = ServiceError::from(io_err);
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[test]
+    fn test_into_response_transport() {
+        let err = ServiceError::Transport("connection reset".to_string());
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[test]
+    fn test_into_response_discovery() {
+        let err = ServiceError::Discovery {
+            capability: "signing".to_string(),
+            message: "no endpoint".to_string(),
+        };
+        assert!(err.to_string().contains("signing"));
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    }
+
+    #[test]
+    fn test_error_display_variants() {
+        let err = ServiceError::Transport("timeout".to_string());
+        assert!(err.to_string().contains("transport"));
+
+        let err = ServiceError::Discovery {
+            capability: "compute".to_string(),
+            message: "unreachable".to_string(),
+        };
+        assert!(err.to_string().contains("compute"));
+        assert!(err.to_string().contains("unreachable"));
+    }
 }

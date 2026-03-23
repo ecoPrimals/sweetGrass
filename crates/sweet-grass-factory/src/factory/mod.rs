@@ -4,6 +4,8 @@
 //!
 //! Creates Braids from various input sources.
 
+use std::sync::Arc;
+
 use sha2::{Digest, Sha256};
 use sweet_grass_core::{
     ContentHash,
@@ -33,7 +35,7 @@ pub const DEFAULT_SOURCE_PRIMAL: &str = "unknown";
 #[derive(Clone, Debug)]
 pub struct LoamEntryParams {
     /// Spine identifier.
-    pub spine_id: String,
+    pub spine_id: Arc<str>,
     /// Entry content hash within the spine.
     pub entry_hash: ContentHash,
     /// Entry index.
@@ -41,7 +43,7 @@ pub struct LoamEntryParams {
     /// Content hash of the data.
     pub data_hash: ContentHash,
     /// MIME type of the data.
-    pub mime_type: String,
+    pub mime_type: Arc<str>,
     /// Size in bytes.
     pub size: u64,
     /// Optional metadata.
@@ -49,15 +51,18 @@ pub struct LoamEntryParams {
 }
 
 /// Braid Factory - creates Braids from various sources.
+///
+/// Internal fields use `Arc<str>` so that per-Braid creation is O(1) clone
+/// (atomic refcount increment) instead of O(n) heap allocation.
 pub struct BraidFactory {
     /// Default agent for attributing new Braids.
     default_agent: Did,
 
-    /// Source primal name for ecoPrimals attributes.
-    source_primal: String,
+    /// Source primal name for ecoPrimals attributes (shared across all created Braids).
+    source_primal: Arc<str>,
 
-    /// Niche context.
-    niche: Option<String>,
+    /// Niche context (shared across all created Braids).
+    niche: Option<Arc<str>>,
 }
 
 impl BraidFactory {
@@ -78,7 +83,7 @@ impl BraidFactory {
     pub fn from_self_knowledge(default_agent: Did, self_knowledge: &SelfKnowledge) -> Self {
         Self {
             default_agent,
-            source_primal: self_knowledge.name.clone(),
+            source_primal: Arc::from(self_knowledge.name.as_str()),
             niche: None,
         }
     }
@@ -90,21 +95,21 @@ impl BraidFactory {
     pub fn new(default_agent: Did) -> Self {
         Self {
             default_agent,
-            source_primal: DEFAULT_SOURCE_PRIMAL.to_string(),
+            source_primal: Arc::from(DEFAULT_SOURCE_PRIMAL),
             niche: None,
         }
     }
 
     /// Set the source primal name.
     #[must_use]
-    pub fn with_source_primal(mut self, primal: impl Into<String>) -> Self {
+    pub fn with_source_primal(mut self, primal: impl Into<Arc<str>>) -> Self {
         self.source_primal = primal.into();
         self
     }
 
     /// Set the niche context.
     #[must_use]
-    pub fn with_niche(mut self, niche: impl Into<String>) -> Self {
+    pub fn with_niche(mut self, niche: impl Into<Arc<str>>) -> Self {
         self.niche = Some(niche.into());
         self
     }
@@ -142,7 +147,7 @@ impl BraidFactory {
         metadata: Option<BraidMetadata>,
     ) -> Result<Braid> {
         let ecop = EcoPrimalsAttributes {
-            source_primal: Some(self.source_primal.clone()),
+            source_primal: Some(Arc::clone(&self.source_primal)),
             niche: self.niche.clone(),
             ..Default::default()
         };
@@ -204,8 +209,8 @@ impl BraidFactory {
         }
 
         let ecop = EcoPrimalsAttributes {
-            source_primal: Some(self.source_primal.clone()),
-            niche: self.niche.as_ref().map(ToString::to_string),
+            source_primal: Some(Arc::clone(&self.source_primal)),
+            niche: self.niche.clone(),
             ..Default::default()
         };
 
@@ -251,7 +256,7 @@ impl BraidFactory {
             reason = "member_count is small; u64->f64 precision loss is acceptable for compression ratio"
         )]
         let ecop = EcoPrimalsAttributes {
-            source_primal: Some(self.source_primal.clone()),
+            source_primal: Some(Arc::clone(&self.source_primal)),
             niche: self.niche.clone(),
             compression: Some(CompressionMeta {
                 vertex_count: member_count,
@@ -329,10 +334,10 @@ impl BraidFactory {
     /// Returns an error if Braid construction fails.
     pub fn from_loam_entry(&self, entry: &LoamEntryParams) -> Result<Braid> {
         let ecop = EcoPrimalsAttributes {
-            source_primal: Some(self.source_primal.clone()),
+            source_primal: Some(Arc::clone(&self.source_primal)),
             niche: self.niche.clone(),
             loam_commit: Some(LoamCommitRef {
-                spine_id: entry.spine_id.clone(),
+                spine_id: Arc::clone(&entry.spine_id),
                 entry_hash: entry.entry_hash.clone(),
                 index: entry.index,
             }),
@@ -341,7 +346,7 @@ impl BraidFactory {
 
         let mut braid = Braid::builder()
             .data_hash(entry.data_hash.clone())
-            .mime_type(&entry.mime_type)
+            .mime_type(&*entry.mime_type)
             .size(entry.size)
             .attributed_to(self.default_agent.clone())
             .metadata(entry.metadata.clone().unwrap_or_default())
@@ -350,7 +355,7 @@ impl BraidFactory {
             .map_err(FactoryError::Core)?;
 
         braid.was_derived_from.push(EntityReference::by_loam_entry(
-            &entry.spine_id,
+            entry.spine_id.as_ref(),
             entry.entry_hash.clone(),
         ));
 
@@ -400,7 +405,7 @@ impl BraidFactory {
             .build();
 
         let ecop = EcoPrimalsAttributes {
-            source_primal: Some(self.source_primal.clone()),
+            source_primal: Some(Arc::clone(&self.source_primal)),
             niche: self.niche.clone(),
             certificate: Some(certificate_id),
             ..Default::default()

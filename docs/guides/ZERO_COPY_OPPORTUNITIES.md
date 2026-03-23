@@ -1,9 +1,8 @@
 # 🔄 Zero-Copy Optimization Opportunities
 
-**Status**: Documented for future optimization  
-**Current**: ~180 clones across codebase  
-**Target**: <100 clones in hot paths  
-**Priority**: Medium (optimization, not correctness)
+**Status**: Phase 1+2 complete; remaining opportunities documented below  
+**Completed**: `BraidId`, `Did`, `ContentHash`, `ActivityId`, `mime_type`, `source_primal`, `niche`, `spine_id` → `Arc<str>`  
+**Priority**: Low (most hot-path clones eliminated)
 
 ---
 

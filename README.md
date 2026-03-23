@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.23 | 1,099 tests | Edition 2024 | AGPL-3.0-only | Pure Rust | ecoBin compliant | Sovereign types
+v0.7.25 | 1,128 tests | Edition 2024 | AGPL-3.0-only | Pure Rust | ecoBin compliant | Sovereign types
 
 ---
 
@@ -180,15 +180,15 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.23 |
-| Tests | 1,099 passing |
-| Coverage | 90.0%+ lines (llvm-cov) |
+| Version | v0.7.25 |
+| Tests | 1,128 passing |
+| Coverage | ~90% lines (llvm-cov, excluding Postgres runtime tests) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates, DI pattern in tests) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
-| Max file size | 808 lines (limit: 1000) |
-| .rs files | 133 (38,819 LOC) |
+| Max file size | 826 lines (limit: 1000) |
+| .rs files | 136 (39,903 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All 133 .rs files |
 | License | AGPL-3.0-only |
@@ -211,7 +211,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 ### Zero-Copy
 
-`ContentHash`, `BraidId`, `Did`, `ActivityId`, and `Braid.mime_type` use `Arc<str>` internally — `.clone()` is O(1) atomic refcount increment. MIME type indexes (`MemoryStore`, `AgentContributions`) share the same `Arc<str>`, eliminating per-query allocations on hot paths. `BraidSignature` fields use `Cow<'static, str>` for zero-allocation static values. `BraidContext.imports` uses `IndexMap` for deterministic serialization.
+`ContentHash`, `BraidId`, `Did`, `ActivityId`, `Braid.mime_type`, `EcoPrimalsAttributes.source_primal`, `EcoPrimalsAttributes.niche`, `LoamCommitRef.spine_id`, `BraidFactory.source_primal`, and `CompressionEngine.source_primal` use `Arc<str>` internally — `.clone()` is O(1) atomic refcount increment. MIME type indexes (`MemoryStore`, `AgentContributions`) share the same `Arc<str>`, eliminating per-query allocations on hot paths. `BraidSignature` fields use `Cow<'static, str>` for zero-allocation static values. `BraidContext.imports` uses `IndexMap` for deterministic serialization.
 
 ### Configuration
 
@@ -222,6 +222,17 @@ TOML config file support with full hierarchy: CLI args > env vars > config file 
 ## License
 
 AGPL-3.0-only. See [LICENSE](./LICENSE).
+
+---
+
+## Part of ecoPrimals
+
+This repo is part of the [ecoPrimals](https://github.com/ecoPrimals) sovereign
+computing ecosystem — a collection of pure Rust binaries that coordinate via
+JSON-RPC, capability-based routing, and zero compile-time coupling.
+
+See [wateringHole](https://github.com/ecoPrimals/wateringHole) for ecosystem
+documentation, standards, and the primal registry.
 
 ---
 

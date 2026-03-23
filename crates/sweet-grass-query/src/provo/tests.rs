@@ -8,6 +8,8 @@
     reason = "test module: expect/unwrap are standard in tests"
 )]
 
+use std::sync::Arc;
+
 use super::*;
 use sweet_grass_core::agent::Did;
 
@@ -87,7 +89,7 @@ fn test_without_metadata() {
 #[test]
 fn test_without_ecop() {
     let mut braid = make_test_braid("sha256:test", "did:key:z6MkTest");
-    braid.ecop.source_primal = Some("sweetGrass".to_string());
+    braid.ecop.source_primal = Some(Arc::from("sweetGrass"));
 
     let exporter = ProvoExport::new().include_ecop(false);
     let doc = exporter.export_braid(&braid).expect("should export");
@@ -190,8 +192,8 @@ fn test_export_with_metadata_title() {
 #[test]
 fn test_export_with_ecop_extensions() {
     let mut braid = make_test_braid("sha256:ecop_test", "did:key:z6MkTest");
-    braid.ecop.source_primal = Some("sweetGrass".to_string());
-    braid.ecop.niche = Some("attribution".to_string());
+    braid.ecop.source_primal = Some(Arc::from("sweetGrass"));
+    braid.ecop.niche = Some(Arc::from("attribution"));
 
     let exporter = ProvoExport::new().include_ecop(true);
     let doc = exporter.export_braid(&braid).expect("should export");
@@ -205,7 +207,7 @@ fn test_export_with_ecop_extensions() {
 fn test_export_with_both_disabled() {
     let mut braid = make_test_braid("sha256:minimal", "did:key:z6MkTest");
     braid.metadata.title = Some("Should Not Appear".to_string());
-    braid.ecop.source_primal = Some("shouldNotAppear".to_string());
+    braid.ecop.source_primal = Some(Arc::from("shouldNotAppear"));
 
     let exporter = ProvoExport::new()
         .include_metadata(false)

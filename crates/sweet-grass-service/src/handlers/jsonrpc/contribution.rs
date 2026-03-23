@@ -7,6 +7,8 @@
 //! its own types and communicates with trio partners via JSON-RPC, not shared
 //! crates. See `PRIMAL_SOVEREIGNTY_STANDARD` in wateringHole.
 
+use std::sync::Arc;
+
 use sweet_grass_core::{
     braid::{CompressionMeta, EcoPrimalsAttributes},
     contribution::{ContributionRecord, SessionContribution},
@@ -108,9 +110,9 @@ pub(super) async fn handle_pipeline_attribute(
             .attributed_to(agent)
             .metadata(metadata)
             .ecop(EcoPrimalsAttributes {
-                source_primal: Some(sweet_grass_core::identity::PRIMAL_NAME.to_owned()),
+                source_primal: Some(Arc::from(sweet_grass_core::identity::PRIMAL_NAME)),
                 rhizo_session: Some(request.session_id.clone()),
-                niche: request.niche.clone(),
+                niche: request.niche.as_deref().map(Arc::from),
                 ..EcoPrimalsAttributes::default()
             })
             .build()
@@ -177,9 +179,9 @@ pub(super) async fn handle_record_dehydration(
             summarizes: Vec::new(),
         });
         EcoPrimalsAttributes {
-            source_primal: Some(summary.source_primal.clone()),
+            source_primal: Some(Arc::from(summary.source_primal.as_str())),
             rhizo_session: Some(summary.session_id.clone()),
-            niche: summary.niche.clone(),
+            niche: summary.niche.as_deref().map(Arc::from),
             compression,
             ..EcoPrimalsAttributes::default()
         }

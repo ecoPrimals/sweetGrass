@@ -94,7 +94,7 @@ fn matches_ecop_fields(braid: &Braid, filter: &QueryFilter) -> bool {
     // Source primal check
     if let Some(ref primal) = filter.source_primal {
         match &braid.ecop.source_primal {
-            Some(p) if p == primal => {},
+            Some(p) if p.as_ref() == primal.as_str() => {},
             _ => return false,
         }
     }
@@ -102,7 +102,7 @@ fn matches_ecop_fields(braid: &Braid, filter: &QueryFilter) -> bool {
     // Niche check
     if let Some(ref niche) = filter.niche {
         match &braid.ecop.niche {
-            Some(n) if n == niche => {},
+            Some(n) if n.as_ref() == niche.as_str() => {},
             _ => return false,
         }
     }
@@ -148,6 +148,8 @@ pub fn paginate(braids: Vec<Braid>, filter: &QueryFilter) -> (Vec<Braid>, bool) 
     reason = "test module: expect is standard in tests"
 )]
 mod tests {
+    use std::sync::Arc;
+
     use super::*;
     use sweet_grass_core::agent::Did;
 
@@ -307,7 +309,7 @@ mod tests {
     #[test]
     fn test_matches_ecop_source_primal() {
         let mut braid = make_braid("sha256:ecop", "did:key:z6Mk", 100);
-        braid.ecop.source_primal = Some("sweetGrass".to_string());
+        braid.ecop.source_primal = Some(Arc::from("sweetGrass"));
 
         let matching = QueryFilter {
             source_primal: Some("sweetGrass".to_string()),
@@ -325,7 +327,7 @@ mod tests {
     #[test]
     fn test_matches_ecop_niche() {
         let mut braid = make_braid("sha256:niche", "did:key:z6Mk", 100);
-        braid.ecop.niche = Some("chemistry".to_string());
+        braid.ecop.niche = Some(Arc::from("chemistry"));
 
         let matching = QueryFilter {
             niche: Some("chemistry".to_string()),

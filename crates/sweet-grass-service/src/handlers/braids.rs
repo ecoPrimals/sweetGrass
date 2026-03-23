@@ -530,8 +530,141 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), StatusCode::NO_CONTENT);
 
-        // Verify it was deleted
         let stored = state.store.get(&braid.id).await.unwrap();
         assert!(stored.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_create_provenance_braid_success() {
+        let state = make_state();
+
+        let request = CreateProvenanceBraidRequest {
+            data_hash: "sha256:abc123def456".to_string(),
+            mime_type: "application/pdf".to_string(),
+            size: 2048,
+            was_attributed_to: "did:key:z6MkCreator".to_string(),
+            was_derived_from: vec!["sha256:parent1".to_string()],
+            tags: vec!["provenance-test".to_string()],
+        };
+
+        let result = create_provenance_braid(State(state.clone()), Json(request)).await;
+
+        assert!(result.is_ok());
+        let (status, Json(response)) = result.unwrap();
+        assert_eq!(status, StatusCode::CREATED);
+        assert!(!response.id.is_empty());
+        assert_eq!(response.hash, "sha256:abc123def456");
+    }
+
+    #[tokio::test]
+    async fn test_create_provenance_braid_no_derivations() {
+        let state = make_state();
+
+        let request = CreateProvenanceBraidRequest {
+            data_hash: "sha256:standalone".to_string(),
+            mime_type: "text/plain".to_string(),
+            size: 512,
+            was_attributed_to: "did:key:z6MkSolo".to_string(),
+            was_derived_from: vec![],
+            tags: vec![],
+        };
+
+        let result = create_provenance_braid(State(state), Json(request)).await;
+        assert!(result.is_ok());
+        let (status, _) = result.unwrap();
+        assert_eq!(status, StatusCode::CREATED);
+    }
+
+    #[tokio::test]
+    async fn test_list_braids_with_agent_filter() {
+        let state = make_state();
+        create_test_braid(&state).await;
+
+        let query = ListBraidsQuery {
+            agent: Some("did:key:z6MkTest".to_string()),
+            tag: None,
+            mime_type: None,
+            limit: None,
+            offset: None,
+            order: None,
+        };
+
+        let result = list_braids(State(state), Query(query)).await;
+        assert!(result.is_ok());
+        let Json(response) = result.unwrap();
+        assert_eq!(response.braids.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_list_braids_with_tag_filter() {
+        let state = make_state();
+
+        let metadata = BraidMetadata {
+            tags: vec!["special".to_string()],
+            ..Default::default()
+        };
+        let braid = state
+            .factory
+            .from_data(b"tagged data", "text/plain", Some(metadata))
+            .unwrap();
+        state.store.put(&braid).await.unwrap();
+
+        let query = ListBraidsQuery {
+            agent: None,
+            tag: Some("special".to_string()),
+            mime_type: None,
+            limit: None,
+            offset: None,
+            order: None,
+        };
+
+        let result = list_braids(State(state), Query(query)).await;
+        assert!(result.is_ok());
+        let Json(response) = result.unwrap();
+        assert_eq!(response.braids.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_list_braids_with_offset() {
+        let state = make_state();
+
+        for i in 0..5 {
+            let braid = state
+                .factory
+                .from_data(format!("data {i}").as_bytes(), "text/plain", None)
+                .unwrap();
+            state.store.put(&braid).await.unwrap();
+        }
+
+        let query = ListBraidsQuery {
+            agent: None,
+            tag: None,
+            mime_type: None,
+            limit: Some(2),
+            offset: Some(3),
+            order: Some("smallest".to_string()),
+        };
+
+        let result = list_braids(State(state), Query(query)).await;
+        assert!(result.is_ok());
+        let Json(response) = result.unwrap();
+        assert_eq!(response.braids.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_create_braid_minimal_fields() {
+        use base64::Engine;
+        let state = make_state();
+
+        let request = CreateBraidRequest {
+            data: base64::engine::general_purpose::STANDARD.encode(b"minimal"),
+            mime_type: "application/octet-stream".to_string(),
+            title: None,
+            description: None,
+            tags: None,
+        };
+
+        let result = create_braid(State(state), Json(request)).await;
+        assert!(result.is_ok());
     }
 }

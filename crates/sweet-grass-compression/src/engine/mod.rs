@@ -96,7 +96,7 @@ pub struct CompressionEngine {
     analyzer: SessionAnalyzer,
     factory: Arc<BraidFactory>,
     /// Source primal name (discovered at runtime, not hardcoded).
-    source_primal: String,
+    source_primal: Arc<str>,
 }
 
 impl CompressionEngine {
@@ -111,7 +111,7 @@ impl CompressionEngine {
             analyzer: SessionAnalyzer::new(config.clone()),
             config,
             factory,
-            source_primal: DEFAULT_SOURCE_PRIMAL.to_string(),
+            source_primal: Arc::from(DEFAULT_SOURCE_PRIMAL),
         }
     }
 
@@ -124,10 +124,10 @@ impl CompressionEngine {
     /// ```rust,ignore
     /// let primal = discovery.find_one(&Capability::SessionEvents).await?;
     /// let engine = CompressionEngine::new(factory)
-    ///     .with_source(&primal.name);
+    ///     .with_source(primal.name.as_str());
     /// ```
     #[must_use]
-    pub fn with_source(mut self, source: impl Into<String>) -> Self {
+    pub fn with_source(mut self, source: impl Into<Arc<str>>) -> Self {
         self.source_primal = source.into();
         self
     }
@@ -248,7 +248,7 @@ impl CompressionEngine {
         // Note: source_primal is discovered at runtime via with_source(),
         // not hardcoded. "unknown" indicates discovery was not used.
         let ecop = EcoPrimalsAttributes {
-            source_primal: Some(self.source_primal.clone()),
+            source_primal: Some(Arc::clone(&self.source_primal)),
             rhizo_session: Some(session.id.clone()),
             compression: Some(CompressionMeta {
                 vertex_count: analysis.vertex_count as u64,

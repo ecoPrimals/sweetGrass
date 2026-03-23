@@ -584,4 +584,122 @@ mod tests {
         assert_eq!(parsed.depth, graph.depth);
         assert_eq!(parsed.truncated, graph.truncated);
     }
+
+    #[tokio::test]
+    async fn test_children_with_multi_derivation() {
+        let store = Arc::new(MemoryStore::new());
+
+        let parent = make_test_braid("sha256:parent_c", "did:key:z6MkP", vec![]);
+        let child1 = make_test_braid("sha256:child1_c", "did:key:z6MkC1", vec!["sha256:parent_c"]);
+        let child2 = make_test_braid("sha256:child2_c", "did:key:z6MkC2", vec!["sha256:parent_c"]);
+
+        store.put(&parent).await.expect("store");
+        store.put(&child1).await.expect("store");
+        store.put(&child2).await.expect("store");
+
+        let builder = ProvenanceGraphBuilder::new();
+        let graph = builder
+            .build(
+                EntityReference::by_hash("sha256:child1_c"),
+                &(Arc::clone(&store) as Arc<dyn BraidStore>),
+            )
+            .await
+            .expect("should build");
+
+        let children = graph.children("sha256:parent_c");
+        assert_eq!(children.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_root_braid_accessible() {
+        let store = Arc::new(MemoryStore::new());
+        let braid = make_test_braid("sha256:root_b", "did:key:z6MkTest", vec![]);
+        store.put(&braid).await.expect("store");
+
+        let builder = ProvenanceGraphBuilder::new();
+        let graph = builder
+            .build(
+                EntityReference::by_hash("sha256:root_b"),
+                &(store as Arc<dyn BraidStore>),
+            )
+            .await
+            .expect("should build");
+
+        let root = graph.root_braid();
+        assert!(root.is_some());
+        assert_eq!(root.unwrap().data_hash.as_str(), "sha256:root_b");
+    }
+
+    #[tokio::test]
+    async fn test_root_braid_when_missing() {
+        let store = Arc::new(MemoryStore::new());
+
+        let builder = ProvenanceGraphBuilder::new();
+        let graph = builder
+            .build(
+                EntityReference::by_hash("sha256:gone"),
+                &(store as Arc<dyn BraidStore>),
+            )
+            .await
+            .expect("should build");
+
+        assert!(graph.root_braid().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_cycle_detection() {
+        let store = Arc::new(MemoryStore::new());
+
+        let braid_a = make_test_braid("sha256:cycle_a", "did:key:z6Mk", vec!["sha256:cycle_b"]);
+        let braid_b = make_test_braid("sha256:cycle_b", "did:key:z6Mk", vec!["sha256:cycle_a"]);
+
+        store.put(&braid_a).await.expect("store");
+        store.put(&braid_b).await.expect("store");
+
+        let builder = ProvenanceGraphBuilder::new().max_depth(20);
+        let graph = builder
+            .build(
+                EntityReference::by_hash("sha256:cycle_a"),
+                &(store as Arc<dyn BraidStore>),
+            )
+            .await
+            .expect("should not infinite loop");
+
+        assert_eq!(graph.entity_count(), 2);
+        assert!(!graph.truncated);
+    }
+
+    #[tokio::test]
+    async fn test_max_depth_zero() {
+        let store = Arc::new(MemoryStore::new());
+        let braid = make_test_braid("sha256:depth0", "did:key:z6Mk", vec![]);
+        store.put(&braid).await.expect("store");
+
+        let builder = ProvenanceGraphBuilder::new().max_depth(0);
+        let graph = builder
+            .build(
+                EntityReference::by_hash("sha256:depth0"),
+                &(store as Arc<dyn BraidStore>),
+            )
+            .await
+            .expect("should build");
+
+        assert_eq!(graph.entity_count(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_children_of_nonexistent_entity() {
+        let graph = ProvenanceGraph {
+            root: EntityReference::by_hash("sha256:test"),
+            entities: HashMap::new(),
+            activities: HashMap::new(),
+            derivation_edges: HashMap::new(),
+            generation_edges: HashMap::new(),
+            depth: 0,
+            truncated: false,
+        };
+
+        let children = graph.children("sha256:nonexistent");
+        assert!(children.is_empty());
+    }
 }
