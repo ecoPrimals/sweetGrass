@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.21 | 1,077 tests | Edition 2024 | AGPL-3.0-only | Pure Rust | ecoBin compliant
+v0.7.22 | 1,077 tests | Edition 2024 | AGPL-3.0-only | Pure Rust | ecoBin compliant | Sovereign types
 
 ---
 
@@ -179,7 +179,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.21 |
+| Version | v0.7.22 |
 | Tests | 1,077 passing |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates, DI pattern in tests) |

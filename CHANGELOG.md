@@ -5,6 +5,37 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.22] - 2026-03-17
+
+### Sovereignty: Remove provenance-trio-types, Inline Wire Types
+
+Eliminated the last cross-primal compile-time coupling. sweetGrass now owns
+all its wire types — no shared crates. Communication with trio partners
+(rhizoCrypt, loamSpine) is via JSON-RPC only, as sovereign architecture demands.
+
+### Removed
+
+- **`provenance-trio-types` dependency** — removed from workspace, `sweet-grass-core`, and `sweet-grass-service` Cargo.toml files. ~80 lines of `From` impls and wire type re-exports deleted from `dehydration.rs`.
+
+### Added
+
+- **`PipelineRequest` / `PipelineResult` / `AgentContribution`** — inline wire types in `contribution.rs`, scoped to the handler that uses them. Only `Deserialize` or `Serialize` derived per direction (minimum necessary).
+- **`provenance-trio-types` banned in `deny.toml`** — prevents future re-introduction of shared cross-primal crates.
+- **`#[serde(default)]` on `SessionOperation.timestamp` and `Attestation.attested_at`** — wire tolerance for payloads that omit optional timing fields.
+
+### Changed
+
+- **`handle_record_dehydration`** — now deserializes directly into sweetGrass's own `DehydrationSummary` (was: wire type → `From` → internal type). Two lines became one.
+- **Module docs** — `dehydration.rs` updated to document JSON-RPC wire contract instead of shared crate dependency.
+- **wateringHole registry** — `PRIMAL_REGISTRY.md` and `genomeBin/manifest.toml` updated to v0.7.22 with current metrics and capabilities.
+
+### Metrics
+
+- 1,077 tests passing (unchanged)
+- 0 clippy warnings (pedantic + nursery)
+- 0 external cross-primal compile-time dependencies
+- `provenance-trio-types` banned in deny.toml
+
 ## [0.7.21] - 2026-03-17
 
 ### Deep Audit: Zero-Copy, Handler Coverage, Test Refactor

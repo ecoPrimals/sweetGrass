@@ -14,7 +14,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.7.21"
+version = "0.7.22"
 edition = "2024"
 rust-version = "1.87"
 license = "AGPL-3.0-only"
@@ -64,9 +64,6 @@ sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "chrono", "uu
 # Embedded key-value store (Pure Rust - no C dependencies)
 sled = "0.34"
 redb = "2.4"
-
-# Provenance trio canonical wire types
-provenance-trio-types = { path = "../provenance-trio-types" }
 
 # Web framework
 axum = { version = "0.8", features = ["macros"] }

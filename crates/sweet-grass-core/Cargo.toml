@@ -29,7 +29,6 @@ base64 = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
 indexmap = { workspace = true }
-provenance-trio-types = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util", "macros"] }

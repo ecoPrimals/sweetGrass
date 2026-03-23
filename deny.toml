@@ -61,6 +61,9 @@ deny = [
     # Outbound HTTP clients - route through neuralAPI → Songbird instead
     { name = "reqwest", wrappers = [], use-instead = "neuralAPI capability.call(\"http.request\", ...)" },
     { name = "ureq", wrappers = [], use-instead = "neuralAPI capability.call(\"http.request\", ...)" },
+    
+    # Shared cross-primal types — sovereignty violation (each primal owns its own types)
+    { name = "provenance-trio-types", wrappers = [], reason = "Boundary violation — primals communicate via JSON-RPC, not shared crates" },
 ]
 
 skip = []

@@ -3,13 +3,13 @@
 //! Dehydration summary types for rhizoCrypt → sweetGrass coordination.
 //!
 //! When rhizoCrypt dehydrates a session (ephemeral DAG → permanent record),
-//! it produces a `DehydrationSummary` describing the collapsed state. This
-//! is the shared contract between rhizoCrypt and sweetGrass for the
-//! provenance trio workflow:
+//! it sends a JSON-RPC payload that sweetGrass deserializes into its own
+//! [`DehydrationSummary`]. No shared crate — each primal owns its types
+//! and unknown wire fields are silently ignored by serde.
 //!
 //! ```text
-//! rhizoCrypt.dehydrate() → DehydrationSummary → sweetGrass.recordSession
-//!                                             → LoamSpine.commit
+//! rhizoCrypt.dehydrate() → JSON-RPC → sweetGrass.contribution.record_dehydration
+//!                        → JSON-RPC → loamSpine.commit.session
 //! ```
 
 use serde::{Deserialize, Serialize};
@@ -69,89 +69,6 @@ pub struct DehydrationSummary {
     pub compression_ratio: Option<f64>,
 }
 
-/// Re-export the canonical wire type for use at IPC boundaries.
-pub use provenance_trio_types::DehydrationSummary as WireDehydrationSummary;
-
-impl From<provenance_trio_types::DehydrationSummary> for DehydrationSummary {
-    fn from(w: provenance_trio_types::DehydrationSummary) -> Self {
-        Self {
-            source_primal: w.source_primal,
-            session_id: w.session_id,
-            merkle_root: ContentHash::new(w.merkle_root),
-            vertex_count: w.vertex_count,
-            branch_count: w.branch_count,
-            agents: w.agents.into_iter().map(Did::new).collect(),
-            attestations: w
-                .attestations
-                .into_iter()
-                .map(|a| Attestation {
-                    agent: Did::new(a.agent),
-                    signature: a.signature,
-                    attested_at: a.attested_at,
-                })
-                .collect(),
-            operations: w
-                .operations
-                .into_iter()
-                .map(|o| SessionOperation {
-                    op_type: o.op_type,
-                    content_hash: ContentHash::new(o.content_hash),
-                    agent: Did::new(o.agent),
-                    timestamp: o.timestamp,
-                    description: o.description,
-                })
-                .collect(),
-            session_start: w.session_start,
-            dehydrated_at: w.dehydrated_at,
-            frontier: w.frontier.into_iter().map(ContentHash::new).collect(),
-            niche: w.niche,
-            compression_ratio: w.compression_ratio,
-        }
-    }
-}
-
-impl From<&DehydrationSummary> for provenance_trio_types::DehydrationSummary {
-    fn from(s: &DehydrationSummary) -> Self {
-        Self {
-            source_primal: s.source_primal.clone(),
-            session_id: s.session_id.clone(),
-            merkle_root: s.merkle_root.as_str().to_string(),
-            vertex_count: s.vertex_count,
-            branch_count: s.branch_count,
-            payload_bytes: 0,
-            agents: s.agents.iter().map(|a| a.as_str().to_string()).collect(),
-            session_start: s.session_start,
-            dehydrated_at: s.dehydrated_at,
-            session_type: String::new(),
-            outcome: String::new(),
-            agent_summaries: Vec::new(),
-            attestations: s
-                .attestations
-                .iter()
-                .map(|a| provenance_trio_types::AttestationRef {
-                    agent: a.agent.as_str().to_string(),
-                    signature: a.signature.clone(),
-                    attested_at: a.attested_at,
-                })
-                .collect(),
-            operations: s
-                .operations
-                .iter()
-                .map(|o| provenance_trio_types::SessionOperationRef {
-                    op_type: o.op_type.clone(),
-                    content_hash: o.content_hash.as_str().to_string(),
-                    agent: o.agent.as_str().to_string(),
-                    timestamp: o.timestamp,
-                    description: o.description.clone(),
-                })
-                .collect(),
-            frontier: s.frontier.iter().map(|h| h.as_str().to_string()).collect(),
-            niche: s.niche.clone(),
-            compression_ratio: s.compression_ratio,
-        }
-    }
-}
-
 /// An agent's attestation that they participated in a session.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Attestation {
@@ -161,7 +78,8 @@ pub struct Attestation {
     /// Ed25519 signature over the Merkle root (base64-encoded).
     pub signature: String,
 
-    /// When the attestation was created.
+    /// When the attestation was created (defaults to 0 when omitted by callers).
+    #[serde(default)]
     pub attested_at: Timestamp,
 }
 
@@ -177,7 +95,8 @@ pub struct SessionOperation {
     /// The agent who performed the operation.
     pub agent: Did,
 
-    /// When the operation occurred.
+    /// When the operation occurred (defaults to 0 when omitted by callers).
+    #[serde(default)]
     pub timestamp: Timestamp,
 
     /// Optional description.

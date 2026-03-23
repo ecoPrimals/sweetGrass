@@ -47,9 +47,6 @@ serde_json = { workspace = true }
 # Encoding
 base64 = { workspace = true }
 
-# Provenance trio canonical wire types
-provenance-trio-types = { workspace = true }
-
 # Error handling
 thiserror = { workspace = true }
 
