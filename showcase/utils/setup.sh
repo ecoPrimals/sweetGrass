@@ -55,7 +55,7 @@ if [[ $ERRORS -eq 0 ]]; then
     echo ""
     echo "Start with:"
     echo "  cd showcase/00-local-primal/01-hello-provenance"
-    echo "  ./demo-hello-provenance.sh"
+    echo "  ./demo-first-braid.sh"
 else
     echo "❌ Setup incomplete. Fix $ERRORS error(s) above."
     exit 1

@@ -24,6 +24,11 @@ pub struct RedbStore {
 
 impl RedbStore {
     /// Open or create a redb database with configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RedbError::Open`] if the database path is invalid or the file
+    /// cannot be created, or a transaction error if table initialization fails.
     #[instrument(skip_all, fields(path = %config.path))]
     pub fn open(config: &RedbConfig) -> Result<Self, RedbError> {
         debug!("Opening redb database at {}", config.path);
@@ -54,6 +59,10 @@ impl RedbStore {
     }
 
     /// Open with a simple path.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`RedbError`] if the database cannot be opened at the given path.
     pub fn open_path(path: impl AsRef<Path>) -> Result<Self, RedbError> {
         Self::open(&RedbConfig::new(
             path.as_ref().to_string_lossy().to_string(),
@@ -63,6 +72,10 @@ impl RedbStore {
     /// Flush all pending writes to disk.
     ///
     /// redb commits are durable by default; this is a no-op for API compatibility.
+    ///
+    /// # Errors
+    ///
+    /// Currently infallible; returns `Ok(())` always.
     pub fn flush(&self) -> Result<(), RedbError> {
         Ok(())
     }
@@ -458,9 +471,15 @@ impl BraidStore for RedbStore {
     #[instrument(skip(self))]
     async fn activities_for_braid(
         &self,
-        _braid_id: &BraidId,
+        braid_id: &BraidId,
     ) -> sweet_grass_store::Result<Vec<Activity>> {
-        Ok(vec![])
+        let activities = self
+            .get(braid_id)
+            .await?
+            .and_then(|b| b.was_generated_by)
+            .into_iter()
+            .collect();
+        Ok(activities)
     }
 }
 

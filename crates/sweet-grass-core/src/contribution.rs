@@ -9,6 +9,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::ContentHash;
 use crate::agent::{AgentRole, Did};
 use crate::braid::Timestamp;
 
@@ -25,7 +26,7 @@ pub struct ContributionRecord {
     pub role: AgentRole,
 
     /// Content hash of the artifact being attributed.
-    pub content_hash: String,
+    pub content_hash: ContentHash,
 
     /// MIME type of the content.
     #[serde(default = "default_mime_type")]
@@ -139,7 +140,7 @@ mod tests {
         let record = ContributionRecord {
             agent: Did::new("did:key:z6MkTest"),
             role: AgentRole::Creator,
-            content_hash: "sha256:abc123".to_string(),
+            content_hash: ContentHash::new("sha256:abc123"),
             mime_type: "application/json".to_string(),
             size: 100,
             timestamp: 1_234_567_890,
@@ -172,7 +173,7 @@ mod tests {
             contributions: vec![ContributionRecord {
                 agent: Did::new("did:key:z6MkAgent1"),
                 role: AgentRole::Creator,
-                content_hash: "sha256:hash1".to_string(),
+                content_hash: ContentHash::new("sha256:hash1"),
                 mime_type: "application/json".to_string(),
                 size: 50,
                 timestamp: 0,

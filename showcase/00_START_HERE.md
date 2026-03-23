@@ -2,7 +2,7 @@
 
 **The Attribution Layer for ecoPrimals**
 
-**Version**: 0.7.22 | **Status**: Production Ready | **Tests**: 1,077 passing | **Edition**: 2024
+**Version**: 0.7.22 | **Status**: Production Ready | **Tests**: 1,084 passing | **Edition**: 2024
 
 ---
 

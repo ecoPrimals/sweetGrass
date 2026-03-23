@@ -4,6 +4,7 @@ description = "Attribution Layer - Compression engine (0/1/Many model)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+publish = false
 repository.workspace = true
 authors.workspace = true
 readme = "../../README.md"

@@ -242,7 +242,7 @@ mod factory_tests {
         let record = ContributionRecord {
             agent: sweet_grass_core::agent::Did::new("did:key:z6MkContributor"),
             role: AgentRole::Creator,
-            content_hash: "sha256:contrib123".to_string(),
+            content_hash: sweet_grass_core::ContentHash::new("sha256:contrib123"),
             mime_type: "application/json".to_string(),
             size: 256,
             timestamp: 1_000_000_000,
@@ -286,7 +286,7 @@ mod factory_tests {
                 ContributionRecord {
                     agent: sweet_grass_core::agent::Did::new("did:key:z6MkAgent1"),
                     role: AgentRole::Creator,
-                    content_hash: "sha256:hash1".to_string(),
+                    content_hash: sweet_grass_core::ContentHash::new("sha256:hash1"),
                     mime_type: "application/json".to_string(),
                     size: 100,
                     timestamp: 0,
@@ -298,7 +298,7 @@ mod factory_tests {
                 ContributionRecord {
                     agent: sweet_grass_core::agent::Did::new("did:key:z6MkAgent2"),
                     role: AgentRole::Contributor,
-                    content_hash: "sha256:hash2".to_string(),
+                    content_hash: sweet_grass_core::ContentHash::new("sha256:hash2"),
                     mime_type: "text/plain".to_string(),
                     size: 200,
                     timestamp: 0,
@@ -340,7 +340,7 @@ mod factory_tests {
         let record = ContributionRecord {
             agent: sweet_grass_core::agent::Did::new("did:key:z6MkChemist"),
             role: AgentRole::Creator,
-            content_hash: "sha256:chem123".to_string(),
+            content_hash: sweet_grass_core::ContentHash::new("sha256:chem123"),
             mime_type: "application/json".to_string(),
             size: 0,
             timestamp: 0,
@@ -372,7 +372,7 @@ mod factory_tests {
             contributions: vec![ContributionRecord {
                 agent: sweet_grass_core::agent::Did::new("did:key:z6MkLoam"),
                 role: AgentRole::Creator,
-                content_hash: "sha256:loamhash".to_string(),
+                content_hash: sweet_grass_core::ContentHash::new("sha256:loamhash"),
                 mime_type: "text/plain".to_string(),
                 size: 50,
                 timestamp: 0,
@@ -409,7 +409,7 @@ mod factory_tests {
             contributions: vec![ContributionRecord {
                 agent: sweet_grass_core::agent::Did::new("did:key:z6MkBadLoam"),
                 role: AgentRole::Creator,
-                content_hash: "sha256:badloam".to_string(),
+                content_hash: sweet_grass_core::ContentHash::new("sha256:badloam"),
                 mime_type: "text/plain".to_string(),
                 size: 10,
                 timestamp: 0,

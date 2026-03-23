@@ -28,6 +28,11 @@ pub struct SledStore {
 
 impl SledStore {
     /// Open or create a Sled database with configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SledError::Open`] if the database directory is invalid, or
+    /// [`SledError::Tree`] if required trees cannot be opened.
     #[instrument(skip_all, fields(path = %config.path))]
     pub fn open(config: &SledConfig) -> Result<Self> {
         debug!("Opening Sled database at {}", config.path);
@@ -72,6 +77,10 @@ impl SledStore {
     }
 
     /// Open with a simple path.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SledError`] if the database cannot be opened at the given path.
     pub fn open_path(path: impl AsRef<Path>) -> Result<Self> {
         Self::open(&SledConfig::new(
             path.as_ref().to_string_lossy().to_string(),
@@ -79,6 +88,10 @@ impl SledStore {
     }
 
     /// Flush all pending writes to disk.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SledError::Write`] if the flush operation fails.
     pub fn flush(&self) -> Result<()> {
         self.db
             .flush()
@@ -444,9 +457,15 @@ impl BraidStore for SledStore {
     #[instrument(skip(self))]
     async fn activities_for_braid(
         &self,
-        _braid_id: &BraidId,
+        braid_id: &BraidId,
     ) -> sweet_grass_store::Result<Vec<Activity>> {
-        Ok(vec![])
+        let activities = self
+            .get(braid_id)
+            .await?
+            .and_then(|b| b.was_generated_by)
+            .into_iter()
+            .collect();
+        Ok(activities)
     }
 }
 

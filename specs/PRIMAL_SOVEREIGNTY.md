@@ -326,7 +326,7 @@ impl SweetGrassMultiClient {
 ```toml
 [dependencies]
 # High-performance RPC (pure Rust)
-tarpc = { version = "0.34", features = ["full"] }
+tarpc = { version = "0.37", features = ["full"] }
 
 # Serialization (native Rust)
 serde = { version = "1.0", features = ["derive"] }

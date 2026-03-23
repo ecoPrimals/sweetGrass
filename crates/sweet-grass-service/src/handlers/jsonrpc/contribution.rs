@@ -24,7 +24,6 @@ use super::{DispatchResult, internal, parse_params, to_value};
 /// Wire-compatible with the biomeOS provenance pipeline graph parameters.
 /// Deserialized from JSON — no compile-time coupling to other primals.
 #[derive(Clone, Debug, serde::Deserialize)]
-#[allow(dead_code)]
 struct PipelineRequest {
     session_id: String,
     agent_did: String,
@@ -36,10 +35,10 @@ struct PipelineRequest {
 
 /// Per-agent contribution data for attribution braids.
 ///
-/// Fields beyond `agent_did` are deserialized for wire compatibility and
-/// available for future attribution weight logic.
+/// All fields are actively used in `handle_pipeline_attribute`: `agent_did` for
+/// attribution, `description` and `weight` for future attribution weight logic
+/// (weight defaults to 1.0 via `default_weight`).
 #[derive(Clone, Debug, serde::Deserialize)]
-#[allow(dead_code)]
 struct AgentContribution {
     agent_did: String,
     #[serde(default)]
@@ -71,19 +70,34 @@ struct PipelineResult {
 
 /// Handle pipeline attribution request from the provenance trio pipeline.
 ///
-/// Accepts a [`PipelineRequest`] and creates attribution braids for the
-/// session's agent contributions, returning a [`PipelineResult`] with the
-/// `braid_ref` set.
+/// Accepts a [`PipelineRequest`] and creates attribution braids for each
+/// agent contribution, weighting by the contribution's `weight` and
+/// preserving the `description` in braid metadata.
 pub(super) async fn handle_pipeline_attribute(
     state: &AppState,
     params: serde_json::Value,
 ) -> DispatchResult {
     let request: PipelineRequest = parse_params(params)?;
 
-    let mut braid_ids = Vec::new();
+    let session_agent = sweet_grass_core::agent::Did::new(&request.agent_did);
+    let mut braid_ids = Vec::with_capacity(request.agent_summaries.len());
 
     for contribution in &request.agent_summaries {
         let agent = sweet_grass_core::agent::Did::new(&contribution.agent_did);
+
+        let mut metadata = sweet_grass_core::braid::BraidMetadata::default();
+        if !contribution.description.is_empty() {
+            metadata.description = Some(contribution.description.clone());
+        }
+        metadata.custom.insert(
+            "attribution.weight".to_string(),
+            serde_json::json!(contribution.weight),
+        );
+        metadata.custom.insert(
+            "attribution.session_agent".to_string(),
+            serde_json::json!(session_agent.as_str()),
+        );
+
         let braid = sweet_grass_core::Braid::builder()
             .data_hash(format!(
                 "pipeline:{}:{}",
@@ -92,6 +106,7 @@ pub(super) async fn handle_pipeline_attribute(
             .mime_type(sweet_grass_core::identity::MIME_OCTET_STREAM)
             .size(0)
             .attributed_to(agent)
+            .metadata(metadata)
             .ecop(EcoPrimalsAttributes {
                 source_primal: Some(sweet_grass_core::identity::PRIMAL_NAME.to_owned()),
                 rhizo_session: Some(request.session_id.clone()),
@@ -170,7 +185,7 @@ pub(super) async fn handle_record_dehydration(
         }
     };
 
-    let mut braids = Vec::new();
+    let mut braids = Vec::with_capacity(summary.operations.len());
     for op in &summary.operations {
         let braid = sweet_grass_core::Braid::builder()
             .data_hash(op.content_hash.clone())

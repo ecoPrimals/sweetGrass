@@ -36,7 +36,6 @@
 #![warn(missing_docs)]
 #![forbid(unsafe_code)]
 #![allow(clippy::missing_const_for_fn)]
-#![allow(clippy::missing_errors_doc)]
 
 mod error;
 mod store;

@@ -50,25 +50,33 @@ impl Capability {
     }
 
     /// Parse a capability from a string representation.
+    ///
+    /// Uses case-insensitive comparison without allocation for known variants.
     #[must_use]
     pub fn from_string(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
-            "signing" => Some(Self::Signing),
-            "anchoring" => Some(Self::Anchoring),
-            "sessionevents" | "session_events" | "session-events" => Some(Self::SessionEvents),
-            "discovery" => Some(Self::Discovery),
-            "compute" => Some(Self::Compute),
-            other => {
-                if other.starts_with("custom:") {
-                    Some(Self::Custom(
-                        other.strip_prefix("custom:").unwrap_or(other).to_string(),
-                    ))
-                } else if !other.is_empty() {
-                    Some(Self::Custom(other.to_string()))
-                } else {
-                    None
-                }
-            },
+        if s.eq_ignore_ascii_case("signing") {
+            Some(Self::Signing)
+        } else if s.eq_ignore_ascii_case("anchoring") {
+            Some(Self::Anchoring)
+        } else if s.eq_ignore_ascii_case("sessionevents")
+            || s.eq_ignore_ascii_case("session_events")
+            || s.eq_ignore_ascii_case("session-events")
+        {
+            Some(Self::SessionEvents)
+        } else if s.eq_ignore_ascii_case("discovery") {
+            Some(Self::Discovery)
+        } else if s.eq_ignore_ascii_case("compute") {
+            Some(Self::Compute)
+        } else if let Some(rest) = s
+            .strip_prefix("custom:")
+            .or_else(|| s.strip_prefix("Custom:"))
+            .or_else(|| s.strip_prefix("CUSTOM:"))
+        {
+            Some(Self::Custom(rest.to_string()))
+        } else if !s.is_empty() {
+            Some(Self::Custom(s.to_string()))
+        } else {
+            None
         }
     }
 }

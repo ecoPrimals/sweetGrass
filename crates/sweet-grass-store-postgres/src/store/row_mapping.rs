@@ -153,11 +153,14 @@ pub fn row_to_activity(row: &sqlx::postgres::PgRow) -> sweet_grass_store::Result
 
     let activity_type = parse_activity_type(&activity_type_str);
 
-    let used: Vec<UsedEntity> = serde_json::from_value(used_entities).unwrap_or_default();
-    let associations: Vec<AgentAssociation> =
-        serde_json::from_value(was_associated_with).unwrap_or_default();
-    let meta: ActivityMetadata = serde_json::from_value(metadata).unwrap_or_default();
-    let ecop_parsed: ActivityEcoPrimals = serde_json::from_value(ecop).unwrap_or_default();
+    let used: Vec<UsedEntity> = serde_json::from_value(used_entities)
+        .map_err(|e| StoreError::Internal(format!("activity used_entities: {e}")))?;
+    let associations: Vec<AgentAssociation> = serde_json::from_value(was_associated_with)
+        .map_err(|e| StoreError::Internal(format!("activity was_associated_with: {e}")))?;
+    let meta: ActivityMetadata = serde_json::from_value(metadata)
+        .map_err(|e| StoreError::Internal(format!("activity metadata: {e}")))?;
+    let ecop_parsed: ActivityEcoPrimals = serde_json::from_value(ecop)
+        .map_err(|e| StoreError::Internal(format!("activity ecop: {e}")))?;
 
     Ok(Activity {
         id: ActivityId::from_string(activity_id),

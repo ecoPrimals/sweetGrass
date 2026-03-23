@@ -384,7 +384,6 @@ pub mod testing {
 
         /// Set health status for testing failure scenarios.
         #[must_use]
-        #[allow(dead_code)]
         pub const fn with_health(mut self, healthy: bool) -> Self {
             self.healthy = healthy;
             self

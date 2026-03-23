@@ -271,15 +271,20 @@ async fn shutdown_signal() {
 }
 
 fn run_capabilities() -> i32 {
+    use std::io::Write;
     use sweet_grass_core::niche;
 
-    println!(
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+
+    let _ = writeln!(
+        out,
         "{} v{} — {}",
         niche::NICHE_ID,
         env!("CARGO_PKG_VERSION"),
         niche::NICHE_DESCRIPTION,
     );
-    println!();
+    let _ = writeln!(out);
 
     let mut domains = std::collections::BTreeMap::<&str, Vec<&str>>::new();
     for cap in niche::CAPABILITIES {
@@ -288,24 +293,25 @@ fn run_capabilities() -> i32 {
         }
     }
 
-    println!("Capabilities ({} methods):", niche::CAPABILITIES.len());
+    let _ = writeln!(out, "Capabilities ({} methods):", niche::CAPABILITIES.len());
     for (domain, ops) in &domains {
-        println!("  {domain}:");
+        let _ = writeln!(out, "  {domain}:");
         for op in ops {
-            println!("    - {domain}.{op}");
+            let _ = writeln!(out, "    - {domain}.{op}");
         }
     }
-    println!();
+    let _ = writeln!(out);
 
-    println!("Consumed capabilities:");
+    let _ = writeln!(out, "Consumed capabilities:");
     for cap in niche::CONSUMED_CAPABILITIES {
-        println!("  - {cap}");
+        let _ = writeln!(out, "  - {cap}");
     }
-    println!();
+    let _ = writeln!(out);
 
-    println!("Dependencies:");
+    let _ = writeln!(out, "Dependencies:");
     for dep in niche::DEPENDENCIES {
-        println!(
+        let _ = writeln!(
+            out,
             "  - {} (required: {}, fallback: {})",
             dep.capability, dep.required, dep.fallback
         );
@@ -317,8 +323,9 @@ fn run_capabilities() -> i32 {
 fn run_socket() -> i32 {
     #[cfg(unix)]
     {
+        use std::io::Write;
         let path = sweet_grass_service::uds::resolve_socket_path(None);
-        println!("{}", path.display());
+        let _ = writeln!(std::io::stdout().lock(), "{}", path.display());
         exit_code::SUCCESS
     }
     #[cfg(not(unix))]
@@ -329,13 +336,17 @@ fn run_socket() -> i32 {
 }
 
 async fn run_status(address: &str) -> i32 {
+    use std::io::Write;
+
     let url = format!("http://{address}/health");
-    println!("Checking SweetGrass at {url}...");
+    let _ = writeln!(std::io::stdout().lock(), "Checking SweetGrass at {url}...");
 
     match http_health_check(address).await {
         Ok(body) => {
-            println!("SweetGrass is healthy at {address}");
-            println!("  {body}");
+            let stdout = std::io::stdout();
+            let mut out = stdout.lock();
+            let _ = writeln!(out, "SweetGrass is healthy at {address}");
+            let _ = writeln!(out, "  {body}");
             exit_code::SUCCESS
         },
         Err(e) => {

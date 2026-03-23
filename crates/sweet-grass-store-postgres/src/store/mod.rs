@@ -113,6 +113,11 @@ pub struct PostgresStore {
 
 impl PostgresStore {
     /// Connect to `PostgreSQL` with the given configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PostgresError::Connection`] if the database is unreachable or
+    /// the connection pool cannot be established within the configured timeout.
     #[instrument(skip_all)]
     pub async fn connect(config: &PostgresConfig) -> Result<Self> {
         debug!("Connecting to PostgreSQL");
@@ -131,16 +136,28 @@ impl PostgresStore {
     }
 
     /// Connect with a simple URL.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PostgresError::Connection`] if the database is unreachable.
     pub async fn connect_url(url: &str) -> Result<Self> {
         Self::connect(&PostgresConfig::new(url)).await
     }
 
     /// Run database migrations.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PostgresError`] if any migration fails to apply.
     pub async fn run_migrations(&self) -> Result<()> {
         migrations::run_migrations(&self.pool).await
     }
 
     /// Check if migrations are up to date.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PostgresError`] if the migration status cannot be queried.
     pub async fn check_migrations(&self) -> Result<bool> {
         migrations::check_migrations(&self.pool).await
     }
@@ -152,6 +169,10 @@ impl PostgresStore {
     }
 
     /// Check database health.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`PostgresError`] if the health-check query fails.
     pub async fn health(&self) -> Result<bool> {
         sqlx::query("SELECT 1")
             .execute(&self.pool)
@@ -380,7 +401,10 @@ impl BraidStore for PostgresStore {
 
         let count_query = format!("SELECT COUNT(*) FROM braids WHERE {where_clause}");
         let count_q = bind_filter!(sqlx::query_scalar::<_, i64>(&count_query), &vf);
-        let total: i64 = count_q.fetch_one(&self.pool).await.unwrap_or(0);
+        let total: i64 = count_q
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| StoreError::Internal(e.to_string()))?;
 
         let total_usize = i64_to_usize(total);
         let has_more = (offset + braids.len()) < total_usize;

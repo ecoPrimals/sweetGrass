@@ -5,6 +5,55 @@ All notable changes to SweetGrass will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Deep Debt Resolution, Error Propagation & Standards Compliance
+
+Comprehensive audit and debt resolution sprint: dependency advisory fix,
+error propagation hardening, type safety evolution, idiomatic Rust patterns,
+store implementation completion, and documentation overhaul.
+
+### Security
+
+- **RUSTSEC-2026-0049 fixed** — `rustls-webpki` 0.103.8 → 0.103.10 (CRL matching logic flaw)
+- **Stale advisory ignore removed** — `RUSTSEC-2024-0387` pruned from `deny.toml`
+
+### Added
+
+- **`# Errors` documentation** — all public `Result`-returning methods in redb, sled, and postgres store crates now have `# Errors` doc sections
+- **`publish = false`** on all 10 workspace crates — not published to crates.io; fixes cargo-deny wildcard warnings
+- **`activities_for_braid` real implementations** — sled and redb stores now return the braid's generating activity (was returning empty `Vec`)
+- **Pipeline handler attribution** — `weight`, `description`, and `session_agent` fields now actively stored in braid metadata (were deserialized but unused)
+
+### Changed
+
+- **`ContributionRecord.content_hash`** — evolved from `String` to `ContentHash` newtype for type safety across core, factory, and all tests
+- **`Capability::from_string`** — evolved from `to_lowercase()` allocation to `eq_ignore_ascii_case` — zero allocation for known capability variants
+- **`hex_encode`** — evolved from `fold` + `write!` to const lookup table — branchless, pre-allocated, zero-copy per byte
+- **Postgres count query** — `unwrap_or(0)` on `Result` → proper `map_err` error propagation
+- **Postgres `row_to_activity`** — 4 `serde_json::from_value().unwrap_or_default()` → proper error propagation with descriptive context
+- **`bin/service.rs` CLI output** — `println!` → `writeln!(stdout.lock(), ...)` — locked stdio, no macro overhead
+- **`Vec::new()` → `Vec::with_capacity()`** — pipeline and dehydration handlers pre-allocate based on known input size
+
+### Removed
+
+- **`#[allow(clippy::missing_errors_doc)]`** — removed from 3 store crate roots (redb, sled, postgres)
+- **`#[allow(dead_code)]`** — removed from pipeline wire types (now actively used), `MockAnchoringClient::with_health`, and `MockSessionEventsClient` impl block
+- **Stale RUSTSEC ignore** — `RUSTSEC-2024-0387` removed from `deny.toml`
+
+### Fixed
+
+- **`specs/PRIMAL_SOVEREIGNTY.md`** — tarpc version reference 0.34 → 0.37 (matches workspace)
+
+### Metrics
+
+- 1,084 tests passing (up from 1,077)
+- 90.0% line coverage (llvm-cov)
+- 0 clippy warnings (pedantic + nursery)
+- 0 `#[allow(dead_code)]` in non-test production code
+- 0 `#[allow(missing_errors_doc)]` remaining
+- cargo deny: advisories ok, bans ok, licenses ok, sources ok
+
 ## [0.7.22] - 2026-03-17
 
 ### Sovereignty: Remove provenance-trio-types, Inline Wire Types

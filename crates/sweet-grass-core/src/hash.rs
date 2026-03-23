@@ -23,13 +23,18 @@ pub enum HexDecodeError {
 }
 
 /// Hex-encode bytes to a lowercase hex string.
+///
+/// Uses a const lookup table for branchless byte-to-hex conversion.
 #[must_use]
 pub fn hex_encode(bytes: impl AsRef<[u8]>) -> String {
-    use std::fmt::Write;
-    bytes.as_ref().iter().fold(String::new(), |mut output, b| {
-        let _ = write!(output, "{b:02x}");
-        output
-    })
+    const HEX_LUT: &[u8; 16] = b"0123456789abcdef";
+    let src = bytes.as_ref();
+    let mut dst = String::with_capacity(src.len() * 2);
+    for &b in src {
+        dst.push(HEX_LUT[(b >> 4) as usize] as char);
+        dst.push(HEX_LUT[(b & 0x0f) as usize] as char);
+    }
+    dst
 }
 
 /// Hex-decode a string to bytes, returning `None` on invalid input.

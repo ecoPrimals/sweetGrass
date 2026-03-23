@@ -16,7 +16,6 @@ pub struct MockSessionEventsClient {
     healthy: bool,
 }
 
-#[allow(dead_code)]
 impl MockSessionEventsClient {
     /// Create a new mock client.
     #[must_use]

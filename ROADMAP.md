@@ -23,7 +23,7 @@
 - [x] **Smart test refactor** — `jsonrpc/tests.rs` (1,448 lines → 480) split into 5 domain test modules: `tests_anchoring`, `tests_attribution`, `tests_compression`, `tests_contribution`, `tests_provenance`
 - [x] **`#[must_use]` on test port allocators** — clippy pedantic compliance for `allocate_test_port()` and `allocate_test_ports()`
 - [x] **Float comparison fix** — epsilon-based `assert!` replacing strict `assert_eq!` on `f64` values
-- [x] 1,077 tests (was 1,049 — +28 new), 133 .rs files, 0 clippy warnings, max file 808 lines
+- [x] 1,084 tests (was 1,049 — +35 new), 133 .rs files, 0 clippy warnings, max file 808 lines
 
 ### v0.7.20 — Ecosystem Absorption: IPC Timeout, extract_rpc_error, Capability Parsing, Proptest (March 2026)
 
