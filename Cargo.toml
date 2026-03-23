@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+
 [workspace]
 resolver = "3"
 members = [
@@ -14,7 +16,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.7.25"
+version = "0.7.26"
 edition = "2024"
 rust-version = "1.87"
 license = "AGPL-3.0-only"
@@ -95,6 +97,12 @@ missing_safety_doc = "warn"
 unwrap_used = "deny"
 expect_used = "deny"
 clone_on_ref_ptr = "warn"
+
+# Cast safety — align with loamSpine trio partner
+cast_possible_truncation = "warn"
+cast_sign_loss = "warn"
+cast_precision_loss = "warn"
+cast_lossless = "warn"
 
 # Specific pedantic overrides
 module_name_repetitions = "allow"

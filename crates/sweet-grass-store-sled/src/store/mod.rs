@@ -16,6 +16,13 @@ use sweet_grass_store::{
 use crate::{Result, SledConfig, SledError, trees};
 
 /// Sled storage backend.
+///
+/// **Deprecated**: Use `RedbStore` from `sweet-grass-store-redb` instead.
+/// sled is unmaintained upstream. This backend will be removed in a future release.
+#[deprecated(
+    since = "0.7.26",
+    note = "sled is unmaintained; migrate to redb backend"
+)]
 pub struct SledStore {
     db: Arc<Db>,
     braids: Tree,
@@ -26,6 +33,10 @@ pub struct SledStore {
     activities: Tree,
 }
 
+#[expect(
+    deprecated,
+    reason = "impl block for deprecated SledStore — migration period"
+)]
 impl SledStore {
     /// Open or create a Sled database with configuration.
     ///
@@ -191,6 +202,10 @@ impl SledStore {
 }
 
 #[async_trait]
+#[expect(
+    deprecated,
+    reason = "BraidStore impl for deprecated SledStore — migration period"
+)]
 impl BraidStore for SledStore {
     #[instrument(skip(self, braid), fields(braid_id = %braid.id))]
     async fn put(&self, braid: &Braid) -> sweet_grass_store::Result<()> {

@@ -306,8 +306,21 @@ static METHODS: &[MethodEntry] = &[
     },
 ];
 
+/// Normalize a JSON-RPC method name for case-insensitive lookup.
+///
+/// Lowercases the method name so that `Braid.Create` matches `braid.create`.
+/// Underscores within operation names are preserved (e.g. `get_by_hash`).
+/// Adopted from barraCuda `normalize_method` pattern via loamSpine / wetSpring.
+fn normalize_method(raw: &str) -> String {
+    raw.to_ascii_lowercase()
+}
+
 pub(super) fn find_handler(method: &str) -> Option<DispatchFn> {
-    METHODS.iter().find(|m| m.name == method).map(|m| m.handler)
+    let normalized = normalize_method(method);
+    METHODS
+        .iter()
+        .find(|m| m.name == normalized)
+        .map(|m| m.handler)
 }
 
 /// Process a single JSON-RPC request, returning `None` for notifications.

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+
 [package]
 name = "sweet-grass-query"
 description = "Attribution Layer - Query engine and PROV-O export"
@@ -27,9 +29,6 @@ tracing = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
 indexmap = { workspace = true }
-
-# Async trait support
-async-trait = "0.1"
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util", "macros"] }

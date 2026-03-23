@@ -10,6 +10,8 @@
 //! 5. Querying provenance
 //! 6. Exporting to PROV-O
 
+// Example target: workspace clippy lints don't fire in `#[expect]` on examples,
+// so `#[allow]` is correct here (loamSpine v0.9.10 pattern).
 #![allow(clippy::expect_used, clippy::unwrap_used, clippy::too_many_lines)]
 
 use std::sync::Arc;

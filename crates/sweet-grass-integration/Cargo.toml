@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+
 [package]
 name = "sweet-grass-integration"
 description = "Attribution Layer - Capability-based integration with ecosystem primals"
@@ -47,7 +49,7 @@ tracing = { workspace = true }
 # Time
 chrono = { workspace = true }
 
-# Async trait
+# Required for dyn-compatible async traits (PrimalDiscovery, SigningClient, etc.).
 async-trait = "0.1"
 
 # Futures for async streams

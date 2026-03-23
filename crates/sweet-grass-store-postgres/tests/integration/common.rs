@@ -5,8 +5,6 @@
 //! Note: Some helpers may be unused during incremental test refactoring.
 //! They are kept for future test modules being migrated.
 
-#![allow(dead_code)]
-
 use sweet_grass_core::{
     Braid,
     activity::{Activity, ActivityType},

@@ -7,6 +7,10 @@
     clippy::unwrap_used,
     reason = "test file: expect/unwrap are standard in tests"
 )]
+#![expect(
+    deprecated,
+    reason = "testing deprecated SledStore during migration period"
+)]
 
 mod edge;
 mod query;

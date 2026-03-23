@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+
 [package]
 name = "sweet-grass-store"
 description = "Attribution Layer - Storage backends for Braids"
@@ -26,7 +28,8 @@ uuid = { workspace = true }
 chrono = { workspace = true }
 indexmap = { workspace = true }
 
-# Async trait support
+# Required for dyn-compatible async traits (BraidStore, IndexStore).
+# Native RPITIT is not object-safe; async_trait boxes futures for dyn dispatch.
 async-trait = "0.1"
 
 # Synchronization (Pure Rust, no poisoning, better perf than std)

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+
 [package]
 name = "sweet-grass-service"
 description = "Attribution Layer - Pure Rust tarpc + REST Service"
@@ -58,7 +60,7 @@ tracing-subscriber = { workspace = true }
 # Time
 chrono = { workspace = true }
 
-# Async trait
+# Required for dyn-compatible BraidStore in test fault injection.
 async-trait = "0.1"
 
 # CLI

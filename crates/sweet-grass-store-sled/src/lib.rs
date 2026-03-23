@@ -2,13 +2,19 @@
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Sled storage backend for `SweetGrass`.
 //!
-//! This crate provides a high-performance embedded storage backend
-//! implementing the `BraidStore` trait from `sweet-grass-store`.
+//! **DEPRECATED**: sled is unmaintained upstream and its optional `zstd-sys`
+//! compression feature introduces a C dependency. Use
+//! [`sweet-grass-store-redb`](../sweet_grass_store_redb) instead, which is
+//! actively maintained and 100% Pure Rust with zero C dependencies.
+//!
+//! This crate is feature-gated behind `--features sled` and will be
+//! removed in a future major release. Follow rhizoCrypt v0.13.0 migration
+//! path for guidance.
 //!
 //! # Primal Sovereignty
 //!
-//! Uses `sled` — a **100% Pure Rust** embedded database with zero C dependencies.
-//! This aligns with ecoPrimals' commitment to vendor independence.
+//! Uses `sled` — a Pure Rust embedded database. Note: sled's optional
+//! compression feature pulls `zstd-sys` (C dependency), violating ecoBin.
 //!
 //! # Features
 //!
@@ -35,12 +41,19 @@
 
 #![warn(missing_docs)]
 #![forbid(unsafe_code)]
-#![allow(clippy::missing_const_for_fn)]
+#![expect(
+    clippy::missing_const_for_fn,
+    reason = "sled API closures prevent const evaluation"
+)]
 
 mod error;
 mod store;
 
 pub use error::{Result, SledError};
+#[expect(
+    deprecated,
+    reason = "re-exporting deprecated type for migration period"
+)]
 pub use store::SledStore;
 
 /// Default cache capacity in bytes (1 GiB).

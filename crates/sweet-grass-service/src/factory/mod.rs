@@ -204,6 +204,7 @@ impl BraidStoreFactory {
     }
 
     #[cfg(feature = "sled")]
+    #[expect(deprecated, reason = "sled backend deprecated — use redb instead")]
     /// Create Sled backend from explicit config.
     fn create_sled_from_config(config: &StorageConfig) -> Result<Arc<dyn BraidStore>> {
         use sweet_grass_store_sled::{SledConfig, SledStore};

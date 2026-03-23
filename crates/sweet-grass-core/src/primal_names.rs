@@ -13,10 +13,16 @@
 //! use [`socket_env_var`] to derive `{NAME}_SOCKET` from any primal name
 //! at runtime — no code change needed when new primals join the ecosystem.
 
-/// Canonical primal names (lowercase, kebab-free).
+/// Hardcoded primal name registry.
 ///
-/// Used for logging, diagnostics, and constructing env var names via
-/// [`socket_env_var`]. **Never** use these to hardcode connection targets.
+/// **Deprecated**: A primal should only know itself. Other primal names
+/// are discovered at runtime via `capabilities.list` / mDNS / registry.
+/// Use [`socket_env_var`] / [`address_env_var`] with runtime-discovered
+/// names instead.
+#[deprecated(
+    since = "0.7.26",
+    note = "primals discover peers at runtime; use socket_env_var(name) with discovered names"
+)]
 pub mod names {
     /// `rhizoCrypt` — ephemeral DAG engine (provenance trio partner).
     pub const RHIZOCRYPT: &str = "rhizocrypt";
@@ -44,9 +50,11 @@ pub mod names {
 /// # Example
 ///
 /// ```
-/// use sweet_grass_core::primal_names::{socket_env_var, names};
+/// use sweet_grass_core::primal_names::socket_env_var;
 ///
-/// assert_eq!(socket_env_var(names::RHIZOCRYPT), "RHIZOCRYPT_SOCKET");
+/// // Use with runtime-discovered primal names, not hardcoded constants:
+/// let discovered_name = "rhizocrypt"; // from capabilities.list / mDNS
+/// assert_eq!(socket_env_var(discovered_name), "RHIZOCRYPT_SOCKET");
 /// assert_eq!(socket_env_var("newprimal"), "NEWPRIMAL_SOCKET");
 /// ```
 #[must_use]
@@ -75,6 +83,7 @@ pub mod env_vars {
 }
 
 #[cfg(test)]
+#[expect(deprecated, reason = "tests exercise the deprecated names registry")]
 mod tests {
     use super::*;
 

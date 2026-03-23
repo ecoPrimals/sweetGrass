@@ -1,10 +1,31 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.25 (March 2026)
+**Current Version**: v0.7.26 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.26 — Ecosystem Absorption: scyBorg License, Sled Deprecation, Lint Evolution (March 2026)
+
+- [x] **scyBorg Triple-Copyleft LICENSE** — adopted rhizoCrypt v0.13.0 format (AGPL + ORC + CC-BY-SA with Reserved Material section)
+- [x] **Sled backend deprecated** — `#[deprecated(since = "0.7.26")]` on `SledStore`, all impl blocks annotated with `#[expect(deprecated)]`, migration docs pointing to redb; follows rhizoCrypt deprecation path
+- [x] **3 unused `async-trait` deps removed** — factory, compression, query crates; remaining 6 documented with dyn-compatibility rationale (object safety requires boxing)
+- [x] **`#[allow]` → `#[expect(reason)]` complete** — all 5 production `#[allow]` evolved; unfulfilled expectations removed (loamSpine v0.9.10 pattern: don't suppress what doesn't fire)
+- [x] **SPDX headers on all 12 `Cargo.toml` files** — ludoSpring V29 ecosystem pattern
+- [x] **`deny.toml` tightened** — `multiple-versions = "deny"` (was "warn"), aligned with BearDog v0.9.0
+- [x] **Cast lints added to workspace** — `cast_possible_truncation`, `cast_sign_loss`, `cast_precision_loss`, `cast_lossless` at warn level, aligned with loamSpine trio partner
+- [x] **`normalize_method()`** — case-insensitive JSON-RPC dispatch (barraCuda → loamSpine → wetSpring ecosystem pattern)
+- [x] **`cargo-llvm-cov` CI aliases** — `.cargo/config.toml`: `cargo coverage`, `cargo coverage-html`, `cargo coverage-json`
+- [x] **`/tmp/` path audit** — 13 occurrences verified as config struct string fixtures (not filesystem ops); safe
+- [x] **async-trait dyn-compatibility documented** — comments on all 6 retained Cargo.toml deps explaining object safety
+- [x] **`primal_names::names` deprecated** — hardcoded other-primal constants deprecated; generic `socket_env_var()`/`address_env_var()` retained for runtime-discovered names
+- [x] **Primal sovereignty audit** — production code has self-knowledge only (`niche.rs`, `primal_info.rs`); discovery is capability-based, no compile-time coupling to peer primals
+- [x] **Mock audit** — all `Mock*` types gated behind `#[cfg(any(test, feature = "test"))]`; zero mocks in production paths
+- [x] **Dependency audit** — production binary is 100% pure Rust (zero `-sys` crates); `ring`/`cc` only in dev-deps via testcontainers
+- [x] **File size audit** — all files under 826 lines (max: `store-redb/tests.rs`); well under 1000-line ceiling
+- [x] **Unsafe audit** — `#![forbid(unsafe_code)]` on all 10 crates + binary; zero `unsafe` blocks, `#[no_mangle]`, `extern "C"`, `.as_ptr()`, or `from_raw()`
+- [x] 1,128 tests passing (unchanged), 0 clippy warnings, 0 doc warnings, 0 unsafe, 0 fmt issues
 
 ### v0.7.25 — Coverage Push, Test Hygiene, PUBLIC_SURFACE_STANDARD Compliance (March 2026)
 
@@ -443,7 +464,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.25 | **March 2026** | Coverage Push, Test Hygiene, PUBLIC_SURFACE_STANDARD Compliance (DONE) |
+| v0.7.26 | **March 2026** | Ecosystem Absorption: scyBorg License, Sled Deprecation, Lint Evolution (DONE) |
+| v0.7.25 | March 2026 | Coverage Push, Test Hygiene, PUBLIC_SURFACE_STANDARD Compliance (DONE) |
 | v0.7.24 | March 2026 | Deep Debt: Zero-Copy Phase 2, Public Surface, Audit (DONE) |
 | v0.7.23 | March 2026 | Ecosystem Absorption: MCP Tool Exposure, Canonical Capabilities (DONE) |
 | v0.7.22 | March 2026 | Sovereignty: Remove provenance-trio-types, Inline Wire Types (DONE) |

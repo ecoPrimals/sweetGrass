@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+
 [package]
 name = "sweet-grass-store-sled"
 description = "Attribution Layer - Sled embedded storage backend (Pure Rust)"
@@ -24,6 +26,7 @@ sled = { workspace = true }
 
 # Async
 tokio = { workspace = true }
+# Required for dyn-compatible BraidStore impl (Arc<dyn BraidStore>).
 async-trait = "0.1"
 
 # Serialization

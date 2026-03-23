@@ -35,7 +35,10 @@
 
 #![warn(missing_docs)]
 #![forbid(unsafe_code)]
-#![allow(clippy::missing_const_for_fn)]
+#![expect(
+    clippy::missing_const_for_fn,
+    reason = "redb table types prevent const evaluation"
+)]
 
 mod error;
 mod store;

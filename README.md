@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.25 | 1,128 tests | Edition 2024 | AGPL-3.0-only | Pure Rust | ecoBin compliant | Sovereign types
+v0.7.26 | 1,128 tests | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | Sovereign types
 
 ---
 
@@ -64,7 +64,7 @@ curl http://localhost:8080/api/v1/braids
 | `sweet-grass-store` | BraidStore trait + MemoryStore |
 | `sweet-grass-store-postgres` | PostgreSQL backend |
 | `sweet-grass-store-redb` | Embedded Pure Rust backend (redb, recommended) |
-| `sweet-grass-store-sled` | Embedded Pure Rust backend (sled, legacy) |
+| `sweet-grass-store-sled` | Embedded Pure Rust backend (sled, **deprecated** — use redb) |
 | `sweet-grass-factory` | Braid creation + attribution engine |
 | `sweet-grass-query` | Graph traversal, PROV-O export |
 | `sweet-grass-compression` | 0/1/Many session compression |
@@ -180,7 +180,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.25 |
+| Version | v0.7.26 |
 | Tests | 1,128 passing |
 | Coverage | ~90% lines (llvm-cov, excluding Postgres runtime tests) |
 | Edition | 2024 (MSRV 1.87) |
@@ -191,7 +191,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | .rs files | 136 (39,903 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All 133 .rs files |
-| License | AGPL-3.0-only |
+| License | scyBorg Triple-Copyleft (AGPL-3.0 + ORC-1.0 + CC-BY-SA-4.0) |
 | cargo deny | advisories ok, bans ok, licenses ok, sources ok |
 | Benchmarks | 7 criterion groups |
 | JSON-RPC methods | 27 (batch + notification + MCP tool exposure) |
@@ -221,7 +221,7 @@ TOML config file support with full hierarchy: CLI args > env vars > config file 
 
 ## License
 
-AGPL-3.0-only. See [LICENSE](./LICENSE).
+scyBorg Triple-Copyleft: AGPL-3.0-or-later (software), ORC-1.0 (game mechanics), CC-BY-SA-4.0 (creative content/documentation). See [LICENSE](./LICENSE).
 
 ---
 

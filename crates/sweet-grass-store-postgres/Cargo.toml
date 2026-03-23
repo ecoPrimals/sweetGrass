@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+
 [package]
 name = "sweet-grass-store-postgres"
 description = "Attribution Layer - PostgreSQL persistent storage backend"
@@ -24,6 +26,7 @@ sqlx = { workspace = true }
 
 # Async
 tokio = { workspace = true }
+# Required for dyn-compatible BraidStore impl (Arc<dyn BraidStore>).
 async-trait = "0.1"
 
 # Serialization

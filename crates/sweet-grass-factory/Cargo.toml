@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AGPL-3.0-only
+
 [package]
 name = "sweet-grass-factory"
 description = "Attribution Layer - Braid creation factory"
@@ -25,9 +27,6 @@ tracing = { workspace = true }
 sha2 = { workspace = true }
 uuid = { workspace = true }
 chrono = { workspace = true }
-
-# Async trait support
-async-trait = "0.1"
 
 [dev-dependencies]
 sweet-grass-core = { path = "../sweet-grass-core", features = ["test"] }
