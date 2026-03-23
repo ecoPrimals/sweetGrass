@@ -55,7 +55,7 @@
 - [x] **Structured IPC errors** — `IpcErrorPhase` enum (Connect, Write, Read, InvalidJson, HttpStatus, NoResult, JsonRpcError) with `IntegrationError::Ipc { phase, message }` variant; aligned with rhizoCrypt + healthSpring V28
 - [x] **All tarpc clients migrated** — signing, anchoring, listener clients now use `IpcErrorPhase` for connection and read errors instead of flat strings
 - [x] **NDJSON streaming types** — `StreamItem` enum (Data, Progress, End, Error) with `to_ndjson_line()` / `parse_ndjson_line()`; aligned with rhizoCrypt streaming module
-- [x] **`pipeline.attribute` handler** — new JSON-RPC method consuming `provenance_trio_types::PipelineRequest`, creating attribution braids per agent contribution, returning `PipelineResult` with `braid_ref`
+- [x] **`pipeline.attribute` handler** — new JSON-RPC method consuming `PipelineRequest`, creating attribution braids per agent contribution, returning `PipelineResult` with `braid_ref` *(wire types inlined in v0.7.22 — provenance-trio-types removed)*
 - [x] **Smart refactor: store-postgres** — `row_mapping.rs` extracted (row_to_braid, row_to_activity, parse_activity_type, i64/u64 conversions); mod.rs 714→516 lines
 - [x] 1,017 tests passing, 0 failures, 0 clippy warnings, 0 unsafe, docs build clean
 
@@ -370,7 +370,7 @@
 ### Performance
 - [x] Zero-copy expansion (ContentHash to newtype with Arc<str>) *(done in v0.7.1)*
 - [x] Zero-copy: integration tarpc clients use `bytes::Bytes` for wire payloads (signer, anchor, listener)
-- [ ] Zero-copy: evolve `Braid.mime_type` from `String` to `Arc<str>` (permeates core types, cross-crate change)
+- [x] Zero-copy: evolve `Braid.mime_type` from `String` to `Arc<str>` *(done in v0.7.21 — cross-crate migration across 7 crates)*
 - [ ] Query performance benchmarks
 - [ ] PostgreSQL index tuning
 - [ ] Lazy loading for large provenance graphs
@@ -410,7 +410,10 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.19 | **March 2026** | Ecosystem Absorption: Health Probes, DispatchOutcome, OrExit (DONE) |
+| v0.7.22 | **March 2026** | Sovereignty: Remove provenance-trio-types, Inline Wire Types (DONE) |
+| v0.7.21 | March 2026 | Deep Audit: Zero-Copy, Handler Coverage, Test Refactor (DONE) |
+| v0.7.20 | March 2026 | Ecosystem Absorption: IPC Timeout, extract_rpc_error, Proptest (DONE) |
+| v0.7.19 | March 2026 | Ecosystem Absorption: Health Probes, DispatchOutcome, OrExit (DONE) |
 | v0.7.18 | March 2026 | Deep Execution: tarpc 0.37 + Structured IPC + Pipeline Integration (DONE) |
 | v0.7.17 | March 2026 | Ecosystem Absorption + Lint Tightening + Capability Evolution (DONE) |
 | v0.7.16 | March 2026 | Deep Audit Remediation + Smart Refactoring (DONE) |

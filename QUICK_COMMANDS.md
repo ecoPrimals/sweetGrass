@@ -52,7 +52,7 @@ cargo clean
 ## ✅ TEST COMMANDS
 
 ```bash
-# All tests (1,049 tests)
+# All tests (1,077 tests)
 cargo test --workspace
 
 # Unit tests only
@@ -387,7 +387,7 @@ cargo bench --workspace
 cargo build --release
 
 # 8. Tag release
-git tag -a v0.7.20 -m "Release v0.7.20"
+git tag -a vX.Y.Z -m "Release vX.Y.Z"
 
 # 9. Push
 git push && git push --tags

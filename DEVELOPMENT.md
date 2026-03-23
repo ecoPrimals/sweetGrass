@@ -188,7 +188,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 1,049 tests passing
+- **Overall**: 1,077 tests passing
 - **Target**: 90%+ (achieved)
 
 ### Per-Crate Coverage
@@ -424,10 +424,8 @@ SELECT * FROM braids LIMIT 10;
 ### 1. Update Version
 
 ```bash
-# Update Cargo.toml versions
-cargo set-version 0.7.20
-
-# Update CHANGELOG.md and ROADMAP.md
+# Update workspace version in root Cargo.toml
+# Then update CHANGELOG.md and ROADMAP.md
 ```
 
 ### 2. Final Checks
@@ -456,8 +454,8 @@ cargo build --release
 ### 4. Tag & Push
 
 ```bash
-git tag -a v0.7.20 -m "Release v0.7.20"
-git push origin v0.7.20
+git tag -a vX.Y.Z -m "Release vX.Y.Z"
+git push origin vX.Y.Z
 ```
 
 ---

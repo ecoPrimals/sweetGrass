@@ -1,8 +1,8 @@
 # sweetGrass — Cross-Ecosystem Handoff Absorption Report
 
-**Date**: March 17, 2026  
+**Date**: March 17, 2026 (revised March 17, 2026)  
 **Source**: wateringHole handoffs pulled March 16–17, 2026  
-**sweetGrass Version**: v0.7.20  
+**sweetGrass Version**: v0.7.22  
 **Purpose**: Summarize NEW handoff content and absorption priorities for sweetGrass
 
 ---
@@ -107,7 +107,7 @@
 
 ## 2. Patterns sweetGrass Could Absorb
 
-### Already Absorbed (sweetGrass v0.7.18–v0.7.19)
+### Already Absorbed (sweetGrass v0.7.18–v0.7.22)
 
 | Pattern | Source | sweetGrass Status |
 |---------|--------|-------------------|
@@ -117,19 +117,25 @@
 | DispatchOutcome | rhizoCrypt, biomeOS | ✓ `sweet-grass-service/handlers/jsonrpc/mod.rs` |
 | #[expect(reason)] | groundSpring, neuralSpring | ✓ Workspace-wide |
 | deny.toml wildcards=deny | airSpring V084 | ✓ |
+| deny.toml yanked=deny | squirrel, coralReef, barraCuda | ✓ v0.7.20 |
 | FAMILY_ID in socket paths | barraCuda, squirrel | ✓ `BIOMEOS_FAMILY_ID` in uds.rs |
 | NDJSON streaming | rhizoCrypt | ✓ `StreamItem` in streaming.rs |
 | tarpc 0.37 | rhizoCrypt, biomeOS | ✓ |
 | Edition 2024 | toadStool | ✓ |
+| Zero-copy `Braid.mime_type: Arc<str>` | internal audit | ✓ v0.7.21 |
+| Dual-format capability parsing | coralReef, neuralSpring S156 | ✓ v0.7.20 `extract_capabilities()` |
+| Sovereign wire types (no shared crates) | primalSpring sovereignty resolution | ✓ v0.7.22 — provenance-trio-types removed, banned in deny.toml |
 
 ### Not Yet Absorbed — Priority Gaps
 
 | Priority | Pattern | Source | Effort |
 |----------|---------|--------|--------|
-| **P1** | deny.toml `yanked = "deny"` | squirrel, coralReef, barraCuda | 1-line change |
-| **P2** | Dual-format capability parsing | coralReef, neuralSpring S156 | Only if sweetGrass consumes capability.list from others |
-| **P2** | temp-env for env testing | neuralSpring | Replace unsafe set_var in tests |
 | **P3** | IpcServiceError `retryable()` on wire | coralReef | SweetGrass has `IntegrationError::Ipc`; consider `retryable()` helper |
+
+**Previously P1/P2 items — now resolved:**
+- deny.toml `yanked = "deny"` — done in v0.7.20
+- Dual-format capability parsing — done in v0.7.20 (`extract_capabilities()`)
+- temp-env — not needed; sweetGrass v0.7.14 migrated fully to DI pattern, zero unsafe env mutation in tests
 
 ---
 
@@ -146,7 +152,7 @@
 | Setting | Ecosystem standard | sweetGrass |
 |---------|--------------------|------------|
 | wildcards | deny | ✓ deny |
-| yanked | deny | ⚠ **warn** — upgrade to deny |
+| yanked | deny | ✓ deny (v0.7.20) |
 | vulnerability | deny | (not in deny.toml — add if missing) |
 | unknown-registry | deny | ✓ deny |
 
@@ -170,36 +176,27 @@
 
 ## 4. Absorption Priorities for sweetGrass
 
-### P1 — Immediate (1–2 days)
+### All P1/P2 Resolved
 
-1. **deny.toml: yanked = "deny"**
-   - Change `yanked = "warn"` → `yanked = "deny"` in deny.toml
-   - Aligns with squirrel alpha.9, coralReef Iter 52, barraCuda v0.3.5
-   - Run `cargo deny check` after change
-
-### P2 — Near-term (1 sprint)
-
-2. **temp-env for test env mutation**
-   - If sweetGrass has tests using `std::env::set_var` (Rust 2024 makes it unsafe)
-   - Use `temp-env = "0.3"` with `with_var()` / `with_var_unset()` for safe scoped env mutation
-   - Check: sweetGrass v0.7.14 migrated to DI pattern — verify no remaining unsafe env in tests
-
-3. **Dual-format capability parsing** (only if consuming)
-   - If sweetGrass ever parses `capability.list` responses from other primals (e.g. neuralSpring, squirrel), add support for both flat and nested `provides` formats
-   - Current: sweetGrass does not appear to consume capability.list from others
+As of v0.7.22, all high-priority absorption items from the original report are complete:
+- deny.toml yanked=deny (v0.7.20)
+- DI pattern replaces all unsafe env mutation (v0.7.14)
+- Dual-format capability parsing via `extract_capabilities()` (v0.7.20)
+- Sovereign wire types — provenance-trio-types removed, banned in deny.toml (v0.7.22)
 
 ### P3 — Awareness / Future
 
-4. **biomeOS typed CapabilityClient**
+1. **biomeOS typed CapabilityClient**
    - neuralSpring, rhizoCrypt waiting on biomeOS
    - sweetGrass can consume when available
 
-5. **Content Convergence (ISSUE-013)**
+2. **Content Convergence (ISSUE-013)**
    - Collision-preserving provenance may affect barraCuda shaders::provenance
    - sweetGrass is attribution layer; monitor for downstream impact
 
-6. **Leverage guide**
-   - Consider adding sweetGrass-specific section to wateringHole/SWEETGRASS_LEVERAGE_GUIDE.md (if exists) per biomeOS pattern
+3. **IpcServiceError `retryable()` on wire**
+   - coralReef pattern; sweetGrass has `IntegrationError::Ipc` with `is_retriable()`
+   - Consider exposing retryable hint over the wire if trio partners need it
 
 ---
 
@@ -225,7 +222,7 @@
 
 ## 6. PRIMAL_REGISTRY.md (Full File)
 
-- **sweetGrass entry**: v0.7.6 (may be stale); update to v0.7.19 with recent absorption (OrExit, health probes, DispatchOutcome, IpcErrorPhase, primal_names, socket_env_var)
+- **sweetGrass entry**: updated to v0.7.22 (sovereign types, 1,077 tests, zero unsafe, deny.toml sovereignty guards)
 - **Spring versions**: ToadStool S155b, neuralSpring V112/S161 — registry may need refresh
 - **BarraCuda**: v0.3.5, blake3 pure feature
 - **coralReef**: Phase 10 Iter 52
@@ -234,14 +231,16 @@
 
 ## 7. Summary
 
-**sweetGrass v0.7.19 is already well-aligned** with the ecosystem. The handoffs confirm:
+**sweetGrass v0.7.22 is fully aligned** with the ecosystem. All original P1/P2 items resolved:
 
-- OrExit, socket_env_var, IpcErrorPhase, DispatchOutcome, FAMILY_ID, NDJSON, tarpc 0.37, Edition 2024 — all present
-- neuralSpring P1 request for "sweetGrass generic socket_env_var()" is **already satisfied** in v0.7.18+
+- OrExit, socket_env_var, IpcErrorPhase, DispatchOutcome, FAMILY_ID, NDJSON, tarpc 0.37, Edition 2024 — all present since v0.7.18–v0.7.19
+- deny.toml yanked=deny — v0.7.20
+- Dual-format capability parsing — v0.7.20
+- Zero-copy `Braid.mime_type: Arc<str>` — v0.7.21
+- Sovereign wire types (provenance-trio-types removed and banned) — v0.7.22
+- PRIMAL_REGISTRY.md updated to v0.7.22; genomeBin/manifest.toml updated
 
-**Single actionable P1**: Upgrade `deny.toml` yanked from `warn` to `deny`.
-
-**P2/P3**: temp-env (if tests still use unsafe env), dual-format capability parsing (if ever consumed), and PRIMAL_REGISTRY.md update for sweetGrass v0.7.19.
+**Remaining P3**: biomeOS typed CapabilityClient (waiting on biomeOS), Content Convergence ISSUE-013, wire-level retryable hints.
 
 ---
 
