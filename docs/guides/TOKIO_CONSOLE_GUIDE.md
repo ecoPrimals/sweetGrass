@@ -1,6 +1,6 @@
 # 🔍 Tokio Console Integration Guide
 
-**Status**: Ready for integration (commented out by default)  
+**Status**: Not integrated; guide for optional dev-time enablement  
 **Purpose**: Runtime task inspection and concurrency debugging
 
 ---

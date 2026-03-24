@@ -52,7 +52,7 @@ cargo clean
 ## ✅ TEST COMMANDS
 
 ```bash
-# All tests (1,132 tests)
+# All tests (1,147 tests)
 cargo test --workspace
 
 # Unit tests only
@@ -224,19 +224,19 @@ curl http://localhost:8080/api/v1/braids | jq
 
 ```bash
 # PostgreSQL for integration tests
-docker-compose up -d postgres
+docker compose up -d postgres
 
 # PostgreSQL + pgAdmin
-docker-compose --profile admin up -d
+docker compose --profile admin up -d
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Stop
-docker-compose down
+docker compose down
 
 # Clean slate (remove volumes)
-docker-compose down -v
+docker compose down -v
 ```
 
 ---

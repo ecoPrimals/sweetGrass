@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.27 | 1,132 tests | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | Sovereign types
+v0.7.27 | 1,147 tests | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | Sovereign types
 
 ---
 
@@ -181,16 +181,16 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Metric | Value |
 |--------|-------|
 | Version | v0.7.27 |
-| Tests | 1,132 passing |
-| Coverage | 90.24% lines (llvm-cov, excluding Postgres runtime tests) |
+| Tests | 1,147 passing |
+| Coverage | 90.54% region (llvm-cov, excluding Postgres runtime tests) |
 | Edition | 2024 (MSRV 1.87) |
-| Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates, DI pattern in tests) |
+| Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates + fuzz targets, DI pattern in tests) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
 | Max file size | 829 lines (limit: 1000) |
-| .rs files | 138 (40,328 LOC) |
+| .rs files | 139 (40,851 LOC) |
 | TODOs in source | 0 |
-| SPDX + copyright | All 138 .rs files |
+| SPDX + copyright | All 139 .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0 + ORC-1.0 + CC-BY-SA-4.0) |
 | cargo deny | advisories ok, bans ok, licenses ok, sources ok |
 | Benchmarks | 7 criterion groups |

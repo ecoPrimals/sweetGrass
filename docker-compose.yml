@@ -1,10 +1,8 @@
 # Docker Compose for SweetGrass Development and Testing
 #
 # This provides PostgreSQL for integration tests and development.
-# Run: docker-compose up -d
-# Stop: docker-compose down
-
-version: '3.8'
+# Run: docker compose up -d
+# Stop: docker compose down
 
 services:
   postgres:

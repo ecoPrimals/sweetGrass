@@ -53,6 +53,7 @@
 #![warn(missing_docs)]
 
 pub mod bootstrap;
+pub mod cli;
 pub mod error;
 pub mod exit;
 pub mod factory;
@@ -69,6 +70,7 @@ pub use bootstrap::{
     BootstrapConfig, BootstrapError, BootstrapResult, create_app_state_from_env, infant_bootstrap,
     infant_bootstrap_with_config,
 };
+pub use cli::{CapabilitiesReport, HealthCheckError};
 pub use error::ServiceError;
 pub use factory::{BraidStoreFactory, StorageConfig};
 pub use router::create_router;

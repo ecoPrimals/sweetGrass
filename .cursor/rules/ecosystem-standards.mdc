@@ -1,0 +1,43 @@
+---
+description: ecoPrimals ecosystem standards for sweetGrass
+alwaysApply: true
+---
+
+# ecoPrimals sweetGrass Standards
+
+## Rust Standards
+- Edition 2024 (`resolver = "3"`), Rust 1.87+
+- `#![forbid(unsafe_code)]` on all crate roots
+- `#![warn(missing_docs)]` on library crates
+- `clippy::pedantic` + `clippy::nursery` zero warnings
+- `unwrap_used` and `expect_used` denied in production code (use `#[expect(...)]` in tests)
+- `thiserror` for all error types, `Result<T, E>` everywhere
+
+## Code Size & Style
+- No files > 1000 lines — split into modules
+- No TODO/FIXME/HACK in committed code — track in handoffs
+- No commented-out code
+- Semantic method naming: `{domain}.{operation}` (e.g. `braid.create`, `health.check`)
+
+## Architecture
+- JSON-RPC 2.0 mandatory, tarpc for high-performance paths
+- Pure Rust — no gRPC, no protobuf, no OpenSSL, no reqwest (enforced via `deny.toml`)
+- Primal code has self-knowledge only; discovers other primals at runtime via capabilities
+- No hardcoded primal names or addresses — use `Capability` enum for discovery
+- Mocks isolated to `#[cfg(any(test, feature = "test"))]`
+
+## Licensing
+- AGPL-3.0-only (scyBorg triple-copyleft)
+- `// SPDX-License-Identifier: AGPL-3.0-only` on every `.rs` file
+- `// Copyright (C) 2024–2026 ecoPrimals Project` on line 2
+
+## Testing
+- `cargo test --all-features` zero failures
+- Target 90%+ line coverage (llvm-cov)
+- Property-based testing with `proptest` for data structures
+
+## Reference
+- Specs: `specs/` directory
+- Ecosystem standards: `wateringHole/STANDARDS_AND_EXPECTATIONS.md`
+- IPC protocol: `wateringHole/PRIMAL_IPC_PROTOCOL.md`
+- Method naming: `wateringHole/SEMANTIC_METHOD_NAMING_STANDARD.md`

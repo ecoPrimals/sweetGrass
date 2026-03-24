@@ -7,37 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Comprehensive Audit: Debt Resolution, License Alignment, Safety Hardening
+### Comprehensive Audit: Debt Resolution, License Alignment, Safety Hardening, CLI Extraction
 
-Full-spectrum audit and debt execution session: centralized constants,
-eliminated lossy casts, aligned scyBorg license, hardened fuzz targets,
-made resilience configurable, and updated all documentation.
+Full-spectrum audit and deep execution session across two phases: centralized
+constants, eliminated lossy casts, aligned scyBorg license, hardened fuzz targets,
+made resilience configurable, extracted testable CLI module, expanded anchor test
+coverage, aligned fuzz edition, and added persistent AI guidance rules.
 
 ### Added
 
+- **`sweet-grass-service::cli` module** — extracted testable CLI logic from `bin/service.rs` (capabilities report, address parsing, health check); 7 unit tests
+- **7 new anchor integration tests** — `AnchorManager` discovery, reconnect (success + failure), multiple operations (anchor/verify/get_anchors), `AnchorInfo`/`AnchorReceipt` serialization roundtrips
 - **`identity::DEFAULT_SOURCE_PRIMAL`** — centralized constant in `sweet-grass-core`; replaces duplicate definitions in compression and factory crates
 - **`RetryPolicy::from_env()`** — env-configurable retry policy via `SWEETGRASS_RETRY_MAX`, `SWEETGRASS_RETRY_INITIAL_MS`, `SWEETGRASS_RETRY_MAX_MS`; testable `from_env_with()` constructor
-- **4 new resilience tests** — `retry_policy_from_env_defaults`, `retry_policy_from_env_custom`, `retry_policy_from_env_partial_override`, `retry_policy_from_env_invalid_values`
+- **`.cursor/rules/`** — `ecosystem-standards.mdc` (always-apply) and `rust-patterns.mdc` (Rust files) for persistent AI development guidance
 
 ### Changed
 
+- **`bin/service.rs` refactored** — CLI logic extracted to `cli.rs` library module; `run_server` decomposed into `serve_all` helper to stay under 100-line clippy limit
+- **`fuzz/Cargo.toml`** — `edition = "2021"` → `edition = "2024"` for workspace consistency
 - **`timestamp() as u64` → `u64::try_from().unwrap_or(0)`** — 8 lossy casts in signer/testing.rs and listener/tests.rs replaced with safe conversions
 - **`#![forbid(unsafe_code)]`** — added to all 3 fuzz targets (fuzz_attribution, fuzz_braid_deserialize, fuzz_query_filter)
-- **LICENSE preamble** — aligned from `AGPL-3.0-or-later` to `AGPL-3.0-only` to match all 138 SPDX headers and Cargo.toml
-- **CONTEXT.md** — corrected all 27 JSON-RPC method names to match actual dispatch table
-- **README.md** — updated metrics: 1,132 tests, 138 files, 40,328 LOC, 90.24% coverage
+- **LICENSE preamble** — aligned from `AGPL-3.0-or-later` to `AGPL-3.0-only` to match all SPDX headers and Cargo.toml
+- **Root docs** — updated metrics to 1,147 tests, 139 files, 40,851 LOC, 90.54% region coverage
 
 ### Removed
 
 - **Duplicate `DEFAULT_SOURCE_PRIMAL`** — removed from `sweet-grass-compression/src/engine/mod.rs` and `sweet-grass-factory/src/factory/mod.rs`
 - **`clippy::cast_sign_loss` suppression** — removed from signer/testing.rs and listener/tests.rs (no longer needed after safe cast evolution)
+- **Unused `OrExit` import** — removed from `bin/service.rs` after CLI extraction
 
 ### Metrics
 
-- 1,132 tests passing (up from 1,128)
-- 90.24% line coverage (llvm-cov)
+- 1,147 tests passing (up from 1,132)
+- 90.54% region coverage (llvm-cov)
 - 0 clippy warnings (pedantic + nursery)
 - 0 unsafe blocks, `#![forbid(unsafe_code)]` on all crates + fuzz targets
+- 139 .rs files, 40,851 LOC
 - LICENSE aligned: AGPL-3.0-only across SPDX, Cargo.toml, and LICENSE file
 
 ## [0.7.27] - 2026-03-24

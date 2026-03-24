@@ -20,7 +20,12 @@
 - [x] **Tag index zero-copy** — `HashMap<String, ...>` → `HashMap<Arc<str>, ...>` in memory store
 - [x] **`println!` → `tracing`** in chaos tests
 - [x] **`RewardShare` f64 documented** — informational ratios with evolution path to integer basis points (sunCloud v0.9.0+)
-- [x] 1,128 tests passing, 90.23% line coverage (llvm-cov), 0 clippy warnings, 0 doc warnings, 0 unsafe, 0 fmt issues
+- [x] CLI module extracted from `bin/service.rs` — testable `capabilities_report`, `parse_socket_addr`, `http_health_check`; 7 unit tests
+- [x] `bin/service.rs` refactored — `run_server` decomposed into `serve_all` helper (under 100-line clippy limit)
+- [x] 7 new anchor integration tests — `AnchorManager` discovery, reconnect, multiple operations, serialization roundtrips
+- [x] `fuzz/Cargo.toml` edition 2021 → 2024
+- [x] `.cursor/rules/` — persistent AI guidance for ecosystem standards and Rust patterns
+- [x] 1,147 tests passing, 90.54% region coverage (llvm-cov), 0 clippy warnings, 0 doc warnings, 0 unsafe, 0 fmt issues
 
 ### v0.7.26 — Ecosystem Absorption: scyBorg License, Sled Deprecation, Lint Evolution (March 2026)
 
@@ -405,7 +410,7 @@
 - [ ] Evolved `MemoryStore` indexes (collision-preserving)
 - [ ] `convergence.query` JSON-RPC method
 - [ ] PostgreSQL `content_convergence` table and migrations
-- [x] Coverage target: 90%+ with llvm-cov *(region coverage 91% in v0.7.5)*
+- [x] Coverage target: 90%+ with llvm-cov *(90.54% region coverage)*
 
 ### v0.9.0 — sunCloud Integration (Q3 2026)
 

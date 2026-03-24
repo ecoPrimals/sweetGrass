@@ -1,8 +1,8 @@
 # 🔄 Zero-Copy Optimization Opportunities
 
-**Status**: Phase 1+2 complete; remaining opportunities documented below  
-**Completed**: `BraidId`, `Did`, `ContentHash`, `ActivityId`, `mime_type`, `source_primal`, `niche`, `spine_id` → `Arc<str>`  
-**Priority**: Low (most hot-path clones eliminated)
+**Status**: Phase 1+2+3 complete; remaining opportunities documented below  
+**Completed**: `BraidId`, `Did`, `ContentHash`, `ActivityId`, `mime_type`, `source_primal`, `niche`, `spine_id`, `BraidMetadata.title`, `BraidMetadata.description`, `BraidMetadata.tags`, `LoamCommitRef.spine_id`, `BraidFactory.source_primal`, `CompressionEngine.source_primal` → `Arc<str>`; `BraidSignature` fields → `Cow<'static, str>`; tag index → `HashMap<Arc<str>, HashSet<BraidId>>`  
+**Priority**: Low (all hot-path clones eliminated)
 
 ---
 

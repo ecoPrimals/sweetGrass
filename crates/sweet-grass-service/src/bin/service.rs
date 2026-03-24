@@ -16,10 +16,11 @@
 #![forbid(unsafe_code)]
 #![warn(clippy::unwrap_used, clippy::expect_used)]
 
-use std::net::SocketAddr;
+use std::io::Write;
 
 use clap::{Parser, Subcommand};
-use sweet_grass_service::exit::{OrExit, exit_code};
+use sweet_grass_service::cli;
+use sweet_grass_service::exit::exit_code;
 use sweet_grass_service::{
     BootstrapConfig, StorageConfig, SweetGrassServer, create_router, infant_bootstrap_with_config,
     start_tarpc_server,
@@ -98,7 +99,7 @@ async fn main() {
             log_level,
             no_tarpc,
         } => {
-            let config = ServerConfig {
+            run_server(ServerConfig {
                 http_address,
                 tarpc_address,
                 storage,
@@ -106,8 +107,8 @@ async fn main() {
                 sled_path,
                 log_level,
                 no_tarpc,
-            };
-            run_server(config).await
+            })
+            .await
         },
         Commands::Status { address } => run_status(&address).await,
         Commands::Capabilities => run_capabilities(),
@@ -168,7 +169,10 @@ async fn run_server(config: ServerConfig) -> i32 {
 
     let app = create_router(state.clone());
 
-    let http_addr = match parse_addr(&config.http_address, "HTTP") {
+    let http_addr = match cli::parse_socket_addr(&config.http_address).map_err(|msg| {
+        tracing::error!("HTTP {msg}");
+        exit_code::CONFIG_ERROR
+    }) {
         Ok(a) => a,
         Err(code) => return code,
     };
@@ -187,12 +191,24 @@ async fn run_server(config: ServerConfig) -> i32 {
     info!("  JSON-RPC: POST http://{actual_http_addr}/jsonrpc");
     info!("  REST API: http://{actual_http_addr}/api/v1/");
 
+    serve_all(config, state, app, http_listener).await
+}
+
+async fn serve_all(
+    config: ServerConfig,
+    state: sweet_grass_service::AppState,
+    app: axum::Router,
+    http_listener: tokio::net::TcpListener,
+) -> i32 {
     let (shutdown_tx, _) = tokio::sync::watch::channel(false);
 
     let tarpc_handle = if config.no_tarpc {
         None
     } else {
-        let tarpc_addr = match parse_addr(&config.tarpc_address, "tarpc") {
+        let tarpc_addr = match cli::parse_socket_addr(&config.tarpc_address).map_err(|msg| {
+            tracing::error!("tarpc {msg}");
+            exit_code::CONFIG_ERROR
+        }) {
             Ok(a) => a,
             Err(code) => return code,
         };
@@ -220,7 +236,6 @@ async fn run_server(config: ServerConfig) -> i32 {
         })
         .await;
 
-    // Wait for coordinated shutdown of tarpc and UDS
     if let Some(h) = tarpc_handle {
         let _ = h.await;
     }
@@ -244,15 +259,8 @@ async fn run_server(config: ServerConfig) -> i32 {
     )
 }
 
-fn parse_addr(addr: &str, label: &str) -> Result<SocketAddr, i32> {
-    addr.parse().or_exit(
-        exit_code::CONFIG_ERROR,
-        &format!("invalid {label} address '{addr}'"),
-    )
-}
-
 fn spawn_tarpc_server(
-    tarpc_addr: SocketAddr,
+    tarpc_addr: std::net::SocketAddr,
     state: &sweet_grass_service::AppState,
     shutdown: tokio::sync::watch::Receiver<bool>,
 ) -> tokio::task::JoinHandle<()> {
@@ -294,59 +302,15 @@ async fn shutdown_signal() {
 }
 
 fn run_capabilities() -> i32 {
-    use std::io::Write;
-    use sweet_grass_core::niche;
-
-    let stdout = std::io::stdout();
-    let mut out = stdout.lock();
-
-    let _ = writeln!(
-        out,
-        "{} v{} — {}",
-        niche::NICHE_ID,
-        env!("CARGO_PKG_VERSION"),
-        niche::NICHE_DESCRIPTION,
-    );
-    let _ = writeln!(out);
-
-    let mut domains = std::collections::BTreeMap::<&str, Vec<&str>>::new();
-    for cap in niche::CAPABILITIES {
-        if let Some((domain, op)) = cap.split_once('.') {
-            domains.entry(domain).or_default().push(op);
-        }
-    }
-
-    let _ = writeln!(out, "Capabilities ({} methods):", niche::CAPABILITIES.len());
-    for (domain, ops) in &domains {
-        let _ = writeln!(out, "  {domain}:");
-        for op in ops {
-            let _ = writeln!(out, "    - {domain}.{op}");
-        }
-    }
-    let _ = writeln!(out);
-
-    let _ = writeln!(out, "Consumed capabilities:");
-    for cap in niche::CONSUMED_CAPABILITIES {
-        let _ = writeln!(out, "  - {cap}");
-    }
-    let _ = writeln!(out);
-
-    let _ = writeln!(out, "Dependencies:");
-    for dep in niche::DEPENDENCIES {
-        let _ = writeln!(
-            out,
-            "  - {} (required: {}, fallback: {})",
-            dep.capability, dep.required, dep.fallback
-        );
-    }
-
+    let report = cli::capabilities_report(env!("CARGO_PKG_VERSION"));
+    let output = cli::format_capabilities_report(&report);
+    let _ = std::io::stdout().lock().write_all(output.as_bytes());
     exit_code::SUCCESS
 }
 
 fn run_socket() -> i32 {
     #[cfg(unix)]
     {
-        use std::io::Write;
         let path = sweet_grass_service::uds::resolve_socket_path(None);
         let _ = writeln!(std::io::stdout().lock(), "{}", path.display());
         exit_code::SUCCESS
@@ -359,12 +323,12 @@ fn run_socket() -> i32 {
 }
 
 async fn run_status(address: &str) -> i32 {
-    use std::io::Write;
+    let _ = writeln!(
+        std::io::stdout().lock(),
+        "Checking SweetGrass at http://{address}/health..."
+    );
 
-    let url = format!("http://{address}/health");
-    let _ = writeln!(std::io::stdout().lock(), "Checking SweetGrass at {url}...");
-
-    match http_health_check(address).await {
+    match cli::http_health_check(address).await {
         Ok(body) => {
             let stdout = std::io::stdout();
             let mut out = stdout.lock();
@@ -376,57 +340,5 @@ async fn run_status(address: &str) -> i32 {
             tracing::error!("Cannot reach SweetGrass at {address}: {e}");
             exit_code::NETWORK_ERROR
         },
-    }
-}
-
-/// Errors from the raw TCP health check.
-#[derive(Debug, thiserror::Error)]
-enum HealthCheckError {
-    /// TCP connection or IO failure.
-    #[error("{0}")]
-    Io(#[from] std::io::Error),
-
-    /// Server responded with a non-200 status.
-    #[error("unhealthy response: {0}")]
-    Unhealthy(String),
-}
-
-/// Perform a minimal HTTP GET /health check using raw TCP.
-///
-/// Pure Rust implementation — no reqwest or hyper dependency needed.
-/// Parses the HTTP status code numerically rather than matching on reason phrases.
-async fn http_health_check(address: &str) -> Result<String, HealthCheckError> {
-    use tokio::io::{AsyncReadExt, AsyncWriteExt};
-
-    let mut stream = tokio::net::TcpStream::connect(address).await?;
-
-    let request = format!("GET /health HTTP/1.1\r\nHost: {address}\r\nConnection: close\r\n\r\n");
-    stream.write_all(request.as_bytes()).await?;
-    stream.shutdown().await?;
-
-    let mut response = String::new();
-    stream.read_to_string(&mut response).await?;
-
-    let body = response
-        .split_once("\r\n\r\n")
-        .map(|(_, body)| body.to_string())
-        .unwrap_or_default();
-
-    let status_code = response
-        .lines()
-        .next()
-        .and_then(|line| line.split_whitespace().nth(1))
-        .and_then(|code| code.parse::<u16>().ok())
-        .unwrap_or(0);
-
-    if (200..300).contains(&status_code) {
-        Ok(body)
-    } else {
-        let status_line = response
-            .lines()
-            .next()
-            .unwrap_or("(empty response)")
-            .to_string();
-        Err(HealthCheckError::Unhealthy(status_line))
     }
 }

@@ -2,7 +2,7 @@
 
 **The Attribution Layer for ecoPrimals**
 
-**Version**: 0.7.27 | **Status**: Production Ready | **Tests**: 1,132 passing | **Edition**: 2024
+**Version**: 0.7.27 | **Status**: Production Ready | **Tests**: 1,147 passing | **Edition**: 2024
 
 ---
 
@@ -179,7 +179,7 @@ cd ../01-primal-coordination
 | LoamSpine | ⏳ Not built | Integration design ready |
 | RhizoCrypt | ⏳ TBD | May be built-in feature |
 
-**See**: `01-primal-coordination/INTEGRATION_GAPS_REPORT.md` for details
+**See**: `01-primal-coordination/` per-primal READMEs for details
 
 ---
 
@@ -214,7 +214,7 @@ cd ../01-primal-coordination
 - **00_START_HERE.md** (this file) - Navigation
 - **00-local-primal/README.md** - Local showcase guide
 - **01-primal-coordination/README.md** - Integration guide
-- **INTEGRATION_GAPS_REPORT.md** - Honest assessment
+- **01-primal-coordination/07-sweetgrass-beardog-GAP/** - BearDog gap documentation
 
 ### In Repository Root
 - `../ROADMAP.md` - Future development
@@ -466,5 +466,5 @@ cat README.md
 ---
 
 *SweetGrass v0.7.27 - ecoPrimals Phase 2*  
-*March 23, 2026*
+*March 24, 2026*
 

@@ -228,3 +228,163 @@ async fn test_anchor_manager_new_discovery_failure() {
         "error should mention capability: {err}"
     );
 }
+
+#[tokio::test]
+async fn test_anchor_manager_new_with_discovery_success() {
+    use crate::discovery::{DiscoveredPrimal, LocalDiscovery, PrimalDiscovery};
+    use sweet_grass_core::config::Capability;
+
+    let discovery = Arc::new(LocalDiscovery::new());
+    discovery
+        .register(DiscoveredPrimal {
+            instance_id: "loamspine-1".to_string(),
+            name: "test-anchoring".to_string(),
+            capabilities: vec![Capability::Anchoring],
+            tarpc_address: Some("localhost:0".to_string()),
+            rest_address: None,
+            last_seen: std::time::SystemTime::now(),
+            healthy: true,
+        })
+        .await;
+
+    let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+
+    let manager = AnchorManager::new(discovery as Arc<dyn PrimalDiscovery>, store, |primal| {
+        assert_eq!(primal.name, "test-anchoring");
+        Arc::new(MockAnchoringClient::new()) as Arc<dyn AnchoringClient>
+    })
+    .await
+    .expect("discovery should succeed");
+
+    assert!(manager.client().health().await.expect("health"));
+}
+
+#[tokio::test]
+async fn test_anchor_manager_reconnect_success() {
+    use crate::discovery::{DiscoveredPrimal, LocalDiscovery, PrimalDiscovery};
+    use sweet_grass_core::config::Capability;
+
+    let discovery = Arc::new(LocalDiscovery::new());
+    discovery
+        .register(DiscoveredPrimal {
+            instance_id: "anchor-primary".to_string(),
+            name: "primary-anchor".to_string(),
+            capabilities: vec![Capability::Anchoring],
+            tarpc_address: Some("localhost:0".to_string()),
+            rest_address: None,
+            last_seen: std::time::SystemTime::now(),
+            healthy: true,
+        })
+        .await;
+
+    let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+
+    let manager = AnchorManager::new(
+        Arc::clone(&discovery) as Arc<dyn PrimalDiscovery>,
+        store,
+        |_| Arc::new(MockAnchoringClient::new()) as Arc<dyn AnchoringClient>,
+    )
+    .await
+    .expect("initial");
+
+    let result = manager
+        .reconnect(|primal| {
+            assert_eq!(primal.name, "primary-anchor");
+            Arc::new(MockAnchoringClient::new().with_health(true)) as Arc<dyn AnchoringClient>
+        })
+        .await;
+    assert!(result.is_ok());
+    assert!(manager.client().health().await.expect("health"));
+}
+
+#[tokio::test]
+async fn test_anchor_manager_reconnect_failure_no_primal() {
+    let client: Arc<dyn AnchoringClient> = Arc::new(MockAnchoringClient::new());
+    let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+
+    let manager = AnchorManager::with_client(client, store);
+
+    let result = manager
+        .reconnect(|_| Arc::new(MockAnchoringClient::new()) as Arc<dyn AnchoringClient>)
+        .await;
+
+    assert!(result.is_err(), "empty discovery should fail reconnect");
+}
+
+#[tokio::test]
+async fn test_anchor_manager_multiple_operations() {
+    let client: Arc<dyn AnchoringClient> = Arc::new(MockAnchoringClient::new());
+    let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+
+    let braid1 = create_test_braid_with_hash("sha256:multi_op_1");
+    let braid2 = create_test_braid_with_hash("sha256:multi_op_2");
+    store.put(&braid1).await.expect("put 1");
+    store.put(&braid2).await.expect("put 2");
+
+    let manager = AnchorManager::with_client(Arc::clone(&client), store);
+
+    let r1 = manager
+        .anchor_by_id(&braid1.id, "spine-a")
+        .await
+        .expect("anchor 1");
+    let r2 = manager
+        .anchor_by_id(&braid2.id, "spine-b")
+        .await
+        .expect("anchor 2");
+
+    assert_eq!(r1.anchor.spine_id, "spine-a");
+    assert_eq!(r2.anchor.spine_id, "spine-b");
+
+    let anchors1 = manager.get_anchors(&braid1.id).await.expect("get 1");
+    assert_eq!(anchors1.len(), 1);
+
+    let verify1 = manager.verify(&braid1.id).await.expect("verify 1");
+    assert!(verify1.is_some());
+
+    let verify_none = manager
+        .verify(&create_test_braid().id)
+        .await
+        .expect("verify none");
+    assert!(verify_none.is_none());
+}
+
+#[tokio::test]
+async fn test_anchor_info_serialization() {
+    let info = AnchorInfo {
+        braid_id: BraidId::from_string("urn:braid:test-123"),
+        spine_id: "spine-1".to_string(),
+        entry_hash: "entry:sha256:abc".to_string(),
+        index: 42,
+        anchored_at: 1_710_000_000,
+        verified: true,
+    };
+
+    let json = serde_json::to_string(&info).expect("serialize");
+    let parsed: AnchorInfo = serde_json::from_str(&json).expect("deserialize");
+
+    assert_eq!(parsed.spine_id, "spine-1");
+    assert_eq!(parsed.index, 42);
+    assert!(parsed.verified);
+}
+
+#[tokio::test]
+async fn test_anchor_receipt_serialization() {
+    let receipt = AnchorReceipt {
+        anchor: AnchorInfo {
+            braid_id: BraidId::from_string("urn:braid:test-ser"),
+            spine_id: "spine-ser".to_string(),
+            entry_hash: "entry:test".to_string(),
+            index: 0,
+            anchored_at: 1_710_000_000,
+            verified: false,
+        },
+        transaction_id: Some("tx-001".to_string()),
+        confirmations: 3,
+    };
+
+    let json = serde_json::to_string(&receipt).expect("serialize");
+    let parsed: AnchorReceipt = serde_json::from_str(&json).expect("deserialize");
+
+    assert_eq!(parsed.confirmations, 3);
+    assert_eq!(parsed.transaction_id, Some("tx-001".to_string()));
+}

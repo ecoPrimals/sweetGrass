@@ -1,0 +1,30 @@
+---
+description: Rust idioms and patterns for sweetGrass crates
+globs: "**/*.rs"
+alwaysApply: false
+---
+
+# Rust Patterns
+
+## Error Handling
+- Return `Result<T, E>` with typed errors via `thiserror`
+- Production code: no `.unwrap()`, `.expect()`, `panic!()`
+- Test code: gate with `#[expect(clippy::unwrap_used, reason = "...")]`
+- Use `?` operator for propagation
+
+## Zero-Copy
+- Identifiers (`BraidId`, `Did`, `ContentHash`) use `Arc<str>` — clone is O(1)
+- Use `Cow<'_, str>` at API boundaries accepting both owned and borrowed
+- Use `bytes::Bytes` for zero-copy byte buffers in IPC
+- Avoid `.to_string()` when `.clone()` on `Arc<str>` suffices
+
+## async-trait
+- `async-trait` crate is used for trait-object dispatch (`dyn BraidStore`, etc.)
+- Native RPITIT is not object-safe; this is the correct Rust 2024 pattern
+- Do NOT remove `async-trait` from traits used with `dyn` dispatch
+
+## Module Structure
+- `mod.rs` + `tests.rs` pattern for modules with tests
+- `#[cfg(test)] mod tests;` at bottom of module files
+- `#[cfg(any(test, feature = "test"))]` for mock implementations
+- SPDX header + copyright + `//!` doc comment at top of every file

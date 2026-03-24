@@ -1,6 +1,6 @@
 # 🌾 SweetGrass — Development Guide
 
-**Last Updated**: March 23, 2026  
+**Last Updated**: March 24, 2026  
 **Version**: v0.7.27
 
 ---
@@ -35,16 +35,16 @@ cargo build --all-features
 cargo test --all-features
 
 # All tests including PostgreSQL (requires Docker)
-docker-compose up -d
+docker compose up -d
 cargo test --all-features
-docker-compose down
+docker compose down
 ```
 
 ### Coverage Report
 
 ```bash
 # Start PostgreSQL
-docker-compose up -d
+docker compose up -d
 
 # Generate coverage
 cargo llvm-cov --all-features --workspace --html
@@ -53,7 +53,7 @@ cargo llvm-cov --all-features --workspace --html
 open target/llvm-cov/html/index.html
 
 # Stop PostgreSQL
-docker-compose down
+docker compose down
 ```
 
 ---
@@ -64,10 +64,10 @@ docker-compose down
 
 ```bash
 # PostgreSQL only
-docker-compose up -d postgres
+docker compose up -d postgres
 
 # PostgreSQL + pgAdmin (for database management)
-docker-compose --profile admin up -d
+docker compose --profile admin up -d
 ```
 
 ### Access Services
@@ -78,10 +78,10 @@ docker-compose --profile admin up -d
 ### Stop Services
 
 ```bash
-docker-compose down
+docker compose down
 
 # Remove volumes (clean slate)
-docker-compose down -v
+docker compose down -v
 ```
 
 ---
@@ -114,9 +114,9 @@ cargo test --test integration
 cargo test --test chaos
 
 # PostgreSQL tests (requires Docker)
-docker-compose up -d
+docker compose up -d
 cargo test --package sweet-grass-store-postgres
-docker-compose down
+docker compose down
 
 # Single test
 cargo test test_name
@@ -188,8 +188,8 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 1,132 tests passing (90.24% line coverage)
-- **Target**: 90%+ line coverage on core crates (achieved)
+- **Overall**: 1,147 tests passing (90.54% region coverage)
+- **Target**: 90%+ coverage on core crates (achieved)
 
 ### Per-Crate Coverage
 
@@ -210,7 +210,7 @@ cargo audit
 
 **PostgreSQL**: Run with Docker
 ```bash
-docker-compose up -d
+docker compose up -d
 cargo test --package sweet-grass-store-postgres
 ```
 
@@ -319,9 +319,9 @@ cargo test --all-features
 ### 4. Check Coverage
 
 ```bash
-docker-compose up -d
+docker compose up -d
 cargo llvm-cov --all-features --workspace
-docker-compose down
+docker compose down
 ```
 
 ### 5. Commit
@@ -406,7 +406,7 @@ See [docs/guides/TOKIO_CONSOLE_GUIDE.md](./docs/guides/TOKIO_CONSOLE_GUIDE.md)
 
 ```bash
 # Connect to PostgreSQL
-docker-compose up -d
+docker compose up -d
 psql postgresql://postgres:postgres@localhost:5432/sweetgrass_test
 
 # View schema
@@ -432,7 +432,7 @@ SELECT * FROM braids LIMIT 10;
 
 ```bash
 # All tests pass
-docker-compose up -d
+docker compose up -d
 cargo test --all-features
 
 # Coverage meets target
@@ -524,8 +524,8 @@ See [docs/guides/ZERO_COPY_OPPORTUNITIES.md](./docs/guides/ZERO_COPY_OPPORTUNITI
 lsof -i :5432
 
 # Remove old containers
-docker-compose down -v
-docker-compose up -d
+docker compose down -v
+docker compose up -d
 ```
 
 ### Tests Failing Randomly
@@ -536,8 +536,8 @@ cargo clean
 cargo build --all-features
 
 # Reset database
-docker-compose down -v
-docker-compose up -d
+docker compose down -v
+docker compose up -d
 cargo test --all-features
 ```
 

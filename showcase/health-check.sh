@@ -79,7 +79,7 @@ fi
 
 # Check 5: Documentation completeness
 echo -e "${BLUE}[5/6]${NC} Checking documentation..."
-DOCS=("00_START_HERE.md" "README.md" "INTEGRATION_GAPS_REPORT.md")
+DOCS=("00_START_HERE.md" "README.md" "00_SHOWCASE_INDEX.md")
 MISSING_DOCS=0
 
 for doc in "${DOCS[@]}"; do

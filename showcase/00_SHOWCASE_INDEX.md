@@ -1,6 +1,6 @@
 # 🌾 SweetGrass Showcase Index
 
-**Last Updated**: March 16, 2026  
+**Last Updated**: March 24, 2026  
 **Philosophy**: "Interactions show us gaps in our evolution" - Real binaries, no mocks  
 **Inspiration**: Following NestGate (local-first), Songbird (federation), ToadStool (compute)
 
