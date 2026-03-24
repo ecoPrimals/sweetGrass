@@ -74,13 +74,18 @@ pub struct TimeRange {
 }
 
 /// Reward share for an agent.
+///
+/// **Note on precision**: `share` and `amount` are informational ratios,
+/// not settlement-grade monetary values. For production payment flows
+/// (sunCloud v0.9.0+), evolve to integer basis points (share as parts
+/// per 1,000,000) and atomic units (amount in smallest currency unit).
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct RewardShare {
     /// Agent DID.
     pub agent: Did,
-    /// Share fraction (0.0 - 1.0).
+    /// Share fraction (0.0–1.0). Informational — not for settlement.
     pub share: f64,
-    /// Amount (share * `total_value`).
+    /// Amount (share * `total_value`). Informational — not for settlement.
     pub amount: f64,
     /// Role that earned this share.
     pub role: AgentRole,

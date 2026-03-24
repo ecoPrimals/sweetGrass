@@ -318,7 +318,7 @@ async fn test_concurrent_failures() {
 
     // Most should eventually succeed with retries
     assert!(succeeded >= 5, "At least half should succeed with retries");
-    println!("Chaos test: {succeeded}/10 succeeded, {with_retries} required retries");
+    tracing::info!("Chaos test: {succeeded}/10 succeeded, {with_retries} required retries");
 }
 
 #[tokio::test]
@@ -700,5 +700,5 @@ async fn test_mixed_operation_failures() {
     // Both successes and failures expected
     assert!(successes > 0);
     assert!(failures > 0);
-    println!("Mixed operations: {successes} successes, {failures} failures");
+    tracing::info!("Mixed operations: {successes} successes, {failures} failures");
 }

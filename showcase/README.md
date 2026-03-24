@@ -3,7 +3,7 @@
 Interactive demonstrations of SweetGrass attribution and provenance capabilities,
 with live integration to phase1 primals.
 
-**Version**: 0.7.26 | **Status**: Production Ready | **Philosophy**: NO MOCKS
+**Version**: 0.7.27 | **Status**: Production Ready | **Philosophy**: NO MOCKS
 
 ---
 

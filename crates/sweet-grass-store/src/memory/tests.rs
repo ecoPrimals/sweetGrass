@@ -197,7 +197,7 @@ async fn test_index_rebuild() {
 async fn test_by_tag() {
     let store = MemoryStore::new();
     let mut braid = make_test_braid("sha256:tagged", "did:key:z6MkTest");
-    braid.metadata.tags.push("test-tag".to_string());
+    braid.metadata.tags.push("test-tag".into());
 
     store.put(&braid).await.expect("store");
 
@@ -264,8 +264,9 @@ async fn test_get_batch() {
     }
 
     let ids: Vec<BraidId> = braids.iter().map(|b| b.id.clone()).collect();
-    let results = store.get_batch(&ids, Some(10)).await;
+    let (results, errors) = store.get_batch(&ids, Some(10)).await;
 
+    assert!(errors.is_empty());
     assert_eq!(results.len(), 4);
     for (i, opt) in results.iter().enumerate() {
         assert!(opt.is_some());
@@ -284,8 +285,9 @@ async fn test_get_batch_mixed_existent_nonexistent() {
 
     let nonexistent_id = BraidId::from_hash(&ContentHash::new("sha256:nonexistent"));
     let ids = vec![braid.id.clone(), nonexistent_id.clone()];
-    let results = store.get_batch(&ids, Some(5)).await;
+    let (results, errors) = store.get_batch(&ids, Some(5)).await;
 
+    assert!(errors.is_empty());
     assert_eq!(results.len(), 2);
     assert!(results[0].is_some());
     assert_eq!(results[0].as_ref().unwrap().id, braid.id);
@@ -295,8 +297,9 @@ async fn test_get_batch_mixed_existent_nonexistent() {
 #[tokio::test]
 async fn test_get_batch_empty() {
     let store = MemoryStore::new();
-    let results = store.get_batch(&[], Some(5)).await;
+    let (results, errors) = store.get_batch(&[], Some(5)).await;
     assert!(results.is_empty());
+    assert!(errors.is_empty());
 }
 
 #[tokio::test]

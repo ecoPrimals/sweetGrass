@@ -50,13 +50,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Alice creates the original dataset
     let dataset_metadata = BraidMetadata {
-        title: Some("Climate Research Dataset".to_string()),
-        description: Some("Temperature measurements from sensor network".to_string()),
-        tags: vec![
-            "climate".to_string(),
-            "sensors".to_string(),
-            "research".to_string(),
-        ],
+        title: Some("Climate Research Dataset".into()),
+        description: Some("Temperature measurements from sensor network".into()),
+        tags: vec!["climate".into(), "sensors".into(), "research".into()],
         ..Default::default()
     };
 
@@ -74,13 +70,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Bob creates analysis code
     let bob_factory = BraidFactory::new(bob.clone());
     let code_metadata = BraidMetadata {
-        title: Some("Analysis Script".to_string()),
-        description: Some("Python script for climate data analysis".to_string()),
-        tags: vec![
-            "code".to_string(),
-            "python".to_string(),
-            "analysis".to_string(),
-        ],
+        title: Some("Analysis Script".into()),
+        description: Some("Python script for climate data analysis".into()),
+        tags: vec!["code".into(), "python".into(), "analysis".into()],
         ..Default::default()
     };
 
@@ -108,13 +100,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ];
 
     let result_metadata = BraidMetadata {
-        title: Some("Climate Analysis Results".to_string()),
-        description: Some("Aggregated temperature trends by month".to_string()),
-        tags: vec![
-            "results".to_string(),
-            "climate".to_string(),
-            "derived".to_string(),
-        ],
+        title: Some("Climate Analysis Results".into()),
+        description: Some("Aggregated temperature trends by month".into()),
+        tags: vec!["results".into(), "climate".into(), "derived".into()],
         ..Default::default()
     };
 

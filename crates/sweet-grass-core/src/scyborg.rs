@@ -107,8 +107,12 @@ pub struct AttributionNotice {
     pub contributors: Vec<String>,
     /// Derivation chain (braid references showing how content evolved).
     pub derivation_chain: Vec<String>,
-    /// Human-readable attribution text.
-    pub notice_text: String,
+}
+
+impl std::fmt::Display for AttributionNotice {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.generate_notice_text())
+    }
 }
 
 impl AttributionNotice {
@@ -184,7 +188,6 @@ mod tests {
             },
             contributors: vec!["Alice".to_string(), "Bob".to_string()],
             derivation_chain: vec!["braid:abc123".to_string()],
-            notice_text: String::new(),
         };
         let generated = notice.generate_notice_text();
         assert!(generated.contains("Tileset v1.0"));
@@ -205,7 +208,6 @@ mod tests {
             },
             contributors: vec![],
             derivation_chain: vec![],
-            notice_text: String::new(),
         };
         let generated = notice.generate_notice_text();
         assert!(generated.contains("Unknown contributors"));
@@ -244,7 +246,6 @@ mod tests {
             },
             contributors: vec!["did:key:z6Mk...".to_string()],
             derivation_chain: vec!["braid:xyz".to_string()],
-            notice_text: "Custom notice".to_string(),
         };
         let json = serde_json::to_string(&notice).unwrap();
         let restored: AttributionNotice = serde_json::from_str(&json).unwrap();
@@ -252,6 +253,10 @@ mod tests {
         assert_eq!(notice.category, restored.category);
         assert_eq!(notice.license.license, restored.license.license);
         assert_eq!(notice.contributors, restored.contributors);
-        assert_eq!(notice.notice_text, restored.notice_text);
+        assert_eq!(
+            notice.generate_notice_text(),
+            restored.generate_notice_text()
+        );
+        assert_eq!(format!("{notice}"), notice.generate_notice_text());
     }
 }

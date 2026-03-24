@@ -41,7 +41,9 @@ pub(super) struct Indexes {
     pub derivation: RwLock<HashMap<ContentHash, HashSet<BraidId>>>,
 
     /// Index: tag → Braid IDs.
-    pub tag: RwLock<HashMap<String, HashSet<BraidId>>>,
+    ///
+    /// Keyed on `Arc<str>` to share allocations with `BraidMetadata.tags` (O(1) clone).
+    pub tag: RwLock<HashMap<Arc<str>, HashSet<BraidId>>>,
 
     /// Index: MIME type → Braid IDs.
     ///
@@ -98,7 +100,7 @@ impl Indexes {
         {
             let mut index = self.tag.write();
             for tag in &braid.metadata.tags {
-                index.entry(tag.clone()).or_default().insert(id.clone());
+                index.entry(Arc::clone(tag)).or_default().insert(id.clone());
             }
         }
 
@@ -285,7 +287,7 @@ mod tests {
     fn test_get_by_tag() {
         let indexes = Indexes::new();
         let mut braid = make_test_braid("sha256:tagged", "did:key:z6MkTest");
-        braid.metadata.tags.push("my-tag".to_string());
+        braid.metadata.tags.push("my-tag".into());
 
         indexes.add(&braid);
 
@@ -323,8 +325,8 @@ mod tests {
 
         let indexes = Indexes::new();
         let mut braid = make_test_braid("sha256:complex", "did:key:z6MkTest");
-        braid.metadata.tags.push("tag1".to_string());
-        braid.metadata.tags.push("tag2".to_string());
+        braid.metadata.tags.push("tag1".into());
+        braid.metadata.tags.push("tag2".into());
         braid
             .was_derived_from
             .push(EntityReference::by_hash("sha256:parent"));

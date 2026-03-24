@@ -187,42 +187,61 @@ async fn run_server(config: ServerConfig) -> i32 {
     info!("  JSON-RPC: POST http://{actual_http_addr}/jsonrpc");
     info!("  REST API: http://{actual_http_addr}/api/v1/");
 
-    if !config.no_tarpc {
+    let (shutdown_tx, _) = tokio::sync::watch::channel(false);
+
+    let tarpc_handle = if config.no_tarpc {
+        None
+    } else {
         let tarpc_addr = match parse_addr(&config.tarpc_address, "tarpc") {
             Ok(a) => a,
             Err(code) => return code,
         };
-        spawn_tarpc_server(tarpc_addr, &state);
-    }
+        let shutdown_rx = shutdown_tx.subscribe();
+        Some(spawn_tarpc_server(tarpc_addr, &state, shutdown_rx))
+    };
 
-    // Start Unix domain socket listener for biomeOS IPC
     #[cfg(unix)]
-    {
+    let uds_handle = {
         let uds_state = state.clone();
-        tokio::spawn(async move {
-            if let Err(e) = sweet_grass_service::uds::start_uds_listener(uds_state).await {
+        let shutdown_rx = shutdown_tx.subscribe();
+        Some(tokio::spawn(async move {
+            if let Err(e) =
+                sweet_grass_service::uds::start_uds_listener(uds_state, shutdown_rx).await
+            {
                 tracing::warn!("UDS listener error: {e}");
             }
-        });
+        }))
+    };
+
+    let result = axum::serve(http_listener, app)
+        .with_graceful_shutdown(async move {
+            shutdown_signal().await;
+            let _ = shutdown_tx.send(true);
+        })
+        .await;
+
+    // Wait for coordinated shutdown of tarpc and UDS
+    if let Some(h) = tarpc_handle {
+        let _ = h.await;
+    }
+    #[cfg(unix)]
+    if let Some(h) = uds_handle {
+        let _ = h.await;
     }
 
-    axum::serve(http_listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await
-        .map_or_else(
-            |e| {
-                tracing::error!("Server error: {e}");
-                #[cfg(unix)]
-                sweet_grass_service::uds::cleanup_socket();
-                exit_code::GENERAL_ERROR
-            },
-            |()| {
-                #[cfg(unix)]
-                sweet_grass_service::uds::cleanup_socket();
-                info!("SweetGrass shut down cleanly");
-                exit_code::SUCCESS
-            },
-        )
+    #[cfg(unix)]
+    sweet_grass_service::uds::cleanup_socket();
+
+    result.map_or_else(
+        |e| {
+            tracing::error!("Server error: {e}");
+            exit_code::GENERAL_ERROR
+        },
+        |()| {
+            info!("SweetGrass shut down cleanly");
+            exit_code::SUCCESS
+        },
+    )
 }
 
 fn parse_addr(addr: &str, label: &str) -> Result<SocketAddr, i32> {
@@ -232,14 +251,18 @@ fn parse_addr(addr: &str, label: &str) -> Result<SocketAddr, i32> {
     )
 }
 
-fn spawn_tarpc_server(tarpc_addr: SocketAddr, state: &sweet_grass_service::AppState) {
+fn spawn_tarpc_server(
+    tarpc_addr: SocketAddr,
+    state: &sweet_grass_service::AppState,
+    shutdown: tokio::sync::watch::Receiver<bool>,
+) -> tokio::task::JoinHandle<()> {
     let server = SweetGrassServer::from_app_state(state);
     tokio::spawn(async move {
         info!("tarpc server starting on {tarpc_addr}");
-        if let Err(e) = start_tarpc_server(tarpc_addr, server).await {
+        if let Err(e) = start_tarpc_server(tarpc_addr, server, shutdown).await {
             tracing::error!("tarpc server error: {e}");
         }
-    });
+    })
 }
 
 async fn shutdown_signal() {
@@ -371,7 +394,7 @@ enum HealthCheckError {
 /// Perform a minimal HTTP GET /health check using raw TCP.
 ///
 /// Pure Rust implementation — no reqwest or hyper dependency needed.
-/// Sends a bare HTTP/1.1 request and parses the response body.
+/// Parses the HTTP status code numerically rather than matching on reason phrases.
 async fn http_health_check(address: &str) -> Result<String, HealthCheckError> {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -389,10 +412,21 @@ async fn http_health_check(address: &str) -> Result<String, HealthCheckError> {
         .map(|(_, body)| body.to_string())
         .unwrap_or_default();
 
-    if response.contains("200 OK") {
+    let status_code = response
+        .lines()
+        .next()
+        .and_then(|line| line.split_whitespace().nth(1))
+        .and_then(|code| code.parse::<u16>().ok())
+        .unwrap_or(0);
+
+    if (200..300).contains(&status_code) {
         Ok(body)
     } else {
-        let status_line = response.lines().next().unwrap_or("").to_string();
+        let status_line = response
+            .lines()
+            .next()
+            .unwrap_or("(empty response)")
+            .to_string();
         Err(HealthCheckError::Unhealthy(status_line))
     }
 }

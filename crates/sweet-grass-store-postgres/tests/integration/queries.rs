@@ -123,7 +123,7 @@ async fn test_query_by_tag() {
         result
             .braids
             .iter()
-            .all(|b| b.metadata.tags.contains(&"important".to_string()))
+            .all(|b| b.metadata.tags.iter().any(|t| t.as_ref() == "important"))
     );
 }
 

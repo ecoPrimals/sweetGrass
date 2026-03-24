@@ -103,7 +103,7 @@ pub fn resolve_socket_path_with(config: &SocketConfig) -> PathBuf {
     std::env::temp_dir().join(&sock_name)
 }
 
-/// Start the Unix domain socket JSON-RPC listener.
+/// Start the Unix domain socket JSON-RPC listener with coordinated shutdown.
 ///
 /// Accepts newline-delimited JSON-RPC 2.0 requests and routes them through
 /// the same dispatch table as the HTTP endpoint.
@@ -113,16 +113,17 @@ pub fn resolve_socket_path_with(config: &SocketConfig) -> PathBuf {
 /// Returns an error if socket binding fails.
 pub async fn start_uds_listener(
     state: crate::state::AppState,
+    shutdown: tokio::sync::watch::Receiver<bool>,
 ) -> std::result::Result<(), crate::ServiceError> {
     let primal_name = state.self_knowledge.as_ref().map(|sk| sk.name.as_str());
     let path = resolve_socket_path(primal_name);
-    start_uds_listener_at(state, &path).await
+    start_uds_listener_at(state, &path, shutdown).await
 }
 
 /// Start the Unix domain socket JSON-RPC listener at an explicit path.
 ///
 /// DI-friendly variant: tests pass a path directly instead of going
-/// through env-based resolution.
+/// through env-based resolution. Accepts connections until `shutdown` signals.
 ///
 /// # Errors
 ///
@@ -130,8 +131,8 @@ pub async fn start_uds_listener(
 pub async fn start_uds_listener_at(
     state: crate::state::AppState,
     path: &std::path::Path,
+    mut shutdown: tokio::sync::watch::Receiver<bool>,
 ) -> std::result::Result<(), crate::ServiceError> {
-    // Ensure parent directory exists
     if let Some(parent) = path.parent()
         && !parent.exists()
     {
@@ -139,7 +140,6 @@ pub async fn start_uds_listener_at(
             .map_err(|e| crate::ServiceError::Internal(format!("mkdir failed: {e}")))?;
     }
 
-    // Remove stale socket
     if path.exists() {
         std::fs::remove_file(path)
             .map_err(|e| crate::ServiceError::Internal(format!("remove stale socket: {e}")))?;
@@ -150,20 +150,30 @@ pub async fn start_uds_listener_at(
     info!("JSON-RPC 2.0 UDS listening on {}", path.display());
 
     loop {
-        match listener.accept().await {
-            Ok((stream, _addr)) => {
-                let state = state.clone();
-                tokio::spawn(async move {
-                    if let Err(e) = handle_uds_connection(stream, state).await {
-                        warn!("UDS connection error: {e}");
-                    }
-                });
-            },
-            Err(e) => {
-                warn!("UDS accept error: {e}");
-            },
+        tokio::select! {
+            result = listener.accept() => {
+                match result {
+                    Ok((stream, _addr)) => {
+                        let state = state.clone();
+                        tokio::spawn(async move {
+                            if let Err(e) = handle_uds_connection(stream, state).await {
+                                warn!("UDS connection error: {e}");
+                            }
+                        });
+                    },
+                    Err(e) => {
+                        warn!("UDS accept error: {e}");
+                    },
+                }
+            }
+            _ = shutdown.changed() => {
+                info!("UDS listener shutting down");
+                break;
+            }
         }
     }
+
+    Ok(())
 }
 
 /// Handle a single UDS connection with newline-delimited JSON-RPC.
@@ -374,8 +384,9 @@ mod tests {
 
         let path_clone = sock_path.clone();
         let state_clone = state.clone();
+        let (_shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
         let listener_handle = tokio::spawn(async move {
-            let _ = start_uds_listener_at(state_clone, &path_clone).await;
+            let _ = start_uds_listener_at(state_clone, &path_clone, shutdown_rx).await;
         });
 
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
@@ -418,8 +429,9 @@ mod tests {
 
         let path_clone = sock_path.clone();
         let state_clone = state.clone();
+        let (_shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
         let listener_handle = tokio::spawn(async move {
-            let _ = start_uds_listener_at(state_clone, &path_clone).await;
+            let _ = start_uds_listener_at(state_clone, &path_clone, shutdown_rx).await;
         });
 
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
@@ -461,8 +473,9 @@ mod tests {
 
         let path_clone = sock_path.clone();
         let state_clone = state.clone();
+        let (_shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
         let listener_handle = tokio::spawn(async move {
-            let _ = start_uds_listener_at(state_clone, &path_clone).await;
+            let _ = start_uds_listener_at(state_clone, &path_clone, shutdown_rx).await;
         });
 
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;

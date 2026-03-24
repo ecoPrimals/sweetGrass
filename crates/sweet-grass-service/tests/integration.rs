@@ -420,7 +420,7 @@ async fn test_provo_export_has_entity() {
     let (store, factory, query, _) = setup();
 
     let metadata = BraidMetadata {
-        title: Some("Test Entity".to_string()),
+        title: Some("Test Entity".into()),
         ..Default::default()
     };
 
@@ -520,9 +520,9 @@ async fn test_large_metadata() {
     let (store, factory, _, _) = setup();
 
     let metadata = BraidMetadata {
-        title: Some("A".repeat(1000)),
-        description: Some("B".repeat(5000)),
-        tags: (0..100).map(|i| format!("tag-{i}")).collect(),
+        title: Some("A".repeat(1000).into()),
+        description: Some("B".repeat(5000).into()),
+        tags: (0..100).map(|i| Arc::from(format!("tag-{i}"))).collect(),
         ..Default::default()
     };
 

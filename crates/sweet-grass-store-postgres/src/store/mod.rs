@@ -7,6 +7,7 @@ mod row_mapping;
 use async_trait::async_trait;
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
+use std::sync::Arc;
 use std::time::Duration;
 use tracing::{debug, instrument};
 
@@ -182,13 +183,13 @@ impl PostgresStore {
     }
 
     /// Insert tags for a braid.
-    async fn insert_tags(&self, braid_id: &str, tags: &[String]) -> Result<()> {
+    async fn insert_tags(&self, braid_id: &str, tags: &[Arc<str>]) -> Result<()> {
         for tag in tags {
             sqlx::query(
                 "INSERT INTO braid_tags (braid_id, tag) VALUES ($1, $2) ON CONFLICT DO NOTHING",
             )
             .bind(braid_id)
-            .bind(tag)
+            .bind(tag.as_ref())
             .execute(&self.pool)
             .await
             .map_err(PostgresError::from)?;

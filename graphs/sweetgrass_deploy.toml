@@ -7,7 +7,7 @@
 
 [graph]
 name = "sweetgrass"
-version = "0.7.26"
+version = "0.7.27"
 description = "Semantic provenance and attribution layer"
 
 # Binary to execute (UniBin pattern)

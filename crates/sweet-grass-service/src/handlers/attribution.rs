@@ -229,7 +229,7 @@ mod tests {
                 b"child data",
                 "text/plain",
                 Some(BraidMetadata {
-                    title: Some("Derived".to_string()),
+                    title: Some("Derived".into()),
                     ..Default::default()
                 }),
             )

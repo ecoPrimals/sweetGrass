@@ -75,7 +75,8 @@ async fn test_batch_operations() {
     assert!(errors.is_empty());
 
     let ids: Vec<_> = braids.iter().map(|b| b.id.clone()).collect();
-    let retrieved = store.get_batch(&ids, Some(5)).await;
+    let (retrieved, batch_errors) = store.get_batch(&ids, Some(5)).await;
+    assert!(batch_errors.is_empty());
     assert_eq!(retrieved.len(), 10);
     assert!(retrieved.iter().all(Option::is_some));
 }

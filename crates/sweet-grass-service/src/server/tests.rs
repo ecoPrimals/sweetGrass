@@ -714,7 +714,9 @@ async fn test_start_tarpc_server_binds_and_accepts() {
     drop(listener);
 
     let server = make_server();
-    let server_handle = tokio::spawn(async move { start_tarpc_server(addr, server).await });
+    let (_shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+    let server_handle =
+        tokio::spawn(async move { start_tarpc_server(addr, server, shutdown_rx).await });
 
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 

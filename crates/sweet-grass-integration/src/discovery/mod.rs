@@ -47,6 +47,20 @@ pub enum DiscoveryError {
     Timeout(Duration),
 }
 
+/// Structured error for registry RPC operations.
+#[derive(Clone, Debug, Serialize, Deserialize, thiserror::Error)]
+pub enum RegistryError {
+    /// Requested service is not registered.
+    #[error("service not found: {0}")]
+    NotFound(String),
+    /// Registration RPC or persistence failed.
+    #[error("registration failed: {0}")]
+    RegistrationFailed(String),
+    /// Unexpected internal failure.
+    #[error("internal error: {0}")]
+    Internal(String),
+}
+
 /// Information about a discovered primal.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DiscoveredPrimal {
@@ -272,6 +286,15 @@ impl PrimalDiscovery for CachedDiscovery {
     async fn health(&self) -> bool {
         self.inner.health().await
     }
+
+    async fn find_one(&self, capability: &Capability) -> Result<DiscoveredPrimal, DiscoveryError> {
+        let mut primals = self.find_by_capability(capability).await?;
+        primals.sort_by(|a, b| b.last_seen.cmp(&a.last_seen));
+        primals
+            .into_iter()
+            .find(|p| p.healthy)
+            .ok_or_else(|| DiscoveryError::CapabilityNotFound(capability.clone()))
+    }
 }
 
 // ============================================================================
@@ -286,17 +309,18 @@ impl PrimalDiscovery for CachedDiscovery {
 #[tarpc::service]
 pub trait RegistryRpc {
     /// Discover services by capability.
-    async fn discover_services(capability: String)
-    -> std::result::Result<Vec<ServiceInfo>, String>;
+    async fn discover_services(
+        capability: String,
+    ) -> std::result::Result<Vec<ServiceInfo>, RegistryError>;
 
     /// Register a service.
-    async fn register_service(info: ServiceInfo) -> std::result::Result<String, String>;
+    async fn register_service(info: ServiceInfo) -> std::result::Result<String, RegistryError>;
 
     /// Unregister a service.
-    async fn unregister_service(service_id: String) -> std::result::Result<(), String>;
+    async fn unregister_service(service_id: String) -> std::result::Result<(), RegistryError>;
 
     /// Health check.
-    async fn health() -> std::result::Result<bool, String>;
+    async fn health() -> std::result::Result<bool, RegistryError>;
 }
 
 /// Service information returned by a discovery registry.
@@ -435,7 +459,7 @@ impl PrimalDiscovery for RegistryDiscovery {
                 // Fall through to local fallback
             },
             Ok(Err(e)) => {
-                tracing::warn!("Registry discovery error: {}", e);
+                tracing::warn!("Registry discovery error: {e}");
             },
             Err(e) => {
                 tracing::warn!("Registry RPC error: {}", e);
@@ -471,7 +495,7 @@ impl PrimalDiscovery for RegistryDiscovery {
             .await
         {
             Ok(Ok(_)) => Ok(()),
-            Ok(Err(e)) => Err(DiscoveryError::ServiceUnavailable(e)),
+            Ok(Err(e)) => Err(DiscoveryError::ServiceUnavailable(e.to_string())),
             Err(e) => {
                 // Fall back to local registration
                 self.fallback.announce(primal).await?;

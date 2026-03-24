@@ -86,7 +86,8 @@ mod unit_tests {
     #[test]
     fn test_braid_context_default() {
         let ctx = BraidContext::default();
-        assert!((ctx.version - 1.1).abs() < f32::EPSILON);
+        let version_json = serde_json::to_value(ctx.version).unwrap();
+        assert!((version_json.as_f64().unwrap() - 1.1).abs() < f64::EPSILON);
         assert!(ctx.imports.contains_key("prov"));
         assert!(ctx.imports.contains_key("ecop"));
     }
@@ -366,7 +367,7 @@ mod proptests {
     fn test_braid_builder_metadata() {
         let did = Did::new("did:key:z6MkBuilderMeta");
         let meta = BraidMetadata {
-            tags: vec!["important".to_string()],
+            tags: vec!["important".into()],
             ..BraidMetadata::default()
         };
         let braid = Braid::builder()
@@ -378,7 +379,8 @@ mod proptests {
             .build()
             .expect("should build");
 
-        assert_eq!(braid.metadata.tags, vec!["important"]);
+        let expected: Vec<std::sync::Arc<str>> = vec!["important".into()];
+        assert_eq!(braid.metadata.tags, expected);
     }
 
     #[test]

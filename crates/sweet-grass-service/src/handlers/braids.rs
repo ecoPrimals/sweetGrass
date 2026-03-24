@@ -7,6 +7,8 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
 };
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 use sweet_grass_core::{
     Braid,
@@ -162,9 +164,14 @@ pub async fn create_braid(
 
     // Build metadata
     let metadata = BraidMetadata {
-        title: request.title,
-        description: request.description,
-        tags: request.tags.unwrap_or_default(),
+        title: request.title.map(Arc::from),
+        description: request.description.map(Arc::from),
+        tags: request
+            .tags
+            .unwrap_or_default()
+            .into_iter()
+            .map(Arc::from)
+            .collect(),
         ..Default::default()
     };
 
@@ -206,7 +213,7 @@ pub async fn create_provenance_braid(
 
     // Create metadata
     let metadata = BraidMetadata {
-        tags: request.tags,
+        tags: request.tags.into_iter().map(Arc::from).collect(),
         ..Default::default()
     };
 
@@ -600,7 +607,7 @@ mod tests {
         let state = make_state();
 
         let metadata = BraidMetadata {
-            tags: vec!["special".to_string()],
+            tags: vec!["special".into()],
             ..Default::default()
         };
         let braid = state

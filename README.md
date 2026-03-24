@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.26 | 1,128 tests | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | Sovereign types
+v0.7.27 | 1,128 tests | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | Sovereign types
 
 ---
 
@@ -180,7 +180,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.26 |
+| Version | v0.7.27 |
 | Tests | 1,128 passing |
 | Coverage | ~90% lines (llvm-cov, excluding Postgres runtime tests) |
 | Edition | 2024 (MSRV 1.87) |
@@ -211,7 +211,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 ### Zero-Copy
 
-`ContentHash`, `BraidId`, `Did`, `ActivityId`, `Braid.mime_type`, `EcoPrimalsAttributes.source_primal`, `EcoPrimalsAttributes.niche`, `LoamCommitRef.spine_id`, `BraidFactory.source_primal`, and `CompressionEngine.source_primal` use `Arc<str>` internally — `.clone()` is O(1) atomic refcount increment. MIME type indexes (`MemoryStore`, `AgentContributions`) share the same `Arc<str>`, eliminating per-query allocations on hot paths. `BraidSignature` fields use `Cow<'static, str>` for zero-allocation static values. `BraidContext.imports` uses `IndexMap` for deterministic serialization.
+`ContentHash`, `BraidId`, `Did`, `ActivityId`, `Braid.mime_type`, `BraidMetadata.title`, `BraidMetadata.description`, `BraidMetadata.tags`, `EcoPrimalsAttributes.source_primal`, `EcoPrimalsAttributes.niche`, `LoamCommitRef.spine_id`, `BraidFactory.source_primal`, and `CompressionEngine.source_primal` use `Arc<str>` internally — `.clone()` is O(1) atomic refcount increment. MIME type and tag indexes (`MemoryStore`, `AgentContributions`) share the same `Arc<str>`, eliminating per-query allocations on hot paths. `BraidSignature` fields use `Cow<'static, str>` for zero-allocation static values. `BraidContext.imports` uses `IndexMap` for deterministic serialization.
 
 ### Configuration
 

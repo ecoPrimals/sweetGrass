@@ -238,33 +238,54 @@ pub trait BraidStore: Send + Sync {
 
     /// Get multiple Braids by ID in parallel with bounded concurrency.
     ///
-    /// This method provides optimized batch retrieval by processing
-    /// multiple IDs concurrently with controlled parallelism.
+    /// Returns a tuple of (`results`, `errors`) — matching `put_batch` semantics.
+    /// Each result corresponds positionally to the input ID: `Some(braid)` if found,
+    /// `None` if the ID does not exist. Store failures are collected in `errors`
+    /// and the corresponding position gets `None`.
     ///
     /// # Arguments
     /// * `ids` - Slice of braid IDs to retrieve
     /// * `concurrency` - Maximum number of concurrent operations (defaults to 20)
     ///
-    /// # Returns
-    /// A vector of `Option<Braid>`, one for each ID (None if not found)
-    ///
     /// # Example
     /// ```rust,ignore
     /// let ids = vec![id1, id2, id3];
-    /// let braids = store.get_batch(&ids, Some(20)).await;
+    /// let (braids, errors) = store.get_batch(&ids, Some(20)).await;
+    /// if !errors.is_empty() {
+    ///     tracing::warn!("get_batch had {} store errors", errors.len());
+    /// }
     /// ```
-    async fn get_batch(&self, ids: &[BraidId], concurrency: Option<usize>) -> Vec<Option<Braid>> {
+    async fn get_batch(
+        &self,
+        ids: &[BraidId],
+        concurrency: Option<usize>,
+    ) -> (Vec<Option<Braid>>, Vec<crate::StoreError>) {
         use futures::stream::{self, StreamExt};
 
         let concurrency = concurrency.unwrap_or(20);
 
-        // Collect futures first, then execute in parallel
         let mut futures = Vec::with_capacity(ids.len());
         for id in ids {
-            futures.push(async move { self.get(id).await.ok().flatten() });
+            futures.push(self.get(id));
         }
 
-        stream::iter(futures).buffered(concurrency).collect().await
+        let results: Vec<Result<Option<Braid>>> =
+            stream::iter(futures).buffered(concurrency).collect().await;
+
+        let mut braids = Vec::with_capacity(results.len());
+        let mut errors = Vec::new();
+
+        for result in results {
+            match result {
+                Ok(braid) => braids.push(braid),
+                Err(e) => {
+                    errors.push(e);
+                    braids.push(None);
+                },
+            }
+        }
+
+        (braids, errors)
     }
 
     /// Get a Braid by content hash.

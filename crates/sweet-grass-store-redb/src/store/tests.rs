@@ -425,8 +425,9 @@ async fn test_get_batch() {
     }
 
     let ids: Vec<BraidId> = braids.iter().map(|b| b.id.clone()).collect();
-    let results = store.get_batch(&ids, Some(10)).await;
+    let (results, errors) = store.get_batch(&ids, Some(10)).await;
 
+    assert!(errors.is_empty());
     assert_eq!(results.len(), 4);
     let expected_hashes: std::collections::HashSet<_> =
         (0..4).map(|i| format!("sha256:getbatch{i}")).collect();
@@ -450,8 +451,9 @@ async fn test_get_batch_mixed_existent_nonexistent() {
         BraidId::from_string("nonexistent-1".to_string()),
         braid.id.clone(),
     ];
-    let results = store.get_batch(&ids, Some(5)).await;
+    let (results, errors) = store.get_batch(&ids, Some(5)).await;
 
+    assert!(errors.is_empty());
     assert_eq!(results.len(), 3);
     assert!(results[0].is_some());
     assert!(results[1].is_none());
@@ -483,7 +485,7 @@ async fn test_store_large_braid() {
 
     let mut braid = create_test_braid("sha256:large");
     braid.size = 10 * 1024 * 1024;
-    braid.metadata.description = Some("x".repeat(100_000));
+    braid.metadata.description = Some("x".repeat(100_000).into());
 
     store.put(&braid).await.expect("put");
     let retrieved = store.get(&braid.id).await.expect("get");
@@ -518,7 +520,7 @@ async fn test_query_with_tag_filter() {
     let (store, _temp) = create_test_store();
 
     let mut braid_with_tag = create_test_braid("sha256:tagged");
-    braid_with_tag.metadata.tags = vec!["important".to_string(), "review".to_string()];
+    braid_with_tag.metadata.tags = vec!["important".into(), "review".into()];
     store.put(&braid_with_tag).await.expect("put");
 
     let braid_no_tag = create_test_braid("sha256:untagged");
@@ -535,7 +537,8 @@ async fn test_query_with_tag_filter() {
         result.braids[0]
             .metadata
             .tags
-            .contains(&"important".to_string())
+            .iter()
+            .any(|t| t.as_ref() == "important")
     );
 }
 
@@ -544,7 +547,7 @@ async fn test_query_combined_filters() {
     let (store, _temp) = create_test_store();
 
     let mut braid = create_test_braid("sha256:combined");
-    braid.metadata.tags.push("test".to_string());
+    braid.metadata.tags.push("test".into());
     store.put(&braid).await.expect("put");
 
     let filter = QueryFilter::new()

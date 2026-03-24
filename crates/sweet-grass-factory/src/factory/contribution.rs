@@ -63,7 +63,7 @@ impl super::BraidFactory {
             ..BraidMetadata::default()
         };
         if let Some(desc) = &record.description {
-            metadata.description = Some(desc.clone());
+            metadata.description = Some(Arc::from(desc.as_str()));
         }
 
         let source_primal = record.source_primal.as_ref().map_or_else(

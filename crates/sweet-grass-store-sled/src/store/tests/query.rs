@@ -196,7 +196,7 @@ async fn test_query_with_tag_filter() {
     let (store, _temp) = create_test_store();
 
     let mut braid_with_tag = create_test_braid("sha256:tagged");
-    braid_with_tag.metadata.tags = vec!["important".to_string(), "review".to_string()];
+    braid_with_tag.metadata.tags = vec!["important".into(), "review".into()];
     store.put(&braid_with_tag).await.expect("put");
 
     let braid_no_tag = create_test_braid("sha256:untagged");
@@ -213,7 +213,8 @@ async fn test_query_with_tag_filter() {
         result.braids[0]
             .metadata
             .tags
-            .contains(&"important".to_string())
+            .iter()
+            .any(|t| t.as_ref() == "important")
     );
 }
 
@@ -222,7 +223,7 @@ async fn test_query_combined_filters() {
     let (store, _temp) = create_test_store();
 
     let mut braid = create_test_braid("sha256:combined");
-    braid.metadata.tags.push("test".to_string());
+    braid.metadata.tags.push("test".into());
     store.put(&braid).await.expect("put");
 
     let filter = QueryFilter::new()

@@ -357,7 +357,11 @@ impl BraidStore for SledStore {
                         continue;
                     }
                     if let Some(tag) = &filter.tag
-                        && !braid.metadata.tags.contains(tag)
+                        && !braid
+                            .metadata
+                            .tags
+                            .iter()
+                            .any(|t| t.as_ref() == tag.as_str())
                     {
                         continue;
                     }

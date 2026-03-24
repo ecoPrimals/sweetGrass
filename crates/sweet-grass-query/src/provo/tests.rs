@@ -77,7 +77,7 @@ fn test_json_output() {
 #[test]
 fn test_without_metadata() {
     let mut braid = make_test_braid("sha256:test", "did:key:z6MkTest");
-    braid.metadata.title = Some("Test Title".to_string());
+    braid.metadata.title = Some("Test Title".into());
 
     let exporter = ProvoExport::new().include_metadata(false);
     let doc = exporter.export_braid(&braid).expect("should export");
@@ -180,7 +180,7 @@ fn test_export_with_activity() {
 #[test]
 fn test_export_with_metadata_title() {
     let mut braid = make_test_braid("sha256:titled", "did:key:z6MkTest");
-    braid.metadata.title = Some("Test Document".to_string());
+    braid.metadata.title = Some("Test Document".into());
 
     let exporter = ProvoExport::new().include_metadata(true);
     let doc = exporter.export_braid(&braid).expect("should export");
@@ -206,7 +206,7 @@ fn test_export_with_ecop_extensions() {
 #[test]
 fn test_export_with_both_disabled() {
     let mut braid = make_test_braid("sha256:minimal", "did:key:z6MkTest");
-    braid.metadata.title = Some("Should Not Appear".to_string());
+    braid.metadata.title = Some("Should Not Appear".into());
     braid.ecop.source_primal = Some(Arc::from("shouldNotAppear"));
 
     let exporter = ProvoExport::new()
@@ -482,7 +482,7 @@ fn test_to_json_compact_success() {
 #[test]
 fn test_export_with_metadata_description() {
     let mut braid = make_test_braid("sha256:desc_test", "did:key:z6MkTest");
-    braid.metadata.description = Some("A test description".to_string());
+    braid.metadata.description = Some("A test description".into());
 
     let exporter = ProvoExport::new().include_metadata(true);
     let doc = exporter.export_braid(&braid).expect("should export");

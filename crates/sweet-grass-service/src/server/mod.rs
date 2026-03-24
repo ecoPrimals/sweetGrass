@@ -522,7 +522,10 @@ impl SweetGrassRpc for SweetGrassServer {
     }
 }
 
-/// Start the tarpc server.
+/// Start the tarpc server with coordinated shutdown.
+///
+/// Accepts connections until `shutdown` signals. Existing connections
+/// continue until their in-flight requests complete.
 ///
 /// # Errors
 ///
@@ -530,6 +533,7 @@ impl SweetGrassRpc for SweetGrassServer {
 pub async fn start_tarpc_server(
     addr: SocketAddr,
     server: SweetGrassServer,
+    mut shutdown: tokio::sync::watch::Receiver<bool>,
 ) -> std::result::Result<(), crate::ServiceError> {
     let listener = tarpc::serde_transport::tcp::listen(&addr, Bincode::default)
         .await
@@ -537,21 +541,29 @@ pub async fn start_tarpc_server(
 
     info!("🌾 SweetGrass tarpc server listening on {}", addr);
 
-    // Accept connections and serve
     tokio::pin!(listener);
 
-    while let Some(result) = listener.next().await {
-        match result {
-            Ok(transport) => {
-                let server = server.clone();
-                tokio::spawn(async move {
-                    let channel = BaseChannel::with_defaults(transport);
-                    let () = channel.execute(server.serve()).for_each(|f| f).await;
-                });
-            },
-            Err(e) => {
-                tracing::warn!("Failed to accept connection: {}", e);
-            },
+    loop {
+        tokio::select! {
+            result = listener.next() => {
+                match result {
+                    Some(Ok(transport)) => {
+                        let server = server.clone();
+                        tokio::spawn(async move {
+                            let channel = BaseChannel::with_defaults(transport);
+                            let () = channel.execute(server.serve()).for_each(|f| f).await;
+                        });
+                    },
+                    Some(Err(e)) => {
+                        tracing::warn!("Failed to accept connection: {}", e);
+                    },
+                    None => break,
+                }
+            }
+            _ = shutdown.changed() => {
+                info!("tarpc server shutting down");
+                break;
+            }
         }
     }
 

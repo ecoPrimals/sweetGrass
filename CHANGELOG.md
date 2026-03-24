@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.27] - 2026-03-24
+
+### Deep Debt: Coordinated Shutdown, Zero-Copy Phase 3, Type Safety, Structured Errors
+
+Comprehensive debt resolution across 11 audit items: coordinated graceful
+shutdown, zero-copy BraidMetadata, JSON-LD version type safety, structured
+registry errors, discoverable vocab URIs, and store error surfacing.
+
+### Added
+
+- **Coordinated shutdown** — `tokio::sync::watch` channel coordinates HTTP,
+  tarpc, and UDS graceful shutdown; spawned servers drain in-flight requests
+  before process exit (was fire-and-forget)
+- **`JsonLdVersion` type** — replaces `f32` for `BraidContext.version`;
+  always serializes to `1.1`, validates on deserialization (eliminates float
+  precision drift in content-addressed hashing)
+- **`RegistryError` enum** — structured error type for `RegistryRpc` tarpc
+  service (`NotFound`, `RegistrationFailed`, `Internal`); replaces `String`
+- **Discoverable vocab URIs** — `ecop_vocab_uri()` / `ecop_base_uri()`
+  resolve from `ECOP_VOCAB_URI` / `ECOP_BASE_URI` env vars with fallback
+  defaults; `BraidContext::default()` uses discoverable functions
+- **`Display` impl for `AttributionNotice`** — single source of truth for
+  notice text generation (removed `notice_text` field to prevent drift)
+
+### Changed
+
+- **Zero-copy Phase 3: `BraidMetadata`** — `title: Option<String>` →
+  `Option<Arc<str>>`, `description` → `Option<Arc<str>>`, `tags: Vec<String>`
+  → `Vec<Arc<str>>`; cross-crate migration across all 10 crates + 4 store
+  backends + tests
+- **Tag index evolved** — `HashMap<String, HashSet<BraidId>>` →
+  `HashMap<Arc<str>, HashSet<BraidId>>` in memory store (zero-copy tags)
+- **`get_batch` returns errors** — changed from `Vec<Option<Braid>>` to
+  `(Vec<Option<Braid>>, Vec<StoreError>)` matching `put_batch` pattern;
+  store errors are now visible instead of silently swallowed as "not found"
+- **`CachedDiscovery.find_one`** — sorts by `last_seen` (most recent first)
+  before selecting; deterministic instead of hash-map iteration order
+- **Health check parsing** — replaced fragile `response.contains("200 OK")`
+  with numeric status code parsing; accepts any 2xx response
+- **`println!` → `tracing::info!`** — 2 chaos test diagnostics migrated
+- **`RewardShare` documented** — `share`/`amount` fields documented as
+  informational ratios with evolution path to integer basis points
+
+### Verified
+
+- `cargo fmt` — 0 diffs
+- `cargo clippy` (pedantic + nursery, `-D warnings`) — 0 warnings
+- `cargo doc` — 0 warnings
+- `cargo test` — 1,128 tests, 0 failures
+- `cargo llvm-cov` — **90.23% line coverage**
+- 0 TODOs, 0 unsafe, 0 production unwraps, all files under 1000 LOC
+
+## [0.7.26] - 2026-03-23
+
+### Ecosystem Absorption: scyBorg License, Sled Deprecation, Lint Evolution
+
+See ROADMAP.md for full details.
+
 ## [0.7.25] - 2026-03-23
 
 ### Coverage Push and Test Hygiene

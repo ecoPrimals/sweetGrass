@@ -83,10 +83,13 @@ fn matches_mime_type(braid: &Braid, filter: &QueryFilter) -> bool {
 
 /// Check tag match.
 fn matches_tag(braid: &Braid, filter: &QueryFilter) -> bool {
-    filter
-        .tag
-        .as_ref()
-        .is_none_or(|tag| braid.metadata.tags.contains(tag))
+    filter.tag.as_ref().is_none_or(|tag| {
+        braid
+            .metadata
+            .tags
+            .iter()
+            .any(|t| t.as_ref() == tag.as_str())
+    })
 }
 
 /// Check ecoPrimals-specific fields match.
@@ -297,7 +300,7 @@ mod tests {
     #[test]
     fn test_matches_tag() {
         let mut braid = make_braid("sha256:tag", "did:key:z6Mk", 100);
-        braid.metadata.tags.push("important".to_string());
+        braid.metadata.tags.push("important".into());
 
         let matching = QueryFilter::new().with_tag("important");
         assert!(matches(&braid, &matching));

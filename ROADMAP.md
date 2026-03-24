@@ -1,10 +1,26 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.26 (March 2026)
+**Current Version**: v0.7.27 (March 2026)
 
 ---
 
 ## Completed
+
+### v0.7.27 — Deep Debt: Coordinated Shutdown, Zero-Copy Phase 3, Type Safety (March 2026)
+
+- [x] **Coordinated graceful shutdown** — `tokio::sync::watch` channel coordinates HTTP, tarpc, and UDS; spawned servers drain in-flight requests before process exit (was fire-and-forget `tokio::spawn`)
+- [x] **Zero-copy Phase 3: `BraidMetadata`** — `title`, `description` → `Option<Arc<str>>`, `tags` → `Vec<Arc<str>>`; cross-crate migration across all 10 crates + 4 store backends
+- [x] **`JsonLdVersion` type** — replaces `f32` for `BraidContext.@version`; zero-size type always serializes to `1.1`, validates on deserialization (eliminates float precision drift)
+- [x] **`get_batch` error surfacing** — returns `(Vec<Option<Braid>>, Vec<StoreError>)` matching `put_batch` pattern; store errors now visible instead of silently swallowed
+- [x] **`RegistryRpc` structured errors** — `Result<T, String>` → `Result<T, RegistryError>` with `NotFound`/`RegistrationFailed`/`Internal` variants
+- [x] **Discoverable vocab URIs** — `ecop_vocab_uri()` / `ecop_base_uri()` resolve from env vars with fallback defaults; `BraidContext::default()` uses discoverable functions
+- [x] **`AttributionNotice` single source of truth** — removed `notice_text` field; `Display` impl generates text from structured data
+- [x] **`CachedDiscovery.find_one` stable ordering** — sorts by `last_seen` (newest first) for deterministic selection
+- [x] **Health check parsing** — numeric status code extraction replaces fragile string matching
+- [x] **Tag index zero-copy** — `HashMap<String, ...>` → `HashMap<Arc<str>, ...>` in memory store
+- [x] **`println!` → `tracing`** in chaos tests
+- [x] **`RewardShare` f64 documented** — informational ratios with evolution path to integer basis points (sunCloud v0.9.0+)
+- [x] 1,128 tests passing, 90.23% line coverage (llvm-cov), 0 clippy warnings, 0 doc warnings, 0 unsafe, 0 fmt issues
 
 ### v0.7.26 — Ecosystem Absorption: scyBorg License, Sled Deprecation, Lint Evolution (March 2026)
 
@@ -464,7 +480,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.26 | **March 2026** | Ecosystem Absorption: scyBorg License, Sled Deprecation, Lint Evolution (DONE) |
+| v0.7.27 | **March 2026** | Deep Debt: Coordinated Shutdown, Zero-Copy Phase 3, Type Safety (DONE) |
+| v0.7.26 | March 2026 | Ecosystem Absorption: scyBorg License, Sled Deprecation, Lint Evolution (DONE) |
 | v0.7.25 | March 2026 | Coverage Push, Test Hygiene, PUBLIC_SURFACE_STANDARD Compliance (DONE) |
 | v0.7.24 | March 2026 | Deep Debt: Zero-Copy Phase 2, Public Surface, Audit (DONE) |
 | v0.7.23 | March 2026 | Ecosystem Absorption: MCP Tool Exposure, Canonical Capabilities (DONE) |

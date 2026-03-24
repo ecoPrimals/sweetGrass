@@ -236,11 +236,14 @@ impl CompressionEngine {
 
         // Build metadata
         let metadata = BraidMetadata {
-            title: Some(format!("Session {}", session.id)),
-            description: Some(format!(
-                "Compressed from {} vertices ({} committed)",
-                analysis.vertex_count, analysis.committed_count
-            )),
+            title: Some(format!("Session {}", session.id).into()),
+            description: Some(
+                format!(
+                    "Compressed from {} vertices ({} committed)",
+                    analysis.vertex_count, analysis.committed_count
+                )
+                .into(),
+            ),
             ..Default::default()
         };
 

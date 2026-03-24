@@ -89,7 +89,7 @@ pub(super) async fn handle_pipeline_attribute(
 
         let mut metadata = sweet_grass_core::braid::BraidMetadata::default();
         if !contribution.description.is_empty() {
-            metadata.description = Some(contribution.description.clone());
+            metadata.description = Some(contribution.description.clone().into());
         }
         metadata.custom.insert(
             "attribution.weight".to_string(),

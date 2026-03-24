@@ -5,6 +5,8 @@
 //! Note: Some helpers may be unused during incremental test refactoring.
 //! They are kept for future test modules being migrated.
 
+use std::sync::Arc;
+
 use sweet_grass_core::{
     Braid,
     activity::{Activity, ActivityType},
@@ -69,9 +71,9 @@ pub fn create_test_braid(hash_suffix: &str) -> Braid {
 /// Useful for query filtering and metadata testing.
 pub fn create_braid_with_metadata(hash_suffix: &str, tags: Vec<&str>) -> Braid {
     let metadata = BraidMetadata {
-        title: Some(format!("Test Braid {hash_suffix}")),
-        description: Some("A test braid for integration testing".to_string()),
-        tags: tags.into_iter().map(String::from).collect(),
+        title: Some(format!("Test Braid {hash_suffix}").into()),
+        description: Some("A test braid for integration testing".into()),
+        tags: tags.into_iter().map(Arc::from).collect(),
         ..Default::default()
     };
 
