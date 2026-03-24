@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Comprehensive Audit: Debt Resolution, License Alignment, Safety Hardening
+
+Full-spectrum audit and debt execution session: centralized constants,
+eliminated lossy casts, aligned scyBorg license, hardened fuzz targets,
+made resilience configurable, and updated all documentation.
+
+### Added
+
+- **`identity::DEFAULT_SOURCE_PRIMAL`** — centralized constant in `sweet-grass-core`; replaces duplicate definitions in compression and factory crates
+- **`RetryPolicy::from_env()`** — env-configurable retry policy via `SWEETGRASS_RETRY_MAX`, `SWEETGRASS_RETRY_INITIAL_MS`, `SWEETGRASS_RETRY_MAX_MS`; testable `from_env_with()` constructor
+- **4 new resilience tests** — `retry_policy_from_env_defaults`, `retry_policy_from_env_custom`, `retry_policy_from_env_partial_override`, `retry_policy_from_env_invalid_values`
+
+### Changed
+
+- **`timestamp() as u64` → `u64::try_from().unwrap_or(0)`** — 8 lossy casts in signer/testing.rs and listener/tests.rs replaced with safe conversions
+- **`#![forbid(unsafe_code)]`** — added to all 3 fuzz targets (fuzz_attribution, fuzz_braid_deserialize, fuzz_query_filter)
+- **LICENSE preamble** — aligned from `AGPL-3.0-or-later` to `AGPL-3.0-only` to match all 138 SPDX headers and Cargo.toml
+- **CONTEXT.md** — corrected all 27 JSON-RPC method names to match actual dispatch table
+- **README.md** — updated metrics: 1,132 tests, 138 files, 40,328 LOC, 90.24% coverage
+
+### Removed
+
+- **Duplicate `DEFAULT_SOURCE_PRIMAL`** — removed from `sweet-grass-compression/src/engine/mod.rs` and `sweet-grass-factory/src/factory/mod.rs`
+- **`clippy::cast_sign_loss` suppression** — removed from signer/testing.rs and listener/tests.rs (no longer needed after safe cast evolution)
+
+### Metrics
+
+- 1,132 tests passing (up from 1,128)
+- 90.24% line coverage (llvm-cov)
+- 0 clippy warnings (pedantic + nursery)
+- 0 unsafe blocks, `#![forbid(unsafe_code)]` on all crates + fuzz targets
+- LICENSE aligned: AGPL-3.0-only across SPDX, Cargo.toml, and LICENSE file
+
 ## [0.7.27] - 2026-03-24
 
 ### Deep Debt: Coordinated Shutdown, Zero-Copy Phase 3, Type Safety, Structured Errors
@@ -156,7 +189,11 @@ and `DispatchOutcome` error classification alignment (rhizoCrypt v0.13.0).
 
 ## [0.7.22] - 2026-03-17
 
-### Deep Debt Resolution, Error Propagation & Standards Compliance
+### Sovereignty + Deep Debt Resolution
+
+Eliminated the last cross-primal compile-time coupling. sweetGrass now owns
+all its wire types — no shared crates. Communication with trio partners
+(rhizoCrypt, loamSpine) is via JSON-RPC only, as sovereign architecture demands.
 
 Comprehensive audit and debt resolution sprint: dependency advisory fix,
 error propagation hardening, type safety evolution, idiomatic Rust patterns,
@@ -167,8 +204,18 @@ store implementation completion, and documentation overhaul.
 - **RUSTSEC-2026-0049 fixed** — `rustls-webpki` 0.103.8 → 0.103.10 (CRL matching logic flaw)
 - **Stale advisory ignore removed** — `RUSTSEC-2024-0387` pruned from `deny.toml`
 
+### Removed
+
+- **`provenance-trio-types` dependency** — removed from workspace, `sweet-grass-core`, and `sweet-grass-service` Cargo.toml files. ~80 lines of `From` impls and wire type re-exports deleted from `dehydration.rs`.
+- **`#[allow(clippy::missing_errors_doc)]`** — removed from 3 store crate roots (redb, sled, postgres)
+- **`#[allow(dead_code)]`** — removed from pipeline wire types (now actively used), `MockAnchoringClient::with_health`, and `MockSessionEventsClient` impl block
+- **Stale RUSTSEC ignore** — `RUSTSEC-2024-0387` removed from `deny.toml`
+
 ### Added
 
+- **`PipelineRequest` / `PipelineResult` / `AgentContribution`** — inline wire types in `contribution.rs`, scoped to the handler that uses them. Only `Deserialize` or `Serialize` derived per direction (minimum necessary).
+- **`provenance-trio-types` banned in `deny.toml`** — prevents future re-introduction of shared cross-primal crates.
+- **`#[serde(default)]` on `SessionOperation.timestamp` and `Attestation.attested_at`** — wire tolerance for payloads that omit optional timing fields.
 - **`# Errors` documentation** — all public `Result`-returning methods in redb, sled, and postgres store crates now have `# Errors` doc sections
 - **`publish = false`** on all 10 workspace crates — not published to crates.io; fixes cargo-deny wildcard warnings
 - **`activities_for_braid` real implementations** — sled and redb stores now return the braid's generating activity (was returning empty `Vec`)
@@ -184,12 +231,6 @@ store implementation completion, and documentation overhaul.
 - **`bin/service.rs` CLI output** — `println!` → `writeln!(stdout.lock(), ...)` — locked stdio, no macro overhead
 - **`Vec::new()` → `Vec::with_capacity()`** — pipeline and dehydration handlers pre-allocate based on known input size
 
-### Removed
-
-- **`#[allow(clippy::missing_errors_doc)]`** — removed from 3 store crate roots (redb, sled, postgres)
-- **`#[allow(dead_code)]`** — removed from pipeline wire types (now actively used), `MockAnchoringClient::with_health`, and `MockSessionEventsClient` impl block
-- **Stale RUSTSEC ignore** — `RUSTSEC-2024-0387` removed from `deny.toml`
-
 ### Fixed
 
 - **`specs/PRIMAL_SOVEREIGNTY.md`** — tarpc version reference 0.34 → 0.37 (matches workspace)
@@ -202,26 +243,6 @@ store implementation completion, and documentation overhaul.
 - 0 `#[allow(dead_code)]` in non-test production code
 - 0 `#[allow(missing_errors_doc)]` remaining
 - cargo deny: advisories ok, bans ok, licenses ok, sources ok
-
-## [0.7.22] - 2026-03-17
-
-### Sovereignty: Remove provenance-trio-types, Inline Wire Types
-
-Eliminated the last cross-primal compile-time coupling. sweetGrass now owns
-all its wire types — no shared crates. Communication with trio partners
-(rhizoCrypt, loamSpine) is via JSON-RPC only, as sovereign architecture demands.
-
-### Removed
-
-- **`provenance-trio-types` dependency** — removed from workspace, `sweet-grass-core`, and `sweet-grass-service` Cargo.toml files. ~80 lines of `From` impls and wire type re-exports deleted from `dehydration.rs`.
-
-### Added
-
-- **`PipelineRequest` / `PipelineResult` / `AgentContribution`** — inline wire types in `contribution.rs`, scoped to the handler that uses them. Only `Deserialize` or `Serialize` derived per direction (minimum necessary).
-- **`provenance-trio-types` banned in `deny.toml`** — prevents future re-introduction of shared cross-primal crates.
-- **`#[serde(default)]` on `SessionOperation.timestamp` and `Attestation.attested_at`** — wire tolerance for payloads that omit optional timing fields.
-
-### Changed
 
 - **`handle_record_dehydration`** — now deserializes directly into sweetGrass's own `DehydrationSummary` (was: wire type → `From` → internal type). Two lines became one.
 - **Module docs** — `dehydration.rs` updated to document JSON-RPC wire contract instead of shared crate dependency.

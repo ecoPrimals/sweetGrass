@@ -5,6 +5,7 @@
 //! Tests that arbitrary JSON input doesn't cause panics in Braid deserialization.
 
 #![no_main]
+#![forbid(unsafe_code)]
 
 use libfuzzer_sys::fuzz_target;
 use sweet_grass_core::Braid;

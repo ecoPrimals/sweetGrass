@@ -1,5 +1,6 @@
-# Local override: global target-dir is on a noexec mount.
-# Build artifacts go to a path on the exec-capable root filesystem.
+# Local override: default CARGO_TARGET_DIR lives on a noexec mount (/mnt/4tb-work).
+# This redirects build artifacts to an exec-capable filesystem.
+# Other developers: set CARGO_TARGET_DIR in your env or adjust this path.
 [build]
 target-dir = "/path/to/.cargo-build/sweetGrass/target"
 

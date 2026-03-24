@@ -5,6 +5,7 @@
 //! Tests that arbitrary filter configurations don't cause panics.
 
 #![no_main]
+#![forbid(unsafe_code)]
 
 use arbitrary::Arbitrary;
 use libfuzzer_sys::fuzz_target;

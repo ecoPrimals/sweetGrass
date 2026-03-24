@@ -20,16 +20,12 @@ use sweet_grass_core::{
     primal_info::SelfKnowledge,
 };
 
+use sweet_grass_core::identity;
+
 use crate::Result;
 use crate::error::FactoryError;
 
 pub mod contribution;
-
-/// Default source primal name when self-knowledge is unavailable.
-///
-/// Prefer [`BraidFactory::from_self_knowledge()`] in production so the source
-/// primal comes from the primal's `SelfKnowledge` at runtime.
-pub const DEFAULT_SOURCE_PRIMAL: &str = "unknown";
 
 /// Parameters for creating a Braid from an anchoring provider (Loam) entry.
 #[derive(Clone, Debug)]
@@ -95,7 +91,7 @@ impl BraidFactory {
     pub fn new(default_agent: Did) -> Self {
         Self {
             default_agent,
-            source_primal: Arc::from(DEFAULT_SOURCE_PRIMAL),
+            source_primal: Arc::from(identity::DEFAULT_SOURCE_PRIMAL),
             niche: None,
         }
     }

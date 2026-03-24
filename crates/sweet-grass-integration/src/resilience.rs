@@ -178,6 +178,48 @@ impl RetryPolicy {
     }
 }
 
+impl RetryPolicy {
+    /// Create a `RetryPolicy` from environment variables, falling back to defaults.
+    ///
+    /// | Variable                          | Default |
+    /// |-----------------------------------|---------|
+    /// | `SWEETGRASS_RETRY_MAX`            | 3       |
+    /// | `SWEETGRASS_RETRY_INITIAL_MS`     | 100     |
+    /// | `SWEETGRASS_RETRY_MAX_MS`         | 5000    |
+    #[must_use]
+    pub fn from_env() -> Self {
+        Self::from_env_with(|key| std::env::var(key))
+    }
+
+    /// Testable constructor that accepts a custom env reader.
+    #[must_use]
+    pub(crate) fn from_env_with<F>(reader: F) -> Self
+    where
+        F: Fn(&str) -> Result<String, std::env::VarError>,
+    {
+        let max_retries = reader("SWEETGRASS_RETRY_MAX")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(3);
+
+        let initial_delay_ms: u64 = reader("SWEETGRASS_RETRY_INITIAL_MS")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(100);
+
+        let max_delay_ms: u64 = reader("SWEETGRASS_RETRY_MAX_MS")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(5000);
+
+        Self {
+            max_retries,
+            initial_delay: Duration::from_millis(initial_delay_ms),
+            max_delay: Duration::from_millis(max_delay_ms),
+        }
+    }
+}
+
 impl Default for RetryPolicy {
     fn default() -> Self {
         Self {
@@ -472,5 +514,48 @@ mod tests {
         assert_eq!(BreakerState::from(1), BreakerState::Open);
         assert_eq!(BreakerState::from(2), BreakerState::HalfOpen);
         assert_eq!(BreakerState::from(255), BreakerState::Closed);
+    }
+
+    #[test]
+    fn retry_policy_from_env_defaults() {
+        let policy = RetryPolicy::from_env_with(|_| Err(std::env::VarError::NotPresent));
+        assert_eq!(policy.max_retries, 3);
+        assert_eq!(policy.initial_delay, Duration::from_millis(100));
+        assert_eq!(policy.max_delay, Duration::from_secs(5));
+    }
+
+    #[test]
+    fn retry_policy_from_env_custom() {
+        let policy = RetryPolicy::from_env_with(|key| match key {
+            "SWEETGRASS_RETRY_MAX" => Ok("5".to_string()),
+            "SWEETGRASS_RETRY_INITIAL_MS" => Ok("200".to_string()),
+            "SWEETGRASS_RETRY_MAX_MS" => Ok("10000".to_string()),
+            _ => Err(std::env::VarError::NotPresent),
+        });
+        assert_eq!(policy.max_retries, 5);
+        assert_eq!(policy.initial_delay, Duration::from_millis(200));
+        assert_eq!(policy.max_delay, Duration::from_secs(10));
+    }
+
+    #[test]
+    fn retry_policy_from_env_partial_override() {
+        let policy = RetryPolicy::from_env_with(|key| match key {
+            "SWEETGRASS_RETRY_MAX" => Ok("7".to_string()),
+            _ => Err(std::env::VarError::NotPresent),
+        });
+        assert_eq!(policy.max_retries, 7);
+        assert_eq!(policy.initial_delay, Duration::from_millis(100));
+        assert_eq!(policy.max_delay, Duration::from_secs(5));
+    }
+
+    #[test]
+    fn retry_policy_from_env_invalid_values() {
+        let policy = RetryPolicy::from_env_with(|key| match key {
+            "SWEETGRASS_RETRY_MAX" => Ok("not_a_number".to_string()),
+            "SWEETGRASS_RETRY_INITIAL_MS" => Ok("-1".to_string()),
+            _ => Err(std::env::VarError::NotPresent),
+        });
+        assert_eq!(policy.max_retries, 3);
+        assert_eq!(policy.initial_delay, Duration::from_millis(100));
     }
 }

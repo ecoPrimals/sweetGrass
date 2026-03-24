@@ -27,8 +27,8 @@ attribution before distributing rewards.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 (required) + tarpc (optional high-perf) + REST + UDS
 - **License:** scyBorg Triple-Copyleft (AGPL-3.0 + ORC-1.0 + CC-BY-SA-4.0)
-- **Tests:** 1,128 passing
-- **Coverage:** 90.23% line coverage (llvm-cov, excluding Postgres which needs runtime)
+- **Tests:** 1,132 passing
+- **Coverage:** 90.24% line coverage (llvm-cov, excluding Postgres which needs runtime)
 - **MSRV:** 1.87 (Edition 2024)
 - **Crate count:** 10 workspace crates
 - **Unsafe code:** 0 blocks (`#![forbid(unsafe_code)]` on all crates)
@@ -38,14 +38,15 @@ attribution before distributing rewards.
 
 27 semantic methods across 8 domains:
 
-- `braid.create`, `braid.get`, `braid.query`, `braid.commit` — provenance record CRUD
-- `contribution.record`, `contribution.recordSession`, `contribution.recordDehydration` — inter-primal contribution tracking
-- `attribution.calculate`, `attribution.query`, `attribution.graph` — fair credit assignment
-- `compression.analyze`, `compression.compress` — session compression (0/1/Many)
-- `provenance.export`, `provenance.graph` — W3C PROV-O export
+- `braid.create`, `braid.get`, `braid.get_by_hash`, `braid.query`, `braid.delete`, `braid.commit` — provenance record CRUD
+- `contribution.record`, `contribution.record_session`, `contribution.record_dehydration` — inter-primal contribution tracking
+- `attribution.chain`, `attribution.calculate_rewards`, `attribution.top_contributors` — fair credit assignment
+- `compression.compress_session`, `compression.create_meta_braid` — session compression (0/1/Many)
+- `provenance.graph`, `provenance.export_provo`, `provenance.export_graph_provo` — W3C PROV-O export
+- `anchoring.anchor`, `anchoring.verify` — LoamSpine anchoring
 - `health.check`, `health.liveness`, `health.readiness` — health probes
 - `capabilities.list`, `tools.list`, `tools.call` — self-knowledge and MCP tool exposure
-- `pipeline.attribute` — provenance trio pipeline integration
+- `pipeline.attribute` — provenance trio pipeline coordination
 
 ## What This Does NOT Do
 

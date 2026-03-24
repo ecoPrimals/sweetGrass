@@ -10,10 +10,6 @@
 //! rather than primal-specific names.
 
 #![cfg(any(test, feature = "test"))]
-#![expect(
-    clippy::cast_sign_loss,
-    reason = "test-only module; timestamp cast from i64 to u64 is safe in tests"
-)]
 
 use std::borrow::Cow;
 
@@ -93,7 +89,7 @@ impl SigningClient for MockSigningClient {
                 let now = chrono::Utc::now();
                 Ok(BraidSignature {
                     sig_type: Cow::Borrowed("Ed25519Signature2020"),
-                    created: now.timestamp() as u64,
+                    created: u64::try_from(now.timestamp()).unwrap_or(0),
                     verification_method: Cow::Owned(format!("{}#keys-1", self.did.as_str())),
                     proof_purpose: Cow::Borrowed("assertionMethod"),
                     proof_value: Cow::Borrowed("mock-signature-value"),
@@ -110,7 +106,7 @@ impl SigningClient for MockSigningClient {
         Ok(SignatureInfo {
             signer: self.did.clone(),
             algorithm: "Ed25519Signature2020".to_string(),
-            signed_at: now.timestamp() as u64,
+            signed_at: u64::try_from(now.timestamp()).unwrap_or(0),
             valid,
         })
     }

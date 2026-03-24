@@ -82,6 +82,14 @@ pub mod identity {
     /// Overridden by `SweetGrassConfig.sled_path` or the `SWEETGRASS_SLED_PATH`
     /// environment variable. This is a fallback for local development only.
     pub const DEFAULT_SLED_PATH: &str = "./data/sweetgrass";
+
+    /// Default source primal name when `SelfKnowledge` is unavailable.
+    ///
+    /// Used by `BraidFactory` and `CompressionEngine` as a fallback when the
+    /// primal has not been initialized with runtime self-knowledge. Production
+    /// code should always prefer constructors that accept `SelfKnowledge` so
+    /// the source primal is discovered at runtime.
+    pub const DEFAULT_SOURCE_PRIMAL: &str = "unknown";
 }
 
 // Re-exports for convenience

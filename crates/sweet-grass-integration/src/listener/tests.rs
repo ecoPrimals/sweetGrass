@@ -5,7 +5,6 @@
 #![expect(
     clippy::expect_used,
     clippy::unwrap_used,
-    clippy::cast_sign_loss,
     reason = "test module: expect/unwrap are standard in tests"
 )]
 
@@ -90,7 +89,7 @@ async fn test_mock_client_subscribe() {
             session_id: "test-session".to_string(),
             event_type: SessionEventType::Started,
             session: None,
-            timestamp: chrono::Utc::now().timestamp() as u64,
+            timestamp: u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0),
             agent: Did::new("did:key:z6MkTest"),
         })
         .await;
@@ -113,7 +112,7 @@ async fn test_mock_client_subscribe_multiple_events() {
                 session_id: format!("session-{i}"),
                 event_type: SessionEventType::Started,
                 session: None,
-                timestamp: chrono::Utc::now().timestamp() as u64,
+                timestamp: u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0),
                 agent: Did::new("did:key:z6MkTest"),
             })
             .await;
@@ -211,7 +210,7 @@ async fn test_mock_event_stream_close() {
                 session_id: format!("session-{i}"),
                 event_type: SessionEventType::Started,
                 session: None,
-                timestamp: chrono::Utc::now().timestamp() as u64,
+                timestamp: u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0),
                 agent: Did::new("did:key:z6MkTest"),
             })
             .await;
@@ -328,7 +327,7 @@ async fn test_event_handler_start_processes_committed_event() {
             session_id: "compress-test".to_string(),
             event_type: SessionEventType::Committed,
             session: Some(session),
-            timestamp: chrono::Utc::now().timestamp() as u64,
+            timestamp: u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0),
             agent: Did::new("did:key:z6MkTest"),
         })
         .await;
@@ -365,7 +364,7 @@ async fn test_event_handler_start_ignores_rolled_back() {
             session_id: "rollback-session".to_string(),
             event_type: SessionEventType::RolledBack,
             session: None,
-            timestamp: chrono::Utc::now().timestamp() as u64,
+            timestamp: u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0),
             agent: Did::new("did:key:z6MkTest"),
         })
         .await;

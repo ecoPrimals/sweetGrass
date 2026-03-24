@@ -14,17 +14,13 @@ use sweet_grass_core::{
 };
 use sweet_grass_factory::BraidFactory;
 
+use sweet_grass_core::identity;
+
 use crate::Result;
 use crate::analyzer::{SessionAnalysis, SessionAnalyzer};
 use crate::error::CompressionError;
 use crate::session::Session;
 use crate::strategy::{CompressionConfig, CompressionStrategy, DiscardReason};
-
-/// Default source primal name when `SelfKnowledge` has not been used.
-///
-/// Prefer [`CompressionEngine::with_source()`] or construction from self-knowledge
-/// so the source primal comes from the primal's `SelfKnowledge` at runtime.
-pub const DEFAULT_SOURCE_PRIMAL: &str = "unknown";
 
 /// Result of compression.
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -111,7 +107,7 @@ impl CompressionEngine {
             analyzer: SessionAnalyzer::new(config.clone()),
             config,
             factory,
-            source_primal: Arc::from(DEFAULT_SOURCE_PRIMAL),
+            source_primal: Arc::from(identity::DEFAULT_SOURCE_PRIMAL),
         }
     }
 
