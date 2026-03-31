@@ -270,7 +270,7 @@ impl BraidFactory {
 
         let mut braid = Braid::builder()
             .data_hash(hash)
-            .mime_type("application/vnd.ecoprimals.meta-braid")
+            .mime_type(identity::MIME_META_BRAID)
             .size(0)
             .braid_type(braid_type)
             .attributed_to(self.default_agent.clone())
@@ -409,7 +409,7 @@ impl BraidFactory {
 
         Braid::builder()
             .data_hash(data_hash)
-            .mime_type("application/vnd.ecoprimals.certificate")
+            .mime_type(identity::MIME_CERTIFICATE)
             .size(size)
             .attributed_to(recipient)
             .generated_by(activity)

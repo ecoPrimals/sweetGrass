@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.27 | 1,147 tests | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | Sovereign types
+v0.7.27 | 1,175 tests | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | Sovereign types
 
 ---
 
@@ -25,18 +25,21 @@ Standards: W3C PROV-O | JSON-RPC 2.0 | tarpc binary RPC | REST | Pure Rust | No 
 # Build the UniBin
 cargo build --release
 
-# Start the server
-./target/release/sweetgrass server
+# Start the server (with TCP JSON-RPC on port 9100)
+./target/release/sweetgrass server --port 9100
 
-# Health check
+# Health check via REST
 curl http://localhost:8080/health
 
-# Create a braid via JSON-RPC
+# JSON-RPC over HTTP
 curl -X POST http://localhost:8080/jsonrpc \
   -H 'Content-Type: application/json' \
   -d '{"jsonrpc":"2.0","method":"health.check","params":{},"id":1}'
 
-# Or use REST
+# JSON-RPC over TCP (newline-delimited)
+echo '{"jsonrpc":"2.0","method":"health.liveness","params":{},"id":1}' | nc localhost 9100
+
+# REST API
 curl http://localhost:8080/api/v1/braids
 ```
 
@@ -73,15 +76,21 @@ curl http://localhost:8080/api/v1/braids
 
 ### Protocol Stack
 
-- **JSON-RPC 2.0** (primary): `POST /jsonrpc` with 27 semantic methods, batch requests, and notification support (`braid.create`, `braid.commit`, `contribution.record`, `capabilities.list`, `tools.list`, `tools.call`, `health.check`, `health.liveness`, `health.readiness`, etc.)
-- **MCP tool exposure**: `tools.list` + `tools.call` for Squirrel AI coordination (airSpring v0.10 pattern)
-- **Unix domain socket** (biomeOS IPC): Newline-delimited JSON-RPC 2.0 over UDS with XDG-compliant path resolution
-- **tarpc** (high-performance binary): Pure Rust RPC, no gRPC/protobuf
-- **REST** (HTTP/JSON): `/api/v1/braids` for debugging and admin
+| Protocol | Env Var | Latency | Use Case |
+|----------|---------|---------|----------|
+| tarpc | `SWEETGRASS_TARPC_ADDRESS` | ~50μs | Primal-to-primal binary RPC |
+| TCP JSON-RPC | `SWEETGRASS_PORT` | ~1ms | Composition (`--port`, UniBin standard) |
+| UDS JSON-RPC | `SWEETGRASS_SOCKET` | ~0.5ms | biomeOS IPC (XDG-compliant) |
+| HTTP JSON-RPC | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | 27 methods, batch, MCP tools |
+| REST | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | Debug, admin (`/api/v1/braids`) |
+
+- **JSON-RPC 2.0**: 27 semantic methods (`braid.create`, `braid.commit`, `contribution.record`, `capabilities.list`, `tools.list`, `tools.call`, `health.check`, etc.) with batch requests and notification support
+- **MCP tool exposure**: `tools.list` + `tools.call` for Squirrel AI coordination
+- **Capability-domain symlink**: `provenance.sock -> sweetgrass.sock` for Tier 3 filesystem discovery
 
 ### UniBin
 
-Single binary with subcommands (`sweetgrass server`, `sweetgrass status`, `sweetgrass capabilities`, `sweetgrass socket`), graceful shutdown, runtime backend selection. The `capabilities` subcommand dumps capability metadata offline; `socket` prints the resolved UDS path.
+Single binary with subcommands (`sweetgrass server`, `sweetgrass status`, `sweetgrass capabilities`, `sweetgrass socket`), graceful shutdown, runtime backend selection. The `--port` flag binds a newline-delimited TCP JSON-RPC listener per UniBin standard v1.1. The `capabilities` subcommand dumps capability metadata offline; `socket` prints the resolved UDS path.
 
 ---
 
@@ -154,8 +163,10 @@ cargo llvm-cov --workspace
 ```bash
 STORAGE_BACKEND=redb                     # or: memory, postgres, sled (with --features sled)
 DATABASE_URL=postgresql://...            # for postgres backend
-SWEETGRASS_HTTP_ADDRESS=0.0.0.0:8080    # REST + JSON-RPC endpoint
+SWEETGRASS_HTTP_ADDRESS=0.0.0.0:8080    # REST + HTTP JSON-RPC endpoint
+SWEETGRASS_PORT=9100                     # TCP JSON-RPC (UniBin --port)
 SWEETGRASS_TARPC_ADDRESS=0.0.0.0:8091   # Binary RPC endpoint
+SWEETGRASS_SOCKET=/run/user/1000/biomeos/sweetgrass.sock  # UDS JSON-RPC
 ```
 
 See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
@@ -181,16 +192,16 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Metric | Value |
 |--------|-------|
 | Version | v0.7.27 |
-| Tests | 1,147 passing |
-| Coverage | 90.54% region (llvm-cov, excluding Postgres runtime tests) |
+| Tests | 1,175 passing |
+| Coverage | 90.90% region / 89.58% line (llvm-cov, excluding Postgres Docker tests) |
 | Edition | 2024 (MSRV 1.87) |
-| Unsafe code | 0 (`#![forbid(unsafe_code)]` all crates + fuzz targets, DI pattern in tests) |
+| Unsafe code | 0 (`#![forbid(unsafe_code)]` unconditional on all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
-| Max file size | 829 lines (limit: 1000) |
-| .rs files | 139 (40,851 LOC) |
+| Max file size | 705 lines (limit: 1000) |
+| .rs files | 137 (41,220 LOC) |
 | TODOs in source | 0 |
-| SPDX + copyright | All 139 .rs files |
+| SPDX + copyright | All 137 .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0 + ORC-1.0 + CC-BY-SA-4.0) |
 | cargo deny | advisories ok, bans ok, licenses ok, sources ok |
 | Benchmarks | 7 criterion groups |

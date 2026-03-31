@@ -254,6 +254,8 @@ pub enum SummaryType {
 pub const PROV_VOCAB_URI: &str = "http://www.w3.org/ns/prov#";
 /// W3C XML Schema namespace.
 pub const XSD_VOCAB_URI: &str = "http://www.w3.org/2001/XMLSchema#";
+/// W3C RDF Schema namespace.
+pub const RDFS_VOCAB_URI: &str = "http://www.w3.org/2000/01/rdf-schema#";
 /// Schema.org namespace.
 pub const SCHEMA_VOCAB_URI: &str = "http://schema.org/";
 

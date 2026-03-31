@@ -193,16 +193,11 @@ impl SigningClient for TarpcSigningClient {
     }
 }
 
-/// Async factory function to create a signing client from a discovered primal.
+/// Create a signing client by connecting to a discovered primal via tarpc.
 ///
-/// This is the recommended way to create clients in production code.
-/// It uses capability-based discovery and connects via tarpc.
-///
-/// ## `#[cfg]` branching (compile-time, not runtime)
-///
-/// This function uses `#[cfg(any(test, feature = "test"))]` branching.
-/// The mock is **only** returned when compiled with `cargo test` or the
-/// `test` feature. Production builds always get the real tarpc client.
+/// This is the production factory — always connects to the real primal.
+/// Tests should construct `MockSigningClient` directly via the `testing`
+/// module rather than going through this factory.
 ///
 /// # Errors
 ///
@@ -211,16 +206,6 @@ impl SigningClient for TarpcSigningClient {
 pub async fn create_signing_client_async(
     primal: &DiscoveredPrimal,
 ) -> std::result::Result<Arc<dyn SigningClient>, IntegrationError> {
-    #[cfg(any(test, feature = "test"))]
-    {
-        // In test mode, return mock client
-        let _ = primal; // Silence unused warning
-        Ok(Arc::new(super::testing::MockSigningClient::new()))
-    }
-    #[cfg(not(any(test, feature = "test")))]
-    {
-        // In production, connect via tarpc
-        let client = TarpcSigningClient::from_primal(primal).await?;
-        Ok(Arc::new(client))
-    }
+    let client = TarpcSigningClient::from_primal(primal).await?;
+    Ok(Arc::new(client))
 }

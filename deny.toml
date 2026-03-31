@@ -12,7 +12,6 @@ ignore = [
     "RUSTSEC-2025-0111",
     "RUSTSEC-2025-0134",
     "RUSTSEC-2025-0141",
-    "RUSTSEC-2026-0009",
 ]
 
 [licenses]
@@ -61,8 +60,22 @@ deny = [
     { name = "provenance-trio-types", wrappers = [], reason = "Boundary violation — primals communicate via JSON-RPC, not shared crates" },
 ]
 
-skip = []
-skip-tree = []
+skip = [
+    # sqlx 0.8 → hashlink → hashbrown 0.15; indexmap 2 → hashbrown 0.16
+    { name = "hashbrown", version = "=0.15.5" },
+]
+skip-tree = [
+    # sled 0.34 is unmaintained and pulls in parking_lot 0.11, old hashbrown.
+    # Kept as optional backend; redb is the primary embedded store.
+    { name = "sled" },
+    # Dev-only: criterion benchmarks pull in older rand/getrandom chains
+    { name = "criterion" },
+    # Dev-only: proptest pulls in rand 0.8 / rand_chacha 0.3 chains
+    { name = "proptest" },
+    # Dev-only: testcontainers pulls in bollard → older base64, docker deps
+    { name = "testcontainers" },
+    { name = "testcontainers-modules" },
+]
 
 [sources]
 unknown-registry = "deny"

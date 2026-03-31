@@ -27,8 +27,7 @@
 //! ```
 
 #![warn(missing_docs)]
-#![cfg_attr(not(test), forbid(unsafe_code))]
-#![cfg_attr(test, deny(unsafe_code))]
+#![forbid(unsafe_code)]
 
 pub mod activity;
 pub mod agent;
@@ -67,6 +66,12 @@ pub mod identity {
 
     /// MIME type for generic binary data (dehydration operations).
     pub const MIME_OCTET_STREAM: &str = "application/octet-stream";
+
+    /// MIME type for meta-braids (collection summaries).
+    pub const MIME_META_BRAID: &str = "application/vnd.ecoprimals.meta-braid";
+
+    /// MIME type for certificate mint braids.
+    pub const MIME_CERTIFICATE: &str = "application/vnd.ecoprimals.certificate";
 
     /// Default storage backend when none is configured.
     pub const DEFAULT_STORAGE_BACKEND: &str = "memory";

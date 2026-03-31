@@ -259,3 +259,105 @@ fn test_capability_roundtrip() {
         assert_eq!(parsed, Some(cap.clone()));
     }
 }
+
+#[test]
+fn test_env_overrides_all_fields() {
+    let reader = mock_reader(&[
+        ("SWEETGRASS_NAME", "EnvPrimal"),
+        ("SWEETGRASS_TARPC_LISTEN", "0.0.0.0:5000"),
+        ("SWEETGRASS_REST_LISTEN", "0.0.0.0:8080"),
+        ("SWEETGRASS_DISCOVERY_BOOTSTRAP", "registry:9000"),
+    ]);
+
+    let config = SweetGrassConfig::load_with_reader(reader).expect("load");
+    assert_eq!(config.name, "EnvPrimal");
+    assert_eq!(config.network.tarpc_listen.as_deref(), Some("0.0.0.0:5000"));
+    assert_eq!(config.network.rest_listen.as_deref(), Some("0.0.0.0:8080"));
+    assert_eq!(
+        config.network.discovery_bootstrap.as_deref(),
+        Some("registry:9000")
+    );
+}
+
+#[test]
+fn test_builder_rest_listen_and_storage() {
+    let config = SweetGrassConfig::builder()
+        .rest_listen("127.0.0.1:3000")
+        .storage_backend(StorageBackend::Postgres)
+        .build();
+
+    assert_eq!(
+        config.network.rest_listen.as_deref(),
+        Some("127.0.0.1:3000")
+    );
+    assert_eq!(config.storage.backend, StorageBackend::Postgres);
+}
+
+#[test]
+fn test_listener_config_serialization() {
+    let config = ListenerConfig::default();
+    let json = serde_json::to_string(&config).expect("serialize");
+    let parsed: ListenerConfig = serde_json::from_str(&json).expect("deserialize");
+    assert!(parsed.session_events);
+    assert!(parsed.anchoring);
+    assert!(parsed.compute);
+    assert_eq!(parsed.buffer_size, 1000);
+    assert_eq!(parsed.batch_size, 100);
+}
+
+#[test]
+fn test_storage_backend_variants() {
+    for (variant, expected) in [
+        (StorageBackend::Memory, "\"memory\""),
+        (StorageBackend::File, "\"file\""),
+        (StorageBackend::Postgres, "\"postgres\""),
+        (StorageBackend::Oxigraph, "\"oxigraph\""),
+    ] {
+        let json = serde_json::to_string(&variant).expect("serialize");
+        assert_eq!(json, expected);
+    }
+
+    let custom = StorageBackend::Custom("s3".to_string());
+    let json = serde_json::to_string(&custom).expect("serialize");
+    let parsed: StorageBackend = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(parsed, custom);
+}
+
+#[test]
+fn test_config_error_display() {
+    let err = ConfigError::Invalid("bad value".to_string());
+    assert!(err.to_string().contains("bad value"));
+
+    let err = ConfigError::Missing("required_field".to_string());
+    assert!(err.to_string().contains("required_field"));
+
+    let err = ConfigError::Environment("VAR_NOT_SET".to_string());
+    assert!(err.to_string().contains("VAR_NOT_SET"));
+
+    let err = ConfigError::Parse("line 3: unexpected".to_string());
+    assert!(err.to_string().contains("unexpected"));
+}
+
+#[test]
+fn test_network_config_serialization() {
+    let config = NetworkConfig::default();
+    let json = serde_json::to_string(&config).expect("serialize");
+    let parsed: NetworkConfig = serde_json::from_str(&json).expect("deserialize");
+    assert_eq!(parsed.discovery_retries, 3);
+    assert_eq!(
+        parsed.connection_timeout,
+        std::time::Duration::from_secs(10)
+    );
+}
+
+#[test]
+fn test_capability_custom_prefix_variants() {
+    assert_eq!(
+        Capability::from_string("Custom:my_cap"),
+        Some(Capability::Custom("my_cap".to_string()))
+    );
+    assert_eq!(
+        Capability::from_string("CUSTOM:my_cap"),
+        Some(Capability::Custom("my_cap".to_string()))
+    );
+}

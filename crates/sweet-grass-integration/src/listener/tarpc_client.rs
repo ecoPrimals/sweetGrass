@@ -138,11 +138,11 @@ impl SessionEventStream for TarpcEventStream {
 
 /// Async factory function to create a session events client from a discovered primal.
 ///
-/// ## `#[cfg]` branching (compile-time, not runtime)
+/// Create a session events client by connecting to a discovered primal via tarpc.
 ///
-/// This function uses `#[cfg(any(test, feature = "test"))]` branching.
-/// The mock is **only** returned when compiled with `cargo test` or the
-/// `test` feature. Production builds always get the real tarpc client.
+/// This is the production factory — always connects to the real primal.
+/// Tests should construct `MockSessionEventsClient` directly via the
+/// `testing` module rather than going through this factory.
 ///
 /// # Errors
 ///
@@ -150,14 +150,6 @@ impl SessionEventStream for TarpcEventStream {
 pub async fn create_session_events_client_async(
     primal: &DiscoveredPrimal,
 ) -> std::result::Result<Arc<dyn SessionEventsClient>, IntegrationError> {
-    #[cfg(any(test, feature = "test"))]
-    {
-        let _ = primal;
-        Ok(Arc::new(super::testing::MockSessionEventsClient::new()))
-    }
-    #[cfg(not(any(test, feature = "test")))]
-    {
-        let client = TarpcSessionEventsClient::from_primal(primal).await?;
-        Ok(Arc::new(client))
-    }
+    let client = TarpcSessionEventsClient::from_primal(primal).await?;
+    Ok(Arc::new(client))
 }

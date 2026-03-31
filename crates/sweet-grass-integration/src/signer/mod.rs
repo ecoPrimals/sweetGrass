@@ -194,28 +194,24 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_create_client_async() {
+    async fn test_create_client_async_requires_real_server() {
         let primal = DiscoveredPrimal {
             instance_id: "signing-001".to_string(),
             name: "signing-service".to_string(),
             capabilities: vec![Capability::Signing],
-            tarpc_address: Some("discovered:0".to_string()), // :0 = mock address
+            tarpc_address: Some("127.0.0.1:1".to_string()),
             rest_address: None,
             last_seen: std::time::SystemTime::now(),
             healthy: true,
         };
 
-        // In test mode, returns mock
-        let client = create_signing_client_async(&primal)
-            .await
-            .expect("create client");
-        assert!(client.health().await.expect("health"));
+        let result = create_signing_client_async(&primal).await;
+        assert!(result.is_err(), "should fail without a real tarpc server");
     }
 
     #[tokio::test]
-    async fn test_create_client_sync_mock_directly() {
-        // In test mode, we can use mock clients directly
-        let client = testing::MockSigningClient::new();
+    async fn test_mock_client_directly() {
+        let client: Arc<dyn SigningClient> = Arc::new(testing::MockSigningClient::new());
         assert!(client.health().await.expect("health"));
     }
 

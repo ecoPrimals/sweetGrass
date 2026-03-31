@@ -187,26 +187,27 @@ async fn test_anchor_info_structure() {
 }
 
 #[tokio::test]
-async fn test_create_anchoring_client_async() {
+async fn test_create_anchoring_client_requires_real_server() {
     use crate::discovery::DiscoveredPrimal;
     use sweet_grass_core::config::Capability;
-
-    let test_address = std::env::var("TEST_ANCHORING_ADDR")
-        .unwrap_or_else(|_| format!("localhost:{}", crate::testing::allocate_test_port()));
 
     let primal = DiscoveredPrimal {
         instance_id: "anchor-1".to_string(),
         name: "TestAnchoringService".to_string(),
         capabilities: vec![Capability::Anchoring],
-        tarpc_address: Some(test_address),
+        tarpc_address: Some("127.0.0.1:1".to_string()),
         rest_address: None,
         last_seen: std::time::SystemTime::now(),
         healthy: true,
     };
 
-    let client = create_anchoring_client_async(&primal)
-        .await
-        .expect("create client");
+    let result = create_anchoring_client_async(&primal).await;
+    assert!(result.is_err(), "should fail without a real tarpc server");
+}
+
+#[tokio::test]
+async fn test_mock_anchoring_client_directly() {
+    let client: Arc<dyn AnchoringClient> = Arc::new(MockAnchoringClient::new());
     assert!(client.health().await.expect("health"));
 }
 

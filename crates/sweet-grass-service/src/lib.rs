@@ -9,7 +9,9 @@
 //! | Protocol | Env Var | Latency | Use Case |
 //! |----------|---------|---------|----------|
 //! | tarpc | `SWEETGRASS_TARPC_ADDRESS` | ~50μs | Primal-to-primal |
-//! | REST | `SWEETGRASS_REST_ADDRESS` | ~10ms | Debug, admin |
+//! | TCP JSON-RPC | `SWEETGRASS_PORT` | ~1ms | Composition (`UniBin` `--port`) |
+//! | UDS JSON-RPC | `SWEETGRASS_SOCKET` | ~0.5ms | biomeOS IPC |
+//! | REST | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | Debug, admin |
 //!
 //! Addresses are discovered at runtime via discovery service or environment variables.
 //!
@@ -48,8 +50,7 @@
 //! ### Health
 //! - `GET /health` — Health check
 
-#![cfg_attr(not(test), forbid(unsafe_code))]
-#![cfg_attr(test, deny(unsafe_code))]
+#![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
 pub mod bootstrap;
@@ -63,6 +64,7 @@ pub mod rpc;
 pub mod server;
 pub mod state;
 pub mod streaming;
+pub mod tcp_jsonrpc;
 #[cfg(unix)]
 pub mod uds;
 
@@ -77,6 +79,7 @@ pub use router::create_router;
 pub use rpc::{RpcError, SweetGrassRpc, SweetGrassRpcClient};
 pub use server::{SweetGrassServer, start_tarpc_server};
 pub use state::AppState;
+pub use tcp_jsonrpc::start_tcp_jsonrpc_listener;
 
 /// Result type for service operations.
 pub type Result<T> = std::result::Result<T, ServiceError>;

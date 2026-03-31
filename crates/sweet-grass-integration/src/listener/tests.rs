@@ -177,26 +177,28 @@ async fn test_mock_client_multiple_sessions() {
 }
 
 #[tokio::test]
-async fn test_create_session_events_client_async() {
+async fn test_create_session_events_client_requires_real_server() {
     use crate::discovery::DiscoveredPrimal;
     use sweet_grass_core::config::Capability;
-
-    let test_address = std::env::var("TEST_SESSION_EVENTS_ADDR")
-        .unwrap_or_else(|_| format!("localhost:{}", crate::testing::allocate_test_port()));
 
     let primal = DiscoveredPrimal {
         instance_id: "session-events-1".to_string(),
         name: "TestSessionEventsService".to_string(),
         capabilities: vec![Capability::SessionEvents],
-        tarpc_address: Some(test_address),
+        tarpc_address: Some("127.0.0.1:1".to_string()),
         rest_address: None,
         last_seen: std::time::SystemTime::now(),
         healthy: true,
     };
 
-    let client = create_session_events_client_async(&primal)
-        .await
-        .expect("create client");
+    let result = create_session_events_client_async(&primal).await;
+    assert!(result.is_err(), "should fail without a real tarpc server");
+}
+
+#[tokio::test]
+async fn test_mock_session_events_client_directly() {
+    let client: std::sync::Arc<dyn SessionEventsClient> =
+        std::sync::Arc::new(testing::MockSessionEventsClient::new());
     assert!(client.health().await.expect("health"));
 }
 

@@ -13,35 +13,6 @@
 //! use [`socket_env_var`] to derive `{NAME}_SOCKET` from any primal name
 //! at runtime — no code change needed when new primals join the ecosystem.
 
-/// Hardcoded primal name registry.
-///
-/// **Deprecated**: A primal should only know itself. Other primal names
-/// are discovered at runtime via `capabilities.list` / mDNS / registry.
-/// Use [`socket_env_var`] / [`address_env_var`] with runtime-discovered
-/// names instead.
-#[deprecated(
-    since = "0.7.26",
-    note = "primals discover peers at runtime; use socket_env_var(name) with discovered names"
-)]
-pub mod names {
-    /// `rhizoCrypt` — ephemeral DAG engine (provenance trio partner).
-    pub const RHIZOCRYPT: &str = "rhizocrypt";
-    /// `LoamSpine` — permanence layer (provenance trio partner).
-    pub const LOAMSPINE: &str = "loamspine";
-    /// `BearDog` — cryptographic service provider.
-    pub const BEARDOG: &str = "beardog";
-    /// `NestGate` — storage and discovery.
-    pub const NESTGATE: &str = "nestgate";
-    /// `Songbird` — network orchestration and discovery.
-    pub const SONGBIRD: &str = "songbird";
-    /// `ToadStool` — universal compute platform.
-    pub const TOADSTOOL: &str = "toadstool";
-    /// `Squirrel` — AI coordination.
-    pub const SQUIRREL: &str = "squirrel";
-    /// `biomeOS` — orchestration layer.
-    pub const BIOMEOS: &str = "biomeos";
-}
-
 /// Derive the `{NAME}_SOCKET` environment variable name for any primal.
 ///
 /// This replaces per-primal constants (`RHIZOCRYPT_SOCKET`, etc.) with a
@@ -83,44 +54,20 @@ pub mod env_vars {
 }
 
 #[cfg(test)]
-#[expect(deprecated, reason = "tests exercise the deprecated names registry")]
 mod tests {
     use super::*;
 
     #[test]
-    fn primal_names_are_lowercase() {
-        let all = [
-            names::RHIZOCRYPT,
-            names::LOAMSPINE,
-            names::BEARDOG,
-            names::NESTGATE,
-            names::SONGBIRD,
-            names::TOADSTOOL,
-            names::SQUIRREL,
-            names::BIOMEOS,
-        ];
-        for name in &all {
-            assert_eq!(
-                *name,
-                name.to_lowercase(),
-                "primal name should be lowercase: {name}"
-            );
-        }
-    }
-
-    #[test]
     fn socket_env_var_pattern() {
-        assert_eq!(socket_env_var(names::RHIZOCRYPT), "RHIZOCRYPT_SOCKET");
-        assert_eq!(socket_env_var(names::LOAMSPINE), "LOAMSPINE_SOCKET");
-        assert_eq!(socket_env_var(names::BEARDOG), "BEARDOG_SOCKET");
-        assert_eq!(socket_env_var(names::NESTGATE), "NESTGATE_SOCKET");
-        assert_eq!(socket_env_var(names::SONGBIRD), "SONGBIRD_SOCKET");
+        assert_eq!(socket_env_var("rhizocrypt"), "RHIZOCRYPT_SOCKET");
+        assert_eq!(socket_env_var("loamspine"), "LOAMSPINE_SOCKET");
+        assert_eq!(socket_env_var("beardog"), "BEARDOG_SOCKET");
         assert_eq!(socket_env_var("newprimal"), "NEWPRIMAL_SOCKET");
     }
 
     #[test]
     fn address_env_var_pattern() {
-        assert_eq!(address_env_var(names::RHIZOCRYPT), "RHIZOCRYPT_ADDRESS");
+        assert_eq!(address_env_var("rhizocrypt"), "RHIZOCRYPT_ADDRESS");
         assert_eq!(address_env_var("newprimal"), "NEWPRIMAL_ADDRESS");
     }
 
@@ -137,24 +84,6 @@ mod tests {
                 var.to_uppercase(),
                 "env var should be uppercase: {var}"
             );
-        }
-    }
-
-    #[test]
-    fn no_duplicate_names() {
-        let all = [
-            names::RHIZOCRYPT,
-            names::LOAMSPINE,
-            names::BEARDOG,
-            names::NESTGATE,
-            names::SONGBIRD,
-            names::TOADSTOOL,
-            names::SQUIRREL,
-            names::BIOMEOS,
-        ];
-        let mut seen = std::collections::HashSet::new();
-        for name in &all {
-            assert!(seen.insert(name), "duplicate primal name: {name}");
         }
     }
 }

@@ -23,7 +23,7 @@ use sweet_grass_service::cli;
 use sweet_grass_service::exit::exit_code;
 use sweet_grass_service::{
     BootstrapConfig, StorageConfig, SweetGrassServer, create_router, infant_bootstrap_with_config,
-    start_tarpc_server,
+    start_tarpc_server, start_tcp_jsonrpc_listener,
 };
 use tracing::info;
 
@@ -42,7 +42,14 @@ struct Cli {
 enum Commands {
     /// Start the `SweetGrass` service (REST + JSON-RPC + tarpc).
     Server {
-        /// REST/JSON-RPC bind address.
+        /// TCP JSON-RPC port (newline-delimited framing).
+        ///
+        /// Mandatory per `UNIBIN_ARCHITECTURE_STANDARD` v1.1: the universal
+        /// entry point for springs, deploy graphs, and orchestration.
+        #[arg(long, env = "SWEETGRASS_PORT")]
+        port: Option<u16>,
+
+        /// REST/JSON-RPC bind address (HTTP-wrapped).
         #[arg(long, env = "SWEETGRASS_HTTP_ADDRESS", default_value = "0.0.0.0:0")]
         http_address: String,
 
@@ -91,6 +98,7 @@ async fn main() {
 
     let code = match cli.command {
         Commands::Server {
+            port,
             http_address,
             tarpc_address,
             storage,
@@ -100,6 +108,7 @@ async fn main() {
             no_tarpc,
         } => {
             run_server(ServerConfig {
+                port,
                 http_address,
                 tarpc_address,
                 storage,
@@ -119,6 +128,7 @@ async fn main() {
 }
 
 struct ServerConfig {
+    port: Option<u16>,
     http_address: String,
     tarpc_address: String,
     storage: String,
@@ -216,6 +226,16 @@ async fn serve_all(
         Some(spawn_tarpc_server(tarpc_addr, &state, shutdown_rx))
     };
 
+    let tcp_jsonrpc_handle = config.port.map(|port| {
+        let tcp_state = state.clone();
+        let shutdown_rx = shutdown_tx.subscribe();
+        tokio::spawn(async move {
+            if let Err(e) = start_tcp_jsonrpc_listener(tcp_state, port, shutdown_rx).await {
+                tracing::warn!("TCP JSON-RPC listener error: {e}");
+            }
+        })
+    });
+
     #[cfg(unix)]
     let uds_handle = {
         let uds_state = state.clone();
@@ -237,6 +257,9 @@ async fn serve_all(
         .await;
 
     if let Some(h) = tarpc_handle {
+        let _ = h.await;
+    }
+    if let Some(h) = tcp_jsonrpc_handle {
         let _ = h.await;
     }
     #[cfg(unix)]

@@ -7,6 +7,9 @@
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use sweet_grass_core::braid::types::{
+    PROV_VOCAB_URI, RDFS_VOCAB_URI, SCHEMA_VOCAB_URI, XSD_VOCAB_URI, ecop_vocab_uri,
+};
 use sweet_grass_core::{Activity, Braid};
 
 use crate::Result;
@@ -35,21 +38,24 @@ impl JsonLdDocument {
     }
 
     /// Get the standard PROV-O context.
+    ///
+    /// Namespace URIs are sourced from `sweet_grass_core::braid::types` constants.
+    /// The ecoPrimals namespace honours the `ECOP_VOCAB_URI` env var at runtime.
     fn prov_o_context() -> Value {
+        let ecop_ns = ecop_vocab_uri();
+
         json!({
             "@version": 1.1,
-            "prov": "http://www.w3.org/ns/prov#",
-            "xsd": "http://www.w3.org/2001/XMLSchema#",
-            "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
-            "schema": "http://schema.org/",
-            "ecop": "https://ecoprimals.io/vocab#",
+            "prov": PROV_VOCAB_URI,
+            "xsd": XSD_VOCAB_URI,
+            "rdfs": RDFS_VOCAB_URI,
+            "schema": SCHEMA_VOCAB_URI,
+            "ecop": ecop_ns,
 
-            // PROV-O Classes
             "Entity": "prov:Entity",
             "Activity": "prov:Activity",
             "Agent": "prov:Agent",
 
-            // PROV-O Properties
             "wasGeneratedBy": {"@id": "prov:wasGeneratedBy", "@type": "@id"},
             "wasDerivedFrom": {"@id": "prov:wasDerivedFrom", "@type": "@id"},
             "wasAttributedTo": {"@id": "prov:wasAttributedTo", "@type": "@id"},
@@ -61,7 +67,6 @@ impl JsonLdDocument {
             "hadRole": {"@id": "prov:hadRole", "@type": "@id"},
             "actedOnBehalfOf": {"@id": "prov:actedOnBehalfOf", "@type": "@id"},
 
-            // ecoPrimals extensions
             "dataHash": "ecop:dataHash",
             "mimeType": "ecop:mimeType",
             "size": "ecop:size",

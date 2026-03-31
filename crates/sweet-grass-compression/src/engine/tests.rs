@@ -279,3 +279,119 @@ fn test_session_with_compute_units() {
         panic!("Expected Single result");
     }
 }
+
+#[test]
+fn test_with_source_propagates() {
+    let engine = CompressionEngine::new(make_factory()).with_source("discovered-primal");
+    let mut session = Session::new("source-test");
+    session.add_vertex(make_vertex("v1", "sha256:src").committed());
+    session.finalize(SessionOutcome::Committed);
+
+    let result = engine.compress(&session).expect("should compress");
+    if let CompressionResult::Single(braid) = result {
+        assert_eq!(
+            braid.ecop.source_primal.as_deref(),
+            Some("discovered-primal")
+        );
+    } else {
+        panic!("Expected Single result");
+    }
+}
+
+#[test]
+fn test_branching_with_summary_disabled() {
+    let config = CompressionConfig {
+        split_threshold: 3,
+        generate_summaries: false,
+        ..Default::default()
+    };
+    let engine = CompressionEngine::new(make_factory()).with_config(config);
+
+    let mut session = Session::new("no-summary");
+    session.add_vertex(make_vertex("root", "sha256:root").committed());
+    session.add_vertex(
+        make_vertex("b1-1", "sha256:b1-1")
+            .with_parent("root")
+            .committed(),
+    );
+    session.add_vertex(
+        make_vertex("b2-1", "sha256:b2-1")
+            .with_parent("root")
+            .committed(),
+    );
+    session.add_vertex(
+        make_vertex("b1-2", "sha256:b1-2")
+            .with_parent("b1-1")
+            .committed(),
+    );
+    session.add_vertex(
+        make_vertex("b2-2", "sha256:b2-2")
+            .with_parent("b2-1")
+            .committed(),
+    );
+    session.finalize(SessionOutcome::Committed);
+
+    let result = engine.compress(&session).expect("should compress");
+    if let CompressionResult::Multiple { summary, .. } = &result {
+        assert!(summary.is_none(), "summaries disabled");
+    }
+    assert!(result.has_braids());
+}
+
+#[test]
+fn test_hierarchical_with_summary_disabled() {
+    let config = CompressionConfig {
+        hierarchical_threshold: 3,
+        generate_summaries: false,
+        ..Default::default()
+    };
+    let engine = CompressionEngine::new(make_factory()).with_config(config);
+
+    let mut session = Session::new("hier-no-summary");
+    session.add_vertex(make_vertex("v1", "sha256:h1").committed());
+    session.add_vertex(make_vertex("v2", "sha256:h2").with_parent("v1").committed());
+    session.add_vertex(make_vertex("v3", "sha256:h3").with_parent("v2").committed());
+    session.add_vertex(make_vertex("v4", "sha256:h4").with_parent("v3").committed());
+    session.finalize(SessionOutcome::Committed);
+
+    let result = engine.compress(&session).expect("should compress");
+    if let CompressionResult::Multiple { summary, .. } = &result {
+        assert!(summary.is_none(), "summaries disabled");
+    }
+    assert!(result.has_braids());
+}
+
+#[test]
+fn test_session_with_ended_at() {
+    let engine = CompressionEngine::new(make_factory());
+    let mut session = Session::new("ended");
+    session.started_at = 1000;
+    session.ended_at = Some(2000);
+    session.add_vertex(make_vertex("v1", "sha256:ended").committed());
+    session.finalize(SessionOutcome::Committed);
+
+    let result = engine.compress(&session).expect("should compress");
+    if let CompressionResult::Single(braid) = result {
+        let activity = braid.was_generated_by.expect("should have activity");
+        assert!(
+            activity.ended_at_time.is_some(),
+            "ended_at should propagate"
+        );
+    } else {
+        panic!("Expected Single result");
+    }
+}
+
+#[test]
+fn test_compression_result_none_accessors() {
+    let result = CompressionResult::None {
+        reason: DiscardReason::EmptySession,
+    };
+    assert!(!result.has_braids());
+    assert_eq!(result.count(), 0);
+    assert!(result.braids().is_empty());
+    assert!(matches!(
+        result.discard_reason(),
+        Some(DiscardReason::EmptySession)
+    ));
+}

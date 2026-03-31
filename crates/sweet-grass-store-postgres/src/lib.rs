@@ -26,8 +26,7 @@
 //! Uses `sqlx` with pure Rust TLS (rustls) — no `OpenSSL` dependency.
 
 #![warn(missing_docs)]
-#![cfg_attr(not(test), forbid(unsafe_code))]
-#![cfg_attr(test, deny(unsafe_code))]
+#![forbid(unsafe_code)]
 #![expect(
     clippy::missing_const_for_fn,
     reason = "sqlx pool types prevent const evaluation"

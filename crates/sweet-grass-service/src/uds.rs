@@ -24,6 +24,13 @@ use sweet_grass_core::primal_names::env_vars;
 /// Default primal name when `SelfKnowledge` is unavailable.
 const DEFAULT_PRIMAL_NAME: &str = identity::PRIMAL_NAME;
 
+/// Primary capability domain for filesystem-based discovery.
+///
+/// Per `CAPABILITY_BASED_DISCOVERY_STANDARD.md` Tier 3, primals SHOULD create
+/// a symlink named after their capability domain alongside the primal-named
+/// socket: `provenance.sock -> sweetgrass.sock`.
+const CAPABILITY_DOMAIN: &str = "provenance";
+
 /// Injected socket resolution configuration.
 ///
 /// Follows the airSpring / biomeOS `_with_config` DI pattern so tests
@@ -149,6 +156,8 @@ pub async fn start_uds_listener_at(
         .map_err(|e| crate::ServiceError::Internal(format!("UDS bind failed: {e}")))?;
     info!("JSON-RPC 2.0 UDS listening on {}", path.display());
 
+    create_capability_symlink(path);
+
     loop {
         tokio::select! {
             result = listener.accept() => {
@@ -216,14 +225,76 @@ async fn handle_uds_connection(
     Ok(())
 }
 
-/// Remove the socket file on shutdown.
+/// Create a capability-domain symlink alongside the primal socket.
+///
+/// Per `CAPABILITY_BASED_DISCOVERY_STANDARD.md` v1.1, primals SHOULD create
+/// a symlink named `{domain}.sock` pointing at the primal-named socket in
+/// the same directory, enabling Tier 3 filesystem-based capability discovery
+/// without Songbird or Neural API.
+///
+/// For sweetGrass the symlink is `provenance.sock -> sweetgrass.sock`.
+pub fn create_capability_symlink(socket_path: &std::path::Path) {
+    let Some(parent) = socket_path.parent() else {
+        return;
+    };
+    let Some(socket_filename) = socket_path.file_name() else {
+        return;
+    };
+
+    let symlink_path = parent.join(format!("{CAPABILITY_DOMAIN}.sock"));
+
+    if (symlink_path.exists() || symlink_path.is_symlink())
+        && let Err(e) = std::fs::remove_file(&symlink_path)
+    {
+        warn!(
+            "Failed to remove stale capability symlink {}: {e}",
+            symlink_path.display()
+        );
+        return;
+    }
+
+    if let Err(e) = std::os::unix::fs::symlink(socket_filename, &symlink_path) {
+        warn!(
+            "Failed to create capability symlink {} -> {}: {e}",
+            symlink_path.display(),
+            socket_filename.to_string_lossy(),
+        );
+    } else {
+        info!(
+            "Capability symlink: {} -> {}",
+            symlink_path.display(),
+            socket_filename.to_string_lossy(),
+        );
+    }
+}
+
+/// Remove the capability-domain symlink for a socket.
+pub fn cleanup_capability_symlink(socket_path: &std::path::Path) {
+    let Some(parent) = socket_path.parent() else {
+        return;
+    };
+    let symlink_path = parent.join(format!("{CAPABILITY_DOMAIN}.sock"));
+    if symlink_path.is_symlink() || symlink_path.exists() {
+        if let Err(e) = std::fs::remove_file(&symlink_path) {
+            warn!(
+                "Failed to clean up capability symlink {}: {e}",
+                symlink_path.display()
+            );
+        } else {
+            debug!("Cleaned up capability symlink {}", symlink_path.display());
+        }
+    }
+}
+
+/// Remove the socket file and capability symlink on shutdown.
 pub fn cleanup_socket() {
     let path = resolve_socket_path(None);
     cleanup_socket_at(&path);
 }
 
-/// Remove a specific socket file.
+/// Remove a specific socket file and its capability symlink.
 pub fn cleanup_socket_at(path: &std::path::Path) {
+    cleanup_capability_symlink(path);
     if path.exists() {
         if let Err(e) = std::fs::remove_file(path) {
             warn!("Failed to clean up UDS socket {}: {e}", path.display());
@@ -369,6 +440,93 @@ mod tests {
         let dir = tempfile::tempdir().expect("tempdir");
         let sock_path = dir.path().join("nonexistent.sock");
         cleanup_socket_at(&sock_path);
+    }
+
+    // ==================== Capability symlink tests ====================
+
+    #[test]
+    fn test_create_capability_symlink() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let sock_path = dir.path().join("sweetgrass.sock");
+        std::fs::write(&sock_path, "").expect("create socket file");
+
+        create_capability_symlink(&sock_path);
+
+        let symlink_path = dir.path().join("provenance.sock");
+        assert!(symlink_path.is_symlink(), "symlink should exist");
+        let target = std::fs::read_link(&symlink_path).expect("read symlink");
+        assert_eq!(
+            target,
+            std::path::PathBuf::from("sweetgrass.sock"),
+            "symlink should be relative"
+        );
+    }
+
+    #[test]
+    fn test_create_capability_symlink_with_family() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let sock_path = dir.path().join("sweetgrass-alpha.sock");
+        std::fs::write(&sock_path, "").expect("create socket file");
+
+        create_capability_symlink(&sock_path);
+
+        let symlink_path = dir.path().join("provenance.sock");
+        assert!(symlink_path.is_symlink());
+        let target = std::fs::read_link(&symlink_path).expect("read symlink");
+        assert_eq!(target, std::path::PathBuf::from("sweetgrass-alpha.sock"));
+    }
+
+    #[test]
+    fn test_create_capability_symlink_replaces_stale() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let sock_path = dir.path().join("sweetgrass.sock");
+        std::fs::write(&sock_path, "").expect("create socket file");
+
+        let symlink_path = dir.path().join("provenance.sock");
+        std::os::unix::fs::symlink("old-target.sock", &symlink_path).expect("create stale");
+
+        create_capability_symlink(&sock_path);
+
+        let target = std::fs::read_link(&symlink_path).expect("read symlink");
+        assert_eq!(target, std::path::PathBuf::from("sweetgrass.sock"));
+    }
+
+    #[test]
+    fn test_cleanup_capability_symlink() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let sock_path = dir.path().join("sweetgrass.sock");
+        std::fs::write(&sock_path, "").expect("create socket file");
+
+        create_capability_symlink(&sock_path);
+        let symlink_path = dir.path().join("provenance.sock");
+        assert!(symlink_path.is_symlink());
+
+        cleanup_capability_symlink(&sock_path);
+        assert!(!symlink_path.exists());
+        assert!(!symlink_path.is_symlink());
+    }
+
+    #[test]
+    fn test_cleanup_socket_at_removes_symlink_too() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let sock_path = dir.path().join("sweetgrass.sock");
+        std::fs::write(&sock_path, "").expect("create socket file");
+
+        create_capability_symlink(&sock_path);
+        let symlink_path = dir.path().join("provenance.sock");
+        assert!(symlink_path.is_symlink());
+        assert!(sock_path.exists());
+
+        cleanup_socket_at(&sock_path);
+        assert!(!sock_path.exists());
+        assert!(!symlink_path.exists());
+    }
+
+    #[test]
+    fn test_cleanup_capability_symlink_nonexistent() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let sock_path = dir.path().join("sweetgrass.sock");
+        cleanup_capability_symlink(&sock_path);
     }
 
     // ==================== UDS roundtrip tests (use explicit path, no env mutation) ====================
