@@ -25,7 +25,7 @@
 - [x] 7 new anchor integration tests — `AnchorManager` discovery, reconnect, multiple operations, serialization roundtrips
 - [x] `fuzz/Cargo.toml` edition 2021 → 2024
 - [x] `.cursor/rules/` — persistent AI guidance for ecosystem standards and Rust patterns
-- [x] 1,147 tests passing, 90.54% region coverage (llvm-cov), 0 clippy warnings, 0 doc warnings, 0 unsafe, 0 fmt issues
+- [x] 1,181 tests passing, 90.90% region coverage (llvm-cov), 0 clippy warnings, 0 doc warnings, 0 unsafe, 0 fmt issues
 
 ### v0.7.26 — Ecosystem Absorption: scyBorg License, Sled Deprecation, Lint Evolution (March 2026)
 
@@ -152,7 +152,7 @@
 
 ### v0.7.16 — Deep Audit Remediation + Smart Refactoring (March 2026)
 
-- [x] **SPDX header fix** — `memory/tests.rs` was the only file missing `SPDX-License-Identifier: AGPL-3.0-only`; now all 122 `.rs` files have headers
+- [x] **SPDX header fix** — `memory/tests.rs` was the only file missing `SPDX-License-Identifier: AGPL-3.0-or-later`; now all `.rs` files have headers
 - [x] **`sign_placeholder` isolated** — gated behind `#[cfg(any(test, feature = "test"))]`, no mock in production code path
 - [x] **Smart refactoring** — `provo.rs` (842→320 production + 522 tests), `session.rs` (759→329 production + 430 tests) extracted to `mod.rs` + `tests.rs` pattern
 - [x] **Postgres placeholder evolved** — `test_health_check` renamed to `test_store_connectivity_via_count`, placeholder comment removed
@@ -358,13 +358,13 @@
 - [x] JSON-RPC 2.0 handler with semantic method names
 - [x] UniBin CLI (clap subcommands: `server`, `status`)
 - [x] Arc<str> zero-copy for BraidId and Did
-- [x] SPDX AGPL-3.0-only headers on all source files
+- [x] SPDX AGPL-3.0-or-later headers on all source files
 - [x] Large file refactoring (mod.rs + tests.rs pattern)
 - [x] Magic number elimination (named constants everywhere)
 - [x] PROV-O namespace URIs extracted to constants
 - [x] 19 HTTP-level E2E tests (REST + JSON-RPC + contribution flow)
 - [x] Cross-compilation targets documented
-- [x] deny.toml updated for AGPL-3.0-only
+- [x] deny.toml updated for AGPL-3.0-or-later
 - [x] ecoBin full compliance verified
 
 ### v0.6.0 — Production Hardening (January 2026)
@@ -410,7 +410,7 @@
 - [ ] Evolved `MemoryStore` indexes (collision-preserving)
 - [ ] `convergence.query` JSON-RPC method
 - [ ] PostgreSQL `content_convergence` table and migrations
-- [x] Coverage target: 90%+ with llvm-cov *(90.54% region coverage)*
+- [x] Coverage target: 90%+ with llvm-cov *(90.90% region coverage)*
 
 ### v0.9.0 — sunCloud Integration (Q3 2026)
 
@@ -479,7 +479,7 @@
 - Comprehensive testing (90% coverage target)
 - Clean Clippy (pedantic + nursery, `-D warnings`)
 - All files under 1000 LOC
-- AGPL-3.0-only
+- AGPL-3.0-or-later
 
 ---
 

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Core storage traits for Braid persistence.
 //!
@@ -126,6 +126,7 @@ impl QueryFilter {
 
 /// Query ordering options.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum QueryOrder {
     /// Order by creation time, newest first.
     #[default]

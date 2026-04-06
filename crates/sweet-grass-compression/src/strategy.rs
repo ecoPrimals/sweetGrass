@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Compression strategy types.
 //!
@@ -10,6 +10,7 @@ use std::time::Duration;
 
 /// Compression strategy to apply.
 #[derive(Clone, Debug)]
+#[non_exhaustive]
 pub enum CompressionStrategy {
     /// Produce no Braids.
     Discard(DiscardReason),
@@ -26,6 +27,7 @@ pub enum CompressionStrategy {
 
 /// Reasons for discarding a session (0 Braids).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum DiscardReason {
     /// Session explicitly rolled back.
     Rollback,
@@ -136,6 +138,7 @@ impl CompressionLevel {
 
 /// How to group Braids at each level.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum GroupingStrategy {
     /// Group by time window.
     Temporal {

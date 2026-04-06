@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! `PostgreSQL` `BraidStore` implementation.
 
@@ -368,10 +368,10 @@ impl BraidStore for PostgresStore {
         let where_clause = vf.where_clause();
 
         let order_clause = match order {
-            QueryOrder::NewestFirst => "generated_at_time DESC",
             QueryOrder::OldestFirst => "generated_at_time ASC",
             QueryOrder::LargestFirst => "size DESC",
             QueryOrder::SmallestFirst => "size ASC",
+            QueryOrder::NewestFirst | _ => "generated_at_time DESC",
         };
 
         let limit = filter.limit.unwrap_or(DEFAULT_QUERY_LIMIT);

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Anchoring integration.
 //!
@@ -261,9 +261,10 @@ impl TarpcAnchoringClient {
     ///
     /// Returns an error if the primal has no tarpc address or connection fails.
     pub async fn from_primal(primal: &DiscoveredPrimal) -> Result<Self> {
-        let addr = primal.tarpc_address.as_ref().ok_or_else(|| {
-            IntegrationError::Discovery("Primal has no tarpc address".to_string())
-        })?;
+        let addr = primal
+            .tarpc_address
+            .as_ref()
+            .ok_or(IntegrationError::MissingTarpcAddress)?;
         Self::connect(addr).await
     }
 }

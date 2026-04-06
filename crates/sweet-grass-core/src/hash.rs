@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Shared hashing and hex encoding utilities.
 //!
@@ -9,6 +9,7 @@ use crate::braid::ContentHash;
 
 /// Error from strict hex decoding.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum HexDecodeError {
     /// Input has odd length and cannot represent whole bytes.
     #[error("odd length hex string (length: {0})")]

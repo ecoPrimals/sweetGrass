@@ -9,7 +9,7 @@
 name = "sweetgrass"
 version = "0.7.27"
 description = "Semantic provenance and attribution layer"
-license = "AGPL-3.0-only"
+license = "AGPL-3.0-or-later"
 protocol = "jsonrpc-2.0"
 transport = ["http", "uds"]
 

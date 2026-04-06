@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Compression error types.
 
@@ -31,6 +31,10 @@ pub enum CompressionError {
     /// Configuration error.
     #[error("Configuration error: {0}")]
     Config(String),
+
+    /// Session has no committed vertices to compress.
+    #[error("No committed vertices in session")]
+    NoCommittedVertices,
 
     /// Internal error.
     #[error("Internal error: {0}")]

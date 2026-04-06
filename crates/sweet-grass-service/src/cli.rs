@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! CLI support extracted from the `UniBin` binary entry point.
 //!
@@ -12,6 +12,7 @@ use sweet_grass_core::niche;
 
 /// Errors from the raw TCP health check.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum HealthCheckError {
     /// TCP connection or IO failure.
     #[error("{0}")]

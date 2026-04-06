@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Sled `BraidStore` implementation.
 
@@ -396,9 +396,6 @@ impl BraidStore for SledStore {
 
             // Sort
             match order {
-                QueryOrder::NewestFirst => {
-                    braids.sort_by(|a, b| b.generated_at_time.cmp(&a.generated_at_time));
-                },
                 QueryOrder::OldestFirst => {
                     braids.sort_by(|a, b| a.generated_at_time.cmp(&b.generated_at_time));
                 },
@@ -407,6 +404,9 @@ impl BraidStore for SledStore {
                 },
                 QueryOrder::SmallestFirst => {
                     braids.sort_by(|a, b| a.size.cmp(&b.size));
+                },
+                QueryOrder::NewestFirst | _ => {
+                    braids.sort_by(|a, b| b.generated_at_time.cmp(&a.generated_at_time));
                 },
             }
 

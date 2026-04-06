@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Provenance graph traversal.
 //!
@@ -162,7 +162,7 @@ impl ProvenanceGraphBuilder {
             truncated: false,
         };
 
-        let mut visited = HashSet::new();
+        let mut visited: HashSet<ContentHash> = HashSet::new();
 
         if let Some(hash) = root.content_hash() {
             self.traverse(store, hash, 0, &mut graph, &mut visited)
@@ -178,62 +178,57 @@ impl ProvenanceGraphBuilder {
         hash: &'a ContentHash,
         depth: u32,
         graph: &'a mut ProvenanceGraph,
-        visited: &'a mut HashSet<String>,
+        visited: &'a mut HashSet<ContentHash>,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + Send + 'a>> {
         Box::pin(async move {
-            // Check depth limit
             if depth > self.max_depth {
                 graph.truncated = true;
                 return Ok(());
             }
 
-            // Check for cycles
-            let hash_str = hash.as_str().to_string();
-            if visited.contains(&hash_str) {
+            if !visited.insert(hash.clone()) {
                 return Ok(());
             }
-            visited.insert(hash_str.clone());
 
-            // Update max depth
             if depth > graph.depth {
                 graph.depth = depth;
             }
 
-            // Get the Braid
             let Some(braid) = store.get_by_hash(hash).await? else {
-                return Ok(()); // Entity not in store
+                return Ok(());
             };
 
-            // Add to graph
-            graph.entities.insert(hash_str.clone(), braid.clone());
+            let hash_key = String::from(hash.as_str());
 
-            // Add activity if present
+            graph.entities.insert(hash_key.clone(), braid.clone());
+
             if self.include_activities
                 && let Some(activity) = &braid.was_generated_by
             {
-                let activity_id = activity.id.as_str().to_string();
+                let activity_key = String::from(activity.id.as_str());
                 graph
                     .activities
-                    .insert(activity_id.clone(), activity.clone());
-                graph.generation_edges.insert(hash_str.clone(), activity_id);
+                    .insert(activity_key.clone(), activity.clone());
+                graph
+                    .generation_edges
+                    .insert(hash_key.clone(), activity_key);
             }
 
-            // Collect derivation edges
-            let parent_hashes: Vec<String> = braid
+            let parent_hashes: Vec<ContentHash> = braid
                 .was_derived_from
                 .iter()
-                .filter_map(|e| e.content_hash().map(|h| h.as_str().to_string()))
+                .filter_map(|e| e.content_hash().cloned())
                 .collect();
 
             if !parent_hashes.is_empty() {
-                graph
-                    .derivation_edges
-                    .insert(hash_str.clone(), parent_hashes.clone());
+                let parent_keys: Vec<String> = parent_hashes
+                    .iter()
+                    .map(|h| String::from(h.as_str()))
+                    .collect();
+                graph.derivation_edges.insert(hash_key, parent_keys);
 
-                // Recursively traverse parents
-                for parent_hash in parent_hashes {
-                    let parent_ch = ContentHash::new(parent_hash);
-                    self.traverse(store, &parent_ch, depth + 1, graph, visited)
+                for parent in &parent_hashes {
+                    self.traverse(store, parent, depth + 1, graph, visited)
                         .await?;
                 }
             }

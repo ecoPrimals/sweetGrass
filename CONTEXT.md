@@ -26,9 +26,9 @@ attribution before distributing rewards.
 - **Language:** 100% Rust, zero C dependencies in production
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 (required) + tarpc (optional high-perf) + REST + UDS
-- **License:** scyBorg Triple-Copyleft (AGPL-3.0 + ORC-1.0 + CC-BY-SA-4.0)
-- **Tests:** 1,147 passing
-- **Coverage:** 90.54% region coverage (llvm-cov, excluding Postgres which needs runtime)
+- **License:** scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0)
+- **Tests:** 1,181 passing
+- **Coverage:** 90.90% region coverage (llvm-cov, excluding Postgres which needs runtime)
 - **MSRV:** 1.87 (Edition 2024)
 - **Crate count:** 10 workspace crates
 - **Unsafe code:** 0 blocks (`#![forbid(unsafe_code)]` on all crates)

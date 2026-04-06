@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Primal self-knowledge and identity.
 //!
@@ -11,6 +11,7 @@ use crate::identity;
 
 /// Error loading primal self-knowledge from the environment.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BootstrapEnvError {
     /// An environment variable that should be a port number is not valid.
     #[error("{var_name} must be a valid port number (0-65535), got: {value}")]

@@ -4,7 +4,7 @@
 **Status:** Architectural Specification  
 **Author:** ecoPrimals Project  
 **Date:** March 2026  
-**License:** AGPL-3.0-only  
+**License:** AGPL-3.0-or-later  
 
 ---
 
@@ -1299,7 +1299,7 @@ pub struct RewardDistribution {
 ### Phase 6: Hardening — IN PROGRESS (v0.7.9–v0.7.20)
 - [x] `#![forbid(unsafe_code)]` on all crates
 - [x] Zero `unwrap`/`expect`/`panic!` in production
-- [x] SPDX headers and AGPL-3.0-only licensing
+- [x] SPDX headers and AGPL-3.0-or-later licensing
 - [x] Criterion benchmarks (7 groups)
 - [x] Chaos and fault-injection tests
 - [x] Fuzz targets (3) and property tests (proptest)

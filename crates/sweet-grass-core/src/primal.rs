@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! `SweetGrass` primal implementation.
 //!
@@ -10,6 +10,7 @@ use crate::error::SweetGrassError;
 
 /// Primal lifecycle states.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum PrimalState {
     /// Created but not started.
     Created,
@@ -60,6 +61,7 @@ impl std::fmt::Display for PrimalState {
 
 /// Health status.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum HealthStatus {
     /// Healthy and operational.
     Healthy,

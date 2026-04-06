@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Braid type definitions: `ContentHash`, `BraidId`, `BraidContext`, `BraidType`, etc.
 
@@ -182,6 +182,7 @@ impl std::fmt::Display for BraidId {
 /// Types of Braids.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type")]
+#[non_exhaustive]
 pub enum BraidType {
     /// Standard entity Braid (most common).
     #[default]
@@ -220,6 +221,7 @@ pub enum BraidType {
 
 /// Summary types for meta-Braids.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SummaryType {
     /// Session summary.
     Session {

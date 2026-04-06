@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Capability-based primal discovery.
 //!
@@ -24,6 +24,7 @@ use tokio::sync::RwLock;
 
 /// Discovery error types.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum DiscoveryError {
     /// No primal found offering the required capability.
     #[error("no primal found offering capability: {0:?}")]
@@ -49,6 +50,7 @@ pub enum DiscoveryError {
 
 /// Structured error for registry RPC operations.
 #[derive(Clone, Debug, Serialize, Deserialize, thiserror::Error)]
+#[non_exhaustive]
 pub enum RegistryError {
     /// Requested service is not registered.
     #[error("service not found: {0}")]

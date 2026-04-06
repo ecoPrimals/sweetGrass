@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Core tests for JSON-RPC 2.0 dispatch: protocol, braid CRUD, health,
 //! helpers, and `DispatchOutcome` classification.

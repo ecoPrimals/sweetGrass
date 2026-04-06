@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! TCP newline-delimited JSON-RPC 2.0 listener.
 //!
@@ -120,19 +120,24 @@ mod tests {
 
     #[tokio::test]
     async fn tcp_jsonrpc_roundtrip() {
-        use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-
         let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTcpTest"));
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind");
+        let addr = listener.local_addr().expect("local_addr");
+        drop(listener);
 
         let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
         let state_clone = state.clone();
+        let port = addr.port();
         let listener_handle = tokio::spawn(async move {
-            let _ = start_tcp_jsonrpc_listener(state_clone, 0, shutdown_rx).await;
+            let _ = start_tcp_jsonrpc_listener(state_clone, port, shutdown_rx).await;
         });
 
-        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
-        let stream = tokio::net::TcpStream::connect("127.0.0.1:0").await;
+        let stream = tokio::net::TcpStream::connect(addr).await;
         if stream.is_err() {
             let _ = shutdown_tx.send(true);
             listener_handle.abort();

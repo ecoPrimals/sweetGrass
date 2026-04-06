@@ -27,8 +27,8 @@ alwaysApply: true
 - Mocks isolated to `#[cfg(any(test, feature = "test"))]`
 
 ## Licensing
-- AGPL-3.0-only (scyBorg triple-copyleft)
-- `// SPDX-License-Identifier: AGPL-3.0-only` on every `.rs` file
+- AGPL-3.0-or-later (scyBorg triple-copyleft, per wateringHole/LICENSING_AND_COPYLEFT.md)
+- `// SPDX-License-Identifier: AGPL-3.0-or-later` on every `.rs` file
 - `// Copyright (C) 2024–2026 ecoPrimals Project` on line 2
 
 ## Testing

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Session data types.
 //!
@@ -104,6 +104,7 @@ impl SessionVertex {
 
 /// Session outcome.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SessionOutcome {
     /// Session completed successfully with commits.
     Committed,
@@ -121,6 +122,7 @@ pub enum SessionOutcome {
 
 /// Compression hint from the session.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum CompressionHint {
     /// Force single Braid.
     Single,

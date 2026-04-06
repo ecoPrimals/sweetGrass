@@ -1,8 +1,7 @@
-# Local override: default CARGO_TARGET_DIR lives on a noexec mount (/mnt/4tb-work).
-# This redirects build artifacts to an exec-capable filesystem.
-# Other developers: set CARGO_TARGET_DIR in your env or adjust this path.
-[build]
-target-dir = "/path/to/.cargo-build/sweetGrass/target"
+# Override target-dir via CARGO_TARGET_DIR env var if the default location
+# is on a noexec or slow filesystem.  No [build] target-dir here — Cargo's
+# built-in default ("target/") works everywhere; per-machine overrides go
+# in the environment, not in version-controlled config.
 
 # Coverage aliases (ludoSpring V29 / ecosystem standard).
 [alias]

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: AGPL-3.0-or-later
 
 [workspace]
 resolver = "3"
@@ -19,7 +19,7 @@ members = [
 version = "0.7.27"
 edition = "2024"
 rust-version = "1.87"
-license = "AGPL-3.0-only"
+license = "AGPL-3.0-or-later"
 repository = "https://github.com/ecoPrimals/sweetGrass"
 authors = ["ecoPrimals Project"]
 
@@ -80,7 +80,7 @@ serial_test = "3"
 criterion = { version = "0.5", features = ["html_reports"] }
 
 [workspace.lints.rust]
-unsafe_code = "deny"
+unsafe_code = "forbid"
 unused_must_use = "warn"
 
 [workspace.lints.clippy]

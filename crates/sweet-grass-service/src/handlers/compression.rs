@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Compression handlers.
 
@@ -172,6 +172,12 @@ pub async fn compress_session(
             discard_reason: None,
             braids: braids.iter().map(BraidSummary::from).collect(),
             summary: summary.as_ref().map(BraidSummary::from),
+        },
+        _ => CompressSessionResponse {
+            result_type: "unknown".to_string(),
+            discard_reason: None,
+            braids: Vec::new(),
+            summary: None,
         },
     };
 

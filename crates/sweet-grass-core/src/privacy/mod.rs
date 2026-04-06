@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Privacy controls and data subject rights.
 //!
@@ -34,6 +34,7 @@ use crate::agent::Did;
 
 /// Privacy visibility level for Braids and metadata.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[non_exhaustive]
 pub enum PrivacyLevel {
     /// Fully public - visible to all.
     #[default]
@@ -57,6 +58,7 @@ pub enum PrivacyLevel {
 
 /// Retention policy for provenance data.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[non_exhaustive]
 pub enum RetentionPolicy {
     /// Keep indefinitely (default for immutable provenance).
     #[default]
@@ -112,6 +114,7 @@ impl From<SystemTime> for SystemTimeSecs {
 
 /// Data subject rights request types (GDPR-inspired).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum DataSubjectRequest {
     /// Right to access - get all data about a subject.
     Access {
@@ -158,6 +161,7 @@ pub enum DataSubjectRequest {
 
 /// Reasons for erasure requests.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum ErasureReason {
     /// Consent withdrawn.
     ConsentWithdrawn,
@@ -173,6 +177,7 @@ pub enum ErasureReason {
 
 /// Export formats for data portability.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[non_exhaustive]
 pub enum ExportFormat {
     /// JSON-LD format (W3C PROV-O compatible).
     #[default]
@@ -187,6 +192,7 @@ pub enum ExportFormat {
 
 /// Types of processing that can be objected to.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum ProcessingType {
     /// Attribution tracking.
     Attribution,
@@ -277,6 +283,7 @@ pub struct ConsentDetails {
 
 /// Mechanisms for obtaining consent.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum ConsentMechanism {
     /// Explicit opt-in checkbox/button.
     ExplicitOptIn,

@@ -60,7 +60,7 @@ These are enforced at the workspace level and by CI:
 | No commented-out code | Git remembers |
 | `Result<T, E>` everywhere | `thiserror` for typed errors |
 | `#![warn(missing_docs)]` | On all 10 crates |
-| SPDX header on every `.rs` file | `// SPDX-License-Identifier: AGPL-3.0-only` |
+| SPDX header on every `.rs` file | `// SPDX-License-Identifier: AGPL-3.0-or-later` |
 | Named constants | No magic numbers, ports, or primal names as string literals |
 
 ## Architecture Principles
@@ -97,4 +97,4 @@ These are enforced at the workspace level and by CI:
 ## License
 
 By contributing, you agree that your contributions will be licensed under
-AGPL-3.0-only. See [LICENSE](./LICENSE).
+AGPL-3.0-or-later. See [LICENSE](./LICENSE).

@@ -1,7 +1,7 @@
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: AGPL-3.0-or-later
 
 [package]
-license = "AGPL-3.0-only"
+license = "AGPL-3.0-or-later"
 name = "sweet-grass-fuzz"
 version = "0.0.0"
 authors = ["Automated"]

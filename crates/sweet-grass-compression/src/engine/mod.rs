@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Compression Engine implementation.
 //!
@@ -24,6 +24,7 @@ use crate::strategy::{CompressionConfig, CompressionStrategy, DiscardReason};
 
 /// Result of compression.
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[non_exhaustive]
 pub enum CompressionResult {
     /// No Braids produced.
     None {
@@ -195,7 +196,7 @@ impl CompressionEngine {
         let committed = session.committed_vertices();
         let output = committed
             .last()
-            .ok_or_else(|| CompressionError::InvalidSession("No committed vertices".to_string()))?;
+            .ok_or(CompressionError::NoCommittedVertices)?;
 
         // Build activity
         let mut activity_builder = Activity::builder(ActivityType::SessionCommit)

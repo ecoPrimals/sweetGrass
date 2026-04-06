@@ -1,11 +1,11 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Session analyzer for compression strategy selection.
 //!
 //! Analyzes session structure to determine optimal compression strategy.
 
 use std::collections::HashSet;
-use sweet_grass_core::{ContentHash, agent::Did};
+use sweet_grass_core::{ContentHash, activity::ActivityType, agent::Did};
 
 use crate::Result;
 use crate::session::{CompressionHint, Session, SessionOutcome};
@@ -36,7 +36,7 @@ pub struct SessionAnalysis {
     pub contributors: HashSet<Did>,
 
     /// Activity type distribution.
-    pub activity_types: std::collections::HashMap<String, usize>,
+    pub activity_types: std::collections::HashMap<ActivityType, usize>,
 
     /// Semantic coherence (0.0 to 1.0).
     pub semantic_coherence: f64,
@@ -96,7 +96,7 @@ impl SessionAnalyzer {
         let mut activity_types = std::collections::HashMap::new();
         for vertex in &session.vertices {
             *activity_types
-                .entry(vertex.activity_type.to_string())
+                .entry(vertex.activity_type.clone())
                 .or_insert(0) += 1;
         }
 

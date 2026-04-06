@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 
 //! scyBorg provenance types — triple-copyleft enforcement.
@@ -14,6 +14,7 @@ use serde::{Deserialize, Serialize};
 
 /// Content category for scyBorg triple-copyleft.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum ContentCategory {
     /// Source code, scripts, build systems.
     Code,
@@ -36,7 +37,7 @@ impl ContentCategory {
     #[must_use]
     pub const fn default_license(&self) -> LicenseId {
         match self {
-            Self::Code | Self::Documentation | Self::Model | Self::Mixed => LicenseId::Agpl3Only,
+            Self::Code | Self::Documentation | Self::Model | Self::Mixed => LicenseId::Agpl3OrLater,
             Self::Mechanic => LicenseId::Orc,
             Self::Creative | Self::Data => LicenseId::CcBySa4,
         }
@@ -59,9 +60,10 @@ impl ContentCategory {
 
 /// Well-known license identifiers for scyBorg.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum LicenseId {
-    /// AGPL-3.0-only — code and models.
-    Agpl3Only,
+    /// AGPL-3.0-or-later — code and models (scyBorg standard, trusts FSF stewardship).
+    Agpl3OrLater,
     /// ORC — Open RPG Creative (game mechanics).
     Orc,
     /// CC-BY-SA-4.0 — creative content.
@@ -75,7 +77,7 @@ impl LicenseId {
     #[must_use]
     pub const fn spdx(&self) -> &'static str {
         match self {
-            Self::Agpl3Only => "AGPL-3.0-only",
+            Self::Agpl3OrLater => "AGPL-3.0-or-later",
             Self::Orc => "ORC-1.0",
             Self::CcBySa4 => "CC-BY-SA-4.0",
             Self::Custom => "LicenseRef-custom",
@@ -146,11 +148,11 @@ mod tests {
     fn test_content_category_default_licenses() {
         assert_eq!(
             ContentCategory::Code.default_license(),
-            LicenseId::Agpl3Only
+            LicenseId::Agpl3OrLater
         );
         assert_eq!(
             ContentCategory::Documentation.default_license(),
-            LicenseId::Agpl3Only
+            LicenseId::Agpl3OrLater
         );
         assert_eq!(ContentCategory::Mechanic.default_license(), LicenseId::Orc);
         assert_eq!(
@@ -160,17 +162,17 @@ mod tests {
         assert_eq!(ContentCategory::Data.default_license(), LicenseId::CcBySa4);
         assert_eq!(
             ContentCategory::Model.default_license(),
-            LicenseId::Agpl3Only
+            LicenseId::Agpl3OrLater
         );
         assert_eq!(
             ContentCategory::Mixed.default_license(),
-            LicenseId::Agpl3Only
+            LicenseId::Agpl3OrLater
         );
     }
 
     #[test]
     fn test_license_spdx_ids() {
-        assert_eq!(LicenseId::Agpl3Only.spdx(), "AGPL-3.0-only");
+        assert_eq!(LicenseId::Agpl3OrLater.spdx(), "AGPL-3.0-or-later");
         assert_eq!(LicenseId::Orc.spdx(), "ORC-1.0");
         assert_eq!(LicenseId::CcBySa4.spdx(), "CC-BY-SA-4.0");
         assert_eq!(LicenseId::Custom.spdx(), "LicenseRef-custom");
@@ -202,8 +204,8 @@ mod tests {
             content_ref: "Orphan work".to_string(),
             category: ContentCategory::Code,
             license: LicenseExpression {
-                license: LicenseId::Agpl3Only,
-                spdx_expression: "AGPL-3.0-only".to_string(),
+                license: LicenseId::Agpl3OrLater,
+                spdx_expression: "AGPL-3.0-or-later".to_string(),
                 category: ContentCategory::Code,
             },
             contributors: vec![],
@@ -212,7 +214,7 @@ mod tests {
         let generated = notice.generate_notice_text();
         assert!(generated.contains("Unknown contributors"));
         assert!(generated.contains("Orphan work"));
-        assert!(generated.contains("AGPL-3.0-only"));
+        assert!(generated.contains("AGPL-3.0-or-later"));
     }
 
     #[test]
@@ -240,8 +242,8 @@ mod tests {
             content_ref: "Test content".to_string(),
             category: ContentCategory::Code,
             license: LicenseExpression {
-                license: LicenseId::Agpl3Only,
-                spdx_expression: "AGPL-3.0-only".to_string(),
+                license: LicenseId::Agpl3OrLater,
+                spdx_expression: "AGPL-3.0-or-later".to_string(),
                 category: ContentCategory::Code,
             },
             contributors: vec!["did:key:z6Mk...".to_string()],

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Pure Rust RPC service definition using tarpc.
 //!
@@ -19,6 +19,7 @@ use sweet_grass_store::{QueryFilter, QueryOrder, QueryResult};
 
 /// Service error type - serializable for RPC transport.
 #[derive(Clone, Debug, Serialize, Deserialize, thiserror::Error)]
+#[non_exhaustive]
 pub enum RpcError {
     /// Entity not found.
     #[error("not found: {0}")]

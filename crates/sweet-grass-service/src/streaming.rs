@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! NDJSON streaming types for pipeline coordination.
 //!
@@ -22,6 +22,7 @@ use serde::{Deserialize, Serialize};
 /// ```
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
+#[non_exhaustive]
 pub enum StreamItem {
     /// A data payload in the stream.
     Data {

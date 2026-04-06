@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! `SweetGrass` configuration.
 //!
@@ -27,6 +27,7 @@ use crate::identity;
 /// Runtime discovery finds primals offering these capabilities.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum Capability {
     /// DID-based signing (offered by identity primals)
     Signing,
@@ -323,6 +324,7 @@ impl SweetGrassConfig {
 
 /// Configuration error types.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum ConfigError {
     /// Invalid configuration value.
     #[error("invalid configuration: {0}")]
@@ -434,6 +436,7 @@ impl Default for StorageConfig {
 /// Storage backend types.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[non_exhaustive]
 pub enum StorageBackend {
     /// In-memory storage (for testing/development).
     Memory,

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Error types for integration operations.
 //!
@@ -14,6 +14,7 @@ use thiserror::Error;
 /// Enables targeted retries and diagnostics without a logging dependency.
 /// Aligned with `rhizoCrypt::IpcErrorPhase` and healthSpring V28 standard.
 #[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum IpcErrorPhase {
     /// Socket/TCP connection failed (primal unreachable or socket missing).
     Connect,
@@ -204,6 +205,10 @@ pub enum IntegrationError {
     /// Feature not yet implemented.
     #[error("Not implemented: {0}")]
     NotImplemented(String),
+
+    /// Discovered primal has no tarpc address configured.
+    #[error("Primal has no tarpc address")]
+    MissingTarpcAddress,
 }
 
 impl IntegrationError {

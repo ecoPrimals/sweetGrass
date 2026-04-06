@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! # `SweetGrass`
 //!
@@ -39,6 +39,7 @@ pub mod entity;
 pub mod error;
 pub mod hash;
 pub mod niche;
+pub mod object_memory;
 pub mod primal;
 pub mod primal_info;
 pub mod primal_names;

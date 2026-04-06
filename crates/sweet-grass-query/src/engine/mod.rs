@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Query Engine implementation.
 //!
@@ -220,7 +220,7 @@ impl QueryEngine {
         let braid = self
             .get_by_hash(hash)
             .await?
-            .ok_or_else(|| QueryError::NotFound(hash.as_str().to_string()))?;
+            .ok_or_else(|| QueryError::NotFound(hash.clone()))?;
 
         let calculator = AttributionCalculator::new();
 
@@ -249,7 +249,7 @@ impl QueryEngine {
         // Get the root braid
         let braid = graph
             .root_braid()
-            .ok_or_else(|| QueryError::NotFound(hash.as_str().to_string()))?;
+            .ok_or_else(|| QueryError::NotFound(hash.clone()))?;
 
         // Build a synchronous resolver from the graph
         let resolver = |h: &ContentHash| graph.entities.get(h.as_str()).cloned();
@@ -296,7 +296,7 @@ impl QueryEngine {
         let braid = self
             .get_by_hash(hash)
             .await?
-            .ok_or_else(|| QueryError::NotFound(hash.as_str().to_string()))?;
+            .ok_or_else(|| QueryError::NotFound(hash.clone()))?;
 
         let exporter = ProvoExport::new();
         exporter.export_braid(&braid)

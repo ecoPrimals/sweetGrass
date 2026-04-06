@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Agent data structures - people, software, and organizations that act.
 //!
@@ -74,6 +74,7 @@ impl From<String> for Did {
 /// Agent types in the PROV model.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "type")]
+#[non_exhaustive]
 pub enum AgentType {
     /// Human person.
     Person {
@@ -117,6 +118,7 @@ impl Default for AgentType {
 
 /// Roles agents can play in activities.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum AgentRole {
     /// Primary creator/author.
     Creator,

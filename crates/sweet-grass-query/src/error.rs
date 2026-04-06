@@ -1,7 +1,8 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Query engine error types.
 
+use sweet_grass_core::ContentHash;
 use thiserror::Error;
 
 /// Errors that can occur during query operations.
@@ -10,7 +11,7 @@ use thiserror::Error;
 pub enum QueryError {
     /// Braid not found.
     #[error("Braid not found: {0}")]
-    NotFound(String),
+    NotFound(ContentHash),
 
     /// Invalid query.
     #[error("Invalid query: {0}")]
@@ -53,7 +54,7 @@ mod tests {
 
     #[test]
     fn test_query_error_display() {
-        let err = QueryError::NotFound("braid-123".to_string());
+        let err = QueryError::NotFound(ContentHash::new("braid-123"));
         assert!(err.to_string().contains("not found"));
 
         let err = QueryError::InvalidQuery("bad filter".to_string());

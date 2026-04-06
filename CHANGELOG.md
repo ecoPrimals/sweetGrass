@@ -7,12 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Comprehensive Audit: Debt Resolution, License Alignment, Safety Hardening, CLI Extraction
+### Deep Debt Evolution: License, Zero-Copy, API Hardening, Safety
 
-Full-spectrum audit and deep execution session across two phases: centralized
-constants, eliminated lossy casts, aligned scyBorg license, hardened fuzz targets,
-made resilience configurable, extracted testable CLI module, expanded anchor test
-coverage, aligned fuzz edition, and added persistent AI guidance rules.
+Three-phase deep evolution: comprehensive audit and debt resolution, license
+evolution to AGPL-3.0-or-later (scyBorg standard), zero-copy hot paths,
+static error variants, `#[non_exhaustive]` API hardening, and `deny.toml`
+tightening. All metrics verified against measured state.
 
 ### Added
 
@@ -21,30 +21,39 @@ coverage, aligned fuzz edition, and added persistent AI guidance rules.
 - **`identity::DEFAULT_SOURCE_PRIMAL`** — centralized constant in `sweet-grass-core`; replaces duplicate definitions in compression and factory crates
 - **`RetryPolicy::from_env()`** — env-configurable retry policy via `SWEETGRASS_RETRY_MAX`, `SWEETGRASS_RETRY_INITIAL_MS`, `SWEETGRASS_RETRY_MAX_MS`; testable `from_env_with()` constructor
 - **`.cursor/rules/`** — `ecosystem-standards.mdc` (always-apply) and `rust-patterns.mdc` (Rust files) for persistent AI development guidance
+- **`IntegrationError::MissingTarpcAddress`** — zero-allocation unit variant replacing 3 sites of `.to_string()` on static message
+- **`CompressionError::NoCommittedVertices`** — zero-allocation unit variant for common compression failure
+- **`#[non_exhaustive]`** — added to 35+ public enums across all crates for forward-compatible API evolution
+- **`deny.toml` bans** — `tonic-build`, `prost-build`, `quick-protobuf`, `pbjson` added to protobuf/gRPC ban list
 
 ### Changed
 
-- **`bin/service.rs` refactored** — CLI logic extracted to `cli.rs` library module; `run_server` decomposed into `serve_all` helper to stay under 100-line clippy limit
+- **License: AGPL-3.0-only → AGPL-3.0-or-later** — all 154 `.rs` SPDX headers, 12 `Cargo.toml` files, `LICENSE` preamble, `deny.toml` allow-list, `scyborg.rs` `LicenseId` enum (`Agpl3Only` → `Agpl3OrLater`), all root docs, specs, config, and `.cursor/rules`
+- **`unsafe_code` promoted from `deny` to `forbid`** — at workspace level in `Cargo.toml`; all 10 crates inherit via `[lints] workspace = true`
+- **Zero-copy traversal** — `ProvenanceGraphBuilder::traverse` now uses `HashSet<ContentHash>` for cycle detection (O(1) Arc clone) instead of `HashSet<String>` (heap alloc per node); parent hashes collected as `Vec<ContentHash>`
+- **`QueryError::NotFound`** — now carries `ContentHash` (O(1) clone) instead of `String` (heap alloc)
+- **`ActivityType` derives `Hash`** — `SessionAnalysis::activity_types` uses `HashMap<ActivityType, usize>` instead of `HashMap<String, usize>`, eliminating per-vertex `.to_string()` in analyzer
+- **`bin/service.rs` refactored** — CLI logic extracted to `cli.rs` library module; `run_server` decomposed into `serve_all` helper
 - **`fuzz/Cargo.toml`** — `edition = "2021"` → `edition = "2024"` for workspace consistency
-- **`timestamp() as u64` → `u64::try_from().unwrap_or(0)`** — 8 lossy casts in signer/testing.rs and listener/tests.rs replaced with safe conversions
-- **`#![forbid(unsafe_code)]`** — added to all 3 fuzz targets (fuzz_attribution, fuzz_braid_deserialize, fuzz_query_filter)
-- **LICENSE preamble** — aligned from `AGPL-3.0-or-later` to `AGPL-3.0-only` to match all SPDX headers and Cargo.toml
-- **Root docs** — updated metrics to 1,147 tests, 139 files, 40,851 LOC, 90.54% region coverage
+- **Safe casts** — 8 lossy `timestamp() as u64` casts replaced with `u64::try_from().unwrap_or(0)`
+- **`#![forbid(unsafe_code)]`** — added to all 3 fuzz targets
+- **Cross-crate matches** — `QueryOrder` (3 store backends) and `CompressionResult` (service) now have forward-compatible wildcard arms
 
 ### Removed
 
-- **Duplicate `DEFAULT_SOURCE_PRIMAL`** — removed from `sweet-grass-compression/src/engine/mod.rs` and `sweet-grass-factory/src/factory/mod.rs`
-- **`clippy::cast_sign_loss` suppression** — removed from signer/testing.rs and listener/tests.rs (no longer needed after safe cast evolution)
+- **Duplicate `DEFAULT_SOURCE_PRIMAL`** — removed from compression and factory crates
+- **`clippy::cast_sign_loss` suppression** — no longer needed after safe cast evolution
 - **Unused `OrExit` import** — removed from `bin/service.rs` after CLI extraction
 
 ### Metrics
 
-- 1,147 tests passing (up from 1,132)
-- 90.54% region coverage (llvm-cov)
+- 1,181 tests passing (up from 1,132)
+- 90.90% region coverage (llvm-cov)
 - 0 clippy warnings (pedantic + nursery)
-- 0 unsafe blocks, `#![forbid(unsafe_code)]` on all crates + fuzz targets
-- 139 .rs files, 40,851 LOC
-- LICENSE aligned: AGPL-3.0-only across SPDX, Cargo.toml, and LICENSE file
+- 0 unsafe blocks, `#![forbid(unsafe_code)]` workspace-level + all crate roots + fuzz targets
+- 154 .rs files, 41,883 LOC
+- AGPL-3.0-or-later across all SPDX headers, Cargo.toml, LICENSE, deny.toml
+- cargo deny: advisories ok, bans ok, licenses ok, sources ok
 
 ## [0.7.27] - 2026-03-24
 

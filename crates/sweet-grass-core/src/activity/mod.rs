@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Activity data structures - processes that create or transform data.
 //!
@@ -86,7 +86,7 @@ impl From<String> for ActivityId {
 }
 
 /// Standard activity types following PROV-O.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum ActivityType {
     // === Data Creation ===
@@ -187,6 +187,7 @@ impl std::fmt::Display for ActivityType {
 
 /// Role an entity plays in an activity.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum EntityRole {
     /// Primary input.
     #[default]
@@ -207,6 +208,7 @@ pub enum EntityRole {
 
 /// Extent of entity usage.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum UsageExtent {
     /// Full entity used.
     Full,

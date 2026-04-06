@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Session events listener.
 //!
@@ -46,6 +46,7 @@ pub struct SessionEvent {
 
 /// Types of session events.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
 pub enum SessionEventType {
     /// Session started.
     Started,

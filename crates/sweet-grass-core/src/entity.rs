@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Entity reference data structures - links to data artifacts.
 //!
@@ -12,6 +12,7 @@ use crate::braid::{BraidId, ContentHash};
 /// Reference to a PROV entity.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
+#[non_exhaustive]
 pub enum EntityReference {
     /// Reference by Braid ID.
     ById {
@@ -135,6 +136,7 @@ impl EntityReference {
 /// Encoding for inline entity data.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[non_exhaustive]
 pub enum Encoding {
     /// Base64 encoding.
     #[default]
@@ -257,6 +259,7 @@ impl InlineEntity {
 
 /// Error decoding inline entity data.
 #[derive(Debug, Clone, thiserror::Error)]
+#[non_exhaustive]
 pub enum DecodeError {
     /// Base64 decoding error.
     #[error("base64 decode error: {0}")]
