@@ -19,13 +19,9 @@ workspace = true
 [dependencies]
 sweet-grass-core = { path = "../sweet-grass-core" }
 sweet-grass-factory = { path = "../sweet-grass-factory" }
-tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
-tracing = { workspace = true }
-uuid = { workspace = true }
-chrono = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util", "macros"] }

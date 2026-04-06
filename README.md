@@ -199,7 +199,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
 | Max file size | 734 lines (limit: 1000) |
-| .rs files | 154 (41,883 LOC) |
+| .rs files | 154 (41,735 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All 154 .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |

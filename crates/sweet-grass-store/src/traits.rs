@@ -253,7 +253,7 @@ pub trait BraidStore: Send + Sync {
     /// let ids = vec![id1, id2, id3];
     /// let (braids, errors) = store.get_batch(&ids, Some(20)).await;
     /// if !errors.is_empty() {
-    ///     tracing::warn!("get_batch had {} store errors", errors.len());
+    ///     eprintln!("get_batch had {} store errors", errors.len());
     /// }
     /// ```
     async fn get_batch(

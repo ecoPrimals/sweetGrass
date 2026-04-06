@@ -192,7 +192,7 @@ cd ../01-primal-coordination
 ✅ Provenance graph traversal (DAG queries)
 ✅ W3C PROV-O compliance (JSON-LD export)
 ✅ GDPR-inspired privacy (5 levels)
-✅ Multiple storage backends (Memory/PostgreSQL/Sled)
+✅ Multiple storage backends (Memory/PostgreSQL/redb; sled deprecated)
 ✅ Real verification (no mocks proof!)
 ✅ Session compression (~88% space savings)
 ```

@@ -45,13 +45,20 @@ tightening. All metrics verified against measured state.
 - **`clippy::cast_sign_loss` suppression** — no longer needed after safe cast evolution
 - **Unused `OrExit` import** — removed from `bin/service.rs` after CLI extraction
 
+### Dependency Hygiene & Attribution Evolution
+
+- **Attribution API now derivation-aware** — `attribution_chain()` delegates to `full_attribution_chain()` so all JSON-RPC/REST/tarpc callers get decay-weighted derivation traversal instead of single-braid-only attribution
+- **17 unused dependencies removed** — `chrono`, `tokio`, `tracing`, `uuid`, `serde`, `serial_test`, `futures`, `tower`, `sweet-grass-query` (dev) pruned from 10 crates where unused
+- **`create_app_state_from_env` gated to `#[cfg(test)]`** — hardcoded `did:primal:test` no longer in production builds; reads `SWEETGRASS_AGENT_DID` env var with test fallback
+- **Derivation test strengthened** — `test_calculate_rewards_with_derived_braid` asserts parent creators receive inherited credit via `was_derived_from`
+
 ### Metrics
 
 - 1,181 tests passing (up from 1,132)
 - 90.90% region coverage (llvm-cov)
 - 0 clippy warnings (pedantic + nursery)
 - 0 unsafe blocks, `#![forbid(unsafe_code)]` workspace-level + all crate roots + fuzz targets
-- 154 .rs files, 41,883 LOC
+- 154 .rs files, 41,735 LOC
 - AGPL-3.0-or-later across all SPDX headers, Cargo.toml, LICENSE, deny.toml
 - cargo deny: advisories ok, bans ok, licenses ok, sources ok
 
@@ -103,8 +110,8 @@ registry errors, discoverable vocab URIs, and store error surfacing.
 - `cargo fmt` — 0 diffs
 - `cargo clippy` (pedantic + nursery, `-D warnings`) — 0 warnings
 - `cargo doc` — 0 warnings
-- `cargo test` — 1,128 tests, 0 failures
-- `cargo llvm-cov` — **90.23% line coverage**
+- `cargo test` — 1,181 tests, 0 failures
+- `cargo llvm-cov` — **90.90% region coverage**
 - 0 TODOs, 0 unsafe, 0 production unwraps, all files under 1000 LOC
 
 ## [0.7.26] - 2026-03-23

@@ -30,7 +30,6 @@ tokio = { workspace = true }
 async-trait = "0.1"
 
 # Serialization
-serde = { workspace = true }
 serde_json = { workspace = true }
 
 # Error handling
@@ -38,12 +37,6 @@ thiserror = { workspace = true }
 
 # Logging
 tracing = { workspace = true }
-
-# Time
-chrono = { workspace = true }
-
-# UUID
-uuid = { workspace = true }
 
 [dev-dependencies]
 sweet-grass-integration = { path = "../sweet-grass-integration", features = ["test"] }

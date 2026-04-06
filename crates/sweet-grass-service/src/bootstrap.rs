@@ -247,15 +247,19 @@ pub async fn infant_bootstrap_with_config_and_reader(
 
 /// Create application state with runtime-discovered storage.
 ///
-/// This is a convenience function for tests and examples that don't need
-/// full bootstrap. Uses a test DID as the default agent.
+/// Test/example convenience that avoids full bootstrap.
+/// Reads `SWEETGRASS_AGENT_DID` from the environment; falls back to
+/// a test DID when the variable is absent.
 ///
 /// # Errors
 ///
 /// Returns error if storage initialization fails.
+#[cfg(test)]
 pub async fn create_app_state_from_env() -> Result<AppState, BootstrapError> {
     let store = BraidStoreFactory::from_env().await?;
-    let default_agent = Did::new("did:primal:test");
+    let did_str =
+        std::env::var("SWEETGRASS_AGENT_DID").unwrap_or_else(|_| "did:primal:test".to_string());
+    let default_agent = Did::new(&did_str);
     Ok(AppState::with_store(store, default_agent))
 }
 

@@ -69,7 +69,7 @@ pub mod tcp_jsonrpc;
 pub mod uds;
 
 pub use bootstrap::{
-    BootstrapConfig, BootstrapError, BootstrapResult, create_app_state_from_env, infant_bootstrap,
+    BootstrapConfig, BootstrapError, BootstrapResult, infant_bootstrap,
     infant_bootstrap_with_config,
 };
 pub use cli::{CapabilitiesReport, HealthCheckError};

@@ -238,19 +238,51 @@ mod tests {
         let child_hash = child.data_hash.clone();
         state.store.put(&child).await.unwrap();
 
-        // Get attribution for child
+        // Attribution for child now walks derivations: both Bob (direct)
+        // and Alice (inherited via was_derived_from) should appear.
+        let result = get_attribution(State(state.clone()), Path(child_hash.as_str().to_string()))
+            .await
+            .unwrap();
+
+        let agents: Vec<&str> = result
+            .contributors
+            .iter()
+            .map(|c| c.agent.as_str())
+            .collect();
+        assert!(
+            agents.contains(&"did:key:z6MkBob"),
+            "child creator Bob must appear in attribution"
+        );
+        assert!(
+            agents.contains(&"did:key:z6MkAlice"),
+            "parent creator Alice must receive inherited attribution"
+        );
+        assert!(
+            result.contributors.len() >= 2,
+            "derivation walk should yield at least two contributors"
+        );
+
         let request = RewardRequest { total_value: 100.0 };
-        let result = calculate_rewards(
+        let reward_result = calculate_rewards(
             State(state),
             Path(child_hash.as_str().to_string()),
             Json(request),
         )
-        .await;
-        assert!(result.is_ok());
+        .await
+        .unwrap();
 
-        let response = result.unwrap();
-        // Should have rewards distributed
-        assert!(!response.rewards.is_empty());
+        let alice_reward = reward_result
+            .rewards
+            .iter()
+            .find(|r| r.agent == "did:key:z6MkAlice");
+        assert!(
+            alice_reward.is_some(),
+            "Alice must receive a share of rewards via derivation chain"
+        );
+        assert!(
+            alice_reward.unwrap().reward > 0.0,
+            "Alice's reward must be positive"
+        );
     }
 
     #[tokio::test]

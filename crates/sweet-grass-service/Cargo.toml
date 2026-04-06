@@ -40,7 +40,6 @@ sled = { workspace = true, optional = true }
 
 # Web framework (REST fallback)
 axum = { workspace = true }
-tower = { workspace = true }
 tower-http = { workspace = true }
 
 # Serialization

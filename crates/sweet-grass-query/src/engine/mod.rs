@@ -211,27 +211,22 @@ impl QueryEngine {
 
     // === Attribution Queries ===
 
-    /// Calculate the attribution chain for an entity.
+    /// Calculate the attribution chain for an entity, walking its full
+    /// derivation graph with decay-weighted role attribution.
+    ///
+    /// Builds the provenance graph up to `max_depth`, then runs
+    /// `calculate_with_derivations` so parent contributors receive
+    /// inherited credit through the `was_derived_from` chain.
     ///
     /// # Errors
     ///
-    /// Returns an error if the entity is not found or the store operation fails.
+    /// Returns an error if the entity is not found or provenance graph building fails.
     pub async fn attribution_chain(&self, hash: &ContentHash) -> Result<AttributionChain> {
-        let braid = self
-            .get_by_hash(hash)
-            .await?
-            .ok_or_else(|| QueryError::NotFound(hash.clone()))?;
-
-        let calculator = AttributionCalculator::new();
-
-        // For now, calculate without derivation chain traversal
-        // (async closures are complex; we'd need a synchronous cache or async-trait)
-        Ok(calculator.calculate_single(&braid))
+        self.full_attribution_chain(hash, None).await
     }
 
-    /// Calculate attribution for an entity including its derivation chain.
-    ///
-    /// This is more expensive as it traverses the full provenance graph.
+    /// Calculate attribution for an entity including its derivation chain,
+    /// with an explicit depth limit override.
     ///
     /// # Errors
     ///
@@ -241,17 +236,14 @@ impl QueryEngine {
         hash: &ContentHash,
         depth: Option<u32>,
     ) -> Result<AttributionChain> {
-        // First, build the provenance graph
         let graph = self
             .provenance_graph(EntityReference::by_hash(hash), depth)
             .await?;
 
-        // Get the root braid
         let braid = graph
             .root_braid()
             .ok_or_else(|| QueryError::NotFound(hash.clone()))?;
 
-        // Build a synchronous resolver from the graph
         let resolver = |h: &ContentHash| graph.entities.get(h.as_str()).cloned();
 
         let calculator = AttributionCalculator::new();
