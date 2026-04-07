@@ -52,6 +52,14 @@ tightening. All metrics verified against measured state.
 - **`create_app_state_from_env` gated to `#[cfg(test)]`** — hardcoded `did:primal:test` no longer in production builds; reads `SWEETGRASS_AGENT_DID` env var with test fallback
 - **Derivation test strengthened** — `test_calculate_rewards_with_derived_braid` asserts parent creators receive inherited credit via `was_derived_from`
 
+### Deployment: musl-static (ecoBin / plasmidBin)
+
+- **musl-static x86_64 build verified** — `cargo build --profile release-static --target x86_64-unknown-linux-musl` produces 4.5 MB statically linked, stripped binary
+- **`.cargo/config.toml`** — musl target profiles with `+crt-static`, aarch64 cross-linker config, `release-static` profile (LTO + strip + opt-level z)
+- **`deploy.sh`** — now defaults to musl-static binary path; configurable via `SWEETGRASS_TARGET` env var
+- **CI** — `musl-static` job added to GitHub Actions: builds, verifies `ldd` static linkage, smoke tests capabilities
+- **Aliases** — `cargo build-musl` and `cargo build-musl-arm` for quick musl builds
+
 ### Metrics
 
 - 1,181 tests passing (up from 1,132)

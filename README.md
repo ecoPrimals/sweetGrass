@@ -212,7 +212,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 ### ecoBin Compliance
 
 - Pure Rust (zero C/C++ dependencies in production)
-- Cross-compilation ready (ARM64, musl, RISC-V targets documented)
+- musl-static builds verified (4.5 MB stripped, plasmidBin / benchScale ready)
 - Platform-agnostic IPC (JSON-RPC + tarpc + UDS, no gRPC/protobuf)
 - `cargo-deny` enforced (tonic, prost, openssl banned)
 

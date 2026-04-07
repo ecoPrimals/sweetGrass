@@ -3,23 +3,32 @@
 # built-in default ("target/") works everywhere; per-machine overrides go
 # in the environment, not in version-controlled config.
 
-# Coverage aliases (ludoSpring V29 / ecosystem standard).
+# ecoBin musl-static targets — fully static binaries for plasmidBin / benchScale.
+# Prerequisites:
+#   rustup target add x86_64-unknown-linux-musl aarch64-unknown-linux-musl
+#   sudo apt install musl-tools gcc-aarch64-linux-gnu
+
+# relocation-model=static prevents static-PIE segfault on musl ≤1.2.2
+# (Ubuntu 22.04 ships musl 1.2.2 — _start_c/dlstart.c crash in PIE mode)
+[target.x86_64-unknown-linux-musl]
+linker = "musl-gcc"
+rustflags = [
+    "-C", "target-feature=+crt-static",
+    "-C", "link-arg=-static",
+    "-C", "relocation-model=static",
+]
+
+[target.aarch64-unknown-linux-musl]
+linker = "aarch64-linux-gnu-gcc"
+rustflags = [
+    "-C", "target-feature=+crt-static",
+    "-C", "link-arg=-static",
+    "-C", "relocation-model=static",
+]
+
 [alias]
 coverage = "llvm-cov --all-features --workspace"
 coverage-html = "llvm-cov --all-features --workspace --html"
 coverage-json = "llvm-cov --all-features --workspace --json --output-path lcov.json"
-
-# ecoBin cross-compilation targets (pure Rust, no C deps in production).
-# Install with: rustup target add <target>
-#
-# Tier 1 (primary):
-#   x86_64-unknown-linux-gnu    — Linux AMD64
-#   aarch64-unknown-linux-gnu   — Linux ARM64 (Raspberry Pi 4+, cloud ARM)
-#
-# Tier 2 (portable):
-#   x86_64-unknown-linux-musl   — Static Linux AMD64 (Alpine, containers)
-#   aarch64-unknown-linux-musl  — Static Linux ARM64
-#   armv7-unknown-linux-gnueabihf — Linux ARMv7 (Raspberry Pi 2/3)
-#
-# Tier 3 (experimental):
-#   riscv64gc-unknown-linux-gnu — RISC-V 64-bit
+build-x64 = "build --release --target x86_64-unknown-linux-musl -p sweet-grass-service"
+build-arm64 = "build --release --target aarch64-unknown-linux-musl -p sweet-grass-service"

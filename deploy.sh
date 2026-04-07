@@ -1,36 +1,40 @@
 #!/bin/bash
 # SweetGrass Production Deployment Script
 # Version: v0.7.27
-# Date: March 24, 2026
 # Status: PRODUCTION READY
 
-set -e  # Exit on error
+set -e
 
-echo "🌾 SweetGrass Production Deployment"
-echo "===================================="
+echo "SweetGrass Production Deployment"
+echo "================================"
 echo ""
 
-# Colors
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Configuration — all from env vars (capability-based, no hardcoding)
 PORT="${SWEETGRASS_HTTP_PORT:-${1:-0}}"
 BACKEND="${STORAGE_BACKEND:-${2:-redb}}"
+TARGET="${SWEETGRASS_TARGET:-x86_64-unknown-linux-musl}"
+BINARY="target/${TARGET}/release-static/sweetgrass"
 
 echo -e "${BLUE}Configuration:${NC}"
 echo "  Port: $PORT"
 echo "  Storage Backend: $BACKEND"
+echo "  Target: $TARGET"
 echo ""
 
-# Verify binary exists
-if [ ! -f "target/release/sweetgrass" ]; then
-    echo -e "${YELLOW}Binary not found. Building release...${NC}"
-    cargo build --release
+if [ ! -f "$BINARY" ]; then
+    echo -e "${YELLOW}Binary not found at ${BINARY}. Building...${NC}"
+    cargo build --profile release-static --target "$TARGET"
     echo ""
 fi
+
+echo -e "${BLUE}Binary info:${NC}"
+file "$BINARY"
+ldd "$BINARY" 2>&1 || true
+echo ""
 
 # Verify environment
 echo -e "${BLUE}Verifying environment...${NC}"
@@ -77,7 +81,7 @@ echo ""
 
 STORAGE_BACKEND="$BACKEND" \
 SWEETGRASS_HTTP_ADDRESS="0.0.0.0:$PORT" \
-./target/release/sweetgrass server &
+"$BINARY" server &
 
 SERVICE_PID=$!
 

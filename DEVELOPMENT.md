@@ -448,7 +448,22 @@ cargo audit
 ### 3. Build Release
 
 ```bash
+# Default (glibc, host target)
 cargo build --release
+
+# musl-static for plasmidBin / container deployment (ecoBin standard)
+rustup target add x86_64-unknown-linux-musl
+sudo apt-get install -y musl-tools          # Ubuntu/Debian
+cargo build --profile release-static --target x86_64-unknown-linux-musl
+
+# Verify static linkage
+file target/x86_64-unknown-linux-musl/release-static/sweetgrass
+ldd target/x86_64-unknown-linux-musl/release-static/sweetgrass
+# Expected: "statically linked", ~4.5 MB stripped
+
+# ARM64 musl (aarch64, requires cross-linker)
+rustup target add aarch64-unknown-linux-musl
+cargo build --profile release-static --target aarch64-unknown-linux-musl
 ```
 
 ### 4. Tag & Push
