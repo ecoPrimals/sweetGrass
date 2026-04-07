@@ -25,7 +25,14 @@
 - [x] 7 new anchor integration tests — `AnchorManager` discovery, reconnect, multiple operations, serialization roundtrips
 - [x] `fuzz/Cargo.toml` edition 2021 → 2024
 - [x] `.cursor/rules/` — persistent AI guidance for ecosystem standards and Rust patterns
-- [x] 1,181 tests passing, 90.90% region coverage (llvm-cov), 0 clippy warnings, 0 doc warnings, 0 unsafe, 0 fmt issues
+- [x] 1,181 → 1,190 tests passing, 90.90% region coverage (llvm-cov), 0 clippy warnings, 0 doc warnings, 0 unsafe, 0 fmt issues
+- [x] `DEFAULT_MAX_PROVENANCE_DEPTH` unified across query engine, attribution calculator, and traversal builder
+- [x] `ProvenanceGraph.has_cycles` — cycle detection metadata on graphs
+- [x] Witness string constants (8 named `&'static str` constants) for WireWitnessRef vocabulary
+- [x] `MissingTarpcAddress` error path tests for signer, anchor, listener clients
+- [x] proptest added to `sweet-grass-query` and `sweet-grass-compression` (graph invariants, session properties)
+- [x] `serial_test` dev-dep removed (unused)
+- [x] `DEFAULT_CONTRIBUTION_MIME` constant replacing runtime allocation
 
 ### v0.7.26 — Ecosystem Absorption: scyBorg License, Sled Deprecation, Lint Evolution (March 2026)
 
@@ -410,7 +417,7 @@
 - [ ] Evolved `MemoryStore` indexes (collision-preserving)
 - [ ] `convergence.query` JSON-RPC method
 - [ ] PostgreSQL `content_convergence` table and migrations
-- [x] Coverage target: 90%+ with llvm-cov *(90.90% region coverage)*
+- [x] Coverage target: 90%+ with llvm-cov *(90.90% region coverage, 1,190 tests)*
 
 ### v0.9.0 — sunCloud Integration (Q3 2026)
 
@@ -437,8 +444,8 @@
 
 ### Testing
 - [x] Coverage to 90%+ *(region coverage 91% in v0.7.5)*
+- [x] Property-based testing in 5 crates *(core, factory, integration, query, compression — 17 strategies)*
 - [ ] Expand chaos testing scenarios
-- [ ] Property-based testing expansion (proptest)
 - [ ] Fuzz testing campaigns
 - [ ] Load testing for production scenarios
 

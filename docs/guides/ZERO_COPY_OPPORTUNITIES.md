@@ -1,7 +1,7 @@
 # 🔄 Zero-Copy Optimization Opportunities
 
 **Status**: Phase 1+2+3 complete; remaining opportunities documented below  
-**Completed**: `BraidId`, `Did`, `ContentHash`, `ActivityId`, `mime_type`, `source_primal`, `niche`, `spine_id`, `BraidMetadata.title`, `BraidMetadata.description`, `BraidMetadata.tags`, `LoamCommitRef.spine_id`, `BraidFactory.source_primal`, `CompressionEngine.source_primal` → `Arc<str>`; `BraidSignature` fields → `Cow<'static, str>`; tag index → `HashMap<Arc<str>, HashSet<BraidId>>`  
+**Completed**: `BraidId`, `Did`, `ContentHash`, `ActivityId`, `mime_type`, `source_primal`, `niche`, `spine_id`, `BraidMetadata.title`, `BraidMetadata.description`, `BraidMetadata.tags`, `LoamCommitRef.spine_id`, `BraidFactory.source_primal`, `CompressionEngine.source_primal` → `Arc<str>`; `Witness` constructors use named `&'static str` constants; tag index → `HashMap<Arc<str>, HashSet<BraidId>>`; `ProvenanceGraphBuilder` cycle detection uses `HashSet<ContentHash>` (O(1) Arc clone); `QueryError::NotFound` carries `ContentHash` (O(1) clone)  
 **Priority**: Low (all hot-path clones eliminated)
 
 ---

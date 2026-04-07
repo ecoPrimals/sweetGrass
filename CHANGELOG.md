@@ -40,12 +40,20 @@ tightening. All metrics verified against measured state.
 - **Cross-crate matches** — `QueryOrder` (3 store backends) and `CompressionResult` (service) now have forward-compatible wildcard arms
 - **`Attestation` → `Witness`** — dehydration type renamed to `Witness` with `witnessed_at` field; generalized provenance events beyond attestation semantics; `WireWitnessRef` wire type for trio IPC
 - **`Braid.signature` → `Braid.witness`** — evolved from W3C LD-Proof `BraidSignature` (sig_type / proof_value / proof_purpose) to `WireWitnessRef`-aligned `Witness` (kind / evidence / encoding / algorithm / tier); `BraidSignature` deprecated; `SigningClient::sign()` returns `Witness`; Postgres JSONB backward-compatible via fallback deserializer; `#[serde(alias = "signature")]` for wire compat; specs updated to match
+- **`DEFAULT_MAX_PROVENANCE_DEPTH` unified** — single constant in `sweet-grass-core::config` replaces three independent `10` constants in query engine, attribution calculator, and traversal builder; prevents drift between components
+- **`ProvenanceGraph.has_cycles`** — graph now records when cycle detection fires during traversal (was silently skipped); consumers can distinguish truncation from cycles
+- **Witness string constants** — 8 named `&'static str` constants (`WITNESS_KIND_SIGNATURE`, `WITNESS_ENCODING_BASE64`, `WITNESS_ALGORITHM_ED25519`, `WITNESS_TIER_LOCAL`, etc.) replace scattered magic strings in constructors and Postgres legacy deserializer
+- **`DEFAULT_CONTRIBUTION_MIME`** — named constant for `"application/octet-stream"` serde default
+- **proptest added to `sweet-grass-query` and `sweet-grass-compression`** — graph entity count invariants, serialization roundtrip, session vertex/roots/tips/depth properties (standards requirement)
+- **`MissingTarpcAddress` tests** — `from_primal()` error path now tested for signer, anchor, and listener tarpc clients
 
 ### Removed
 
 - **Duplicate `DEFAULT_SOURCE_PRIMAL`** — removed from compression and factory crates
 - **`clippy::cast_sign_loss` suppression** — no longer needed after safe cast evolution
 - **Unused `OrExit` import** — removed from `bin/service.rs` after CLI extraction
+- **`serial_test` dev-dep** — removed from `sweet-grass-service` (unused)
+- **Duplicate depth constants** — `DEFAULT_MAX_DEPTH` in query, `DEFAULT_ATTRIBUTION_MAX_DEPTH` in factory replaced by re-exports from core config
 
 ### Dependency Hygiene & Attribution Evolution
 
@@ -64,11 +72,12 @@ tightening. All metrics verified against measured state.
 
 ### Metrics
 
-- 1,181 tests passing (up from 1,132)
+- 1,190 tests passing (up from 1,132)
 - 90.90% region coverage (llvm-cov)
 - 0 clippy warnings (pedantic + nursery)
 - 0 unsafe blocks, `#![forbid(unsafe_code)]` workspace-level + all crate roots + fuzz targets
-- 154 .rs files, 41,804 LOC
+- 151 .rs files, 42,161 LOC
+- proptest in 5 crates (core, factory, integration, query, compression)
 - AGPL-3.0-or-later across all SPDX headers, Cargo.toml, LICENSE, deny.toml
 - cargo deny: advisories ok, bans ok, licenses ok, sources ok
 
