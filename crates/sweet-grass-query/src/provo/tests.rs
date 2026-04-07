@@ -231,6 +231,7 @@ fn test_export_graph_empty() {
         generation_edges: HashMap::new(),
         depth: 0,
         truncated: false,
+        has_cycles: false,
     };
     let exporter = ProvoExport::new();
     let doc = exporter.export_graph(&graph).expect("should export");
@@ -339,6 +340,7 @@ fn test_export_graph_with_entities() {
         generation_edges: HashMap::new(),
         depth: 0,
         truncated: false,
+        has_cycles: false,
     };
 
     let exporter = ProvoExport::new();
@@ -383,6 +385,7 @@ fn test_export_graph_with_activities() {
         generation_edges: HashMap::new(),
         depth: 0,
         truncated: false,
+        has_cycles: false,
     };
 
     let exporter = ProvoExport::new();

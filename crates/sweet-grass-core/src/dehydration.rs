@@ -127,18 +127,35 @@ pub struct Witness {
     pub context: Option<String>,
 }
 
+/// Well-known witness kind for cryptographic signatures.
+pub const WITNESS_KIND_SIGNATURE: &str = "signature";
+/// Well-known witness kind for boundary/event markers.
+pub const WITNESS_KIND_MARKER: &str = "marker";
+/// Encoding value when evidence payload is base64-encoded.
+pub const WITNESS_ENCODING_BASE64: &str = "base64";
+/// Encoding value when there is no evidence payload.
+pub const WITNESS_ENCODING_NONE: &str = "none";
+/// Default witness encoding for the serde default path.
+pub const WITNESS_ENCODING_HEX: &str = "hex";
+/// Algorithm identifier for Ed25519 signatures.
+pub const WITNESS_ALGORITHM_ED25519: &str = "ed25519";
+/// Provenance tier: same gate / local process.
+pub const WITNESS_TIER_LOCAL: &str = "local";
+/// Provenance tier: unsigned / no cryptographic backing.
+pub const WITNESS_TIER_OPEN: &str = "open";
+
 impl Witness {
     /// Create an unsigned placeholder witness (open tier, no evidence).
     #[must_use]
     pub fn unsigned() -> Self {
         Self {
             agent: Did::new(""),
-            kind: "marker".to_string(),
+            kind: WITNESS_KIND_MARKER.to_owned(),
             evidence: String::new(),
             witnessed_at: super::braid::types::current_timestamp_nanos(),
-            encoding: "none".to_string(),
+            encoding: WITNESS_ENCODING_NONE.to_owned(),
             algorithm: None,
-            tier: Some("open".to_string()),
+            tier: Some(WITNESS_TIER_OPEN.to_owned()),
             context: None,
         }
     }
@@ -149,12 +166,12 @@ impl Witness {
         use base64::Engine;
         Self {
             agent: agent.clone(),
-            kind: "signature".to_string(),
+            kind: WITNESS_KIND_SIGNATURE.to_owned(),
             evidence: base64::engine::general_purpose::STANDARD.encode(signature_bytes),
             witnessed_at: super::braid::types::current_timestamp_nanos(),
-            encoding: "base64".to_string(),
-            algorithm: Some("ed25519".to_string()),
-            tier: Some("local".to_string()),
+            encoding: WITNESS_ENCODING_BASE64.to_owned(),
+            algorithm: Some(WITNESS_ALGORITHM_ED25519.to_owned()),
+            tier: Some(WITNESS_TIER_LOCAL.to_owned()),
             context: None,
         }
     }
@@ -162,16 +179,16 @@ impl Witness {
     /// Whether this witness carries a cryptographic signature.
     #[must_use]
     pub fn is_signed(&self) -> bool {
-        self.kind == "signature" && !self.evidence.is_empty()
+        self.kind == WITNESS_KIND_SIGNATURE && !self.evidence.is_empty()
     }
 }
 
 fn default_witness_kind() -> String {
-    "signature".to_string()
+    WITNESS_KIND_SIGNATURE.to_owned()
 }
 
 fn default_witness_encoding() -> String {
-    "hex".to_string()
+    WITNESS_ENCODING_HEX.to_owned()
 }
 
 /// A high-level operation recorded during a session.

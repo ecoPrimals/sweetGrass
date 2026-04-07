@@ -57,8 +57,11 @@ pub struct ContributionRecord {
     pub domain: HashMap<String, serde_json::Value>,
 }
 
+/// Fallback MIME type for contributions with unspecified content types.
+pub const DEFAULT_CONTRIBUTION_MIME: &str = "application/octet-stream";
+
 fn default_mime_type() -> String {
-    "application/octet-stream".to_string()
+    DEFAULT_CONTRIBUTION_MIME.to_owned()
 }
 
 /// A batch of contributions from a session dehydration or similar event.

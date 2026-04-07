@@ -23,6 +23,12 @@ use std::time::Duration;
 
 use crate::identity;
 
+/// Default maximum depth for provenance graph traversal and attribution chains.
+///
+/// Shared across `QueryEngine`, `ProvenanceGraphBuilder`, and
+/// `AttributionCalculator` to prevent drift between components.
+pub const DEFAULT_MAX_PROVENANCE_DEPTH: u32 = 10;
+
 /// Capabilities that `SweetGrass` can require from other primals.
 /// Runtime discovery finds primals offering these capabilities.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -524,7 +530,7 @@ impl Default for QueryConfig {
             graphql: true,
             sparql: false,
             full_text_search: true,
-            max_provenance_depth: 10,
+            max_provenance_depth: DEFAULT_MAX_PROVENANCE_DEPTH,
             timeout: Duration::from_secs(30),
             max_results: 1000,
         }
@@ -563,7 +569,7 @@ pub struct AttributionConfig {
 impl Default for AttributionConfig {
     fn default() -> Self {
         Self {
-            max_depth: 10,
+            max_depth: DEFAULT_MAX_PROVENANCE_DEPTH,
             inheritance_decay: 0.7,
             min_share_threshold: 0.001, // 0.1%
             include_resources: true,

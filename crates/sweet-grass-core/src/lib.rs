@@ -104,7 +104,8 @@ pub use agent::{Agent, AgentAssociation, AgentRole, AgentType, Did};
 #[allow(deprecated)]
 pub use braid::{Braid, BraidId, BraidSignature, BraidType, ContentHash, Timestamp};
 pub use config::{
-    Capability, ConfigError, NetworkConfig, SweetGrassConfig, SweetGrassConfigBuilder,
+    Capability, ConfigError, DEFAULT_MAX_PROVENANCE_DEPTH, NetworkConfig, SweetGrassConfig,
+    SweetGrassConfigBuilder,
 };
 pub use dehydration::{DehydrationSummary, SessionOperation, Witness};
 pub use entity::{Encoding, EntityReference, InlineEntity};

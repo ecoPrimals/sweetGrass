@@ -24,8 +24,8 @@ use crate::error::FactoryError;
 /// Default weight for the Curator role in attribution calculation.
 pub const DEFAULT_CURATOR_ROLE_WEIGHT: f64 = 0.10;
 
-/// Default maximum derivation depth to consider in attribution chains.
-pub const DEFAULT_ATTRIBUTION_MAX_DEPTH: u32 = 10;
+/// Re-export for backward compatibility.
+pub use sweet_grass_core::config::DEFAULT_MAX_PROVENANCE_DEPTH as DEFAULT_ATTRIBUTION_MAX_DEPTH;
 
 /// Configuration for attribution calculation.
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]

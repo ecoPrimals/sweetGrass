@@ -360,4 +360,25 @@ mod tests {
         let client_ref = signer.client();
         assert!(client_ref.health().await.expect("health"));
     }
+
+    #[tokio::test]
+    async fn test_from_primal_missing_tarpc_address() {
+        let primal = DiscoveredPrimal {
+            instance_id: "no-addr".to_string(),
+            name: "no-address-signer".to_string(),
+            capabilities: vec![Capability::Signing],
+            tarpc_address: None,
+            rest_address: None,
+            last_seen: std::time::SystemTime::now(),
+            healthy: true,
+        };
+
+        let result = TarpcSigningClient::from_primal(&primal).await;
+        assert!(result.is_err());
+        let err = result.err().expect("should be error");
+        assert!(
+            err.to_string().contains("no tarpc address"),
+            "should return MissingTarpcAddress, got: {err}"
+        );
+    }
 }

@@ -7,7 +7,9 @@
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use sweet_grass_core::{Activity, Braid, ContentHash, entity::EntityReference};
+use sweet_grass_core::{
+    Activity, Braid, ContentHash, DEFAULT_MAX_PROVENANCE_DEPTH, entity::EntityReference,
+};
 use sweet_grass_store::BraidStore;
 
 use crate::Result;
@@ -35,6 +37,10 @@ pub struct ProvenanceGraph {
 
     /// Whether the graph was truncated due to depth limit.
     pub truncated: bool,
+
+    /// Whether any cycles were detected and skipped during traversal.
+    #[serde(default)]
+    pub has_cycles: bool,
 }
 
 impl ProvenanceGraph {
@@ -123,7 +129,7 @@ impl ProvenanceGraphBuilder {
     #[must_use]
     pub const fn new() -> Self {
         Self {
-            max_depth: 10,
+            max_depth: DEFAULT_MAX_PROVENANCE_DEPTH,
             include_activities: true,
         }
     }
@@ -160,6 +166,7 @@ impl ProvenanceGraphBuilder {
             generation_edges: HashMap::new(),
             depth: 0,
             truncated: false,
+            has_cycles: false,
         };
 
         let mut visited: HashSet<ContentHash> = HashSet::new();
@@ -187,6 +194,7 @@ impl ProvenanceGraphBuilder {
             }
 
             if !visited.insert(hash.clone()) {
+                graph.has_cycles = true;
                 return Ok(());
             }
 
@@ -571,6 +579,7 @@ mod tests {
             generation_edges: HashMap::new(),
             depth: 0,
             truncated: false,
+            has_cycles: false,
         };
 
         let json = serde_json::to_string(&graph).expect("serialize");
@@ -578,6 +587,7 @@ mod tests {
 
         assert_eq!(parsed.depth, graph.depth);
         assert_eq!(parsed.truncated, graph.truncated);
+        assert_eq!(parsed.has_cycles, graph.has_cycles);
     }
 
     #[tokio::test]
@@ -692,9 +702,65 @@ mod tests {
             generation_edges: HashMap::new(),
             depth: 0,
             truncated: false,
+            has_cycles: false,
         };
 
         let children = graph.children("sha256:nonexistent");
         assert!(children.is_empty());
+    }
+
+    mod proptests {
+        use super::*;
+        use proptest::prelude::*;
+
+        fn arb_hash() -> impl Strategy<Value = String> {
+            "[a-f0-9]{8}".prop_map(|h| format!("sha256:{h}"))
+        }
+
+        proptest! {
+            #[test]
+            fn graph_entity_count_matches_map(hashes in proptest::collection::hash_set(arb_hash(), 0..20)) {
+                let mut graph = ProvenanceGraph {
+                    root: EntityReference::by_hash("sha256:root"),
+                    entities: HashMap::new(),
+                    activities: HashMap::new(),
+                    derivation_edges: HashMap::new(),
+                    generation_edges: HashMap::new(),
+                    depth: 0,
+                    truncated: false,
+                    has_cycles: false,
+                };
+
+                for h in &hashes {
+                    let braid = make_test_braid(h, "did:key:z6MkProp", vec![]);
+                    graph.entities.insert(h.clone(), braid);
+                }
+
+                prop_assert_eq!(graph.entity_count(), hashes.len());
+                for h in &hashes {
+                    prop_assert!(graph.contains_entity(h));
+                }
+            }
+
+            #[test]
+            fn graph_serialization_roundtrip(depth in 0u32..100, truncated in proptest::bool::ANY) {
+                let graph = ProvenanceGraph {
+                    root: EntityReference::by_hash("sha256:prop-root"),
+                    entities: HashMap::new(),
+                    activities: HashMap::new(),
+                    derivation_edges: HashMap::new(),
+                    generation_edges: HashMap::new(),
+                    depth,
+                    truncated,
+                    has_cycles: false,
+                };
+
+                let json = serde_json::to_string(&graph).expect("serialize");
+                let parsed: ProvenanceGraph = serde_json::from_str(&json).expect("deserialize");
+
+                prop_assert_eq!(parsed.depth, depth);
+                prop_assert_eq!(parsed.truncated, truncated);
+            }
+        }
     }
 }

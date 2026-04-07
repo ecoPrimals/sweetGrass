@@ -180,6 +180,11 @@ pub fn row_to_activity(row: &sqlx::postgres::PgRow) -> sweet_grass_store::Result
 
 /// Convert a pre-`WireWitnessRef` (LD-Proof) JSONB value into a [`Witness`].
 fn legacy_signature_to_witness(v: &serde_json::Value) -> sweet_grass_core::dehydration::Witness {
+    use sweet_grass_core::dehydration::{
+        WITNESS_ALGORITHM_ED25519, WITNESS_ENCODING_BASE64, WITNESS_ENCODING_NONE,
+        WITNESS_KIND_MARKER, WITNESS_KIND_SIGNATURE, WITNESS_TIER_LOCAL, WITNESS_TIER_OPEN,
+    };
+
     let sig_type = v.get("type").and_then(|v| v.as_str()).unwrap_or("Unsigned");
     let proof_value = v.get("proof_value").and_then(|v| v.as_str()).unwrap_or("");
     let verification_method = v
@@ -195,27 +200,32 @@ fn legacy_signature_to_witness(v: &serde_json::Value) -> sweet_grass_core::dehyd
     sweet_grass_core::dehydration::Witness {
         agent: Did::new(verification_method.split('#').next().unwrap_or("")),
         kind: if is_signed {
-            "signature".to_string()
+            WITNESS_KIND_SIGNATURE
         } else {
-            "marker".to_string()
-        },
-        evidence: proof_value.to_string(),
+            WITNESS_KIND_MARKER
+        }
+        .to_owned(),
+        evidence: proof_value.to_owned(),
         witnessed_at: created,
         encoding: if is_signed {
-            "base64".to_string()
+            WITNESS_ENCODING_BASE64
         } else {
-            "none".to_string()
-        },
+            WITNESS_ENCODING_NONE
+        }
+        .to_owned(),
         algorithm: if sig_type.contains("Ed25519") {
-            Some("ed25519".to_string())
+            Some(WITNESS_ALGORITHM_ED25519.to_owned())
         } else {
             None
         },
-        tier: Some(if is_signed {
-            "local".to_string()
-        } else {
-            "open".to_string()
-        }),
+        tier: Some(
+            if is_signed {
+                WITNESS_TIER_LOCAL
+            } else {
+                WITNESS_TIER_OPEN
+            }
+            .to_owned(),
+        ),
         context: None,
     }
 }

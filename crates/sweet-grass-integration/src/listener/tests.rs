@@ -386,3 +386,27 @@ async fn test_event_handler_start_ignores_rolled_back() {
         "RolledBack should not store Braids"
     );
 }
+
+#[tokio::test]
+async fn test_from_primal_missing_tarpc_address() {
+    use crate::discovery::DiscoveredPrimal;
+    use sweet_grass_core::config::Capability;
+
+    let primal = DiscoveredPrimal {
+        instance_id: "no-addr".to_string(),
+        name: "no-address-listener".to_string(),
+        capabilities: vec![Capability::SessionEvents],
+        tarpc_address: None,
+        rest_address: None,
+        last_seen: std::time::SystemTime::now(),
+        healthy: true,
+    };
+
+    let result = super::tarpc_client::TarpcSessionEventsClient::from_primal(&primal).await;
+    assert!(result.is_err());
+    let err = result.err().expect("should be error");
+    assert!(
+        err.to_string().contains("no tarpc address"),
+        "should return MissingTarpcAddress, got: {err}"
+    );
+}

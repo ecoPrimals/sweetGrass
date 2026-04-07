@@ -74,7 +74,6 @@ sweet-grass-core = { path = "../sweet-grass-core", features = ["test"] }
 sweet-grass-integration = { path = "../sweet-grass-integration", features = ["test"] }
 tokio = { workspace = true, features = ["test-util", "macros"] }
 axum-test = "19"
-serial_test = "3"
 tempfile = "3"
 criterion = { workspace = true }
 

@@ -15,8 +15,8 @@ use crate::error::QueryError;
 use crate::provo::{JsonLdDocument, ProvoExport};
 use crate::traversal::{ProvenanceGraph, ProvenanceGraphBuilder};
 
-/// Default maximum traversal depth for provenance graph building.
-pub const DEFAULT_MAX_DEPTH: u32 = 10;
+/// Re-export for backward compatibility.
+pub use sweet_grass_core::config::DEFAULT_MAX_PROVENANCE_DEPTH as DEFAULT_MAX_DEPTH;
 
 // Re-export futures for parallel operations
 use futures;

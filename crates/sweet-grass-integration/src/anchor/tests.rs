@@ -389,3 +389,27 @@ async fn test_anchor_receipt_serialization() {
     assert_eq!(parsed.confirmations, 3);
     assert_eq!(parsed.transaction_id, Some("tx-001".to_string()));
 }
+
+#[tokio::test]
+async fn test_from_primal_missing_tarpc_address() {
+    use crate::discovery::DiscoveredPrimal;
+    use sweet_grass_core::config::Capability;
+
+    let primal = DiscoveredPrimal {
+        instance_id: "no-addr".to_string(),
+        name: "no-address-anchor".to_string(),
+        capabilities: vec![Capability::Anchoring],
+        tarpc_address: None,
+        rest_address: None,
+        last_seen: std::time::SystemTime::now(),
+        healthy: true,
+    };
+
+    let result = super::TarpcAnchoringClient::from_primal(&primal).await;
+    assert!(result.is_err());
+    let err = result.err().expect("should be error");
+    assert!(
+        err.to_string().contains("no tarpc address"),
+        "should return MissingTarpcAddress, got: {err}"
+    );
+}

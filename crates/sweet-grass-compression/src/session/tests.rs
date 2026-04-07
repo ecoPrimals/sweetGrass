@@ -407,3 +407,92 @@ fn test_tips_single_vertex() {
     assert_eq!(tips.len(), 1);
     assert_eq!(tips[0].id, "only");
 }
+
+mod proptests {
+    use super::*;
+    use proptest::prelude::*;
+
+    fn arb_vertex_id() -> impl Strategy<Value = String> {
+        "[a-z]{1,8}".prop_map(|s| format!("v-{s}"))
+    }
+
+    fn arb_hash() -> impl Strategy<Value = String> {
+        "[a-f0-9]{8}".prop_map(|h| format!("sha256:{h}"))
+    }
+
+    proptest! {
+        #[test]
+        fn vertex_count_matches_additions(
+            ids in proptest::collection::vec((arb_vertex_id(), arb_hash()), 1..30)
+        ) {
+            let mut session = Session::new("prop-session");
+            let mut unique_ids = std::collections::HashSet::new();
+
+            for (id, hash) in &ids {
+                if unique_ids.insert(id.clone()) {
+                    session.add_vertex(make_vertex(id, hash).committed());
+                }
+            }
+
+            prop_assert_eq!(session.vertex_count(), unique_ids.len());
+        }
+
+        #[test]
+        fn roots_are_parentless(count in 1usize..10) {
+            let mut session = Session::new("prop-roots");
+
+            for i in 0..count {
+                session.add_vertex(
+                    make_vertex(&format!("r{i}"), &format!("sha256:r{i}")).committed(),
+                );
+            }
+
+            let roots = session.roots();
+            prop_assert_eq!(roots.len(), count);
+            for root in roots {
+                prop_assert!(root.parents.is_empty());
+            }
+        }
+
+        #[test]
+        fn tips_have_no_children(chain_len in 1usize..8) {
+            let mut session = Session::new("prop-tips");
+
+            session.add_vertex(make_vertex("v0", "sha256:v0").committed());
+            for i in 1..chain_len {
+                session.add_vertex(
+                    make_vertex(
+                        &format!("v{i}"),
+                        &format!("sha256:v{i}"),
+                    )
+                    .with_parent(format!("v{}", i - 1))
+                    .committed(),
+                );
+            }
+
+            let tips = session.tips();
+            prop_assert_eq!(tips.len(), 1);
+            prop_assert_eq!(&tips[0].id, &format!("v{}", chain_len - 1));
+        }
+
+        #[test]
+        fn max_depth_of_chain(chain_len in 1usize..15) {
+            let mut session = Session::new("prop-depth");
+
+            session.add_vertex(make_vertex("v0", "sha256:v0").committed());
+            for i in 1..chain_len {
+                session.add_vertex(
+                    make_vertex(
+                        &format!("v{i}"),
+                        &format!("sha256:v{i}"),
+                    )
+                    .with_parent(format!("v{}", i - 1))
+                    .committed(),
+                );
+            }
+
+            let depth = session.max_depth();
+            prop_assert_eq!(depth, chain_len - 1);
+        }
+    }
+}
