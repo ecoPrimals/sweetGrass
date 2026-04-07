@@ -183,6 +183,7 @@ pub(super) async fn handle_record_dehydration(
             rhizo_session: Some(summary.session_id.clone()),
             niche: summary.niche.as_deref().map(Arc::from),
             compression,
+            witnesses: summary.witnesses.clone(),
             ..EcoPrimalsAttributes::default()
         }
     };

@@ -40,9 +40,9 @@ pub struct DehydrationSummary {
     /// Agents who participated in the session.
     pub agents: Vec<Did>,
 
-    /// Cryptographic attestations from participating agents.
+    /// Session witnesses (signatures, hash observations, checkpoints, markers).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub attestations: Vec<Attestation>,
+    pub witnesses: Vec<Witness>,
 
     /// Operations performed during the session.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -69,18 +69,70 @@ pub struct DehydrationSummary {
     pub compression_ratio: Option<f64>,
 }
 
-/// An agent's attestation that they participated in a session.
+/// A witness that something occurred in a session.
+///
+/// The trio is agnostic to what a witness contains. A witness may be a
+/// cryptographic signature, a hash observation, a game-state checkpoint,
+/// a conversation marker, or a bare timestamp. The `kind` field
+/// discriminates; the `evidence` field carries the payload (opaque string,
+/// empty when the witness needs no payload).
+///
+/// When the witness is cryptographic (`kind: "signature"`), verification
+/// is delegated to `BearDog` (`crypto.verify`) or an external verifier.
+/// `sweetGrass` never decodes or validates evidence — it attributes and
+/// retains on braids.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Attestation {
-    /// The agent who attested.
+pub struct Witness {
+    /// Agent or system that produced this witness.
     pub agent: Did,
 
-    /// Ed25519 signature over the Merkle root (base64-encoded).
-    pub signature: String,
+    /// What this witness represents.
+    /// `"signature"` = cryptographic signature,
+    /// `"hash"` = hash observation, `"checkpoint"` = state snapshot,
+    /// `"marker"` = boundary/event marker, `"timestamp"` = bare time witness.
+    #[serde(default = "default_witness_kind")]
+    pub kind: String,
 
-    /// When the attestation was created (defaults to 0 when omitted by callers).
+    /// Evidence payload (opaque). For signatures this is the encoded
+    /// signature bytes; for non-crypto witnesses this may be empty or
+    /// carry a hash, checkpoint token, or other payload.
     #[serde(default)]
-    pub attested_at: Timestamp,
+    pub evidence: String,
+
+    /// When the witness was created (defaults to 0 when omitted by callers).
+    #[serde(default)]
+    pub witnessed_at: Timestamp,
+
+    /// How the evidence payload is encoded. Only meaningful when `evidence`
+    /// is non-empty. Values: `"hex"`, `"base64"`, `"base64url"`, `"multibase"`,
+    /// `"utf8"` (plain text), `"none"` (no encoding / empty payload).
+    #[serde(default = "default_witness_encoding")]
+    pub encoding: String,
+
+    /// Cryptographic algorithm (when `kind` = `"signature"`).
+    /// `None` for non-crypto witnesses.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub algorithm: Option<String>,
+
+    /// Provenance tier.
+    /// `"local"` = same gate, `"gateway"` = remote gate,
+    /// `"anchor"` = public chain, `"external"` = third-party,
+    /// `"open"` = unsigned / no cryptographic backing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tier: Option<String>,
+
+    /// Freeform context for the witness.
+    /// `"game:tick:42"`, `"conversation:thread:abc"`, `"experiment:run:7"`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<String>,
+}
+
+fn default_witness_kind() -> String {
+    "signature".to_string()
+}
+
+fn default_witness_encoding() -> String {
+    "hex".to_string()
 }
 
 /// A high-level operation recorded during a session.
@@ -122,10 +174,15 @@ mod tests {
             vertex_count: 15,
             branch_count: 3,
             agents: vec![Did::new("did:key:z6MkAlice"), Did::new("did:key:z6MkBob")],
-            attestations: vec![Attestation {
+            witnesses: vec![Witness {
                 agent: Did::new("did:key:z6MkAlice"),
-                signature: "base64sig==".to_string(),
-                attested_at: 1_000_000,
+                kind: "signature".to_string(),
+                evidence: "deadbeef01234567".to_string(),
+                witnessed_at: 1_000_000,
+                encoding: "hex".to_string(),
+                algorithm: Some("ed25519".to_string()),
+                tier: Some("local".to_string()),
+                context: None,
             }],
             operations: vec![SessionOperation {
                 op_type: "create".to_string(),
@@ -151,7 +208,7 @@ mod tests {
         assert_eq!(parsed.merkle_root.as_str(), "sha256:abcdef0123456789");
         assert_eq!(parsed.vertex_count, 15);
         assert_eq!(parsed.agents.len(), 2);
-        assert_eq!(parsed.attestations.len(), 1);
+        assert_eq!(parsed.witnesses.len(), 1);
         assert_eq!(parsed.operations.len(), 1);
     }
 
@@ -164,7 +221,7 @@ mod tests {
             vertex_count: 1,
             branch_count: 0,
             agents: vec![Did::new("did:key:z6MkSolo")],
-            attestations: Vec::new(),
+            witnesses: Vec::new(),
             operations: Vec::new(),
             session_start: 0,
             dehydrated_at: 1,
@@ -174,22 +231,27 @@ mod tests {
         };
 
         let json = serde_json::to_string(&summary).expect("should serialize");
-        assert!(!json.contains("attestations"));
+        assert!(!json.contains("witnesses"));
         assert!(!json.contains("operations"));
         assert!(!json.contains("niche"));
     }
 
     #[test]
-    fn test_attestation_roundtrip() {
-        let att = Attestation {
+    fn test_witness_roundtrip() {
+        let w = Witness {
             agent: Did::new("did:key:z6MkTest"),
-            signature: "dGVzdA==".to_string(),
-            attested_at: 42,
+            kind: "signature".to_string(),
+            evidence: "dGVzdA==".to_string(),
+            witnessed_at: 42,
+            encoding: "base64".to_string(),
+            algorithm: Some("ed25519".to_string()),
+            tier: None,
+            context: None,
         };
-        let json = serde_json::to_string(&att).expect("serialize");
-        let parsed: Attestation = serde_json::from_str(&json).expect("deserialize");
+        let json = serde_json::to_string(&w).expect("serialize");
+        let parsed: Witness = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(parsed.agent.as_str(), "did:key:z6MkTest");
-        assert_eq!(parsed.attested_at, 42);
+        assert_eq!(parsed.witnessed_at, 42);
     }
 
     #[test]

@@ -105,7 +105,7 @@ pub use braid::{Braid, BraidId, BraidSignature, BraidType, ContentHash, Timestam
 pub use config::{
     Capability, ConfigError, NetworkConfig, SweetGrassConfig, SweetGrassConfigBuilder,
 };
-pub use dehydration::{Attestation, DehydrationSummary, SessionOperation};
+pub use dehydration::{DehydrationSummary, SessionOperation, Witness};
 pub use entity::{Encoding, EntityReference, InlineEntity};
 pub use error::SweetGrassError;
 pub use hash::HexDecodeError;

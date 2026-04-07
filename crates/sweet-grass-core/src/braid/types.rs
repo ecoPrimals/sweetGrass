@@ -456,6 +456,12 @@ pub struct EcoPrimalsAttributes {
     /// Compression metadata.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub compression: Option<CompressionMeta>,
+
+    /// Witnesses carried from the dehydration event (signatures, hashes,
+    /// checkpoints, markers). The trio never interprets evidence —
+    /// verification is delegated to `BearDog` or an external verifier.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub witnesses: Vec<crate::dehydration::Witness>,
 }
 
 /// `LoamSpine` commit reference.
