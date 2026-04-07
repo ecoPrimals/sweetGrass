@@ -87,7 +87,7 @@
 - [x] **`PipelineRequest` / `PipelineResult` inlined** — handler-local wire types in `contribution.rs`, minimum necessary serde derives
 - [x] **Direct deserialization** — `handle_record_dehydration` deserializes into own `DehydrationSummary` directly; `From` impls and wire re-export deleted
 - [x] **`deny.toml` sovereignty guard** — `provenance-trio-types` banned to prevent re-introduction
-- [x] **Wire tolerance** — `#[serde(default)]` on `SessionOperation.timestamp` and `Attestation.attested_at` for forward compatibility
+- [x] **Wire tolerance** — `#[serde(default)]` on `SessionOperation.timestamp` and `Witness.witnessed_at` for forward compatibility
 - [x] **wateringHole registry updated** — `PRIMAL_REGISTRY.md` and `genomeBin/manifest.toml` synced to v0.7.22
 
 ### v0.7.21 — Deep Audit: Zero-Copy, Handler Coverage, Test Refactor (March 2026)

@@ -38,6 +38,7 @@ tightening. All metrics verified against measured state.
 - **Safe casts** — 8 lossy `timestamp() as u64` casts replaced with `u64::try_from().unwrap_or(0)`
 - **`#![forbid(unsafe_code)]`** — added to all 3 fuzz targets
 - **Cross-crate matches** — `QueryOrder` (3 store backends) and `CompressionResult` (service) now have forward-compatible wildcard arms
+- **`Attestation` → `Witness`** — dehydration type renamed to `Witness` with `witnessed_at` field; generalized provenance events beyond attestation semantics; `WireWitnessRef` wire type for trio IPC
 
 ### Removed
 
@@ -66,7 +67,7 @@ tightening. All metrics verified against measured state.
 - 90.90% region coverage (llvm-cov)
 - 0 clippy warnings (pedantic + nursery)
 - 0 unsafe blocks, `#![forbid(unsafe_code)]` workspace-level + all crate roots + fuzz targets
-- 154 .rs files, 41,735 LOC
+- 154 .rs files, 41,804 LOC
 - AGPL-3.0-or-later across all SPDX headers, Cargo.toml, LICENSE, deny.toml
 - cargo deny: advisories ok, bans ok, licenses ok, sources ok
 
@@ -245,7 +246,7 @@ store implementation completion, and documentation overhaul.
 
 - **`PipelineRequest` / `PipelineResult` / `AgentContribution`** — inline wire types in `contribution.rs`, scoped to the handler that uses them. Only `Deserialize` or `Serialize` derived per direction (minimum necessary).
 - **`provenance-trio-types` banned in `deny.toml`** — prevents future re-introduction of shared cross-primal crates.
-- **`#[serde(default)]` on `SessionOperation.timestamp` and `Attestation.attested_at`** — wire tolerance for payloads that omit optional timing fields.
+- **`#[serde(default)]` on `SessionOperation.timestamp` and `Witness.witnessed_at`** — wire tolerance for payloads that omit optional timing fields.
 - **`# Errors` documentation** — all public `Result`-returning methods in redb, sled, and postgres store crates now have `# Errors` doc sections
 - **`publish = false`** on all 10 workspace crates — not published to crates.io; fixes cargo-deny wildcard warnings
 - **`activities_for_braid` real implementations** — sled and redb stores now return the braid's generating activity (was returning empty `Vec`)
