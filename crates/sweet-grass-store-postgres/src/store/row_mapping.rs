@@ -113,8 +113,12 @@ pub fn row_to_braid(row: &sqlx::postgres::PgRow) -> sweet_grass_store::Result<Br
         braid.was_generated_by = Some(activity);
     }
 
-    if let Ok(sig) = serde_json::from_value(signature) {
-        braid.signature = sig;
+    if let Ok(witness) =
+        serde_json::from_value::<sweet_grass_core::dehydration::Witness>(signature.clone())
+    {
+        braid.witness = witness;
+    } else {
+        braid.witness = legacy_signature_to_witness(&signature);
     }
 
     if let Ok(ecop_parsed) = serde_json::from_value(ecop) {
@@ -172,6 +176,48 @@ pub fn row_to_activity(row: &sqlx::postgres::PgRow) -> sweet_grass_store::Result
         metadata: meta,
         ecop: ecop_parsed,
     })
+}
+
+/// Convert a pre-`WireWitnessRef` (LD-Proof) JSONB value into a [`Witness`].
+fn legacy_signature_to_witness(v: &serde_json::Value) -> sweet_grass_core::dehydration::Witness {
+    let sig_type = v.get("type").and_then(|v| v.as_str()).unwrap_or("Unsigned");
+    let proof_value = v.get("proof_value").and_then(|v| v.as_str()).unwrap_or("");
+    let verification_method = v
+        .get("verification_method")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let created = v
+        .get("created")
+        .and_then(serde_json::Value::as_u64)
+        .unwrap_or(0);
+
+    let is_signed = sig_type != "Unsigned" && !proof_value.is_empty();
+    sweet_grass_core::dehydration::Witness {
+        agent: Did::new(verification_method.split('#').next().unwrap_or("")),
+        kind: if is_signed {
+            "signature".to_string()
+        } else {
+            "marker".to_string()
+        },
+        evidence: proof_value.to_string(),
+        witnessed_at: created,
+        encoding: if is_signed {
+            "base64".to_string()
+        } else {
+            "none".to_string()
+        },
+        algorithm: if sig_type.contains("Ed25519") {
+            Some("ed25519".to_string())
+        } else {
+            None
+        },
+        tier: Some(if is_signed {
+            "local".to_string()
+        } else {
+            "open".to_string()
+        }),
+        context: None,
+    }
 }
 
 /// Parse an activity type from its string representation.

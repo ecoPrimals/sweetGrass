@@ -89,10 +89,10 @@ pub struct Braid {
     /// ecoPrimals-specific attributes
     pub ecop: EcoPrimalsAttributes,
     
-    // ==================== Signature ====================
+    // ==================== Witness ====================
     
-    /// Cryptographic signature
-    pub signature: BraidSignature,
+    /// Primary witness (WireWitnessRef-aligned provenance event)
+    pub witness: Witness,
     
     // ==================== Anchoring ====================
     
@@ -634,37 +634,37 @@ pub struct AttributionHints {
 
 ---
 
-## 7. Signature
+## 7. Witness (`WireWitnessRef`)
+
+The primary witness on a Braid follows the ecosystem `WireWitnessRef` vocabulary,
+a self-describing provenance event that supersedes the former W3C LD-Proof
+`BraidSignature` pattern.
 
 ```rust
-/// Braid signature (W3C Data Integrity format)
+/// Self-describing provenance witness (WireWitnessRef vocabulary).
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct BraidSignature {
-    /// Signature type
-    #[serde(rename = "type")]
-    pub sig_type: String,
-    
-    /// When signed
-    pub created: Timestamp,
-    
-    /// Verification method (key reference)
-    pub verification_method: String,
-    
-    /// Proof purpose
-    pub proof_purpose: String,
-    
-    /// Signature value
-    pub proof_value: String,
+pub struct Witness {
+    pub agent: Did,
+    pub kind: String,           // "signature", "hash", "checkpoint", "marker", "timestamp"
+    pub evidence: String,       // opaque payload (base64 sig bytes, hash, etc.)
+    pub witnessed_at: Timestamp,
+    pub encoding: String,       // "base64", "hex", "utf8", "none"
+    pub algorithm: Option<String>,  // "ed25519", "ecdsa-p256", etc.
+    pub tier: Option<String>,       // "local", "gateway", "anchor", "external", "open"
+    pub context: Option<String>,
 }
 
-impl BraidSignature {
-    pub fn new_ed25519(did: &Did, key_id: &str, signature: &[u8]) -> Self {
+impl Witness {
+    pub fn from_ed25519(agent: &Did, signature_bytes: &[u8]) -> Self {
         Self {
-            sig_type: "Ed25519Signature2020".to_string(),
-            created: current_timestamp_nanos(),
-            verification_method: format!("{}#{}", did, key_id),
-            proof_purpose: "assertionMethod".to_string(),
-            proof_value: base64::encode(signature),
+            agent: agent.clone(),
+            kind: "signature".to_string(),
+            evidence: base64::encode(signature_bytes),
+            witnessed_at: current_timestamp_nanos(),
+            encoding: "base64".to_string(),
+            algorithm: Some("ed25519".to_string()),
+            tier: Some("local".to_string()),
+            context: None,
         }
     }
 }
@@ -812,12 +812,14 @@ pub struct GraphStats {
     }
   },
   
-  "signature": {
-    "type": "Ed25519Signature2020",
-    "created": "2025-12-22T10:05:01Z",
-    "verificationMethod": "did:key:z6Mk...#keys-1",
-    "proofPurpose": "assertionMethod",
-    "proofValue": "z3FXQjecWufY46..."
+  "witness": {
+    "agent": "did:key:z6Mk...",
+    "kind": "signature",
+    "evidence": "z3FXQjecWufY46...",
+    "witnessed_at": 1734861901000000000,
+    "encoding": "base64",
+    "algorithm": "ed25519",
+    "tier": "local"
   }
 }
 ```

@@ -101,6 +101,7 @@ pub mod identity {
 // Re-exports for convenience
 pub use activity::{Activity, ActivityId, ActivityType, EntityRole, UsedEntity};
 pub use agent::{Agent, AgentAssociation, AgentRole, AgentType, Did};
+#[allow(deprecated)]
 pub use braid::{Braid, BraidId, BraidSignature, BraidType, ContentHash, Timestamp};
 pub use config::{
     Capability, ConfigError, NetworkConfig, SweetGrassConfig, SweetGrassConfigBuilder,

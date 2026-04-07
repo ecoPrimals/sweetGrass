@@ -111,8 +111,8 @@ pub struct Braid {
     /// Custom ecoPrimals attributes
     pub ecop: EcoPrimalsAttributes,
     
-    /// Cryptographic signature
-    pub signature: BraidSignature,
+    /// Primary witness (WireWitnessRef)
+    pub witness: Witness,
 }
 
 /// JSON-LD context
@@ -759,12 +759,14 @@ pub trait IndexStore: Send + Sync {
   "wasAttributedTo": "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
   "generatedAtTime": "2025-12-22T11:30:00Z",
   
-  "signature": {
-    "type": "Ed25519Signature2020",
-    "created": "2025-12-22T11:30:01Z",
-    "verificationMethod": "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK#keys-1",
-    "proofPurpose": "assertionMethod",
-    "proofValue": "z3FXQjecWufY46..."
+  "witness": {
+    "agent": "did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK",
+    "kind": "signature",
+    "evidence": "z3FXQjecWufY46...",
+    "witnessed_at": 1734868201000000000,
+    "encoding": "base64",
+    "algorithm": "ed25519",
+    "tier": "local"
   }
 }
 ```
@@ -781,8 +783,8 @@ pub trait BearDogClient {
     /// Resolve DID to public key
     async fn resolve_did(&self, did: &Did) -> Result<DidDocument, BearDogError>;
     
-    /// Sign a Braid
-    async fn sign_braid(&self, braid: &Braid, key_id: KeyId) -> Result<BraidSignature, BearDogError>;
+    /// Sign a Braid, returning a Witness (WireWitnessRef)
+    async fn sign_braid(&self, braid: &Braid, key_id: KeyId) -> Result<Witness, BearDogError>;
     
     /// Verify Braid signature
     async fn verify_braid(&self, braid: &Braid) -> Result<bool, BearDogError>;

@@ -17,7 +17,7 @@ use tracing::{debug, instrument};
 
 use sweet_grass_core::Braid;
 use sweet_grass_core::agent::Did;
-use sweet_grass_core::braid::BraidSignature;
+use sweet_grass_core::dehydration::Witness;
 
 use crate::Result;
 use crate::discovery::DiscoveredPrimal;
@@ -111,7 +111,7 @@ impl TarpcSigningClient {
 
 #[async_trait]
 impl SigningClient for TarpcSigningClient {
-    async fn sign(&self, braid: &Braid) -> Result<BraidSignature> {
+    async fn sign(&self, braid: &Braid) -> Result<Witness> {
         let braid_bytes = bytes::Bytes::from(
             serde_json::to_vec(braid)
                 .map_err(|e| IntegrationError::Serialization(e.to_string()))?,
@@ -124,10 +124,10 @@ impl SigningClient for TarpcSigningClient {
             .map_err(|e| IntegrationError::ipc(IpcErrorPhase::Read, format!("sign_braid: {e}")))?
             .map_err(IntegrationError::Signing)?;
 
-        let signature: BraidSignature = serde_json::from_slice(&result)
+        let witness: Witness = serde_json::from_slice(&result)
             .map_err(|e| IntegrationError::Serialization(e.to_string()))?;
 
-        Ok(signature)
+        Ok(witness)
     }
 
     async fn verify(&self, braid: &Braid) -> Result<SignatureInfo> {

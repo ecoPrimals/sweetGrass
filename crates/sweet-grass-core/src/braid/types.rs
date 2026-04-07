@@ -355,11 +355,15 @@ const PROOF_PURPOSE_ASSERTION: &str = "assertionMethod";
 /// Proof purpose for pending/unsigned signatures.
 const PROOF_PURPOSE_PENDING: &str = "pending";
 
-/// Braid signature (W3C Data Integrity format).
+/// Braid signature (W3C Data Integrity format) — **deprecated**.
 ///
-/// Uses `Cow<'static, str>` for fields with well-known static values
-/// (`sig_type`, `proof_purpose`) to avoid unnecessary heap allocations
-/// while still supporting dynamic values.
+/// Superseded by [`crate::dehydration::Witness`] (`WireWitnessRef` vocabulary).
+/// Retained for one release cycle so that persisted JSONB rows can
+/// still be deserialized.
+#[deprecated(
+    since = "0.7.28",
+    note = "use crate::dehydration::Witness (WireWitnessRef)"
+)]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BraidSignature {
     /// Signature type (e.g., `Ed25519Signature2020`).
@@ -379,6 +383,7 @@ pub struct BraidSignature {
     pub proof_value: Cow<'static, str>,
 }
 
+#[allow(deprecated)]
 impl BraidSignature {
     /// Create a new Ed25519 signature.
     #[must_use]

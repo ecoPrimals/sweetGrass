@@ -127,6 +127,45 @@ pub struct Witness {
     pub context: Option<String>,
 }
 
+impl Witness {
+    /// Create an unsigned placeholder witness (open tier, no evidence).
+    #[must_use]
+    pub fn unsigned() -> Self {
+        Self {
+            agent: Did::new(""),
+            kind: "marker".to_string(),
+            evidence: String::new(),
+            witnessed_at: super::braid::types::current_timestamp_nanos(),
+            encoding: "none".to_string(),
+            algorithm: None,
+            tier: Some("open".to_string()),
+            context: None,
+        }
+    }
+
+    /// Create an Ed25519 signature witness from raw bytes.
+    #[must_use]
+    pub fn from_ed25519(agent: &Did, signature_bytes: &[u8]) -> Self {
+        use base64::Engine;
+        Self {
+            agent: agent.clone(),
+            kind: "signature".to_string(),
+            evidence: base64::engine::general_purpose::STANDARD.encode(signature_bytes),
+            witnessed_at: super::braid::types::current_timestamp_nanos(),
+            encoding: "base64".to_string(),
+            algorithm: Some("ed25519".to_string()),
+            tier: Some("local".to_string()),
+            context: None,
+        }
+    }
+
+    /// Whether this witness carries a cryptographic signature.
+    #[must_use]
+    pub fn is_signed(&self) -> bool {
+        self.kind == "signature" && !self.evidence.is_empty()
+    }
+}
+
 fn default_witness_kind() -> String {
     "signature".to_string()
 }

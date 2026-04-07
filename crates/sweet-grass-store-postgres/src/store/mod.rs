@@ -234,7 +234,7 @@ impl BraidStore for PostgresStore {
             .as_ref()
             .map(serde_json::to_value)
             .transpose()?;
-        let signature_json = serde_json::to_value(&braid.signature)?;
+        let signature_json = serde_json::to_value(&braid.witness)?;
         let braid_type = format!("{:?}", braid.braid_type);
 
         sqlx::query(

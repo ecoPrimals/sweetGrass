@@ -17,7 +17,8 @@ use serde::{Deserialize, Serialize};
 
 use sweet_grass_core::Braid;
 use sweet_grass_core::agent::Did;
-use sweet_grass_core::braid::{BraidSignature, Timestamp};
+use sweet_grass_core::braid::Timestamp;
+use sweet_grass_core::dehydration::Witness;
 
 use crate::Result;
 
@@ -26,7 +27,7 @@ use crate::Result;
 /// **Note:** This constant serves as a default only. The signing algorithm should
 /// come from the signing primal at runtime (discovered, not assumed). This will
 /// become config-driven in v0.8.0.
-pub const SIGNING_ALGORITHM: &str = "Ed25519Signature2020";
+pub const SIGNING_ALGORITHM: &str = "ed25519";
 
 /// Information about a signature.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -58,8 +59,8 @@ pub struct SignatureInfo {
 /// ```
 #[async_trait]
 pub trait SigningClient: Send + Sync {
-    /// Sign a Braid.
-    async fn sign(&self, braid: &Braid) -> Result<BraidSignature>;
+    /// Sign a Braid, returning a `Witness` (`WireWitnessRef`).
+    async fn sign(&self, braid: &Braid) -> Result<Witness>;
 
     /// Verify a Braid's signature.
     async fn verify(&self, braid: &Braid) -> Result<SignatureInfo>;

@@ -22,11 +22,14 @@ pub mod types;
 
 pub use builder::BraidBuilder;
 pub use types::{
-    BraidContext, BraidId, BraidMetadata, BraidSignature, BraidType, CompressionMeta, ContentHash,
+    BraidContext, BraidId, BraidMetadata, BraidType, CompressionMeta, ContentHash,
     DEFAULT_ECOP_BASE_URI, DEFAULT_ECOP_VOCAB_URI, EcoPrimalsAttributes, JsonLdVersion, LoamAnchor,
     LoamCommitRef, PROV_VOCAB_URI, SCHEMA_VOCAB_URI, SummaryType, Timestamp, XSD_VOCAB_URI,
     current_timestamp_nanos, ecop_base_uri, ecop_vocab_uri,
 };
+
+#[allow(deprecated)]
+pub use types::BraidSignature;
 
 /// A `SweetGrass` Braid (provenance record).
 ///
@@ -80,8 +83,13 @@ pub struct Braid {
     #[serde(default)]
     pub ecop: EcoPrimalsAttributes,
 
-    /// Cryptographic signature.
-    pub signature: BraidSignature,
+    /// Primary witness (WireWitnessRef-aligned provenance event).
+    ///
+    /// Supersedes the former `BraidSignature` (LD-Proof pattern).
+    /// `kind: "signature"` with `algorithm` / `evidence` replaces the old
+    /// `sig_type` / `proof_value` / `proof_purpose` fields.
+    #[serde(alias = "signature")]
+    pub witness: crate::dehydration::Witness,
 
     /// Anchoring provider anchor (if committed).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -101,10 +109,10 @@ impl Braid {
         self.loam_anchor.is_some()
     }
 
-    /// Check if this Braid is signed.
+    /// Check if this Braid carries a cryptographic signature witness.
     #[must_use]
     pub fn is_signed(&self) -> bool {
-        self.signature.sig_type.as_ref() != "Unsigned"
+        self.witness.is_signed()
     }
 
     /// Get the content hash for verification.

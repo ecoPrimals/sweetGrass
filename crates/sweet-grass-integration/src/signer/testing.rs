@@ -11,13 +11,11 @@
 
 #![cfg(any(test, feature = "test"))]
 
-use std::borrow::Cow;
-
 use async_trait::async_trait;
 
 use sweet_grass_core::Braid;
 use sweet_grass_core::agent::Did;
-use sweet_grass_core::braid::BraidSignature;
+use sweet_grass_core::dehydration::Witness;
 
 use crate::Result;
 
@@ -29,7 +27,7 @@ use super::traits::{SignatureInfo, SigningClient};
 /// for different test scenarios.
 pub struct MockSigningClient {
     did: Did,
-    sign_result: Option<BraidSignature>,
+    sign_result: Option<Witness>,
     verify_result: Option<bool>,
     healthy: bool,
 }
@@ -55,8 +53,8 @@ impl MockSigningClient {
 
     /// Configure what `sign()` returns.
     #[must_use]
-    pub fn with_sign_result(mut self, signature: BraidSignature) -> Self {
-        self.sign_result = Some(signature);
+    pub fn with_sign_result(mut self, witness: Witness) -> Self {
+        self.sign_result = Some(witness);
         self
     }
 
@@ -83,19 +81,10 @@ impl Default for MockSigningClient {
 
 #[async_trait]
 impl SigningClient for MockSigningClient {
-    async fn sign(&self, _braid: &Braid) -> Result<BraidSignature> {
+    async fn sign(&self, _braid: &Braid) -> Result<Witness> {
         self.sign_result.as_ref().map_or_else(
-            || {
-                let now = chrono::Utc::now();
-                Ok(BraidSignature {
-                    sig_type: Cow::Borrowed("Ed25519Signature2020"),
-                    created: u64::try_from(now.timestamp()).unwrap_or(0),
-                    verification_method: Cow::Owned(format!("{}#keys-1", self.did.as_str())),
-                    proof_purpose: Cow::Borrowed("assertionMethod"),
-                    proof_value: Cow::Borrowed("mock-signature-value"),
-                })
-            },
-            |sig| Ok(sig.clone()),
+            || Ok(Witness::from_ed25519(&self.did, b"mock-signature-value")),
+            |w| Ok(w.clone()),
         )
     }
 
@@ -105,7 +94,7 @@ impl SigningClient for MockSigningClient {
 
         Ok(SignatureInfo {
             signer: self.did.clone(),
-            algorithm: "Ed25519Signature2020".to_string(),
+            algorithm: "ed25519".to_string(),
             signed_at: u64::try_from(now.timestamp()).unwrap_or(0),
             valid,
         })

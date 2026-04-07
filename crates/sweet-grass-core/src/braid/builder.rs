@@ -8,9 +8,10 @@ use crate::activity::Activity;
 use crate::agent::Did;
 use crate::entity::EntityReference;
 
+use crate::dehydration::Witness;
+
 use super::types::{
-    BraidContext, BraidId, BraidMetadata, BraidSignature, BraidType, ContentHash,
-    EcoPrimalsAttributes,
+    BraidContext, BraidId, BraidMetadata, BraidType, ContentHash, EcoPrimalsAttributes,
 };
 
 /// Builder for creating Braids.
@@ -124,7 +125,7 @@ impl BraidBuilder {
             generated_at_time: super::types::current_timestamp_nanos(),
             metadata: self.metadata,
             ecop: self.ecop,
-            signature: BraidSignature::unsigned(),
+            witness: Witness::unsigned(),
             loam_anchor: None,
         })
     }

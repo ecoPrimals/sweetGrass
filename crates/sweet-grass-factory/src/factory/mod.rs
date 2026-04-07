@@ -369,12 +369,11 @@ impl BraidFactory {
     ///
     /// [`Capability::Signing`]: sweet_grass_core::config::Capability::Signing
     #[cfg(test)]
-    pub fn sign_placeholder(&self, braid: &mut Braid, key_id: &str) {
-        use sweet_grass_core::braid::BraidSignature;
+    pub fn sign_placeholder(&self, braid: &mut Braid, _key_id: &str) {
+        use sweet_grass_core::dehydration::Witness;
         let signing_hash = braid.compute_signing_hash();
         let placeholder_sig = signing_hash.as_str().as_bytes();
-        braid.signature =
-            BraidSignature::new_ed25519(&braid.was_attributed_to, key_id, placeholder_sig);
+        braid.witness = Witness::from_ed25519(&braid.was_attributed_to, placeholder_sig);
     }
 
     /// Create a Braid for a certificate mint event.

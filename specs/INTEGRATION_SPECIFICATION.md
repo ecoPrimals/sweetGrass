@@ -390,35 +390,28 @@ impl DiscoverySigner {
         let canonical = self.canonicalize(braid)?;
         
         // 2. Request signature from signing service
-        let signature = self.signing_client.sign(canonical, self.key_id.clone()).await?;
+        let sig_bytes = self.signing_client.sign(canonical, self.key_id.clone()).await?;
         
-        // 3. Create Braid signature
-        braid.signature = BraidSignature {
-            signature_type: "Ed25519Signature2020".to_string(),
-            created: current_timestamp_nanos(),
-            verification_method: self.key_id.to_string(),
-            proof_purpose: "assertionMethod".to_string(),
-            proof_value: base64::encode(&signature),
-        };
+        // 3. Set the witness (WireWitnessRef vocabulary)
+        braid.witness = Witness::from_ed25519(&braid.was_attributed_to, &sig_bytes);
         
         Ok(())
     }
     
     pub async fn verify_signature(&self, braid: &Braid) -> Result<bool> {
         let canonical = self.canonicalize(braid)?;
-        let signature = base64::decode(&braid.signature.proof_value)?;
+        let evidence = base64::decode(&braid.witness.evidence)?;
         
         self.signing_client.verify(
             canonical,
-            signature,
+            evidence,
             braid.was_attributed_to.clone(),
         ).await
     }
     
     fn canonicalize(&self, braid: &Braid) -> Result<Vec<u8>> {
-        // Create signing input without signature field
         let mut signing_input = braid.clone();
-        signing_input.signature = BraidSignature::default();
+        signing_input.witness = Witness::unsigned();
         Ok(serde_json::to_vec(&signing_input)?)
     }
 }

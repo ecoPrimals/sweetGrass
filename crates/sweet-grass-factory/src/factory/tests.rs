@@ -184,11 +184,10 @@ mod factory_tests {
         factory.sign_placeholder(&mut braid, "key-1");
 
         assert!(braid.is_signed());
-        assert!(
-            braid
-                .signature
-                .verification_method
-                .contains("did:key:z6MkTestFactory")
+        assert_eq!(braid.witness.kind, "signature");
+        assert_eq!(
+            braid.witness.agent,
+            sweet_grass_core::agent::Did::new("did:key:z6MkTestFactory")
         );
     }
 

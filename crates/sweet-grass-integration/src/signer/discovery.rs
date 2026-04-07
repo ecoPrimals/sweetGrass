@@ -124,10 +124,10 @@ impl DiscoverySigner {
 impl Signer for DiscoverySigner {
     #[instrument(skip(self, braid), fields(braid_id = %braid.id))]
     async fn sign_braid(&self, braid: &Braid) -> Result<Braid> {
-        let signature = self.client.sign(braid).await?;
+        let witness = self.client.sign(braid).await?;
 
         let mut signed = braid.clone();
-        signed.signature = signature;
+        signed.witness = witness;
 
         debug!("Braid signed successfully");
         Ok(signed)
@@ -168,10 +168,10 @@ impl LegacySigner {
 #[async_trait]
 impl Signer for LegacySigner {
     async fn sign_braid(&self, braid: &Braid) -> Result<Braid> {
-        let signature = self.client.sign(braid).await?;
+        let witness = self.client.sign(braid).await?;
 
         let mut signed = braid.clone();
-        signed.signature = signature;
+        signed.witness = witness;
 
         Ok(signed)
     }

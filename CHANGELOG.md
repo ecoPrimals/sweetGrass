@@ -39,6 +39,7 @@ tightening. All metrics verified against measured state.
 - **`#![forbid(unsafe_code)]`** — added to all 3 fuzz targets
 - **Cross-crate matches** — `QueryOrder` (3 store backends) and `CompressionResult` (service) now have forward-compatible wildcard arms
 - **`Attestation` → `Witness`** — dehydration type renamed to `Witness` with `witnessed_at` field; generalized provenance events beyond attestation semantics; `WireWitnessRef` wire type for trio IPC
+- **`Braid.signature` → `Braid.witness`** — evolved from W3C LD-Proof `BraidSignature` (sig_type / proof_value / proof_purpose) to `WireWitnessRef`-aligned `Witness` (kind / evidence / encoding / algorithm / tier); `BraidSignature` deprecated; `SigningClient::sign()` returns `Witness`; Postgres JSONB backward-compatible via fallback deserializer; `#[serde(alias = "signature")]` for wire compat; specs updated to match
 
 ### Removed
 

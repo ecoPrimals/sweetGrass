@@ -70,8 +70,9 @@ mod tests {
             .build()
             .expect("build braid");
 
-        let signature = client.sign(&braid).await.expect("sign");
-        assert!(signature.verification_method.contains("keys-1"));
+        let witness = client.sign(&braid).await.expect("sign");
+        assert!(witness.is_signed());
+        assert_eq!(witness.kind, "signature");
     }
 
     #[tokio::test]
@@ -147,7 +148,7 @@ mod tests {
             .expect("build braid");
 
         let signed_braid = signer.sign_braid(&braid).await.expect("sign");
-        assert!(!signed_braid.signature.proof_value.is_empty());
+        assert!(signed_braid.witness.is_signed());
     }
 
     #[tokio::test]
@@ -225,16 +226,19 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_mock_client_custom_signature() {
-        let custom_sig = sweet_grass_core::braid::BraidSignature {
-            sig_type: "CustomType".into(),
-            created: 12345,
-            verification_method: "did:key:test#custom".to_string().into(),
-            proof_purpose: "assertionMethod".into(),
-            proof_value: "custom-proof".into(),
+    async fn test_mock_client_custom_witness() {
+        let custom_witness = sweet_grass_core::dehydration::Witness {
+            agent: sweet_grass_core::agent::Did::new("did:key:test"),
+            kind: "hash".to_string(),
+            evidence: "sha256:abc".to_string(),
+            witnessed_at: 12345,
+            encoding: "utf8".to_string(),
+            algorithm: None,
+            tier: Some("gateway".to_string()),
+            context: Some("custom-test".to_string()),
         };
 
-        let client = testing::MockSigningClient::new().with_sign_result(custom_sig.clone());
+        let client = testing::MockSigningClient::new().with_sign_result(custom_witness);
 
         let braid = sweet_grass_core::Braid::builder()
             .data_hash("sha256:test")
@@ -244,9 +248,10 @@ mod tests {
             .build()
             .expect("build braid");
 
-        let sig = client.sign(&braid).await.expect("sign");
-        assert_eq!(sig.sig_type, "CustomType");
-        assert_eq!(sig.proof_value, "custom-proof");
+        let w = client.sign(&braid).await.expect("sign");
+        assert_eq!(w.kind, "hash");
+        assert_eq!(w.evidence, "sha256:abc");
+        assert_eq!(w.tier, Some("gateway".to_string()));
     }
 
     #[tokio::test]
