@@ -81,7 +81,7 @@ curl http://localhost:8080/api/v1/braids
 | tarpc | `SWEETGRASS_TARPC_ADDRESS` | ~50μs | Primal-to-primal binary RPC |
 | TCP JSON-RPC | `SWEETGRASS_PORT` | ~1ms | Composition (`--port`, UniBin standard) |
 | UDS JSON-RPC | `SWEETGRASS_SOCKET` | ~0.5ms | biomeOS IPC (XDG-compliant) |
-| HTTP JSON-RPC | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | 27 methods, batch, MCP tools |
+| HTTP JSON-RPC | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | 28 methods, batch, MCP tools |
 | REST | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | Debug, admin (`/api/v1/braids`) |
 
 - **JSON-RPC 2.0**: 27 semantic methods (`braid.create`, `braid.commit`, `contribution.record`, `capabilities.list`, `tools.list`, `tools.call`, `health.check`, etc.) with batch requests and notification support

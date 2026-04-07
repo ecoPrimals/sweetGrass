@@ -16,6 +16,7 @@ tightening. All metrics verified against measured state.
 
 ### Added
 
+- **`identity.get` JSON-RPC method** — returns `{"name":"sweetgrass","version":"0.7.27"}` for biomeOS Neural API observability (GAP-MATRIX-05 live validation)
 - **`sweet-grass-service::cli` module** — extracted testable CLI logic from `bin/service.rs` (capabilities report, address parsing, health check); 7 unit tests
 - **7 new anchor integration tests** — `AnchorManager` discovery, reconnect (success + failure), multiple operations (anchor/verify/get_anchors), `AnchorInfo`/`AnchorReceipt` serialization roundtrips
 - **`identity::DEFAULT_SOURCE_PRIMAL`** — centralized constant in `sweet-grass-core`; replaces duplicate definitions in compression and factory crates

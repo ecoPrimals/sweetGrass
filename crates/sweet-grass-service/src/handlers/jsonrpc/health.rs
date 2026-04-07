@@ -44,3 +44,19 @@ pub(super) async fn handle_readiness(
     let ready = state.store.count(&QueryFilter::default()).await.is_ok();
     to_value(&serde_json::json!({ "ready": ready }))
 }
+
+/// `identity.get` — returns primal name and version for biomeOS observability.
+///
+/// biomeOS Neural API probes this method alongside `capabilities.list` to
+/// learn primal identity without parsing capability metadata. Gracefully
+/// optional — biomeOS falls back if absent, but providing it improves
+/// routing table observability and live validation diagnostics.
+pub(super) fn handle_identity_get(
+    _state: &AppState,
+    _params: serde_json::Value,
+) -> DispatchResult {
+    to_value(&serde_json::json!({
+        "name": sweet_grass_core::identity::PRIMAL_NAME,
+        "version": env!("CARGO_PKG_VERSION"),
+    }))
+}

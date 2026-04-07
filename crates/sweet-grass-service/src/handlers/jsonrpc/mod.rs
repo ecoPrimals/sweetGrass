@@ -285,6 +285,11 @@ static METHODS: &[MethodEntry] = &[
         name: "health.readiness",
         handler: |s, p| Box::pin(health::handle_readiness(s, p)),
     },
+    // Identity (biomeOS Neural API probes this for primal name + version)
+    MethodEntry {
+        name: "identity.get",
+        handler: |s, p| Box::pin(async move { health::handle_identity_get(s, p) }),
+    },
     // Capability discovery (wateringHole SEMANTIC_METHOD_NAMING v2.1)
     // `capabilities.list` is canonical; `capability.list` retained as alias
     MethodEntry {
