@@ -76,7 +76,7 @@ impl SweetGrassServer {
             query,
             compression,
             attribution,
-            store_backend: "unknown".to_string(),
+            store_backend: "unknown".to_owned(),
             start_time: Instant::now(),
             max_concurrent_requests,
         }

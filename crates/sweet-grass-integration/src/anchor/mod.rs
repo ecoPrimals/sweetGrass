@@ -114,6 +114,7 @@ impl AnchorManager {
     }
 
     /// Create with an existing client.
+    #[must_use]
     pub fn with_client(
         client: Arc<dyn AnchoringClient>,
         store: Arc<dyn sweet_grass_store::BraidStore>,

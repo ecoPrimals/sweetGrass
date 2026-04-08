@@ -383,7 +383,7 @@ pub struct BraidSignature {
     pub proof_value: Cow<'static, str>,
 }
 
-#[allow(deprecated)]
+#[expect(deprecated, reason = "impl for the deprecated type itself; remove with BraidSignature in v0.7.29")]
 impl BraidSignature {
     /// Create a new Ed25519 signature.
     #[must_use]

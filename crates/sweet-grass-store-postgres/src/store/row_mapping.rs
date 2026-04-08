@@ -31,8 +31,13 @@ pub fn u64_to_i64(value: u64) -> std::result::Result<i64, StoreError> {
 
 /// Convert `i64` from `PostgreSQL` to `u64`.
 /// Negative values are clamped to 0 (shouldn't happen with valid data).
-pub fn i64_to_u64(value: i64) -> u64 {
-    u64::try_from(value.max(0)).unwrap_or(0)
+#[expect(
+    clippy::cast_sign_loss,
+    reason = "Negative clamped to 0; cast is lossless for non-negative i64"
+)]
+#[must_use]
+pub const fn i64_to_u64(value: i64) -> u64 {
+    if value < 0 { 0 } else { value as u64 }
 }
 
 /// Convert `i64` from `PostgreSQL` to `usize` for counts/offsets.
@@ -42,8 +47,9 @@ pub fn i64_to_u64(value: i64) -> u64 {
     clippy::cast_possible_truncation,
     reason = "Clamp to 0 then cast; truncation on 32-bit is acceptable for PG counts/offsets"
 )]
-pub fn i64_to_usize(value: i64) -> usize {
-    value.max(0) as usize
+#[must_use]
+pub const fn i64_to_usize(value: i64) -> usize {
+    if value < 0 { 0 } else { value as usize }
 }
 
 // ============================================================================

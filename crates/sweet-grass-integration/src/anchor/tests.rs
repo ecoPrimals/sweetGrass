@@ -238,7 +238,7 @@ async fn test_anchor_manager_new_with_discovery_success() {
     let discovery = Arc::new(LocalDiscovery::new());
     discovery
         .register(DiscoveredPrimal {
-            instance_id: "loamspine-1".to_string(),
+            instance_id: "test-anchor-primal-1".to_owned(),
             name: "test-anchoring".to_string(),
             capabilities: vec![Capability::Anchoring],
             tarpc_address: Some("localhost:0".to_string()),

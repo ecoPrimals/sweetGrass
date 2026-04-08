@@ -48,7 +48,7 @@ impl AppState {
             factory,
             compression,
             self_knowledge: None,
-            store_backend: "memory".to_string(),
+            store_backend: "memory".to_owned(),
         }
     }
 
@@ -65,7 +65,7 @@ impl AppState {
             factory,
             compression,
             self_knowledge: None,
-            store_backend: "unknown".to_string(),
+            store_backend: "unknown".to_owned(),
         }
     }
 

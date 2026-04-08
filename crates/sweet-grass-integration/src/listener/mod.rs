@@ -136,6 +136,7 @@ impl EventHandler {
     }
 
     /// Create with an existing client.
+    #[must_use]
     pub fn with_client(
         client: Arc<dyn SessionEventsClient>,
         compression: Arc<sweet_grass_compression::CompressionEngine>,
