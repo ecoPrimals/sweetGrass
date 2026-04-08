@@ -16,7 +16,11 @@ tightening. All metrics verified against measured state.
 
 ### Added
 
-- **`identity.get` JSON-RPC method** — returns `{"name":"sweetgrass","version":"0.7.27"}` for biomeOS Neural API observability (GAP-MATRIX-05 live validation)
+- **Wire Standard L3 (Composable)** — `capabilities.list` now includes `provided_capabilities` grouping (12 domain groups with type, methods, version, description), per-method `cost_estimates` with `{cpu, latency_ms}` for all 28 methods, and `operation_dependencies` flat map (13 prerequisite chains). Backward-compatible: legacy `capabilities`, `domains`, and `operations` fields retained.
+- **`identity.get` Wire Standard L2** — returns `{primal, version, domain, license}` per `CAPABILITY_WIRE_STANDARD.md` v1.0 §4. Domain is `attribution`, license is `AGPL-3.0-or-later`.
+- **`OperationMeta.latency_ms`** — estimated latency per method for biomeOS scheduling and AI routing (Squirrel cost planning)
+- **`niche::PRIMARY_DOMAIN`** — canonical domain constant (`"attribution"`) for `identity.get`
+- **`niche::DOMAIN_DESCRIPTIONS`** — human-readable descriptions for all 12 capability domains
 - **`sweet-grass-service::cli` module** — extracted testable CLI logic from `bin/service.rs` (capabilities report, address parsing, health check); 7 unit tests
 - **7 new anchor integration tests** — `AnchorManager` discovery, reconnect (success + failure), multiple operations (anchor/verify/get_anchors), `AnchorInfo`/`AnchorReceipt` serialization roundtrips
 - **`identity::DEFAULT_SOURCE_PRIMAL`** — centralized constant in `sweet-grass-core`; replaces duplicate definitions in compression and factory crates

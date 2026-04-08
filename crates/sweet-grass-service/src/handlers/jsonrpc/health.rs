@@ -45,18 +45,20 @@ pub(super) async fn handle_readiness(
     to_value(&serde_json::json!({ "ready": ready }))
 }
 
-/// `identity.get` — returns primal name and version for biomeOS observability.
+/// `identity.get` — Wire Standard L2 primal identity.
 ///
-/// biomeOS Neural API probes this method alongside `capabilities.list` to
-/// learn primal identity without parsing capability metadata. Gracefully
-/// optional — biomeOS falls back if absent, but providing it improves
-/// routing table observability and live validation diagnostics.
+/// Returns `{primal, version, domain, license}` per
+/// `wateringHole/CAPABILITY_WIRE_STANDARD.md` v1.0 §4.
+/// biomeOS Neural API probes this alongside `capabilities.list`.
 pub(super) fn handle_identity_get(
     _state: &AppState,
     _params: serde_json::Value,
 ) -> DispatchResult {
+    use sweet_grass_core::niche;
     to_value(&serde_json::json!({
-        "name": sweet_grass_core::identity::PRIMAL_NAME,
+        "primal": sweet_grass_core::identity::PRIMAL_NAME,
         "version": env!("CARGO_PKG_VERSION"),
+        "domain": niche::PRIMARY_DOMAIN,
+        "license": "AGPL-3.0-or-later",
     }))
 }

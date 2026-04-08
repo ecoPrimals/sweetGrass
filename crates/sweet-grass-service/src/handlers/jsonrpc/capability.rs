@@ -18,12 +18,14 @@
 use super::{DispatchResult, METHODS, error_code, parse_params, to_value};
 use crate::state::AppState;
 
-/// `capabilities.list` / `capability.list` — advertise every domain,
-/// operation, dependency, and cost hint this primal serves.
+/// `capabilities.list` / `capability.list` — Wire Standard L3 (Composable).
 ///
-/// Returns a structured response with primal identity, version, protocol
-/// metadata, domain-grouped methods, and per-operation dependency/cost
-/// information for intelligent niche dispatch.
+/// Returns the full self-advertisement envelope per
+/// `wateringHole/CAPABILITY_WIRE_STANDARD.md` v1.0:
+/// - L1: parseable response with `methods`
+/// - L2: `{primal, version, methods}` envelope + `identity.get`
+/// - L3: `provided_capabilities`, `consumed_capabilities`,
+///   `cost_estimates` (per-method), `operation_dependencies`
 pub(super) fn handle_capability_list(
     _state: &AppState,
     _params: serde_json::Value,
@@ -31,6 +33,7 @@ pub(super) fn handle_capability_list(
     use sweet_grass_core::niche;
 
     let methods: Vec<&str> = METHODS.iter().map(|m| m.name).collect();
+    let version = env!("CARGO_PKG_VERSION");
 
     let mut domains = std::collections::BTreeMap::<&str, Vec<&str>>::new();
     for method in &methods {
@@ -39,8 +42,31 @@ pub(super) fn handle_capability_list(
         }
     }
 
+    let desc_map: std::collections::HashMap<&str, &str> =
+        niche::DOMAIN_DESCRIPTIONS.iter().copied().collect();
+
+    let provided_capabilities: Vec<serde_json::Value> = domains
+        .iter()
+        .map(|(domain, ops)| {
+            let mut group = serde_json::json!({
+                "type": domain,
+                "methods": ops,
+            });
+            if let Some(desc) = desc_map.get(domain) {
+                group["description"] = serde_json::json!(desc);
+            }
+            group["version"] = serde_json::json!(version);
+            group
+        })
+        .collect();
+
+    let ops = niche::operation_dependencies();
+
     let mut operations = serde_json::Map::new();
-    for op in niche::operation_dependencies() {
+    let mut operation_dependencies = serde_json::Map::new();
+    let mut cost_estimates = serde_json::Map::new();
+
+    for op in &ops {
         operations.insert(
             op.method.to_string(),
             serde_json::json!({
@@ -48,20 +74,36 @@ pub(super) fn handle_capability_list(
                 "cost": op.cost,
             }),
         );
+        if !op.depends_on.is_empty() {
+            operation_dependencies.insert(
+                op.method.to_string(),
+                serde_json::json!(op.depends_on),
+            );
+        }
+        cost_estimates.insert(
+            op.method.to_string(),
+            serde_json::json!({
+                "cpu": op.cost,
+                "latency_ms": op.latency_ms,
+            }),
+        );
     }
 
     to_value(&serde_json::json!({
         "primal": niche::NICHE_ID,
-        "version": env!("CARGO_PKG_VERSION"),
+        "version": version,
         "description": niche::NICHE_DESCRIPTION,
         "protocol": "jsonrpc-2.0",
         "transport": ["http", "uds"],
+        "methods": methods,
+        "provided_capabilities": provided_capabilities,
+        "consumed_capabilities": niche::CONSUMED_CAPABILITIES,
+        "cost_estimates": cost_estimates,
+        "operation_dependencies": operation_dependencies,
+        // Backward-compatible fields (pre-Wire Standard consumers)
         "capabilities": &methods,
         "domains": domains,
-        "methods": methods,
         "operations": operations,
-        "consumed_capabilities": niche::CONSUMED_CAPABILITIES,
-        "cost_estimates": niche::cost_estimates().into_iter().collect::<std::collections::BTreeMap<_, _>>(),
     }))
 }
 

@@ -110,48 +110,52 @@ pub const DEPENDENCIES: &[NicheDependency] = &[
 #[must_use]
 pub fn operation_dependencies() -> Vec<OperationMeta> {
     vec![
-        OperationMeta::new("braid.create", &[], "low"),
-        OperationMeta::new("braid.get", &[], "low"),
-        OperationMeta::new("braid.get_by_hash", &[], "low"),
-        OperationMeta::new("braid.query", &[], "medium"),
-        OperationMeta::new("braid.delete", &[], "low"),
-        OperationMeta::new("braid.commit", &["braid.create"], "medium"),
-        OperationMeta::new("anchoring.anchor", &["braid.create"], "high"),
-        OperationMeta::new("anchoring.verify", &[], "medium"),
-        OperationMeta::new("provenance.graph", &["braid.create"], "medium"),
-        OperationMeta::new("provenance.export_provo", &["braid.create"], "medium"),
-        OperationMeta::new("provenance.export_graph_provo", &["braid.create"], "high"),
-        OperationMeta::new("attribution.chain", &["braid.create"], "high"),
+        OperationMeta::new("braid.create", &[], "low", 2),
+        OperationMeta::new("braid.get", &[], "low", 1),
+        OperationMeta::new("braid.get_by_hash", &[], "low", 1),
+        OperationMeta::new("braid.query", &[], "medium", 10),
+        OperationMeta::new("braid.delete", &[], "low", 2),
+        OperationMeta::new("braid.commit", &["braid.create"], "medium", 15),
+        OperationMeta::new("anchoring.anchor", &["braid.create"], "high", 50),
+        OperationMeta::new("anchoring.verify", &[], "medium", 10),
+        OperationMeta::new("provenance.graph", &["braid.create"], "medium", 20),
+        OperationMeta::new("provenance.export_provo", &["braid.create"], "medium", 15),
+        OperationMeta::new("provenance.export_graph_provo", &["braid.create"], "high", 30),
+        OperationMeta::new("attribution.chain", &["braid.create"], "high", 50),
         OperationMeta::new(
             "attribution.calculate_rewards",
             &["attribution.chain"],
             "high",
+            60,
         ),
-        OperationMeta::new("attribution.top_contributors", &["braid.create"], "medium"),
-        OperationMeta::new("compression.compress_session", &["braid.create"], "high"),
+        OperationMeta::new("attribution.top_contributors", &["braid.create"], "medium", 20),
+        OperationMeta::new("compression.compress_session", &["braid.create"], "high", 40),
         OperationMeta::new(
             "compression.create_meta_braid",
             &["compression.compress_session"],
             "medium",
+            20,
         ),
-        OperationMeta::new("contribution.record", &["braid.create"], "low"),
-        OperationMeta::new("contribution.record_session", &["braid.create"], "medium"),
-        OperationMeta::new("contribution.record_dehydration", &[], "medium"),
-        OperationMeta::new("health.check", &[], "low"),
-        OperationMeta::new("health.liveness", &[], "low"),
-        OperationMeta::new("health.readiness", &[], "low"),
-        OperationMeta::new("identity.get", &[], "low"),
-        OperationMeta::new("pipeline.attribute", &["braid.create"], "medium"),
-        OperationMeta::new("capabilities.list", &[], "low"),
-        OperationMeta::new("capability.list", &[], "low"),
-        OperationMeta::new("tools.list", &[], "low"),
-        OperationMeta::new("tools.call", &[], "low"),
+        OperationMeta::new("contribution.record", &["braid.create"], "low", 3),
+        OperationMeta::new("contribution.record_session", &["braid.create"], "medium", 10),
+        OperationMeta::new("contribution.record_dehydration", &[], "medium", 8),
+        OperationMeta::new("health.check", &[], "low", 1),
+        OperationMeta::new("health.liveness", &[], "low", 0),
+        OperationMeta::new("health.readiness", &[], "low", 1),
+        OperationMeta::new("identity.get", &[], "low", 0),
+        OperationMeta::new("pipeline.attribute", &["braid.create"], "medium", 25),
+        OperationMeta::new("capabilities.list", &[], "low", 0),
+        OperationMeta::new("capability.list", &[], "low", 0),
+        OperationMeta::new("tools.list", &[], "low", 0),
+        OperationMeta::new("tools.call", &[], "low", 5),
     ]
 }
 
 /// Cost estimates for biomeOS scheduling.
 ///
 /// Returns a map of domain → relative cost tier.
+/// Retained for backward compatibility; prefer per-method `cost_estimates`
+/// from `operation_dependencies()` for Wire Standard L3.
 #[must_use]
 pub fn cost_estimates() -> Vec<(&'static str, &'static str)> {
     vec![
@@ -169,6 +173,40 @@ pub fn cost_estimates() -> Vec<(&'static str, &'static str)> {
         ("tools", "low"),
     ]
 }
+
+/// Primary capability domain for `identity.get` (Wire Standard L2).
+pub const PRIMARY_DOMAIN: &str = "attribution";
+
+/// Domain descriptions for `provided_capabilities` grouping (Wire Standard L3).
+///
+/// Each entry maps a domain name to a human-readable description for
+/// structured capability advertisement.
+pub const DOMAIN_DESCRIPTIONS: &[(&str, &str)] = &[
+    ("braid", "Content-addressed provenance records (W3C PROV-O)"),
+    (
+        "anchoring",
+        "Blockchain anchoring and verification of braids",
+    ),
+    (
+        "provenance",
+        "Provenance graph traversal and W3C PROV-O export",
+    ),
+    (
+        "attribution",
+        "Fair credit attribution across contributors",
+    ),
+    (
+        "compression",
+        "Session compression and meta-braid generation",
+    ),
+    ("contribution", "Contribution recording and tracking"),
+    ("pipeline", "Attribution pipeline coordination"),
+    ("health", "Health, liveness, and readiness probes"),
+    ("identity", "Primal identity advertisement"),
+    ("capabilities", "Capability self-advertisement"),
+    ("capability", "Capability self-advertisement (alias)"),
+    ("tools", "MCP tool interface for AI coordination"),
+];
 
 /// Semantic mappings for Neural API translation.
 ///
@@ -212,6 +250,8 @@ pub struct OperationMeta {
     pub depends_on: &'static [&'static str],
     /// Cost tier: `"low"`, `"medium"`, or `"high"`.
     pub cost: &'static str,
+    /// Estimated latency in milliseconds (Wire Standard L3).
+    pub latency_ms: u32,
 }
 
 impl OperationMeta {
@@ -221,11 +261,13 @@ impl OperationMeta {
         method: &'static str,
         depends_on: &'static [&'static str],
         cost: &'static str,
+        latency_ms: u32,
     ) -> Self {
         Self {
             method,
             depends_on,
             cost,
+            latency_ms,
         }
     }
 }
