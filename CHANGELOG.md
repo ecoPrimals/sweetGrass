@@ -75,13 +75,24 @@ tightening. All metrics verified against measured state.
 - **CI** — `musl-static` job added to GitHub Actions: builds, verifies `ldd` static linkage, smoke tests capabilities
 - **Aliases** — `cargo build-musl` and `cargo build-musl-arm` for quick musl builds
 
+### Phase 10: Comprehensive Coverage Expansion
+
+- **`identity.get` dispatch test** — completeness list + Wire Standard L2 response validation
+- **Wire Standard L3 tests** — `provided_capabilities` grouping, per-method `cost_estimates`, `operation_dependencies` flat map
+- **`RegistryError` variant tests** — Display for all 3 variants + serialization roundtrip
+- **`IntegrationError` full variant coverage** — all-variant Display sweep + `From<Store/Core/Compression>` tests
+- **`CompressionError` gaps filled** — `NoCommittedVertices`, `Factory`, `Core` variant Display tests
+- **`FactoryError::Core` + `QueryError::Store` variant tests** — previously untested `From` conversions
+- **`ServiceError` From-variant IntoResponse tests** — `Query`, `Factory`, `Compression`, `Core` HTTP status mapping
+- **Router tests expanded** — 2 → 4 (construction parity check)
+
 ### Metrics
 
-- 1,190 tests passing (up from 1,132)
+- 1,213 tests passing (up from 1,132)
 - 90.90% region coverage (llvm-cov)
 - 0 clippy warnings (pedantic + nursery)
 - 0 unsafe blocks, `#![forbid(unsafe_code)]` workspace-level + all crate roots + fuzz targets
-- 151 .rs files, 42,161 LOC
+- 151 .rs files, 42,543 LOC
 - proptest in 5 crates (core, factory, integration, query, compression)
 - AGPL-3.0-or-later across all SPDX headers, Cargo.toml, LICENSE, deny.toml
 - cargo deny: advisories ok, bans ok, licenses ok, sources ok

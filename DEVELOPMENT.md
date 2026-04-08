@@ -188,7 +188,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 1,190 tests passing (90.90% region coverage)
+- **Overall**: 1,213 tests passing (90.90% region coverage)
 - **Target**: 90%+ coverage on core crates (achieved)
 
 ### Per-Crate Coverage

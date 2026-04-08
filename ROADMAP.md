@@ -25,7 +25,7 @@
 - [x] 7 new anchor integration tests — `AnchorManager` discovery, reconnect, multiple operations, serialization roundtrips
 - [x] `fuzz/Cargo.toml` edition 2021 → 2024
 - [x] `.cursor/rules/` — persistent AI guidance for ecosystem standards and Rust patterns
-- [x] 1,181 → 1,190 tests passing, 90.90% region coverage (llvm-cov), 0 clippy warnings, 0 doc warnings, 0 unsafe, 0 fmt issues
+- [x] 1,181 → 1,213 tests passing, 90.90% region coverage (llvm-cov), 0 clippy warnings, 0 doc warnings, 0 unsafe, 0 fmt issues
 - [x] `DEFAULT_MAX_PROVENANCE_DEPTH` unified across query engine, attribution calculator, and traversal builder
 - [x] `ProvenanceGraph.has_cycles` — cycle detection metadata on graphs
 - [x] Witness string constants (8 named `&'static str` constants) for WireWitnessRef vocabulary

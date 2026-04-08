@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.27 | 1,190 tests | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | Sovereign types
+v0.7.27 | 1,213 tests | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | Sovereign types
 
 ---
 
@@ -84,7 +84,7 @@ curl http://localhost:8080/api/v1/braids
 | HTTP JSON-RPC | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | 28 methods, batch, MCP tools |
 | REST | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | Debug, admin (`/api/v1/braids`) |
 
-- **JSON-RPC 2.0**: 27 semantic methods (`braid.create`, `braid.commit`, `contribution.record`, `capabilities.list`, `tools.list`, `tools.call`, `health.check`, etc.) with batch requests and notification support
+- **JSON-RPC 2.0**: 28 semantic methods (`braid.create`, `braid.commit`, `contribution.record`, `identity.get`, `capabilities.list`, `tools.list`, `tools.call`, `health.check`, etc.) with batch requests and notification support
 - **MCP tool exposure**: `tools.list` + `tools.call` for Squirrel AI coordination
 - **Capability-domain symlink**: `provenance.sock -> sweetgrass.sock` for Tier 3 filesystem discovery
 
@@ -192,20 +192,20 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Metric | Value |
 |--------|-------|
 | Version | v0.7.27 |
-| Tests | 1,190 passing |
+| Tests | 1,213 passing |
 | Coverage | 90.90% region / 89.58% line (llvm-cov, excluding Postgres Docker tests) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
 | Max file size | 766 lines (limit: 1000) |
-| .rs files | 151 (42,161 LOC) |
+| .rs files | 151 (42,543 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All 151 .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |
 | cargo deny | advisories ok, bans ok, licenses ok, sources ok |
 | Benchmarks | 7 criterion groups |
-| JSON-RPC methods | 27 (batch + notification + MCP tool exposure) |
+| JSON-RPC methods | 28 (batch + notification + MCP tool exposure + Wire Standard L3) |
 | Property-based tests | proptest (17 strategies across 5 crates) |
 | Chaos/fault tests | 11 attribution + 17 service scenarios |
 
