@@ -59,10 +59,12 @@ tightening. All metrics verified against measured state.
 - **`clippy::cast_sign_loss` suppression** — no longer needed after safe cast evolution
 - **Unused `OrExit` import** — removed from `bin/service.rs` after CLI extraction
 - **`serial_test` dev-dep** — removed from `sweet-grass-service` (unused)
+- **`tower` workspace dep** — removed (zero member usage)
 - **Duplicate depth constants** — `DEFAULT_MAX_DEPTH` in query, `DEFAULT_ATTRIBUTION_MAX_DEPTH` in factory replaced by re-exports from core config
 
 ### Dependency Hygiene & Attribution Evolution
 
+- **Workspace dependency centralization** — `async-trait`, `clap`, `tempfile`, `axum-test`, `testcontainers`, `testcontainers-modules` moved into `[workspace.dependencies]`; all 7 affected member crates switched to `{ workspace = true }` for single source of truth on versions. Removed unused `tower` and `serial_test` workspace slots. Cleaned stale `RUSTSEC-2026-0049` advisory from `deny.toml`.
 - **Attribution API now derivation-aware** — `attribution_chain()` delegates to `full_attribution_chain()` so all JSON-RPC/REST/tarpc callers get decay-weighted derivation traversal instead of single-braid-only attribution
 - **17 unused dependencies removed** — `chrono`, `tokio`, `tracing`, `uuid`, `serde`, `serial_test`, `futures`, `tower`, `sweet-grass-query` (dev) pruned from 10 crates where unused
 - **`create_app_state_from_env` gated to `#[cfg(test)]`** — hardcoded `did:primal:test` no longer in production builds; reads `SWEETGRASS_AGENT_DID` env var with test fallback
@@ -93,7 +95,7 @@ tightening. All metrics verified against measured state.
 - 90.90% region coverage (llvm-cov)
 - 0 clippy warnings (pedantic + nursery)
 - 0 unsafe blocks, `#![forbid(unsafe_code)]` workspace-level + all crate roots + fuzz targets
-- 151 .rs files, 42,543 LOC
+- 151 .rs files, 42,684 LOC
 - proptest in 5 crates (core, factory, integration, query, compression)
 - AGPL-3.0-or-later across all SPDX headers, Cargo.toml, LICENSE, deny.toml
 - cargo deny: advisories ok, bans ok, licenses ok, sources ok

@@ -33,6 +33,7 @@
 - [x] proptest added to `sweet-grass-query` and `sweet-grass-compression` (graph invariants, session properties)
 - [x] `serial_test` dev-dep removed (unused)
 - [x] `DEFAULT_CONTRIBUTION_MIME` constant replacing runtime allocation
+- [x] Workspace dependency centralization — `async-trait`, `clap`, `tempfile`, `axum-test`, `testcontainers`, `testcontainers-modules` moved to `[workspace.dependencies]`; unused `tower` and `serial_test` workspace slots removed; stale advisory cleaned from `deny.toml`
 
 ### v0.7.26 — Ecosystem Absorption: scyBorg License, Sled Deprecation, Lint Evolution (March 2026)
 
@@ -417,7 +418,7 @@
 - [ ] Evolved `MemoryStore` indexes (collision-preserving)
 - [ ] `convergence.query` JSON-RPC method
 - [ ] PostgreSQL `content_convergence` table and migrations
-- [x] Coverage target: 90%+ with llvm-cov *(90.90% region coverage, 1,190 tests)*
+- [x] Coverage target: 90%+ with llvm-cov *(90.90% region coverage, 1,218 tests)*
 
 ### v0.9.0 — sunCloud Integration (Q3 2026)
 
