@@ -27,7 +27,7 @@ sqlx = { workspace = true }
 # Async
 tokio = { workspace = true }
 # Required for dyn-compatible BraidStore impl (Arc<dyn BraidStore>).
-async-trait = "0.1"
+async-trait = { workspace = true }
 
 # Serialization
 serde_json = { workspace = true }
@@ -41,8 +41,8 @@ tracing = { workspace = true }
 [dev-dependencies]
 sweet-grass-integration = { path = "../sweet-grass-integration", features = ["test"] }
 tokio = { workspace = true, features = ["test-util", "macros"] }
-testcontainers = "0.23"
-testcontainers-modules = { version = "0.11", features = ["postgres"] }
+testcontainers = { workspace = true }
+testcontainers-modules = { workspace = true }
 
 [features]
 default = []

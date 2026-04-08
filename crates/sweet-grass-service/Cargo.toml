@@ -60,10 +60,10 @@ tracing-subscriber = { workspace = true }
 chrono = { workspace = true }
 
 # Required for dyn-compatible BraidStore in test fault injection.
-async-trait = "0.1"
+async-trait = { workspace = true }
 
 # CLI
-clap = { version = "4", features = ["derive", "env"] }
+clap = { workspace = true }
 
 [features]
 default = []
@@ -73,8 +73,8 @@ sled = ["dep:sled", "dep:sweet-grass-store-sled"]
 sweet-grass-core = { path = "../sweet-grass-core", features = ["test"] }
 sweet-grass-integration = { path = "../sweet-grass-integration", features = ["test"] }
 tokio = { workspace = true, features = ["test-util", "macros"] }
-axum-test = "19"
-tempfile = "3"
+axum-test = { workspace = true }
+tempfile = { workspace = true }
 criterion = { workspace = true }
 
 [[bench]]

@@ -22,11 +22,11 @@ sweet-grass-store = { path = "../sweet-grass-store" }
 redb = { workspace = true }
 tokio = { workspace = true }
 # Required for dyn-compatible BraidStore impl (Arc<dyn BraidStore>).
-async-trait = "0.1"
+async-trait = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util", "macros"] }
-tempfile = "3"
+tempfile = { workspace = true }
