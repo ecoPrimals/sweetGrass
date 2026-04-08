@@ -148,6 +148,12 @@ async fn run_server(config: ServerConfig) -> i32 {
         .with_target(false)
         .init();
 
+    #[cfg(unix)]
+    if let Err(e) = sweet_grass_service::uds::validate_insecure_guard() {
+        tracing::error!("{e}");
+        return exit_code::CONFIG_ERROR;
+    }
+
     info!("SweetGrass starting — semantic provenance and attribution layer");
 
     let storage_config = StorageConfig {

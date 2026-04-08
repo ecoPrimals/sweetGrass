@@ -21,6 +21,23 @@ use tracing::{debug, info, warn};
 use sweet_grass_core::identity;
 use sweet_grass_core::primal_names::env_vars;
 
+/// BTSP Phase 1 configuration error: `FAMILY_ID` and `BIOMEOS_INSECURE=1`
+/// are mutually exclusive.
+///
+/// Per `BTSP_PROTOCOL_STANDARD` §Security Model, a primal that claims family
+/// membership MUST authenticate via BTSP handshake. Setting `BIOMEOS_INSECURE`
+/// while a family is configured is contradictory and the primal MUST refuse
+/// to start.
+#[derive(Debug, thiserror::Error)]
+#[error(
+    "BTSP guard violation: FAMILY_ID=\"{family_id}\" and BIOMEOS_INSECURE=1 \
+     are mutually exclusive — cannot claim a family and skip authentication \
+     (BTSP_PROTOCOL_STANDARD §Phase 1)"
+)]
+pub struct BtspGuardViolation {
+    family_id: String,
+}
+
 /// Default primal name when `SelfKnowledge` is unavailable.
 const DEFAULT_PRIMAL_NAME: &str = identity::PRIMAL_NAME;
 
@@ -51,11 +68,71 @@ pub struct SocketConfig {
     pub primal_name: Option<String>,
 }
 
+/// Resolve the effective `FAMILY_ID` from the environment.
+///
+/// Resolution order per `BTSP_PROTOCOL_STANDARD` §Phase 1:
+/// 1. `SWEETGRASS_FAMILY_ID` (primal-specific override)
+/// 2. `BIOMEOS_FAMILY_ID` (ecosystem-wide)
+/// 3. `FAMILY_ID` (generic)
+///
+/// Empty strings and `"default"` are treated as absent.
+#[must_use]
+pub fn resolve_family_id_from_env() -> Option<String> {
+    std::env::var(env_vars::SWEETGRASS_FAMILY_ID)
+        .or_else(|_| std::env::var(env_vars::BIOMEOS_FAMILY_ID))
+        .or_else(|_| std::env::var(env_vars::FAMILY_ID))
+        .ok()
+        .filter(|s| !s.is_empty() && s != "default")
+}
+
+/// Validate the BTSP insecure guard by reading environment variables.
+///
+/// Per `BTSP_PROTOCOL_STANDARD` §Security Model: if `FAMILY_ID` is set
+/// (non-empty, not `"default"`) AND `BIOMEOS_INSECURE=1`, the primal MUST
+/// refuse to start. Delegates to [`validate_insecure_guard_with`] for
+/// DI-testable logic.
+///
+/// # Errors
+///
+/// Returns [`BtspGuardViolation`] when the conflicting configuration is
+/// detected.
+pub fn validate_insecure_guard() -> Result<(), BtspGuardViolation> {
+    let family_id = resolve_family_id_from_env();
+    let insecure = std::env::var(env_vars::BIOMEOS_INSECURE)
+        .map(|v| v == "1")
+        .unwrap_or(false);
+
+    validate_insecure_guard_with(family_id.as_deref(), insecure)
+}
+
+/// DI-friendly BTSP insecure guard validation (no env var reads).
+///
+/// # Errors
+///
+/// Returns [`BtspGuardViolation`] when `family_id` is `Some` and
+/// `biomeos_insecure` is `true`.
+pub fn validate_insecure_guard_with(
+    family_id: Option<&str>,
+    biomeos_insecure: bool,
+) -> Result<(), BtspGuardViolation> {
+    if let Some(fid) = family_id
+        && biomeos_insecure
+    {
+        return Err(BtspGuardViolation {
+            family_id: fid.to_owned(),
+        });
+    }
+    Ok(())
+}
+
 /// Resolve the Unix domain socket path using XDG-compliant resolution.
 ///
 /// The primal name is derived from `SelfKnowledge` when available (e.g. via
 /// `state.self_knowledge`). When `primal_name` is `None`, falls back to
 /// `PRIMAL_NAME` env var or `"sweetgrass"`.
+///
+/// Family ID resolution follows the BTSP standard chain:
+/// `SWEETGRASS_FAMILY_ID` → `BIOMEOS_FAMILY_ID` → `FAMILY_ID`.
 ///
 /// Delegates to [`resolve_socket_path_with`] after reading env vars.
 #[must_use]
@@ -63,9 +140,7 @@ pub fn resolve_socket_path(primal_name: Option<&str>) -> PathBuf {
     let config = SocketConfig {
         explicit_socket: std::env::var("SWEETGRASS_SOCKET").ok(),
         biomeos_socket_dir: std::env::var(env_vars::BIOMEOS_SOCKET_DIR).ok(),
-        family_id: std::env::var(env_vars::BIOMEOS_FAMILY_ID)
-            .ok()
-            .filter(|s| !s.is_empty()),
+        family_id: resolve_family_id_from_env(),
         xdg_runtime_dir: std::env::var(env_vars::XDG_RUNTIME_DIR).ok(),
         user: std::env::var("USER").ok(),
         primal_name: primal_name
@@ -527,6 +602,45 @@ mod tests {
         let dir = tempfile::tempdir().expect("tempdir");
         let sock_path = dir.path().join("sweetgrass.sock");
         cleanup_capability_symlink(&sock_path);
+    }
+
+    // ==================== BTSP insecure guard tests (DI, no env mutation) ====================
+
+    #[test]
+    fn guard_passes_no_family_no_insecure() {
+        assert!(validate_insecure_guard_with(None, false).is_ok());
+    }
+
+    #[test]
+    fn guard_passes_family_set_insecure_off() {
+        assert!(validate_insecure_guard_with(Some("alpha"), false).is_ok());
+    }
+
+    #[test]
+    fn guard_passes_insecure_on_no_family() {
+        assert!(validate_insecure_guard_with(None, true).is_ok());
+    }
+
+    #[test]
+    fn guard_fails_family_and_insecure() {
+        let err = validate_insecure_guard_with(Some("alpha"), true).unwrap_err();
+        let msg = err.to_string();
+        assert!(msg.contains("alpha"), "error should mention family: {msg}");
+        assert!(msg.contains("BTSP"), "error should reference BTSP: {msg}");
+        assert!(
+            msg.contains("BIOMEOS_INSECURE"),
+            "error should mention BIOMEOS_INSECURE: {msg}"
+        );
+    }
+
+    #[test]
+    fn guard_error_display_is_descriptive() {
+        let err = BtspGuardViolation {
+            family_id: "myFamily42".to_string(),
+        };
+        let msg = err.to_string();
+        assert!(msg.contains("myFamily42"));
+        assert!(msg.contains("mutually exclusive"));
     }
 
     // ==================== UDS roundtrip tests (use explicit path, no env mutation) ====================

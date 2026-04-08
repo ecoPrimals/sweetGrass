@@ -16,6 +16,7 @@ tightening. All metrics verified against measured state.
 
 ### Added
 
+- **BTSP Phase 1 compliance (GAP-MATRIX-12)** — `validate_insecure_guard()` enforces `BTSP_PROTOCOL_STANDARD` §Security Model: refuses startup when both `FAMILY_ID` (non-default) and `BIOMEOS_INSECURE=1` are set. Family ID resolution expanded to `SWEETGRASS_FAMILY_ID` → `BIOMEOS_FAMILY_ID` → `FAMILY_ID` chain per standard. 5 DI-based unit tests. Guard called in `run_server()` before any socket binding.
 - **Wire Standard L3 (Composable)** — `capabilities.list` now includes `provided_capabilities` grouping (12 domain groups with type, methods, version, description), per-method `cost_estimates` with `{cpu, latency_ms}` for all 28 methods, and `operation_dependencies` flat map (13 prerequisite chains). Backward-compatible: legacy `capabilities`, `domains`, and `operations` fields retained.
 - **`identity.get` Wire Standard L2** — returns `{primal, version, domain, license}` per `CAPABILITY_WIRE_STANDARD.md` v1.0 §4. Domain is `attribution`, license is `AGPL-3.0-or-later`.
 - **`OperationMeta.latency_ms`** — estimated latency per method for biomeOS scheduling and AI routing (Squirrel cost planning)
@@ -88,7 +89,7 @@ tightening. All metrics verified against measured state.
 
 ### Metrics
 
-- 1,213 tests passing (up from 1,132)
+- 1,218 tests passing (up from 1,132)
 - 90.90% region coverage (llvm-cov)
 - 0 clippy warnings (pedantic + nursery)
 - 0 unsafe blocks, `#![forbid(unsafe_code)]` workspace-level + all crate roots + fuzz targets

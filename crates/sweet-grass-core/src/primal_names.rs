@@ -51,6 +51,16 @@ pub mod env_vars {
     pub const BIOMEOS_FAMILY_ID: &str = "BIOMEOS_FAMILY_ID";
     /// XDG runtime directory (standard Linux convention).
     pub const XDG_RUNTIME_DIR: &str = "XDG_RUNTIME_DIR";
+    /// Generic family ID (`BTSP_PROTOCOL_STANDARD` §Phase 1).
+    pub const FAMILY_ID: &str = "FAMILY_ID";
+    /// Primal-specific family ID override for sweetGrass.
+    pub const SWEETGRASS_FAMILY_ID: &str = "SWEETGRASS_FAMILY_ID";
+    /// Development-mode flag — skips BTSP handshake when no `FAMILY_ID` is set.
+    ///
+    /// Per `BTSP_PROTOCOL_STANDARD` §Security Model, setting `BIOMEOS_INSECURE=1`
+    /// alongside a non-default `FAMILY_ID` is a configuration error: a primal
+    /// MUST refuse to start.
+    pub const BIOMEOS_INSECURE: &str = "BIOMEOS_INSECURE";
 }
 
 #[cfg(test)]
@@ -77,6 +87,9 @@ mod tests {
             env_vars::BIOMEOS_SOCKET_DIR,
             env_vars::BIOMEOS_FAMILY_ID,
             env_vars::XDG_RUNTIME_DIR,
+            env_vars::FAMILY_ID,
+            env_vars::SWEETGRASS_FAMILY_ID,
+            env_vars::BIOMEOS_INSECURE,
         ];
         for var in &all {
             assert_eq!(

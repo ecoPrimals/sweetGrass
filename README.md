@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.27 | 1,213 tests | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | Sovereign types
+v0.7.27 | 1,218 tests | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 1 | Sovereign types
 
 ---
 
@@ -192,14 +192,14 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Metric | Value |
 |--------|-------|
 | Version | v0.7.27 |
-| Tests | 1,213 passing |
+| Tests | 1,218 passing |
 | Coverage | 90.90% region / 89.58% line (llvm-cov, excluding Postgres Docker tests) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
 | Max file size | 766 lines (limit: 1000) |
-| .rs files | 151 (42,543 LOC) |
+| .rs files | 151 (42,676 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All 151 .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |
