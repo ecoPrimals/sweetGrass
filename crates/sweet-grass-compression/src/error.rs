@@ -79,4 +79,24 @@ mod tests {
         let err: CompressionError = json_err.unwrap_err().into();
         assert!(matches!(err, CompressionError::Serialization(_)));
     }
+
+    #[test]
+    fn test_no_committed_vertices_display() {
+        let err = CompressionError::NoCommittedVertices;
+        assert!(err.to_string().contains("No committed vertices"));
+    }
+
+    #[test]
+    fn test_factory_variant_display() {
+        let fe = sweet_grass_factory::FactoryError::MissingField("agent".to_string());
+        let err = CompressionError::from(fe);
+        assert!(err.to_string().contains("Factory error"));
+    }
+
+    #[test]
+    fn test_core_variant_display() {
+        let ce = sweet_grass_core::SweetGrassError::Internal("unexpected".to_string());
+        let err = CompressionError::from(ce);
+        assert!(err.to_string().contains("Core error"));
+    }
 }

@@ -210,4 +210,40 @@ mod tests {
         assert!(err.to_string().contains("compute"));
         assert!(err.to_string().contains("unreachable"));
     }
+
+    #[test]
+    fn test_into_response_query_error() {
+        let qe = sweet_grass_query::QueryError::Internal("engine failure".to_string());
+        let err = ServiceError::from(qe);
+        assert!(err.to_string().contains("query error"));
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[test]
+    fn test_into_response_factory_error() {
+        let fe = sweet_grass_factory::FactoryError::MissingField("agent".to_string());
+        let err = ServiceError::from(fe);
+        assert!(err.to_string().contains("factory error"));
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[test]
+    fn test_into_response_compression_error() {
+        let ce = sweet_grass_compression::CompressionError::InvalidSession("empty".to_string());
+        let err = ServiceError::from(ce);
+        assert!(err.to_string().contains("compression error"));
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
+
+    #[test]
+    fn test_into_response_core_error() {
+        let ce = sweet_grass_core::SweetGrassError::Internal("unexpected".to_string());
+        let err = ServiceError::from(ce);
+        assert!(err.to_string().contains("core error"));
+        let response = err.into_response();
+        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+    }
 }

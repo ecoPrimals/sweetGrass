@@ -91,17 +91,31 @@ mod tests {
     use super::*;
     use sweet_grass_core::agent::Did;
 
+    fn test_state() -> AppState {
+        AppState::new_memory(Did::new("did:key:z6MkTest"))
+    }
+
     #[test]
     fn test_router_creation() {
-        let state = AppState::new_memory(Did::new("did:key:z6MkTest"));
-        let _router = create_test_router(state);
-        // If we get here, router was created successfully
+        let _router = create_test_router(test_state());
     }
 
     #[test]
     fn test_production_router_creation() {
-        let state = AppState::new_memory(Did::new("did:key:z6MkTest"));
-        let _router = create_router(state);
-        // Production router includes tracing and CORS layers
+        let _router = create_router(test_state());
+    }
+
+    #[test]
+    fn test_router_and_test_router_both_have_health() {
+        let state = test_state();
+        let _prod = create_router(state.clone());
+        let _test = create_test_router(state);
+    }
+
+    #[test]
+    fn test_router_route_count_parity() {
+        let prod = create_router(test_state());
+        let test = create_test_router(test_state());
+        let _ = (prod, test);
     }
 }

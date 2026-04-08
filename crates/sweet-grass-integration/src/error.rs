@@ -352,6 +352,54 @@ mod tests {
         assert_eq!(msg, "unknown error");
     }
 
+    #[test]
+    fn integration_error_all_variants_display() {
+        let cases: Vec<IntegrationError> = vec![
+            IntegrationError::ipc(IpcErrorPhase::Connect, "refused"),
+            IntegrationError::Discovery("not found".into()),
+            IntegrationError::Connection("timeout".into()),
+            IntegrationError::SessionEventsConnection("unreachable".into()),
+            IntegrationError::AnchoringConnection("refused".into()),
+            IntegrationError::SigningConnection("closed".into()),
+            IntegrationError::EventProcessing("decode failed".into()),
+            IntegrationError::Subscription("closed".into()),
+            IntegrationError::Anchoring("chain error".into()),
+            IntegrationError::Signing("key missing".into()),
+            IntegrationError::Verification("mismatch".into()),
+            IntegrationError::Serialization("json".into()),
+            IntegrationError::Rpc("transport".into()),
+            IntegrationError::Timeout("5s".into()),
+            IntegrationError::Configuration("missing env".into()),
+            IntegrationError::NotImplemented("future feature".into()),
+            IntegrationError::MissingTarpcAddress,
+        ];
+        for err in &cases {
+            let display = err.to_string();
+            assert!(!display.is_empty(), "empty display for error variant");
+        }
+    }
+
+    #[test]
+    fn integration_error_from_store() {
+        let se = sweet_grass_store::StoreError::Internal("db".into());
+        let err = IntegrationError::from(se);
+        assert!(err.to_string().contains("Store error"));
+    }
+
+    #[test]
+    fn integration_error_from_core() {
+        let ce = sweet_grass_core::SweetGrassError::Internal("unexpected".into());
+        let err = IntegrationError::from(ce);
+        assert!(err.to_string().contains("Core error"));
+    }
+
+    #[test]
+    fn integration_error_from_compression() {
+        let ce = sweet_grass_compression::CompressionError::Internal("overflow".into());
+        let err = IntegrationError::from(ce);
+        assert!(err.to_string().contains("Compression error"));
+    }
+
     // ── proptest properties ───────────────────────────────────────────────
 
     proptest! {

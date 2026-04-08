@@ -120,7 +120,12 @@ pub fn operation_dependencies() -> Vec<OperationMeta> {
         OperationMeta::new("anchoring.verify", &[], "medium", 10),
         OperationMeta::new("provenance.graph", &["braid.create"], "medium", 20),
         OperationMeta::new("provenance.export_provo", &["braid.create"], "medium", 15),
-        OperationMeta::new("provenance.export_graph_provo", &["braid.create"], "high", 30),
+        OperationMeta::new(
+            "provenance.export_graph_provo",
+            &["braid.create"],
+            "high",
+            30,
+        ),
         OperationMeta::new("attribution.chain", &["braid.create"], "high", 50),
         OperationMeta::new(
             "attribution.calculate_rewards",
@@ -128,8 +133,18 @@ pub fn operation_dependencies() -> Vec<OperationMeta> {
             "high",
             60,
         ),
-        OperationMeta::new("attribution.top_contributors", &["braid.create"], "medium", 20),
-        OperationMeta::new("compression.compress_session", &["braid.create"], "high", 40),
+        OperationMeta::new(
+            "attribution.top_contributors",
+            &["braid.create"],
+            "medium",
+            20,
+        ),
+        OperationMeta::new(
+            "compression.compress_session",
+            &["braid.create"],
+            "high",
+            40,
+        ),
         OperationMeta::new(
             "compression.create_meta_braid",
             &["compression.compress_session"],
@@ -137,7 +152,12 @@ pub fn operation_dependencies() -> Vec<OperationMeta> {
             20,
         ),
         OperationMeta::new("contribution.record", &["braid.create"], "low", 3),
-        OperationMeta::new("contribution.record_session", &["braid.create"], "medium", 10),
+        OperationMeta::new(
+            "contribution.record_session",
+            &["braid.create"],
+            "medium",
+            10,
+        ),
         OperationMeta::new("contribution.record_dehydration", &[], "medium", 8),
         OperationMeta::new("health.check", &[], "low", 1),
         OperationMeta::new("health.liveness", &[], "low", 0),
@@ -191,10 +211,7 @@ pub const DOMAIN_DESCRIPTIONS: &[(&str, &str)] = &[
         "provenance",
         "Provenance graph traversal and W3C PROV-O export",
     ),
-    (
-        "attribution",
-        "Fair credit attribution across contributors",
-    ),
+    ("attribution", "Fair credit attribution across contributors"),
     (
         "compression",
         "Session compression and meta-braid generation",

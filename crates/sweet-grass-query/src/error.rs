@@ -77,4 +77,11 @@ mod tests {
         let err: QueryError = json_err.unwrap_err().into();
         assert!(matches!(err, QueryError::Serialization(_)));
     }
+
+    #[test]
+    fn test_store_variant_display() {
+        let se = sweet_grass_store::StoreError::Internal("db corruption".to_string());
+        let err = QueryError::from(se);
+        assert!(err.to_string().contains("Store error"));
+    }
 }

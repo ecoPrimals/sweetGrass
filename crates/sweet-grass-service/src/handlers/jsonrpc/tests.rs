@@ -240,6 +240,7 @@ fn test_dispatch_table_completeness() {
         "health.check",
         "health.liveness",
         "health.readiness",
+        "identity.get",
         "capabilities.list",
         "capability.list",
         "tools.list",

@@ -50,10 +50,7 @@ pub(super) async fn handle_readiness(
 /// Returns `{primal, version, domain, license}` per
 /// `wateringHole/CAPABILITY_WIRE_STANDARD.md` v1.0 §4.
 /// biomeOS Neural API probes this alongside `capabilities.list`.
-pub(super) fn handle_identity_get(
-    _state: &AppState,
-    _params: serde_json::Value,
-) -> DispatchResult {
+pub(super) fn handle_identity_get(_state: &AppState, _params: serde_json::Value) -> DispatchResult {
     use sweet_grass_core::niche;
     to_value(&serde_json::json!({
         "primal": sweet_grass_core::identity::PRIMAL_NAME,

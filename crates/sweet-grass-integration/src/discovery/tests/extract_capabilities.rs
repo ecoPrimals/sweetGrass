@@ -106,3 +106,34 @@ proptest::proptest! {
         }
     }
 }
+
+// ── RegistryError Display tests ───────────────────────────────────────────
+
+#[test]
+fn registry_error_not_found_display() {
+    let err = super::RegistryError::NotFound("provenance".to_string());
+    assert!(err.to_string().contains("provenance"));
+    assert!(err.to_string().contains("not found"));
+}
+
+#[test]
+fn registry_error_registration_failed_display() {
+    let err = super::RegistryError::RegistrationFailed("timeout".to_string());
+    assert!(err.to_string().contains("timeout"));
+    assert!(err.to_string().contains("registration failed"));
+}
+
+#[test]
+fn registry_error_internal_display() {
+    let err = super::RegistryError::Internal("unexpected".to_string());
+    assert!(err.to_string().contains("unexpected"));
+    assert!(err.to_string().contains("internal error"));
+}
+
+#[test]
+fn registry_error_serialization_roundtrip() {
+    let err = super::RegistryError::NotFound("test-svc".to_string());
+    let json = serde_json::to_string(&err).unwrap();
+    let deserialized: super::RegistryError = serde_json::from_str(&json).unwrap();
+    assert_eq!(err.to_string(), deserialized.to_string());
+}

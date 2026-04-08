@@ -75,4 +75,11 @@ mod tests {
         let err: FactoryError = json_err.unwrap_err().into();
         assert!(matches!(err, FactoryError::Serialization(_)));
     }
+
+    #[test]
+    fn test_core_variant_display() {
+        let ce = sweet_grass_core::SweetGrassError::Internal("unexpected".to_string());
+        let err = FactoryError::from(ce);
+        assert!(err.to_string().contains("Core error"));
+    }
 }

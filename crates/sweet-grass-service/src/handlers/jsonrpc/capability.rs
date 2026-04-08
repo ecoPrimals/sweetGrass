@@ -75,10 +75,7 @@ pub(super) fn handle_capability_list(
             }),
         );
         if !op.depends_on.is_empty() {
-            operation_dependencies.insert(
-                op.method.to_string(),
-                serde_json::json!(op.depends_on),
-            );
+            operation_dependencies.insert(op.method.to_string(), serde_json::json!(op.depends_on));
         }
         cost_estimates.insert(
             op.method.to_string(),

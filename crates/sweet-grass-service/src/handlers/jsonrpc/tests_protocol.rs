@@ -467,6 +467,102 @@ async fn test_tools_call_missing_name_returns_invalid_params() {
     assert_eq!(resp.error.unwrap().code, error_code::INVALID_PARAMS);
 }
 
+// ==================== identity.get (Wire Standard L2) ====================
+
+#[tokio::test]
+async fn test_identity_get_returns_primal_and_version() {
+    let state = test_state();
+    let resp = process_single(
+        &state,
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "identity.get",
+            "params": {},
+            "id": 1
+        }),
+    )
+    .await
+    .unwrap();
+    let result = resp.result.unwrap();
+    assert_eq!(result["primal"], "sweetgrass");
+    assert!(!result["version"].as_str().unwrap().is_empty());
+    assert_eq!(result["domain"], "attribution");
+    assert_eq!(result["license"], "AGPL-3.0-or-later");
+}
+
+// ==================== Wire Standard L3 fields ====================
+
+#[tokio::test]
+async fn test_capabilities_list_wire_standard_l3_provided_capabilities() {
+    let state = test_state();
+    let resp = process_single(
+        &state,
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "capabilities.list",
+            "params": {},
+            "id": 1
+        }),
+    )
+    .await
+    .unwrap();
+    let result = resp.result.unwrap();
+    let pc = result["provided_capabilities"].as_array().unwrap();
+    assert!(!pc.is_empty());
+    let braid_group = pc.iter().find(|g| g["type"] == "braid").unwrap();
+    assert!(
+        braid_group["methods"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("create"))
+    );
+    assert!(!braid_group["version"].as_str().unwrap().is_empty());
+    assert!(braid_group["description"].as_str().is_some());
+}
+
+#[tokio::test]
+async fn test_capabilities_list_wire_standard_l3_cost_estimates() {
+    let state = test_state();
+    let resp = process_single(
+        &state,
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "capabilities.list",
+            "params": {},
+            "id": 1
+        }),
+    )
+    .await
+    .unwrap();
+    let result = resp.result.unwrap();
+    let ce = result["cost_estimates"].as_object().unwrap();
+    assert!(ce.contains_key("attribution.chain"));
+    let ac = &ce["attribution.chain"];
+    assert_eq!(ac["cpu"], "high");
+    assert!(ac["latency_ms"].as_u64().unwrap() > 0);
+}
+
+#[tokio::test]
+async fn test_capabilities_list_wire_standard_l3_operation_dependencies() {
+    let state = test_state();
+    let resp = process_single(
+        &state,
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "capabilities.list",
+            "params": {},
+            "id": 1
+        }),
+    )
+    .await
+    .unwrap();
+    let result = resp.result.unwrap();
+    let od = result["operation_dependencies"].as_object().unwrap();
+    assert!(od.contains_key("anchoring.anchor"));
+    let deps = od["anchoring.anchor"].as_array().unwrap();
+    assert!(deps.contains(&serde_json::json!("braid.create")));
+}
+
 // ==================== DispatchOutcome classification ====================
 
 #[tokio::test]
