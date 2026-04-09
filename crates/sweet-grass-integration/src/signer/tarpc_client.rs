@@ -210,3 +210,195 @@ pub async fn create_signing_client_async(
     let client = TarpcSigningClient::from_primal(primal).await?;
     Ok(Arc::new(client))
 }
+
+#[cfg(test)]
+#[expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "test module: expect/unwrap are standard in tests"
+)]
+mod tests {
+    use super::*;
+    use futures::StreamExt;
+    use sweet_grass_core::agent::Did;
+    use sweet_grass_core::braid::BraidBuilder;
+    use sweet_grass_core::dehydration::Witness;
+    use tarpc::server::{BaseChannel, Channel};
+    use tarpc::tokio_serde::formats::Bincode;
+
+    #[derive(Clone)]
+    struct MockSigningServer;
+
+    impl SigningRpc for MockSigningServer {
+        async fn sign_braid(
+            self,
+            _: tarpc::context::Context,
+            braid_bytes: bytes::Bytes,
+        ) -> std::result::Result<bytes::Bytes, String> {
+            let _braid: sweet_grass_core::Braid =
+                serde_json::from_slice(&braid_bytes).map_err(|e| e.to_string())?;
+            let witness = Witness::from_ed25519(
+                &Did::new("did:key:z6MkTarpcTestSigner"),
+                b"tarpc-test-signature",
+            );
+            serde_json::to_vec(&witness)
+                .map(bytes::Bytes::from)
+                .map_err(|e| e.to_string())
+        }
+
+        async fn verify_braid(
+            self,
+            _: tarpc::context::Context,
+            _braid_bytes: bytes::Bytes,
+        ) -> std::result::Result<bool, String> {
+            Ok(true)
+        }
+
+        async fn current_did(
+            self,
+            _: tarpc::context::Context,
+        ) -> std::result::Result<String, String> {
+            Ok("did:key:z6MkTarpcTestSigner".to_string())
+        }
+
+        async fn resolve_did(
+            self,
+            _: tarpc::context::Context,
+            did: String,
+        ) -> std::result::Result<Option<String>, String> {
+            Ok(Some(
+                serde_json::json!({"id": did, "type": "Ed25519"}).to_string(),
+            ))
+        }
+
+        async fn health(self, _: tarpc::context::Context) -> std::result::Result<bool, String> {
+            Ok(true)
+        }
+    }
+
+    async fn start_mock_server() -> std::net::SocketAddr {
+        let listener = tarpc::serde_transport::tcp::listen("127.0.0.1:0", Bincode::default)
+            .await
+            .expect("bind");
+        let addr = listener.local_addr();
+
+        tokio::spawn(async move {
+            tokio::pin!(listener);
+            while let Some(Ok(transport)) = listener.next().await {
+                let server = MockSigningServer;
+                tokio::spawn(async move {
+                    let channel = BaseChannel::with_defaults(transport);
+                    let () = channel.execute(server.serve()).for_each(|f| f).await;
+                });
+            }
+        });
+
+        addr
+    }
+
+    fn test_braid() -> sweet_grass_core::Braid {
+        BraidBuilder::default()
+            .data_hash("sha256:tarpc_test")
+            .mime_type("text/plain")
+            .size(42)
+            .attributed_to(Did::new("did:key:z6MkTest"))
+            .build()
+            .expect("build braid")
+    }
+
+    #[tokio::test]
+    async fn tarpc_roundtrip_sign() {
+        let addr = start_mock_server().await;
+        let client = TarpcSigningClient::connect(&addr.to_string())
+            .await
+            .expect("connect");
+
+        let witness = client.sign(&test_braid()).await.expect("sign");
+        assert!(witness.is_signed());
+        assert_eq!(witness.agent, Did::new("did:key:z6MkTarpcTestSigner"));
+    }
+
+    #[tokio::test]
+    async fn tarpc_roundtrip_verify() {
+        let addr = start_mock_server().await;
+        let client = TarpcSigningClient::connect(&addr.to_string())
+            .await
+            .expect("connect");
+
+        let info = client.verify(&test_braid()).await.expect("verify");
+        assert!(info.valid);
+    }
+
+    #[tokio::test]
+    async fn tarpc_roundtrip_current_did() {
+        let addr = start_mock_server().await;
+        let client = TarpcSigningClient::connect(&addr.to_string())
+            .await
+            .expect("connect");
+
+        let did = client.current_did().await.expect("did");
+        assert_eq!(did, Did::new("did:key:z6MkTarpcTestSigner"));
+    }
+
+    #[tokio::test]
+    async fn tarpc_roundtrip_resolve_did() {
+        let addr = start_mock_server().await;
+        let client = TarpcSigningClient::connect(&addr.to_string())
+            .await
+            .expect("connect");
+
+        let doc = client
+            .resolve_did(&Did::new("did:key:z6MkTest"))
+            .await
+            .expect("resolve");
+        assert!(doc.is_some());
+        assert_eq!(doc.unwrap()["id"], "did:key:z6MkTest");
+    }
+
+    #[tokio::test]
+    async fn tarpc_roundtrip_health() {
+        let addr = start_mock_server().await;
+        let client = TarpcSigningClient::connect(&addr.to_string())
+            .await
+            .expect("connect");
+
+        assert!(client.health().await.expect("health"));
+    }
+
+    #[tokio::test]
+    async fn tarpc_from_primal_roundtrip() {
+        let addr = start_mock_server().await;
+        let primal = DiscoveredPrimal {
+            instance_id: "test-signer".to_string(),
+            name: "mock-signer".to_string(),
+            capabilities: vec![sweet_grass_core::config::Capability::Signing],
+            tarpc_address: Some(addr.to_string()),
+            rest_address: None,
+            last_seen: std::time::SystemTime::now(),
+            healthy: true,
+        };
+
+        let client = TarpcSigningClient::from_primal(&primal)
+            .await
+            .expect("from_primal");
+        let did = client.current_did().await.expect("did");
+        assert_eq!(did, Did::new("did:key:z6MkTarpcTestSigner"));
+    }
+
+    #[tokio::test]
+    async fn tarpc_factory_roundtrip() {
+        let addr = start_mock_server().await;
+        let primal = DiscoveredPrimal {
+            instance_id: "factory-signer".to_string(),
+            name: "factory-mock".to_string(),
+            capabilities: vec![sweet_grass_core::config::Capability::Signing],
+            tarpc_address: Some(addr.to_string()),
+            rest_address: None,
+            last_seen: std::time::SystemTime::now(),
+            healthy: true,
+        };
+
+        let client = create_signing_client_async(&primal).await.expect("factory");
+        assert!(client.health().await.expect("health"));
+    }
+}

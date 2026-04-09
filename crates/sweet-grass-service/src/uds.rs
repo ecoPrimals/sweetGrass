@@ -233,6 +233,11 @@ pub async fn start_uds_listener_at(
 
     create_capability_symlink(path);
 
+    let btsp_required = crate::btsp::is_btsp_required();
+    if btsp_required {
+        info!("BTSP handshake required on UDS (FAMILY_ID set)");
+    }
+
     loop {
         tokio::select! {
             result = listener.accept() => {
@@ -240,7 +245,11 @@ pub async fn start_uds_listener_at(
                     Ok((stream, _addr)) => {
                         let state = state.clone();
                         tokio::spawn(async move {
-                            if let Err(e) = handle_uds_connection(stream, state).await {
+                            if btsp_required {
+                                if let Err(e) = handle_uds_connection_btsp(stream, state).await {
+                                    warn!("UDS BTSP connection error: {e}");
+                                }
+                            } else if let Err(e) = handle_uds_connection_raw(stream, state).await {
                                 warn!("UDS connection error: {e}");
                             }
                         });
@@ -260,8 +269,79 @@ pub async fn start_uds_listener_at(
     Ok(())
 }
 
-/// Handle a single UDS connection with newline-delimited JSON-RPC.
-async fn handle_uds_connection(
+/// Handle a UDS connection with BTSP handshake then length-prefixed JSON-RPC.
+///
+/// Per `BTSP_PROTOCOL_STANDARD` §Phase 2: when `FAMILY_ID` is set, every
+/// incoming connection runs the 4-step handshake before any JSON-RPC
+/// method is exposed.  Post-handshake, frames use 4-byte big-endian
+/// length-prefixed framing instead of newline delimiters.
+async fn handle_uds_connection_btsp(
+    mut stream: tokio::net::UnixStream,
+    state: crate::state::AppState,
+) -> std::result::Result<(), crate::ServiceError> {
+    use crate::btsp;
+    use tokio::io::AsyncWriteExt;
+
+    match btsp::perform_server_handshake(&mut stream).await {
+        Ok(complete) => {
+            debug!(
+                session = %complete.session_id,
+                cipher = %complete.cipher,
+                "UDS BTSP handshake succeeded — entering length-prefixed mode"
+            );
+        },
+        Err(e) => {
+            warn!("UDS BTSP handshake failed: {e}");
+            return Ok(());
+        },
+    }
+
+    let (mut reader, mut writer) = tokio::io::split(stream);
+
+    loop {
+        let frame = match btsp::read_frame(&mut reader).await {
+            Ok(f) => f,
+            Err(btsp::BtspError::Io(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                break;
+            },
+            Err(e) => {
+                warn!("UDS BTSP frame read error: {e}");
+                break;
+            },
+        };
+
+        let request: serde_json::Value = match serde_json::from_slice(&frame) {
+            Ok(v) => v,
+            Err(e) => {
+                let err_response = serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "error": {"code": crate::handlers::jsonrpc::error_code::PARSE_ERROR, "message": format!("Parse error: {e}")},
+                    "id": null
+                });
+                let payload = serde_json::to_vec(&err_response)?;
+                btsp::write_frame(&mut writer, &payload)
+                    .await
+                    .map_err(|e| crate::ServiceError::Internal(e.to_string()))?;
+                continue;
+            },
+        };
+
+        if let Some(response) = crate::handlers::jsonrpc::process_single(&state, request).await {
+            let payload = serde_json::to_vec(&response)?;
+            btsp::write_frame(&mut writer, &payload)
+                .await
+                .map_err(|e| crate::ServiceError::Internal(e.to_string()))?;
+            writer.flush().await?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Handle a single UDS connection with raw newline-delimited JSON-RPC.
+///
+/// Development mode (no `FAMILY_ID`): no handshake, newline framing.
+async fn handle_uds_connection_raw(
     stream: tokio::net::UnixStream,
     state: crate::state::AppState,
 ) -> std::result::Result<(), crate::ServiceError> {

@@ -26,6 +26,7 @@ sweet-grass-store-redb = { path = "../sweet-grass-store-redb" }
 sweet-grass-factory = { path = "../sweet-grass-factory" }
 sweet-grass-query = { path = "../sweet-grass-query" }
 sweet-grass-compression = { path = "../sweet-grass-compression" }
+sweet-grass-integration = { path = "../sweet-grass-integration" }
 
 # Async runtime
 tokio = { workspace = true }

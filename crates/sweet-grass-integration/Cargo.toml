@@ -62,4 +62,5 @@ parking_lot = { workspace = true }
 tokio = { workspace = true, features = ["test-util", "macros"] }
 sweet-grass-factory = { path = "../sweet-grass-factory" }
 proptest = { workspace = true }
+futures = { workspace = true }
 

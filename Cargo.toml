@@ -120,3 +120,13 @@ must_use_candidate = "allow"
 # Evolving toward full pedantic
 missing_const_for_fn = "warn"
 missing_errors_doc = "warn"
+
+# ecoBin release-static: musl-static for plasmidBin distribution.
+# Single codegen unit + fat LTO + strip = smallest binary + max inlining.
+[profile.release-static]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+strip = true
+opt-level = "z"
+panic = "abort"

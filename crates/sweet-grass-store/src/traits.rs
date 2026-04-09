@@ -263,7 +263,7 @@ pub trait BraidStore: Send + Sync {
     ) -> (Vec<Option<Braid>>, Vec<crate::StoreError>) {
         use futures::stream::{self, StreamExt};
 
-        let concurrency = concurrency.unwrap_or(20);
+        let concurrency = concurrency.unwrap_or(DEFAULT_BATCH_CONCURRENCY);
 
         let mut futures = Vec::with_capacity(ids.len());
         for id in ids {
@@ -483,5 +483,88 @@ mod tests {
         let json = serde_json::to_string(&order).expect("serialize");
         let parsed: QueryOrder = serde_json::from_str(&json).expect("deserialize");
         assert!(matches!(parsed, QueryOrder::OldestFirst));
+    }
+
+    mod proptests {
+        use proptest::prelude::*;
+
+        use super::*;
+
+        fn arb_query_filter() -> impl Strategy<Value = QueryFilter> {
+            (
+                proptest::option::of("[a-z0-9]{8,64}"),
+                proptest::option::of("did:key:z6Mk[a-zA-Z0-9]{30}"),
+                proptest::option::of("[a-z/]{3,20}"),
+                proptest::option::of("[a-z]{2,10}"),
+                proptest::option::of(0usize..10_000),
+                proptest::option::of(0usize..10_000),
+            )
+                .prop_map(|(hash, agent, mime, tag, limit, offset)| {
+                    let mut f = QueryFilter::new();
+                    if let Some(h) = hash {
+                        f = f.with_hash(format!("sha256:{h}"));
+                    }
+                    if let Some(a) = agent {
+                        f = f.with_agent(sweet_grass_core::agent::Did::new(a));
+                    }
+                    if let Some(m) = mime {
+                        f.mime_type = Some(m);
+                    }
+                    if let Some(t) = tag {
+                        f.tag = Some(t);
+                    }
+                    if let Some(l) = limit {
+                        f = f.with_limit(l);
+                    }
+                    if let Some(o) = offset {
+                        f = f.with_offset(o);
+                    }
+                    f
+                })
+        }
+
+        proptest! {
+            #[test]
+            fn query_filter_serialization_roundtrip(filter in arb_query_filter()) {
+                let json = serde_json::to_string(&filter).expect("serialize");
+                let parsed: QueryFilter = serde_json::from_str(&json).expect("deserialize");
+                prop_assert_eq!(parsed.data_hash, filter.data_hash);
+                prop_assert_eq!(parsed.limit, filter.limit);
+                prop_assert_eq!(parsed.offset, filter.offset);
+                prop_assert_eq!(parsed.tag, filter.tag);
+                prop_assert_eq!(parsed.mime_type, filter.mime_type);
+            }
+
+            #[test]
+            fn query_filter_limit_respects_default(
+                limit in proptest::option::of(0usize..100_000)
+            ) {
+                let filter = QueryFilter {
+                    limit,
+                    ..Default::default()
+                };
+                let effective = filter.limit.unwrap_or(DEFAULT_QUERY_LIMIT);
+                prop_assert!(effective <= 100_000);
+                if limit.is_none() {
+                    prop_assert_eq!(effective, DEFAULT_QUERY_LIMIT);
+                }
+            }
+
+            #[test]
+            fn query_result_has_more_consistency(
+                total in 0usize..1000,
+                limit in 1usize..100,
+                offset in 0usize..500,
+            ) {
+                let result = QueryResult {
+                    braids: Vec::new(),
+                    total_count: total,
+                    has_more: offset + limit < total,
+                };
+                if result.has_more {
+                    prop_assert!(result.total_count > offset + limit);
+                }
+            }
+        }
     }
 }

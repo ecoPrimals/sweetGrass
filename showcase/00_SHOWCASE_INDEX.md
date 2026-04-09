@@ -95,7 +95,7 @@ Demonstrate SweetGrass integrating with individual primals using **real binaries
 - Braid signing with Ed25519
 - DID resolution
 - Cryptographic integrity
-- **Gap discovered**: `INTEGRATION_GAPS_DISCOVERED.md`
+- **Gap discovered**: BearDog server mode (resolved — BTSP Phase 2 handshake implemented)
 
 **Status**: 🟡 Partial (3/4 working)  
 **Gaps**: BearDog server mode needed  
@@ -265,7 +265,7 @@ Following NestGate's **LIVE_DEMO_VERIFICATION_NO_MOCKS_DEC_22_2025.md**:
 - Mocks hide problems until production
 - We want to discover gaps NOW and evolve
 
-**Evidence**: See `INTEGRATION_GAPS_DISCOVERED.md` - 3 real gaps found!
+**Evidence**: 3 real integration gaps found and resolved through showcase testing
 
 ---
 
@@ -312,8 +312,8 @@ cd showcase/03-real-world/05-supply-chain
 ### Showcase-Specific Docs
 - **This file**: `00_SHOWCASE_INDEX.md` - Master index
 - **Main README**: `README.md` - Overview and philosophy
-- **Restructuring Plan**: `../SHOWCASE_RESTRUCTURING_PLAN.md` - Design decisions
-- **Integration Gaps**: `../INTEGRATION_GAPS_DISCOVERED.md` - Real gaps found
+- **Specs**: `../specs/` — Technical specifications
+- **Handoffs**: See `wateringHole/handoffs/` for integration gap resolution history
 
 ### Level READMEs
 - **Level 0**: `00-local-primal/README.md`
@@ -371,7 +371,7 @@ Following phase1 primal patterns:
 
 ### Issues?
 - Check individual demo READMEs
-- Review `../INTEGRATION_GAPS_DISCOVERED.md`
+- Review `wateringHole/handoffs/` for integration gap history
 - See troubleshooting sections in level READMEs
 
 ### Want to Contribute?

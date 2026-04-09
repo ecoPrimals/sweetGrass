@@ -65,7 +65,10 @@ impl AttributionConfig {
     /// Get the weight for a role.
     #[must_use]
     pub fn weight_for_role(&self, role: &AgentRole) -> f64 {
-        *self.role_weights.get(role).unwrap_or(&0.1)
+        *self
+            .role_weights
+            .get(role)
+            .unwrap_or(&DEFAULT_CURATOR_ROLE_WEIGHT)
     }
 }
 

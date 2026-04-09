@@ -1,6 +1,6 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.27 (March 2026)
+**Current Version**: v0.7.27 (April 2026)
 
 ---
 
@@ -25,7 +25,11 @@
 - [x] 7 new anchor integration tests — `AnchorManager` discovery, reconnect, multiple operations, serialization roundtrips
 - [x] `fuzz/Cargo.toml` edition 2021 → 2024
 - [x] `.cursor/rules/` — persistent AI guidance for ecosystem standards and Rust patterns
-- [x] 1,181 → 1,218 tests passing, 90.90% region coverage (llvm-cov), 0 clippy warnings, 0 doc warnings, 0 unsafe, 0 fmt issues
+- [x] 1,181 → 1,238 tests passing, 90%+ region coverage (llvm-cov), 0 clippy warnings, 0 doc warnings, 0 unsafe, 0 fmt issues
+- [x] **BTSP Phase 2** — server-side handshake on accept for UDS + TCP listeners, crypto delegated to security provider via `security.sock`
+- [x] **Smart refactoring** — `discovery/mod.rs` (613→250 lines) split into `capabilities.rs`, `cached.rs`, `registry.rs`; `config/mod.rs` (648→567 lines) extracted `Capability` to `capability.rs`
+- [x] **Magic number elimination** — `DEFAULT_BATCH_CONCURRENCY` (10), `DEFAULT_CURATOR_ROLE_WEIGHT` (0.1) replace hardcoded values
+- [x] **Proptest expansion** — `QueryFilter` serialization roundtrip and pagination invariants in `sweet-grass-store`
 - [x] `DEFAULT_MAX_PROVENANCE_DEPTH` unified across query engine, attribution calculator, and traversal builder
 - [x] `ProvenanceGraph.has_cycles` — cycle detection metadata on graphs
 - [x] Witness string constants (8 named `&'static str` constants) for WireWitnessRef vocabulary

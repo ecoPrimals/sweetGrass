@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.27 | 1,218 tests | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 1 | Sovereign types
+v0.7.27 | 1,238 tests | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 2 | Wire L3 | Sovereign types
 
 ---
 
@@ -72,7 +72,7 @@ curl http://localhost:8080/api/v1/braids
 | `sweet-grass-query` | Graph traversal, PROV-O export |
 | `sweet-grass-compression` | 0/1/Many session compression |
 | `sweet-grass-integration` | Primal discovery + capability clients |
-| `sweet-grass-service` | UniBin server (REST + JSON-RPC + tarpc + UDS) |
+| `sweet-grass-service` | UniBin server (REST + JSON-RPC + tarpc + UDS + BTSP) |
 
 ### Protocol Stack
 
@@ -192,22 +192,23 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Metric | Value |
 |--------|-------|
 | Version | v0.7.27 |
-| Tests | 1,218 passing |
-| Coverage | 90.90% region / 89.58% line (llvm-cov, excluding Postgres Docker tests) |
+| Tests | 1,238 passing |
+| Coverage | 90%+ region (llvm-cov, excluding Postgres Docker tests) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
-| Max file size | 782 lines (limit: 1000) |
-| .rs files | 151 (42,684 LOC) |
+| Max file size | 862 lines (limit: 1000) |
+| .rs files | 161 (44,036 LOC) |
 | TODOs in source | 0 |
-| SPDX + copyright | All 151 .rs files |
+| SPDX + copyright | All 161 .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |
 | cargo deny | advisories ok, bans ok, licenses ok, sources ok |
 | Benchmarks | 7 criterion groups |
 | JSON-RPC methods | 28 (batch + notification + MCP tool exposure + Wire Standard L3) |
-| Property-based tests | proptest (17 strategies across 5 crates) |
+| Property-based tests | proptest (20+ strategies across 6 crates) |
 | Chaos/fault tests | 11 attribution + 17 service scenarios |
+| BTSP | Phase 2 — server handshake on UDS + TCP when `FAMILY_ID` set |
 
 ### ecoBin Compliance
 

@@ -7,14 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Deep Debt Evolution: License, Zero-Copy, API Hardening, Safety
+### Deep Debt Evolution: BTSP Phase 2, Smart Refactoring, Proptest Expansion
+
+Continued deep evolution: BTSP Phase 2 server-side handshake on accept for
+UDS and TCP listeners, smart module refactoring (discovery, config), magic
+number elimination, proptest expansion, and capability-based socket
+resolution. All metrics verified: 1,238 tests, 161 .rs files, 44,036 LOC.
+
+### Added
+
+- **BTSP Phase 2 — server handshake on accept** — New `btsp/` module in `sweet-grass-service` implementing the full 4-step BearDog Secure Tunnel Protocol handshake (ClientHello → ServerHello → ChallengeResponse → HandshakeComplete). Wire framing uses 4-byte big-endian length-prefixed frames (16 MiB max) per `BTSP_PROTOCOL_STANDARD`. Crypto delegated to security provider via JSON-RPC (`btsp.session.create`, `btsp.session.verify`, `btsp.negotiate`). Integrated into both UDS and TCP accept loops, gated by `is_btsp_required()` (activates when `FAMILY_ID` set and `BIOMEOS_INSECURE` not `1`). Post-handshake connections use length-prefixed JSON-RPC instead of newline-delimited.
+- **Capability-based security socket resolution** — BTSP server connects to `security.sock` (not `beardog.sock`) following capability-domain convention. Resolution: `SECURITY_PROVIDER_SOCKET` env → `BIOMEOS_SOCKET_DIR/security.sock` → fallback chain.
+- **Proptest for `QueryFilter`** — Serialization roundtrip and pagination invariant property tests in `sweet-grass-store`
+- **`DEFAULT_BATCH_CONCURRENCY` constant** — Named constant replacing magic `20` in `get_batch`
+- **`DEFAULT_CURATOR_ROLE_WEIGHT` constant** — Named constant replacing magic `0.1` in `weight_for_role`
+
+### Changed
+
+- **Smart refactoring: `discovery/mod.rs`** (613→250 lines) — Extracted `capabilities.rs` (capability list parsing), `cached.rs` (`CachedDiscovery`), `registry.rs` (`RegistryRpc`/`RegistryDiscovery`) while maintaining cohesive public API via re-exports
+- **Smart refactoring: `config/mod.rs`** (648→567 lines) — Extracted `Capability` enum to `config/capability.rs`
+
+### Previous: Deep Debt Evolution: License, Zero-Copy, API Hardening, Safety
 
 Three-phase deep evolution: comprehensive audit and debt resolution, license
 evolution to AGPL-3.0-or-later (scyBorg standard), zero-copy hot paths,
 static error variants, `#[non_exhaustive]` API hardening, and `deny.toml`
 tightening. All metrics verified against measured state.
 
-### Added
+### Added (prior sessions)
 
 - **BTSP Phase 1 compliance (GAP-MATRIX-12)** — `validate_insecure_guard()` enforces `BTSP_PROTOCOL_STANDARD` §Security Model: refuses startup when both `FAMILY_ID` (non-default) and `BIOMEOS_INSECURE=1` are set. Family ID resolution expanded to `SWEETGRASS_FAMILY_ID` → `BIOMEOS_FAMILY_ID` → `FAMILY_ID` chain per standard. 5 DI-based unit tests. Guard called in `run_server()` before any socket binding.
 - **Wire Standard L3 (Composable)** — `capabilities.list` now includes `provided_capabilities` grouping (12 domain groups with type, methods, version, description), per-method `cost_estimates` with `{cpu, latency_ms}` for all 28 methods, and `operation_dependencies` flat map (13 prerequisite chains). Backward-compatible: legacy `capabilities`, `domains`, and `operations` fields retained.

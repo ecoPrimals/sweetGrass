@@ -14,7 +14,7 @@
 
 use std::net::SocketAddr;
 
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 /// Start a TCP newline-delimited JSON-RPC 2.0 listener.
 ///
@@ -38,6 +38,15 @@ pub async fn start_tcp_jsonrpc_listener(
     let actual_addr = listener.local_addr().unwrap_or(addr);
     info!("JSON-RPC 2.0 TCP (newline-delimited) listening on {actual_addr}");
 
+    #[cfg(unix)]
+    let btsp_required = crate::btsp::is_btsp_required();
+    #[cfg(not(unix))]
+    let btsp_required = false;
+
+    if btsp_required {
+        info!("BTSP handshake required on TCP (FAMILY_ID set)");
+    }
+
     loop {
         tokio::select! {
             result = listener.accept() => {
@@ -45,7 +54,14 @@ pub async fn start_tcp_jsonrpc_listener(
                     Ok((stream, peer)) => {
                         let state = state.clone();
                         tokio::spawn(async move {
-                            if let Err(e) = handle_tcp_connection(stream, state).await {
+                            #[cfg(unix)]
+                            if btsp_required {
+                                if let Err(e) = handle_tcp_connection_btsp(stream, state).await {
+                                    warn!("TCP BTSP connection from {peer}: {e}");
+                                }
+                                return;
+                            }
+                            if let Err(e) = handle_tcp_connection_raw(stream, state).await {
                                 warn!("TCP JSON-RPC connection from {peer}: {e}");
                             }
                         });
@@ -65,8 +81,81 @@ pub async fn start_tcp_jsonrpc_listener(
     Ok(())
 }
 
-/// Handle a single TCP connection with newline-delimited JSON-RPC.
-async fn handle_tcp_connection(
+/// Handle a TCP connection with BTSP handshake then length-prefixed JSON-RPC.
+///
+/// Per `BTSP_PROTOCOL_STANDARD` §Phase 2: production mode uses BTSP
+/// handshake before exposing any JSON-RPC methods.
+#[cfg(unix)]
+async fn handle_tcp_connection_btsp(
+    mut stream: tokio::net::TcpStream,
+    state: crate::state::AppState,
+) -> crate::Result<()> {
+    use crate::btsp;
+    use tokio::io::AsyncWriteExt;
+
+    match btsp::perform_server_handshake(&mut stream).await {
+        Ok(complete) => {
+            debug!(
+                session = %complete.session_id,
+                cipher = %complete.cipher,
+                "TCP BTSP handshake succeeded — entering length-prefixed mode"
+            );
+        },
+        Err(e) => {
+            warn!("TCP BTSP handshake failed: {e}");
+            return Ok(());
+        },
+    }
+
+    let (mut reader, mut writer) = tokio::io::split(stream);
+
+    loop {
+        let frame = match btsp::read_frame(&mut reader).await {
+            Ok(f) => f,
+            Err(btsp::BtspError::Io(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                break;
+            },
+            Err(e) => {
+                warn!("TCP BTSP frame read error: {e}");
+                break;
+            },
+        };
+
+        let request: serde_json::Value = match serde_json::from_slice(&frame) {
+            Ok(v) => v,
+            Err(e) => {
+                let err_response = serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "error": {
+                        "code": crate::handlers::jsonrpc::error_code::PARSE_ERROR,
+                        "message": format!("Parse error: {e}"),
+                    },
+                    "id": null
+                });
+                let payload = serde_json::to_vec(&err_response)?;
+                btsp::write_frame(&mut writer, &payload)
+                    .await
+                    .map_err(|e| crate::ServiceError::Internal(e.to_string()))?;
+                continue;
+            },
+        };
+
+        if let Some(response) = crate::handlers::jsonrpc::process_single(&state, request).await {
+            let payload = serde_json::to_vec(&response)?;
+            btsp::write_frame(&mut writer, &payload)
+                .await
+                .map_err(|e| crate::ServiceError::Internal(e.to_string()))?;
+            writer.flush().await?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Handle a single TCP connection with raw newline-delimited JSON-RPC.
+///
+/// Development mode (no `FAMILY_ID`): no handshake, newline framing.
+async fn handle_tcp_connection_raw(
     stream: tokio::net::TcpStream,
     state: crate::state::AppState,
 ) -> crate::Result<()> {

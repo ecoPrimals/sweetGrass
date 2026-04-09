@@ -54,6 +54,8 @@
 #![warn(missing_docs)]
 
 pub mod bootstrap;
+#[cfg(unix)]
+pub mod btsp;
 pub mod cli;
 pub mod error;
 pub mod exit;

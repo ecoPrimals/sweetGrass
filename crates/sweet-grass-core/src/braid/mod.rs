@@ -28,7 +28,10 @@ pub use types::{
     current_timestamp_nanos, ecop_base_uri, ecop_vocab_uri,
 };
 
-#[expect(deprecated, reason = "re-export for backward compat; remove with BraidSignature in v0.7.29")]
+#[expect(
+    deprecated,
+    reason = "re-export for backward compat; remove with BraidSignature in v0.7.29"
+)]
 pub use types::BraidSignature;
 
 /// A `SweetGrass` Braid (provenance record).

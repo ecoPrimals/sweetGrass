@@ -147,14 +147,8 @@ pub async fn infant_bootstrap() -> Result<BootstrapResult, BootstrapError> {
         &backend_type,
     );
 
-    // Phase 5: Capability discovery (future enhancement)
-    // For now, we log what capabilities we offer and will discover in Phase 2
-    if !self_knowledge.capabilities.is_empty() {
-        debug!(
-            capabilities = ?self_knowledge.capabilities,
-            "Capabilities offered (discovery integration pending)"
-        );
-    }
+    // Phase 5: Announce capabilities to discovery service (IPC v3.1)
+    announce_capabilities(&self_knowledge, &app_state).await;
 
     info!(
         primal_name = %self_knowledge.name,
@@ -225,12 +219,8 @@ pub async fn infant_bootstrap_with_config_and_reader(
         &backend_type,
     );
 
-    if !self_knowledge.capabilities.is_empty() {
-        debug!(
-            capabilities = ?self_knowledge.capabilities,
-            "Capabilities offered (discovery integration pending)"
-        );
-    }
+    // Phase 5: Announce capabilities to discovery service (IPC v3.1)
+    announce_capabilities(&self_knowledge, &app_state).await;
 
     info!(
         primal_name = %self_knowledge.name,
@@ -243,6 +233,62 @@ pub async fn infant_bootstrap_with_config_and_reader(
         app_state,
         default_agent,
     })
+}
+
+/// Announce this primal's capabilities to the discovery service.
+///
+/// Per IPC v3.1 §Discovery, primals SHOULD register with Songbird (or any
+/// primal offering `Capability::Discovery`) on startup.  When the discovery
+/// service is unreachable the primal continues in standalone mode — this is
+/// graceful degradation per the `PRIMAL_IPC_PROTOCOL` v3.1 standalone
+/// startup requirement.
+async fn announce_capabilities(self_knowledge: &SelfKnowledge, state: &AppState) {
+    use sweet_grass_integration::discovery::{DiscoveredPrimal, create_discovery};
+
+    if self_knowledge.capabilities.is_empty() {
+        debug!("No capabilities to announce — standalone mode");
+        return;
+    }
+
+    let discovery = create_discovery().await;
+
+    let primal = DiscoveredPrimal {
+        instance_id: self_knowledge.instance_id.clone(),
+        name: self_knowledge.name.clone(),
+        capabilities: self_knowledge.capabilities.clone(),
+        tarpc_address: state.self_knowledge.as_ref().and_then(|sk| {
+            if sk.tarpc_port > 0 {
+                Some(format!("0.0.0.0:{}", sk.tarpc_port))
+            } else {
+                None
+            }
+        }),
+        rest_address: state.self_knowledge.as_ref().and_then(|sk| {
+            if sk.rest_port > 0 {
+                Some(format!("0.0.0.0:{}", sk.rest_port))
+            } else {
+                None
+            }
+        }),
+        last_seen: std::time::SystemTime::now(),
+        healthy: true,
+    };
+
+    match discovery.announce(&primal).await {
+        Ok(()) => {
+            info!(
+                capabilities = ?self_knowledge.capabilities,
+                "Announced capabilities to discovery service"
+            );
+        },
+        Err(e) => {
+            debug!(
+                error = %e,
+                "Discovery service unreachable — continuing in standalone mode \
+                 (IPC v3.1 §Standalone Startup)"
+            );
+        },
+    }
 }
 
 /// Create application state with runtime-discovered storage.

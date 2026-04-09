@@ -101,7 +101,10 @@ pub mod identity {
 // Re-exports for convenience
 pub use activity::{Activity, ActivityId, ActivityType, EntityRole, UsedEntity};
 pub use agent::{Agent, AgentAssociation, AgentRole, AgentType, Did};
-#[expect(deprecated, reason = "re-export for backward compat; remove with BraidSignature in v0.7.29")]
+#[expect(
+    deprecated,
+    reason = "re-export for backward compat; remove with BraidSignature in v0.7.29"
+)]
 pub use braid::{Braid, BraidId, BraidSignature, BraidType, ContentHash, Timestamp};
 pub use config::{
     Capability, ConfigError, DEFAULT_MAX_PROVENANCE_DEPTH, NetworkConfig, SweetGrassConfig,
