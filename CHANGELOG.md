@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Smart Refactoring, Config Extraction, Clone Reduction (April 11, 2026)
+
+Smart module splits: braids.rs (677→310), health.rs (579→294), config/mod.rs
+(579→369 via subsystems.rs extraction), traits.rs (570→360), resilience.rs
+(561→324). Sled store .clone() reduced 25→11. demo.rs `#![allow]` evolved to
+`#![expect]`. All production files ≤574 lines. 167 .rs files, 44,516 LOC.
+
 ### Trio IPC Hardening, SG-02 --socket, BTSP Mock, TCP Opt-in (April 11, 2026)
 
 Provenance Trio audit response: `--socket` CLI flag (SG-02), TCP opt-in per
