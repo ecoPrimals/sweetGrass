@@ -87,6 +87,17 @@ impl SledStore {
         })
     }
 
+    /// Cheap handles to braid + secondary index trees (`sled::Tree` clones share inner state).
+    fn braid_index_trees(&self) -> (Tree, Tree, Tree, Tree, Tree) {
+        (
+            self.braids.clone(),
+            self.by_hash.clone(),
+            self.by_agent.clone(),
+            self.by_time.clone(),
+            self.by_tag.clone(),
+        )
+    }
+
     /// Open with a simple path.
     ///
     /// # Errors
@@ -209,13 +220,8 @@ impl SledStore {
 impl BraidStore for SledStore {
     #[instrument(skip(self, braid), fields(braid_id = %braid.id))]
     async fn put(&self, braid: &Braid) -> sweet_grass_store::Result<()> {
-        // Clone for moving into spawn_blocking (Arc clones are cheap)
-        let braids = self.braids.clone();
-        let by_hash = self.by_hash.clone();
-        let by_agent = self.by_agent.clone();
-        let by_time = self.by_time.clone();
-        let by_tag = self.by_tag.clone();
-        let braid = braid.clone();
+        let (braids, by_hash, by_agent, by_time, by_tag) = self.braid_index_trees();
+        let braid = Clone::clone(braid);
 
         // Wrap blocking Sled operations in spawn_blocking
         tokio::task::spawn_blocking(move || {
@@ -241,7 +247,7 @@ impl BraidStore for SledStore {
     #[instrument(skip(self))]
     async fn get(&self, id: &BraidId) -> sweet_grass_store::Result<Option<Braid>> {
         let braids = self.braids.clone();
-        let id = id.clone();
+        let id = Clone::clone(id);
 
         tokio::task::spawn_blocking(move || match braids.get(id.as_str().as_bytes()) {
             Ok(Some(bytes)) => {
@@ -259,13 +265,13 @@ impl BraidStore for SledStore {
     #[instrument(skip(self))]
     async fn get_by_hash(&self, hash: &ContentHash) -> sweet_grass_store::Result<Option<Braid>> {
         let by_hash = self.by_hash.clone();
-        let hash = hash.clone();
+        let hash = ContentHash::from(hash);
 
         let braid_id_opt =
             tokio::task::spawn_blocking(move || match by_hash.get(hash.as_str().as_bytes()) {
                 Ok(Some(braid_id_bytes)) => {
                     let braid_id = String::from_utf8_lossy(&braid_id_bytes);
-                    Ok(Some(BraidId::from_string(braid_id.to_string())))
+                    Ok(Some(BraidId::from_string(braid_id.into_owned())))
                 },
                 Ok(None) => Ok(None),
                 Err(e) => Err(StoreError::Internal(e.to_string())),
@@ -285,12 +291,8 @@ impl BraidStore for SledStore {
         let braid_opt = self.get(id).await?;
 
         if let Some(braid) = braid_opt {
-            let braids = self.braids.clone();
-            let by_hash = self.by_hash.clone();
-            let by_agent = self.by_agent.clone();
-            let by_time = self.by_time.clone();
-            let by_tag = self.by_tag.clone();
-            let id = id.clone();
+            let (braids, by_hash, by_agent, by_time, by_tag) = self.braid_index_trees();
+            let id = Clone::clone(id);
 
             tokio::task::spawn_blocking(move || {
                 // Remove indexes
@@ -314,7 +316,7 @@ impl BraidStore for SledStore {
     #[instrument(skip(self))]
     async fn exists(&self, id: &BraidId) -> sweet_grass_store::Result<bool> {
         let braids = self.braids.clone();
-        let id = id.clone();
+        let id = Clone::clone(id);
 
         tokio::task::spawn_blocking(move || {
             braids
@@ -332,7 +334,7 @@ impl BraidStore for SledStore {
         order: QueryOrder,
     ) -> sweet_grass_store::Result<QueryResult> {
         let braids_tree = self.braids.clone();
-        let filter = filter.clone();
+        let filter = Clone::clone(filter);
 
         tokio::task::spawn_blocking(move || {
             let mut braids = Vec::new();
@@ -432,7 +434,7 @@ impl BraidStore for SledStore {
 
     #[instrument(skip(self))]
     async fn by_agent(&self, agent: &Did) -> sweet_grass_store::Result<Vec<Braid>> {
-        let filter = QueryFilter::new().with_agent(agent.clone());
+        let filter = QueryFilter::new().with_agent(Clone::clone(agent));
         let result = self.query(&filter, QueryOrder::NewestFirst).await?;
         Ok(result.braids)
     }
@@ -458,7 +460,7 @@ impl BraidStore for SledStore {
     #[instrument(skip(self, activity))]
     async fn put_activity(&self, activity: &Activity) -> sweet_grass_store::Result<()> {
         let activities = self.activities.clone();
-        let activity = activity.clone();
+        let activity = Clone::clone(activity);
 
         tokio::task::spawn_blocking(move || {
             let key = activity.id.as_str().as_bytes();
@@ -478,7 +480,7 @@ impl BraidStore for SledStore {
     #[instrument(skip(self))]
     async fn get_activity(&self, id: &ActivityId) -> sweet_grass_store::Result<Option<Activity>> {
         let activities = self.activities.clone();
-        let id = id.clone();
+        let id = Clone::clone(id);
 
         tokio::task::spawn_blocking(move || match activities.get(id.as_str().as_bytes()) {
             Ok(Some(bytes)) => {

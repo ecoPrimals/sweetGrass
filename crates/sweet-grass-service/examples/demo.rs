@@ -10,9 +10,12 @@
 //! 5. Querying provenance
 //! 6. Exporting to PROV-O
 
-// Example target: workspace clippy lints don't fire in `#[expect]` on examples,
-// so `#[allow]` is correct here (loamSpine v0.9.10 pattern).
-#![allow(clippy::expect_used, clippy::unwrap_used, clippy::too_many_lines)]
+// `unwrap_used` / `expect_used` do not fire here (demo uses `?` only); `#[expect]` on those
+// would be unfulfilled. `too_many_lines` fires on the single long `main` — expect is correct.
+#![expect(
+    clippy::too_many_lines,
+    reason = "demo example: one linear async main for readability"
+)]
 
 use std::sync::Arc;
 
