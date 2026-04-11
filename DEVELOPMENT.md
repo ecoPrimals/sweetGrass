@@ -188,7 +188,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 1,245 tests passing (86.9% line coverage, 90%+ excluding Postgres CI + binary main)
+- **Overall**: 1,315 tests passing (86.9% line coverage, 90%+ excluding Postgres CI + binary main)
 - **Target**: 90%+ coverage on core crates (achieved)
 
 ### Per-Crate Coverage

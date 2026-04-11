@@ -50,19 +50,15 @@ fn resolve_security_socket() -> std::path::PathBuf {
     std::env::temp_dir().join(DEFAULT_SECURITY_SOCKET)
 }
 
-/// Call a `BearDog` JSON-RPC method over UDS.
-///
-/// This is a lightweight JSON-RPC client for the 3 BTSP methods.
-/// We avoid importing a full client library — each primal owns its
-/// IPC implementation per sovereignty principles.
-async fn call_beardog(
+/// Call a `BearDog` JSON-RPC method at an explicit socket path.
+async fn call_beardog_at(
+    socket_path: &std::path::Path,
     method: &str,
     params: serde_json::Value,
 ) -> Result<serde_json::Value, BtspError> {
     use tokio::io::{AsyncBufReadExt, BufReader};
 
-    let socket_path = resolve_security_socket();
-    let stream = tokio::net::UnixStream::connect(&socket_path)
+    let stream = tokio::net::UnixStream::connect(socket_path)
         .await
         .map_err(|e| {
             BtspError::CryptoProviderUnavailable(format!("{}: {e}", socket_path.display()))
@@ -124,6 +120,7 @@ fn extract_str(value: &serde_json::Value, field: &str) -> Result<String, BtspErr
 /// Step 1–2: Read `ClientHello` and create a session via `BearDog`.
 async fn receive_hello_and_create_session<S>(
     stream: &mut S,
+    security_socket: &std::path::Path,
 ) -> Result<(ClientHello, SessionContext), BtspError>
 where
     S: AsyncReadExt + AsyncWriteExt + Unpin + Send,
@@ -144,7 +141,8 @@ where
 
     debug!(client_pub = %client_hello.client_ephemeral_pub, "BTSP: received ClientHello");
 
-    let session = call_beardog(
+    let session = call_beardog_at(
+        security_socket,
         "btsp.session.create",
         serde_json::json!({
             "family_seed_ref": "env:FAMILY_SEED",
@@ -167,6 +165,7 @@ async fn exchange_challenge<S>(
     stream: &mut S,
     client_hello: &ClientHello,
     ctx: &SessionContext,
+    security_socket: &std::path::Path,
 ) -> Result<ChallengeResponse, BtspError>
 where
     S: AsyncReadExt + AsyncWriteExt + Unpin + Send,
@@ -182,7 +181,8 @@ where
     let challenge_response: ChallengeResponse = read_message(stream).await?;
     debug!("BTSP: received ChallengeResponse");
 
-    let verify_result = call_beardog(
+    let verify_result = call_beardog_at(
+        security_socket,
         "btsp.session.verify",
         serde_json::json!({
             "session_id": ctx.session_id,
@@ -232,10 +232,28 @@ pub async fn perform_server_handshake<S>(stream: &mut S) -> Result<HandshakeComp
 where
     S: AsyncReadExt + AsyncWriteExt + Unpin + Send,
 {
-    let (client_hello, ctx) = receive_hello_and_create_session(stream).await?;
-    let challenge_response = exchange_challenge(stream, &client_hello, &ctx).await?;
+    perform_server_handshake_with(stream, &resolve_security_socket()).await
+}
 
-    let negotiate_result = call_beardog(
+/// Run the server-side BTSP handshake using an explicit security-provider
+/// socket path (DI-friendly for integration tests).
+///
+/// # Errors
+///
+/// Returns [`BtspError`] on I/O, protocol, or verification failure.
+pub async fn perform_server_handshake_with<S>(
+    stream: &mut S,
+    security_socket: &std::path::Path,
+) -> Result<HandshakeComplete, BtspError>
+where
+    S: AsyncReadExt + AsyncWriteExt + Unpin + Send,
+{
+    let (client_hello, ctx) = receive_hello_and_create_session(stream, security_socket).await?;
+    let challenge_response =
+        exchange_challenge(stream, &client_hello, &ctx, security_socket).await?;
+
+    let negotiate_result = call_beardog_at(
+        security_socket,
         "btsp.negotiate",
         serde_json::json!({
             "session_id": ctx.session_id,
@@ -302,5 +320,29 @@ mod tests {
             err.to_string().contains("unsupported version"),
             "expected version error, got: {err}"
         );
+    }
+
+    #[test]
+    fn extract_str_missing_field() {
+        let value = serde_json::json!({"other": "val"});
+        let err = extract_str(&value, "missing").unwrap_err();
+        assert!(
+            err.to_string().contains("missing"),
+            "should mention field name: {err}"
+        );
+    }
+
+    #[test]
+    fn extract_str_success() {
+        let value = serde_json::json!({"session_id": "abc123"});
+        let result = extract_str(&value, "session_id").expect("should extract");
+        assert_eq!(result, "abc123");
+    }
+
+    #[test]
+    fn extract_str_non_string_field() {
+        let value = serde_json::json!({"count": 42});
+        let err = extract_str(&value, "count").unwrap_err();
+        assert!(err.to_string().contains("missing"));
     }
 }

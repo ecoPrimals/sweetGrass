@@ -113,4 +113,8 @@ fn cli_server_help_shows_port_flag() {
         stdout.contains("--http-address"),
         "server help should show --http-address flag: {stdout}"
     );
+    assert!(
+        stdout.contains("--socket"),
+        "server help should show --socket flag (SG-02): {stdout}"
+    );
 }

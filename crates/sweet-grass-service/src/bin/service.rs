@@ -42,13 +42,13 @@ struct Cli {
 enum Commands {
     /// Start the `SweetGrass` service (REST + JSON-RPC + tarpc).
     Server {
-        /// TCP JSON-RPC port (newline-delimited framing).
+        /// TCP JSON-RPC port (newline-delimited framing, opt-in).
         ///
-        /// Mandatory per `UNIBIN_ARCHITECTURE_STANDARD` v1.1: the universal
-        /// entry point for springs, deploy graphs, and orchestration.
-        /// Defaults to 0 (OS-assigned) so TCP JSON-RPC is always available.
-        #[arg(long, env = "SWEETGRASS_PORT", default_value = "0")]
-        port: u16,
+        /// Per Tower Atomic portability standard: TCP is opt-in only.
+        /// UDS is the default transport. Pass `--port 0` for OS-assigned,
+        /// or `--port <N>` for a specific port. Omit to run UDS-only.
+        #[arg(long, env = "SWEETGRASS_PORT")]
+        port: Option<u16>,
 
         /// REST/JSON-RPC bind address (HTTP-wrapped).
         #[arg(long, env = "SWEETGRASS_HTTP_ADDRESS", default_value = "0.0.0.0:0")]
@@ -77,6 +77,14 @@ enum Commands {
         /// Disable tarpc server (REST/JSON-RPC only).
         #[arg(long)]
         no_tarpc: bool,
+
+        /// Unix domain socket path override.
+        ///
+        /// When omitted, the socket path is resolved via the standard
+        /// 4-tier fallback: `SWEETGRASS_SOCKET` env → `BIOMEOS_SOCKET_DIR` →
+        /// `XDG_RUNTIME_DIR/biomeos/` → `$TMPDIR/sweetgrass.sock`.
+        #[arg(long, env = "SWEETGRASS_SOCKET")]
+        socket: Option<String>,
     },
 
     /// Check status of a running `SweetGrass` instance.
@@ -107,6 +115,7 @@ async fn main() {
             sled_path,
             log_level,
             no_tarpc,
+            socket,
         } => {
             run_server(ServerConfig {
                 port,
@@ -117,6 +126,7 @@ async fn main() {
                 sled_path,
                 log_level,
                 no_tarpc,
+                socket,
             })
             .await
         },
@@ -129,7 +139,7 @@ async fn main() {
 }
 
 struct ServerConfig {
-    port: u16,
+    port: Option<u16>,
     http_address: String,
     tarpc_address: String,
     storage: String,
@@ -137,6 +147,7 @@ struct ServerConfig {
     sled_path: Option<String>,
     log_level: String,
     no_tarpc: bool,
+    socket: Option<String>,
 }
 
 async fn run_server(config: ServerConfig) -> i32 {
@@ -233,25 +244,35 @@ async fn serve_all(
         Some(spawn_tarpc_server(tarpc_addr, &state, shutdown_rx))
     };
 
-    let tcp_jsonrpc_handle = {
+    let tcp_jsonrpc_handle = config.port.map(|port| {
         let tcp_state = state.clone();
         let shutdown_rx = shutdown_tx.subscribe();
-        let port = config.port;
-        Some(tokio::spawn(async move {
+        tracing::info!(port, "TCP JSON-RPC opt-in enabled");
+        tokio::spawn(async move {
             if let Err(e) = start_tcp_jsonrpc_listener(tcp_state, port, shutdown_rx).await {
                 tracing::warn!("TCP JSON-RPC listener error: {e}");
             }
-        }))
-    };
+        })
+    });
+    if config.port.is_none() {
+        tracing::info!("TCP JSON-RPC disabled (UDS-only mode — pass --port to enable)");
+    }
+
+    #[cfg(unix)]
+    let uds_socket_path = config.socket.as_ref().map(std::path::PathBuf::from);
 
     #[cfg(unix)]
     let uds_handle = {
         let uds_state = state.clone();
         let shutdown_rx = shutdown_tx.subscribe();
+        let explicit_path = uds_socket_path.clone();
         Some(tokio::spawn(async move {
-            if let Err(e) =
+            let result = if let Some(ref path) = explicit_path {
+                sweet_grass_service::uds::start_uds_listener_at(uds_state, path, shutdown_rx).await
+            } else {
                 sweet_grass_service::uds::start_uds_listener(uds_state, shutdown_rx).await
-            {
+            };
+            if let Err(e) = result {
                 tracing::warn!("UDS listener error: {e}");
             }
         }))
@@ -276,7 +297,11 @@ async fn serve_all(
     }
 
     #[cfg(unix)]
-    sweet_grass_service::uds::cleanup_socket();
+    if let Some(ref path) = uds_socket_path {
+        sweet_grass_service::uds::cleanup_socket_at(path);
+    } else {
+        sweet_grass_service::uds::cleanup_socket();
+    }
 
     result.map_or_else(
         |e| {

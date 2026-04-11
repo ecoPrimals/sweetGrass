@@ -116,3 +116,87 @@ fn test_config_chain() {
     assert_eq!(config.max_connections, 10);
     assert_eq!(config.min_connections, 2);
 }
+
+// ========================================================================
+// Connection Error Path Tests (no Docker needed)
+// ========================================================================
+
+#[tokio::test]
+async fn connect_refused_returns_connection_error() {
+    let config = PostgresConfig {
+        database_url: "postgresql://nobody:pass@127.0.0.1:59999/noexist".to_string(),
+        max_connections: 1,
+        min_connections: 0,
+        connect_timeout_secs: 2,
+        idle_timeout_secs: 1,
+    };
+    let result = PostgresStore::connect(&config).await;
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        matches!(err, PostgresError::Connection(_)),
+        "expected Connection variant, got: {err}"
+    );
+}
+
+#[tokio::test]
+async fn connect_url_refused_returns_connection_error() {
+    let result =
+        PostgresStore::connect_url("postgresql://nobody:pass@127.0.0.1:59998/noexist").await;
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        matches!(err, PostgresError::Connection(_)),
+        "expected Connection variant, got: {err}"
+    );
+}
+
+#[test]
+fn config_is_configured_empty() {
+    let config = PostgresConfig {
+        database_url: String::new(),
+        ..PostgresConfig::default()
+    };
+    assert!(!config.is_configured());
+}
+
+#[test]
+fn config_is_configured_set() {
+    let config = PostgresConfig::new("postgresql://localhost/test");
+    assert!(config.is_configured());
+}
+
+// ========================================================================
+// Validated Filter Tests
+// ========================================================================
+
+#[test]
+fn validated_filter_empty() {
+    let filter = QueryFilter::default();
+    let vf = ValidatedFilter::new(&filter).unwrap();
+    assert_eq!(vf.where_clause(), "1=1");
+}
+
+#[test]
+fn validated_filter_with_hash() {
+    let filter = QueryFilter {
+        data_hash: Some(ContentHash::new("abc123")),
+        ..Default::default()
+    };
+    let vf = ValidatedFilter::new(&filter).unwrap();
+    let clause = vf.where_clause();
+    assert!(
+        clause.contains("data_hash"),
+        "should have data_hash condition: {clause}"
+    );
+}
+
+#[test]
+fn validated_filter_overflow_timestamp() {
+    let filter = QueryFilter {
+        created_after: Some(u64::MAX),
+        ..Default::default()
+    };
+    let result = ValidatedFilter::new(&filter);
+    assert!(result.is_err(), "u64::MAX should overflow i64");
+}

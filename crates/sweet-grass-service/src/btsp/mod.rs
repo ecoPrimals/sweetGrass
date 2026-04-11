@@ -21,7 +21,7 @@ pub use protocol::{
     BtspError, ChallengeResponse, ClientHello, HandshakeComplete, HandshakeError, ServerHello,
     read_frame, write_frame,
 };
-pub use server::perform_server_handshake;
+pub use server::{perform_server_handshake, perform_server_handshake_with};
 
 use sweet_grass_core::primal_names::env_vars;
 

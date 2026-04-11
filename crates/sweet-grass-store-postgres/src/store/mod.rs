@@ -107,7 +107,7 @@ macro_rules! bind_filter {
 }
 
 /// `PostgreSQL` storage backend.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PostgresStore {
     pool: PgPool,
 }

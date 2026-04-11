@@ -7,26 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### IPC Stability, Deep Debt Cleanup, Coverage Expansion (April 11, 2026)
+### Trio IPC Hardening, SG-02 --socket, BTSP Mock, TCP Opt-in (April 11, 2026)
+
+Provenance Trio audit response: `--socket` CLI flag (SG-02), TCP opt-in per
+Tower Atomic standard, BTSP `perform_server_handshake_with` DI refactor with
+mock BearDog integration tests, Postgres connection-refused tests, and
+`ValidatedFilter` unit tests. All metrics: 1,315 tests, `cargo deny check`
+fully clean.
+
+### Added
+
+- **`--socket` CLI flag** (SG-02) — explicit UDS path override, plumbed to `start_uds_listener_at`/`cleanup_socket_at`; env fallback via `SWEETGRASS_SOCKET`
+- **`perform_server_handshake_with`** — DI-friendly BTSP handshake accepting explicit security-provider socket path (no `set_var` needed under `forbid(unsafe_code)`)
+- **BTSP mock BearDog integration tests** — full handshake, verify-rejection, provider-unreachable, and serde roundtrip (4 tests in `btsp_mock_beardog.rs`)
+- **Postgres connection-refused tests** — `connect` and `connect_url` error paths exercised without Docker
+- **`ValidatedFilter` tests** — empty filter, hash filter, overflow timestamp boundary
+- **`PostgresStore` Debug derive** — enables `unwrap_err()` in test assertions
+- **`extract_str` unit tests** — missing field, success, non-string field edge cases
+
+### Changed
+
+- **TCP opt-in** — `--port` is now `Option<u16>` (omit for UDS-only); per Tower Atomic portability standard, TCP only starts when explicitly requested
+- **BTSP `call_beardog` DI refactor** — extracted `call_beardog_at` with explicit socket path; internal functions (`receive_hello_and_create_session`, `exchange_challenge`) accept `security_socket` parameter; dead `call_beardog` wrapper removed
+
+### Previous: IPC Stability, Deep Debt Cleanup, Coverage Expansion (April 11, 2026)
 
 Trio IPC hardening (flush-on-write for UDS and TCP, TCP_NODELAY, default
 `--port 0`), smart file refactoring (uds.rs 866→468, traversal.rs 766→256),
 demo error type evolution (Box\<dyn Error\> → thiserror DemoError), security
 advisory resolution (time v0.3.47, rustls-webpki v0.103.11), CLI integration
-tests, concurrent UDS load test. All metrics: 1,245 tests, 161 .rs files,
-44,069 LOC, `cargo deny check` fully clean.
+tests, concurrent UDS load test.
 
 ### Added
 
 - **Concurrent UDS load test** — 8 clients × 5 requests verifying trio IPC stability under load
-- **CLI integration tests** — 6 tests exercising `capabilities`, `socket`, `--version`, `--help`, invalid subcommand, `server --help` flags via `cargo run`
+- **CLI integration tests** — 7 tests exercising `capabilities`, `socket`, `--version`, `--help`, invalid subcommand, `server --help` flags (incl. `--socket`) via `cargo run`
 - **`DemoError` enum** in demo.rs — replaces `Box<dyn std::error::Error>` with typed `thiserror` variants (Store, Factory, Query, Compression, Json)
 
 ### Changed
 
 - **UDS flush-on-write** — `writer.flush().await?` after every response in `handle_uds_connection_raw`, fixing intermittent connection failures reported by springs
 - **TCP flush-on-write + TCP_NODELAY** — matching fix for `handle_tcp_connection_raw`; `set_nodelay(true)` in accept loop for lower latency
-- **`--port` defaults to 0** — TCP newline-delimited JSON-RPC always starts (OS-assigned port), closing UniBin compliance gap
 - **Smart refactoring: `uds.rs`** (866→468 lines) — tests extracted to `uds/tests.rs` with `#[path]` attribute
 - **Smart refactoring: `traversal.rs`** (766→256 lines) — tests extracted to `traversal/tests.rs` via directory module
 - **Security advisories resolved** — `time` v0.3.44→v0.3.47, `rustls-webpki` v0.103.8→v0.103.11
