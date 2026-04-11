@@ -7,7 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Deep Debt Evolution: BTSP Phase 2, Smart Refactoring, Proptest Expansion
+### IPC Stability, Deep Debt Cleanup, Coverage Expansion (April 11, 2026)
+
+Trio IPC hardening (flush-on-write for UDS and TCP, TCP_NODELAY, default
+`--port 0`), smart file refactoring (uds.rs 866→468, traversal.rs 766→256),
+demo error type evolution (Box\<dyn Error\> → thiserror DemoError), security
+advisory resolution (time v0.3.47, rustls-webpki v0.103.11), CLI integration
+tests, concurrent UDS load test. All metrics: 1,245 tests, 161 .rs files,
+44,069 LOC, `cargo deny check` fully clean.
+
+### Added
+
+- **Concurrent UDS load test** — 8 clients × 5 requests verifying trio IPC stability under load
+- **CLI integration tests** — 6 tests exercising `capabilities`, `socket`, `--version`, `--help`, invalid subcommand, `server --help` flags via `cargo run`
+- **`DemoError` enum** in demo.rs — replaces `Box<dyn std::error::Error>` with typed `thiserror` variants (Store, Factory, Query, Compression, Json)
+
+### Changed
+
+- **UDS flush-on-write** — `writer.flush().await?` after every response in `handle_uds_connection_raw`, fixing intermittent connection failures reported by springs
+- **TCP flush-on-write + TCP_NODELAY** — matching fix for `handle_tcp_connection_raw`; `set_nodelay(true)` in accept loop for lower latency
+- **`--port` defaults to 0** — TCP newline-delimited JSON-RPC always starts (OS-assigned port), closing UniBin compliance gap
+- **Smart refactoring: `uds.rs`** (866→468 lines) — tests extracted to `uds/tests.rs` with `#[path]` attribute
+- **Smart refactoring: `traversal.rs`** (766→256 lines) — tests extracted to `traversal/tests.rs` via directory module
+- **Security advisories resolved** — `time` v0.3.44→v0.3.47, `rustls-webpki` v0.103.8→v0.103.11
+- **Max file size reduced** — 862→734 lines (largest: `server/tests.rs`)
+
+### Previous: Deep Debt Evolution: BTSP Phase 2, Smart Refactoring, Proptest Expansion
 
 Continued deep evolution: BTSP Phase 2 server-side handshake on accept for
 UDS and TCP listeners, smart module refactoring (discovery, config), magic

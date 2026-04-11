@@ -46,8 +46,9 @@ enum Commands {
         ///
         /// Mandatory per `UNIBIN_ARCHITECTURE_STANDARD` v1.1: the universal
         /// entry point for springs, deploy graphs, and orchestration.
-        #[arg(long, env = "SWEETGRASS_PORT")]
-        port: Option<u16>,
+        /// Defaults to 0 (OS-assigned) so TCP JSON-RPC is always available.
+        #[arg(long, env = "SWEETGRASS_PORT", default_value = "0")]
+        port: u16,
 
         /// REST/JSON-RPC bind address (HTTP-wrapped).
         #[arg(long, env = "SWEETGRASS_HTTP_ADDRESS", default_value = "0.0.0.0:0")]
@@ -128,7 +129,7 @@ async fn main() {
 }
 
 struct ServerConfig {
-    port: Option<u16>,
+    port: u16,
     http_address: String,
     tarpc_address: String,
     storage: String,
@@ -232,15 +233,16 @@ async fn serve_all(
         Some(spawn_tarpc_server(tarpc_addr, &state, shutdown_rx))
     };
 
-    let tcp_jsonrpc_handle = config.port.map(|port| {
+    let tcp_jsonrpc_handle = {
         let tcp_state = state.clone();
         let shutdown_rx = shutdown_tx.subscribe();
-        tokio::spawn(async move {
+        let port = config.port;
+        Some(tokio::spawn(async move {
             if let Err(e) = start_tcp_jsonrpc_listener(tcp_state, port, shutdown_rx).await {
                 tracing::warn!("TCP JSON-RPC listener error: {e}");
             }
-        })
-    });
+        }))
+    };
 
     #[cfg(unix)]
     let uds_handle = {

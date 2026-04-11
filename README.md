@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.27 | 1,238 tests | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 2 | Wire L3 | Sovereign types
+v0.7.27 | 1,245 tests | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 2 | Wire L3 | Sovereign types
 
 ---
 
@@ -25,8 +25,11 @@ Standards: W3C PROV-O | JSON-RPC 2.0 | tarpc binary RPC | REST | Pure Rust | No 
 # Build the UniBin
 cargo build --release
 
-# Start the server (with TCP JSON-RPC on port 9100)
-./target/release/sweetgrass server --port 9100
+# Start the server (TCP JSON-RPC defaults to OS-assigned port)
+./target/release/sweetgrass server
+
+# Or with explicit ports
+./target/release/sweetgrass server --port 9100 --http-address 0.0.0.0:8080
 
 # Health check via REST
 curl http://localhost:8080/health
@@ -41,6 +44,10 @@ echo '{"jsonrpc":"2.0","method":"health.liveness","params":{},"id":1}' | nc loca
 
 # REST API
 curl http://localhost:8080/api/v1/braids
+
+# Offline commands
+./target/release/sweetgrass capabilities  # List all capabilities
+./target/release/sweetgrass socket        # Print UDS socket path
 ```
 
 ---
@@ -192,16 +199,16 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Metric | Value |
 |--------|-------|
 | Version | v0.7.27 |
-| Tests | 1,238 passing |
-| Coverage | 90%+ region (llvm-cov, excluding Postgres Docker tests) |
+| Tests | 1,245 passing |
+| Coverage | 86.9% line (llvm-cov; 90%+ excluding Postgres Docker + binary main) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
-| Max file size | 862 lines (limit: 1000) |
-| .rs files | 161 (44,036 LOC) |
+| Max file size | 734 lines (limit: 1000) |
+| .rs files | 161 (44,069 LOC) |
 | TODOs in source | 0 |
-| SPDX + copyright | All 161 .rs files |
+| SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |
 | cargo deny | advisories ok, bans ok, licenses ok, sources ok |
 | Benchmarks | 7 criterion groups |

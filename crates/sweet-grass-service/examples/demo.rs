@@ -24,8 +24,24 @@ use sweet_grass_factory::BraidFactory;
 use sweet_grass_query::QueryEngine;
 use sweet_grass_store::{BraidStore, MemoryStore};
 
+/// Unified error type for the demo — avoids `Box<dyn Error>` per ecosystem
+/// convention while still wrapping the heterogeneous crate errors.
+#[derive(Debug, thiserror::Error)]
+enum DemoError {
+    #[error("{0}")]
+    Store(#[from] sweet_grass_store::StoreError),
+    #[error("{0}")]
+    Factory(#[from] sweet_grass_factory::FactoryError),
+    #[error("{0}")]
+    Query(#[from] sweet_grass_query::QueryError),
+    #[error("{0}")]
+    Compression(#[from] sweet_grass_compression::CompressionError),
+    #[error("{0}")]
+    Json(#[from] serde_json::Error),
+}
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), DemoError> {
     // Initialize tracing
     tracing_subscriber::fmt::init();
 

@@ -52,6 +52,9 @@ pub async fn start_tcp_jsonrpc_listener(
             result = listener.accept() => {
                 match result {
                     Ok((stream, peer)) => {
+                        if let Err(e) = stream.set_nodelay(true) {
+                            warn!("TCP set_nodelay for {peer} failed (non-fatal): {e}");
+                        }
                         let state = state.clone();
                         tokio::spawn(async move {
                             #[cfg(unix)]
@@ -155,6 +158,8 @@ async fn handle_tcp_connection_btsp(
 /// Handle a single TCP connection with raw newline-delimited JSON-RPC.
 ///
 /// Development mode (no `FAMILY_ID`): no handshake, newline framing.
+/// Flushes after every response for reliable composition IPC (trio
+/// hardening). Caller sets `TCP_NODELAY` before dispatch.
 async fn handle_tcp_connection_raw(
     stream: tokio::net::TcpStream,
     state: crate::state::AppState,
@@ -183,6 +188,7 @@ async fn handle_tcp_connection_raw(
                 let mut resp = serde_json::to_string(&err_response)?;
                 resp.push('\n');
                 writer.write_all(resp.as_bytes()).await?;
+                writer.flush().await?;
                 continue;
             },
         };
@@ -191,6 +197,7 @@ async fn handle_tcp_connection_raw(
             let mut resp = serde_json::to_string(&response)?;
             resp.push('\n');
             writer.write_all(resp.as_bytes()).await?;
+            writer.flush().await?;
         }
     }
 

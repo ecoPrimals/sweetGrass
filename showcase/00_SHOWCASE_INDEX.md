@@ -1,6 +1,6 @@
 # 🌾 SweetGrass Showcase Index
 
-**Last Updated**: April 7, 2026  
+**Last Updated**: April 11, 2026  
 **Philosophy**: "Interactions show us gaps in our evolution" - Real binaries, no mocks  
 **Inspiration**: Following NestGate (local-first), Songbird (federation), ToadStool (compute)
 
@@ -40,7 +40,7 @@ Demonstrate SweetGrass's value **independently** before showing ecosystem integr
 3. **Provenance Queries** (10 min) - Graph traversal, filtering
 4. **PROV-O Standard** (5 min) - W3C JSON-LD export
 5. **Privacy Controls** (10 min) - GDPR-inspired data rights
-6. **Storage Backends** (10 min) - Memory, PostgreSQL, Sled
+6. **Storage Backends** (10 min) - Memory, PostgreSQL, redb (recommended), Sled (legacy)
 
 **Status**: ✅ Complete  
 **Start**: `cd 00-local-primal && ./RUN_ME_FIRST.sh`
@@ -48,7 +48,7 @@ Demonstrate SweetGrass's value **independently** before showing ecosystem integr
 ---
 
 ### **Level 1: Inter-Primal** → "SweetGrass + ONE Other Primal"
-**Directory**: `01-primal-coordination/` (to be renamed `01-inter-primal/`)  
+**Directory**: `01-primal-coordination/`  
 **Time**: 60 minutes  
 **Prerequisites**: Level 0 complete
 
