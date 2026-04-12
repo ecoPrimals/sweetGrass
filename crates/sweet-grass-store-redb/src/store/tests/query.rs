@@ -134,6 +134,32 @@ async fn test_query_largest_first() {
 }
 
 #[tokio::test]
+async fn test_query_largest_first_orders_by_descending_size() {
+    let (store, _temp) = create_test_store();
+
+    let mut small = create_test_braid("sha256:sz_order_small");
+    small.size = 10;
+    let mut mid = create_test_braid("sha256:sz_order_mid");
+    mid.size = 500;
+    let mut large = create_test_braid("sha256:sz_order_large");
+    large.size = 2_000;
+
+    store.put(&small).await.expect("put");
+    store.put(&mid).await.expect("put");
+    store.put(&large).await.expect("put");
+
+    let result = store
+        .query(&QueryFilter::new(), QueryOrder::LargestFirst)
+        .await
+        .expect("query");
+
+    assert_eq!(result.braids.len(), 3);
+    assert_eq!(result.braids[0].size, 2_000);
+    assert_eq!(result.braids[1].size, 500);
+    assert_eq!(result.braids[2].size, 10);
+}
+
+#[tokio::test]
 async fn test_query_smallest_first() {
     let (store, _temp) = create_test_store();
 
@@ -149,6 +175,87 @@ async fn test_query_smallest_first() {
         .expect("query");
 
     assert_eq!(result.braids.len(), 3);
+}
+
+#[tokio::test]
+async fn test_query_smallest_first_orders_by_ascending_size() {
+    let (store, _temp) = create_test_store();
+
+    let mut small = create_test_braid("sha256:sz_asc_small");
+    small.size = 10;
+    let mut mid = create_test_braid("sha256:sz_asc_mid");
+    mid.size = 500;
+    let mut large = create_test_braid("sha256:sz_asc_large");
+    large.size = 2_000;
+
+    store.put(&large).await.expect("put");
+    store.put(&small).await.expect("put");
+    store.put(&mid).await.expect("put");
+
+    let result = store
+        .query(&QueryFilter::new(), QueryOrder::SmallestFirst)
+        .await
+        .expect("query");
+
+    assert_eq!(result.braids.len(), 3);
+    assert_eq!(result.braids[0].size, 10);
+    assert_eq!(result.braids[1].size, 500);
+    assert_eq!(result.braids[2].size, 2_000);
+}
+
+#[tokio::test]
+async fn test_query_mime_type_excludes_non_matching() {
+    let (store, _temp) = create_test_store();
+
+    let mut json_braid = create_test_braid("sha256:mime_json");
+    json_braid.mime_type = "application/json".into();
+    store.put(&json_braid).await.expect("put");
+
+    let filter = QueryFilter::new().with_mime_type("text/plain");
+    let result = store
+        .query(&filter, QueryOrder::NewestFirst)
+        .await
+        .expect("query");
+
+    assert!(result.braids.is_empty());
+}
+
+#[tokio::test]
+async fn test_query_tag_excludes_non_matching() {
+    let (store, _temp) = create_test_store();
+
+    let mut braid = create_test_braid("sha256:tag_other");
+    braid.metadata.tags = vec!["alpha".into()];
+    store.put(&braid).await.expect("put");
+
+    let filter = QueryFilter::new().with_tag("beta");
+    let result = store
+        .query(&filter, QueryOrder::NewestFirst)
+        .await
+        .expect("query");
+
+    assert!(result.braids.is_empty());
+}
+
+#[tokio::test]
+async fn test_query_braid_type_entity_excludes_activity_variant() {
+    let (store, _temp) = create_test_store();
+
+    let entity_braid = create_test_braid("sha256:only_entity");
+    let mut activity_braid = create_test_braid("sha256:only_activity");
+    activity_braid.braid_type = sweet_grass_core::braid::BraidType::Activity;
+
+    store.put(&entity_braid).await.expect("put");
+    store.put(&activity_braid).await.expect("put");
+
+    let filter = QueryFilter::new().with_type(sweet_grass_core::braid::BraidType::Entity);
+    let result = store
+        .query(&filter, QueryOrder::NewestFirst)
+        .await
+        .expect("query");
+
+    assert_eq!(result.braids.len(), 1);
+    assert_eq!(result.braids[0].id, entity_braid.id);
 }
 
 #[tokio::test]
@@ -299,6 +406,115 @@ async fn test_query_has_more_pagination() {
     assert_eq!(result.braids.len(), 2);
     assert_eq!(result.total_count, 5);
     assert!(result.has_more);
+}
+
+#[tokio::test]
+async fn test_query_has_more_false_on_last_page() {
+    let (store, _temp) = create_test_store();
+
+    for i in 0..5 {
+        let braid = create_test_braid(&format!("sha256:lastpage{i}"));
+        store.put(&braid).await.expect("put");
+    }
+
+    let filter = QueryFilter::new().with_limit(3).with_offset(3);
+    let result = store
+        .query(&filter, QueryOrder::NewestFirst)
+        .await
+        .expect("query");
+
+    assert_eq!(result.braids.len(), 2);
+    assert_eq!(result.total_count, 5);
+    assert!(!result.has_more);
+}
+
+#[tokio::test]
+async fn test_query_offset_beyond_end() {
+    let (store, _temp) = create_test_store();
+
+    for i in 0..3 {
+        let braid = create_test_braid(&format!("sha256:beyond{i}"));
+        store.put(&braid).await.expect("put");
+    }
+
+    let filter = QueryFilter::new().with_limit(10).with_offset(100);
+    let result = store
+        .query(&filter, QueryOrder::NewestFirst)
+        .await
+        .expect("query");
+
+    assert!(result.braids.is_empty());
+    assert_eq!(result.total_count, 3);
+    assert!(!result.has_more);
+}
+
+#[tokio::test]
+async fn test_query_agent_filter_excludes_other_agent() {
+    let (store, _temp) = create_test_store();
+
+    let braid = create_test_braid("sha256:agent_excl");
+    store.put(&braid).await.expect("put");
+
+    let other = Did::new("did:key:z6MkOtherAgent");
+    let filter = QueryFilter::new().with_agent(other);
+    let result = store
+        .query(&filter, QueryOrder::NewestFirst)
+        .await
+        .expect("query");
+
+    assert!(result.braids.is_empty());
+}
+
+#[tokio::test]
+async fn test_query_oldest_first_time_ordering() {
+    let (store, _temp) = create_test_store();
+
+    let mut b1 = create_test_braid("sha256:oldest_order1");
+    b1.generated_at_time = 300;
+    let mut b2 = create_test_braid("sha256:oldest_order2");
+    b2.generated_at_time = 100;
+    let mut b3 = create_test_braid("sha256:oldest_order3");
+    b3.generated_at_time = 200;
+
+    store.put(&b1).await.expect("put");
+    store.put(&b2).await.expect("put");
+    store.put(&b3).await.expect("put");
+
+    let result = store
+        .query(&QueryFilter::new(), QueryOrder::OldestFirst)
+        .await
+        .expect("query");
+
+    assert_eq!(result.braids.len(), 3);
+    assert_eq!(result.braids[0].generated_at_time, 100);
+    assert_eq!(result.braids[1].generated_at_time, 200);
+    assert_eq!(result.braids[2].generated_at_time, 300);
+}
+
+#[tokio::test]
+async fn test_query_newest_first_time_ordering() {
+    let (store, _temp) = create_test_store();
+
+    let mut b1 = create_test_braid("sha256:newest_order1");
+    b1.generated_at_time = 300;
+    let mut b2 = create_test_braid("sha256:newest_order2");
+    b2.generated_at_time = 100;
+    let mut b3 = create_test_braid("sha256:newest_order3");
+    b3.generated_at_time = 200;
+
+    store.put(&b1).await.expect("put");
+    store.put(&b2).await.expect("put");
+    store.put(&b3).await.expect("put");
+
+    let result = store
+        .query(&QueryFilter::new(), QueryOrder::NewestFirst)
+        .await
+        .expect("query");
+
+    assert_eq!(result.braids.len(), 3);
+    assert_eq!(result.braids[0].generated_at_time, 300);
+    assert_eq!(result.braids[1].generated_at_time, 200);
+    assert_eq!(result.braids[2].generated_at_time, 100);
 }
 
 #[tokio::test]

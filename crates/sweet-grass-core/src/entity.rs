@@ -10,8 +10,11 @@ use serde::{Deserialize, Serialize};
 use crate::braid::{BraidId, ContentHash};
 
 /// Reference to a PROV entity.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged)]
+///
+/// **Serialization**: JSON uses the legacy untagged shape (see [`EntityReferenceHuman`]);
+/// binary codecs (e.g. bincode/tarpc) use an externally tagged enum so `serde` never
+/// relies on `deserialize_any`.
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum EntityReference {
     /// Reference by Braid ID.
@@ -25,7 +28,6 @@ pub enum EntityReference {
         /// The content hash.
         data_hash: ContentHash,
         /// Optional MIME type.
-        #[serde(skip_serializing_if = "Option::is_none")]
         mime_type: Option<String>,
     },
 
@@ -42,7 +44,6 @@ pub enum EntityReference {
         /// The URL.
         url: String,
         /// Optional content hash for verification.
-        #[serde(skip_serializing_if = "Option::is_none")]
         hash: Option<ContentHash>,
     },
 
@@ -130,6 +131,199 @@ impl EntityReference {
     #[must_use]
     pub const fn is_external(&self) -> bool {
         matches!(self, Self::External { .. })
+    }
+}
+
+/// JSON (human-readable) wire shape for [`EntityReference`] — untagged, matches historical API.
+#[derive(Serialize, Deserialize)]
+#[serde(untagged)]
+enum EntityReferenceHuman {
+    /// Reference by Braid ID.
+    ById {
+        /// The Braid ID.
+        braid_id: BraidId,
+    },
+    /// Reference by content hash.
+    ByHash {
+        /// The content hash.
+        data_hash: ContentHash,
+        /// Optional MIME type.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        mime_type: Option<String>,
+    },
+    /// Reference by anchoring provider location.
+    ByLoamEntry {
+        /// The spine ID.
+        spine_id: String,
+        /// The entry hash.
+        entry_hash: ContentHash,
+    },
+    /// External reference (URL).
+    External {
+        /// The URL.
+        url: String,
+        /// Optional content hash for verification.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        hash: Option<ContentHash>,
+    },
+    /// Inline entity (for small data).
+    Inline(InlineEntity),
+}
+
+/// Binary wire shape for [`EntityReference`] — externally tagged for bincode compatibility.
+///
+/// Optional fields are always serialized as `Option` values (no `skip_serializing_if`) so
+/// non–self-describing codecs like bincode can roundtrip every variant.
+#[derive(Serialize, Deserialize)]
+enum EntityReferenceBin {
+    /// Reference by Braid ID.
+    ById {
+        /// The Braid ID.
+        braid_id: BraidId,
+    },
+    /// Reference by content hash.
+    ByHash {
+        /// The content hash.
+        data_hash: ContentHash,
+        /// Optional MIME type.
+        mime_type: Option<String>,
+    },
+    /// Reference by anchoring provider location.
+    ByLoamEntry {
+        /// The spine ID.
+        spine_id: String,
+        /// The entry hash.
+        entry_hash: ContentHash,
+    },
+    /// External reference (URL).
+    External {
+        /// The URL.
+        url: String,
+        /// Optional content hash for verification.
+        hash: Option<ContentHash>,
+    },
+    /// Inline entity (for small data).
+    Inline(InlineEntity),
+}
+
+impl From<EntityReference> for EntityReferenceHuman {
+    fn from(r: EntityReference) -> Self {
+        match r {
+            EntityReference::ById { braid_id } => Self::ById { braid_id },
+            EntityReference::ByHash {
+                data_hash,
+                mime_type,
+            } => Self::ByHash {
+                data_hash,
+                mime_type,
+            },
+            EntityReference::ByLoamEntry {
+                spine_id,
+                entry_hash,
+            } => Self::ByLoamEntry {
+                spine_id,
+                entry_hash,
+            },
+            EntityReference::External { url, hash } => Self::External { url, hash },
+            EntityReference::Inline(entity) => Self::Inline(entity),
+        }
+    }
+}
+
+impl From<EntityReferenceHuman> for EntityReference {
+    fn from(r: EntityReferenceHuman) -> Self {
+        match r {
+            EntityReferenceHuman::ById { braid_id } => Self::ById { braid_id },
+            EntityReferenceHuman::ByHash {
+                data_hash,
+                mime_type,
+            } => Self::ByHash {
+                data_hash,
+                mime_type,
+            },
+            EntityReferenceHuman::ByLoamEntry {
+                spine_id,
+                entry_hash,
+            } => Self::ByLoamEntry {
+                spine_id,
+                entry_hash,
+            },
+            EntityReferenceHuman::External { url, hash } => Self::External { url, hash },
+            EntityReferenceHuman::Inline(entity) => Self::Inline(entity),
+        }
+    }
+}
+
+impl From<&EntityReference> for EntityReferenceBin {
+    fn from(r: &EntityReference) -> Self {
+        match r {
+            EntityReference::ById { braid_id } => Self::ById {
+                braid_id: braid_id.clone(),
+            },
+            EntityReference::ByHash {
+                data_hash,
+                mime_type,
+            } => Self::ByHash {
+                data_hash: data_hash.clone(),
+                mime_type: mime_type.clone(),
+            },
+            EntityReference::ByLoamEntry {
+                spine_id,
+                entry_hash,
+            } => Self::ByLoamEntry {
+                spine_id: spine_id.clone(),
+                entry_hash: entry_hash.clone(),
+            },
+            EntityReference::External { url, hash } => Self::External {
+                url: url.clone(),
+                hash: hash.clone(),
+            },
+            EntityReference::Inline(entity) => Self::Inline(entity.clone()),
+        }
+    }
+}
+
+impl From<EntityReferenceBin> for EntityReference {
+    fn from(r: EntityReferenceBin) -> Self {
+        match r {
+            EntityReferenceBin::ById { braid_id } => Self::ById { braid_id },
+            EntityReferenceBin::ByHash {
+                data_hash,
+                mime_type,
+            } => Self::ByHash {
+                data_hash,
+                mime_type,
+            },
+            EntityReferenceBin::ByLoamEntry {
+                spine_id,
+                entry_hash,
+            } => Self::ByLoamEntry {
+                spine_id,
+                entry_hash,
+            },
+            EntityReferenceBin::External { url, hash } => Self::External { url, hash },
+            EntityReferenceBin::Inline(entity) => Self::Inline(entity),
+        }
+    }
+}
+
+impl Serialize for EntityReference {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        if serializer.is_human_readable() {
+            EntityReferenceHuman::from(self.clone()).serialize(serializer)
+        } else {
+            EntityReferenceBin::from(self).serialize(serializer)
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for EntityReference {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        if deserializer.is_human_readable() {
+            EntityReferenceHuman::deserialize(deserializer).map(Into::into)
+        } else {
+            EntityReferenceBin::deserialize(deserializer).map(Into::into)
+        }
     }
 }
 
@@ -273,12 +467,55 @@ pub enum DecodeError {
 use crate::hash::{hex_decode_strict, sha256 as compute_sha256};
 
 #[cfg(test)]
-#[expect(
-    clippy::expect_used,
-    reason = "test module: expect is standard in tests"
-)]
+#[expect(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
+
+    fn assert_entity_reference_bincode_roundtrip(original: &EntityReference) {
+        let bytes = bincode::serialize(original).unwrap();
+        let decoded: EntityReference = bincode::deserialize(&bytes).unwrap();
+        assert_eq!(&decoded, original);
+    }
+
+    #[test]
+    fn entity_reference_bincode_roundtrip_by_id() {
+        let braid_id = BraidId::from_string("urn:braid:uuid:bincode-by-id");
+        assert_entity_reference_bincode_roundtrip(&EntityReference::by_id(braid_id));
+    }
+
+    #[test]
+    fn entity_reference_bincode_roundtrip_by_hash() {
+        assert_entity_reference_bincode_roundtrip(&EntityReference::by_hash("sha256:abc123"));
+        assert_entity_reference_bincode_roundtrip(&EntityReference::by_hash_typed(
+            "sha256:typed",
+            "application/json",
+        ));
+    }
+
+    #[test]
+    fn entity_reference_bincode_roundtrip_by_loam_entry() {
+        assert_entity_reference_bincode_roundtrip(&EntityReference::by_loam_entry(
+            "spine-bincode",
+            "sha256:loamhash",
+        ));
+    }
+
+    #[test]
+    fn entity_reference_bincode_roundtrip_external() {
+        assert_entity_reference_bincode_roundtrip(&EntityReference::external(
+            "https://example.com/bincode.json",
+        ));
+        assert_entity_reference_bincode_roundtrip(&EntityReference::external_verified(
+            "https://example.com/verified.bin",
+            "sha256:extverify",
+        ));
+    }
+
+    #[test]
+    fn entity_reference_bincode_roundtrip_inline() {
+        let inline = InlineEntity::text("bincode payload", "text/plain");
+        assert_entity_reference_bincode_roundtrip(&EntityReference::inline(inline));
+    }
 
     #[test]
     fn test_entity_reference_by_hash() {
@@ -503,5 +740,51 @@ mod tests {
         };
         assert!(entity.decode().is_err());
         assert!(entity.decode_cow().is_err());
+    }
+
+    #[test]
+    fn entity_reference_json_roundtrip_by_id() {
+        let r = EntityReference::by_id(BraidId::from_string("urn:braid:uuid:test"));
+        let json = serde_json::to_string(&r).expect("serialize");
+        let decoded: EntityReference = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(decoded, r);
+    }
+
+    #[test]
+    fn entity_reference_json_roundtrip_by_loam_entry() {
+        let r = EntityReference::ByLoamEntry {
+            spine_id: "spine-42".to_string(),
+            entry_hash: ContentHash::new("sha256:loam_entry_hash"),
+        };
+        let json = serde_json::to_string(&r).expect("serialize");
+        let decoded: EntityReference = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(decoded, r);
+    }
+
+    #[test]
+    fn entity_reference_json_roundtrip_external() {
+        let r = EntityReference::external_verified(
+            "https://example.com/data",
+            ContentHash::new("sha256:ext_hash"),
+        );
+        let json = serde_json::to_string(&r).expect("serialize");
+        let decoded: EntityReference = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(decoded, r);
+    }
+
+    #[test]
+    fn entity_reference_json_roundtrip_external_no_hash() {
+        let r = EntityReference::external("https://example.com/no-hash");
+        let json = serde_json::to_string(&r).expect("serialize");
+        let decoded: EntityReference = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(decoded, r);
+    }
+
+    #[test]
+    fn entity_reference_json_roundtrip_by_hash_typed() {
+        let r = EntityReference::by_hash_typed("sha256:typed_hash", "application/json");
+        let json = serde_json::to_string(&r).expect("serialize");
+        let decoded: EntityReference = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(decoded, r);
     }
 }

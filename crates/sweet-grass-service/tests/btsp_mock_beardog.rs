@@ -273,4 +273,233 @@ mod btsp_tests {
         assert_eq!(back.cipher, "AES-256-GCM");
         assert_eq!(back.session_id, "test-session");
     }
+
+    /// Exercises the production `handle_uds_connection_btsp` path: `start_uds_listener_at`
+    /// with `FAMILY_ID` set (BTSP required), full client handshake against mock `BearDog`,
+    /// then length-prefixed JSON-RPC (`health.check`).
+    #[test]
+    fn test_uds_btsp_full_handler_roundtrip() {
+        use std::time::Duration;
+
+        use sweet_grass_core::agent::Did;
+        use sweet_grass_core::primal_names::env_vars;
+        use sweet_grass_service::AppState;
+        use sweet_grass_service::btsp::protocol::{
+            ChallengeResponse, ClientHello, HandshakeComplete, ServerHello, read_message,
+            write_message,
+        };
+        use sweet_grass_service::btsp::{read_frame, write_frame};
+        use sweet_grass_service::uds::start_uds_listener_at;
+
+        let dir = tempfile::tempdir().expect("tempdir");
+        let security_sock = dir.path().join("beardog-uds-full.sock");
+        let uds_path = dir.path().join("sweetgrass-btsp-full.sock");
+
+        let security_sock_str = security_sock.to_string_lossy().into_owned();
+
+        temp_env::with_vars(
+            [
+                (env_vars::SWEETGRASS_FAMILY_ID, None::<&str>),
+                (env_vars::BIOMEOS_FAMILY_ID, None::<&str>),
+                (env_vars::FAMILY_ID, Some("test-family")),
+                ("SECURITY_PROVIDER_SOCKET", Some(security_sock_str.as_str())),
+                (env_vars::BIOMEOS_INSECURE, None::<&str>),
+            ],
+            || {
+                let state = AppState::new_memory(Did::new("did:key:z6MkBtspUdsFull"));
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .expect("runtime");
+
+                rt.block_on(async {
+                    let mock_handle = start_mock_beardog(&security_sock);
+                    tokio::time::sleep(Duration::from_millis(30)).await;
+
+                    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+                    let state_clone = state.clone();
+                    let path = uds_path.clone();
+                    let listener_handle = tokio::spawn(async move {
+                        let _ = start_uds_listener_at(state_clone, &path, shutdown_rx).await;
+                    });
+
+                    tokio::time::sleep(Duration::from_millis(80)).await;
+
+                    let mut stream = tokio::net::UnixStream::connect(&uds_path)
+                        .await
+                        .expect("connect UDS");
+
+                    let client_hello = ClientHello {
+                        version: 1,
+                        client_ephemeral_pub: "Y2xpZW50LXB1Yg==".to_string(),
+                    };
+                    write_message(&mut stream, &client_hello)
+                        .await
+                        .expect("write ClientHello");
+
+                    let _server_hello: ServerHello =
+                        read_message(&mut stream).await.expect("read ServerHello");
+
+                    let challenge_resp = ChallengeResponse {
+                        response: "aG1hYy1yZXNwb25zZQ==".to_string(),
+                        preferred_cipher: "AES-256-GCM".to_string(),
+                    };
+                    write_message(&mut stream, &challenge_resp)
+                        .await
+                        .expect("write ChallengeResponse");
+
+                    let complete: HandshakeComplete = read_message(&mut stream)
+                        .await
+                        .expect("read HandshakeComplete");
+
+                    assert_eq!(complete.cipher, "AES-256-GCM");
+                    assert_eq!(complete.session_id, "mock-session-001");
+
+                    let request = serde_json::json!({
+                        "jsonrpc": "2.0",
+                        "method": "health.check",
+                        "params": {},
+                        "id": 99
+                    });
+                    let payload = serde_json::to_vec(&request).expect("serialize json-rpc");
+                    write_frame(&mut stream, &payload)
+                        .await
+                        .expect("write_frame json-rpc");
+
+                    let frame = read_frame(&mut stream).await.expect("read_frame response");
+                    let response: serde_json::Value =
+                        serde_json::from_slice(&frame).expect("parse json-rpc response");
+
+                    assert_eq!(response["jsonrpc"], "2.0");
+                    assert_eq!(response["id"], 99);
+                    assert_eq!(response["result"]["status"], "healthy");
+
+                    shutdown_tx.send(true).expect("shutdown");
+                    tokio::time::timeout(Duration::from_secs(3), listener_handle)
+                        .await
+                        .expect("listener should exit within timeout")
+                        .expect("listener task join");
+
+                    mock_handle.abort();
+                });
+            },
+        );
+    }
+
+    /// Exercises the production `handle_tcp_connection_btsp` path: TCP JSON-RPC listener
+    /// with BTSP required, handshake, then framed `health.check`.
+    #[test]
+    fn test_tcp_btsp_full_handler_roundtrip() {
+        use std::time::Duration;
+
+        use sweet_grass_core::agent::Did;
+        use sweet_grass_core::primal_names::env_vars;
+        use sweet_grass_service::AppState;
+        use sweet_grass_service::btsp::protocol::{
+            ChallengeResponse, ClientHello, HandshakeComplete, ServerHello, read_message,
+            write_message,
+        };
+        use sweet_grass_service::btsp::{read_frame, write_frame};
+        use sweet_grass_service::tcp_jsonrpc::start_tcp_jsonrpc_listener;
+
+        let dir = tempfile::tempdir().expect("tempdir");
+        let security_sock = dir.path().join("beardog-tcp-full.sock");
+
+        let security_sock_str = security_sock.to_string_lossy().into_owned();
+
+        temp_env::with_vars(
+            [
+                (env_vars::SWEETGRASS_FAMILY_ID, None::<&str>),
+                (env_vars::BIOMEOS_FAMILY_ID, None::<&str>),
+                (env_vars::FAMILY_ID, Some("test-family")),
+                ("SECURITY_PROVIDER_SOCKET", Some(security_sock_str.as_str())),
+                (env_vars::BIOMEOS_INSECURE, None::<&str>),
+            ],
+            || {
+                let state = AppState::new_memory(Did::new("did:key:z6MkBtspTcpFull"));
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .expect("runtime");
+
+                rt.block_on(async {
+                    let mock_handle = start_mock_beardog(&security_sock);
+                    tokio::time::sleep(Duration::from_millis(30)).await;
+
+                    let probe = tokio::net::TcpListener::bind("127.0.0.1:0")
+                        .await
+                        .expect("bind probe");
+                    let port = probe.local_addr().expect("local_addr").port();
+                    drop(probe);
+
+                    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+                    let state_clone = state.clone();
+                    let listener_handle = tokio::spawn(async move {
+                        let _ = start_tcp_jsonrpc_listener(state_clone, port, shutdown_rx).await;
+                    });
+
+                    tokio::time::sleep(Duration::from_millis(80)).await;
+
+                    let addr: std::net::SocketAddr =
+                        format!("127.0.0.1:{port}").parse().expect("parse addr");
+                    let mut stream = tokio::net::TcpStream::connect(addr)
+                        .await
+                        .expect("connect TCP");
+
+                    let client_hello = ClientHello {
+                        version: 1,
+                        client_ephemeral_pub: "Y2xpZW50LXB1Yg==".to_string(),
+                    };
+                    write_message(&mut stream, &client_hello)
+                        .await
+                        .expect("write ClientHello");
+
+                    let _server_hello: ServerHello =
+                        read_message(&mut stream).await.expect("read ServerHello");
+
+                    let challenge_resp = ChallengeResponse {
+                        response: "aG1hYy1yZXNwb25zZQ==".to_string(),
+                        preferred_cipher: "AES-256-GCM".to_string(),
+                    };
+                    write_message(&mut stream, &challenge_resp)
+                        .await
+                        .expect("write ChallengeResponse");
+
+                    let complete: HandshakeComplete = read_message(&mut stream)
+                        .await
+                        .expect("read HandshakeComplete");
+
+                    assert_eq!(complete.cipher, "AES-256-GCM");
+                    assert_eq!(complete.session_id, "mock-session-001");
+
+                    let request = serde_json::json!({
+                        "jsonrpc": "2.0",
+                        "method": "health.check",
+                        "params": {},
+                        "id": 100
+                    });
+                    let payload = serde_json::to_vec(&request).expect("serialize json-rpc");
+                    write_frame(&mut stream, &payload)
+                        .await
+                        .expect("write_frame json-rpc");
+
+                    let frame = read_frame(&mut stream).await.expect("read_frame response");
+                    let response: serde_json::Value =
+                        serde_json::from_slice(&frame).expect("parse json-rpc response");
+
+                    assert_eq!(response["jsonrpc"], "2.0");
+                    assert_eq!(response["id"], 100);
+                    assert_eq!(response["result"]["status"], "healthy");
+
+                    shutdown_tx.send(true).expect("shutdown");
+                    tokio::time::timeout(Duration::from_secs(3), listener_handle)
+                        .await
+                        .expect("listener should exit within timeout")
+                        .expect("listener task join");
+
+                    mock_handle.abort();
+                });
+            },
+        );
+    }
 }

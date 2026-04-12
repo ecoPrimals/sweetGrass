@@ -85,6 +85,36 @@ async fn test_query_filter_time_range() {
         .await
         .expect("query");
     assert!(result.braids.is_empty());
+
+    let too_late = QueryFilter {
+        created_before: Some(400),
+        ..QueryFilter::new()
+    };
+    let result = store
+        .query(&too_late, QueryOrder::NewestFirst)
+        .await
+        .expect("query");
+    assert!(result.braids.is_empty());
+
+    let only_after_ok = QueryFilter {
+        created_after: Some(100),
+        ..QueryFilter::new()
+    };
+    let result = store
+        .query(&only_after_ok, QueryOrder::NewestFirst)
+        .await
+        .expect("query");
+    assert_eq!(result.braids.len(), 1);
+
+    let only_before_ok = QueryFilter {
+        created_before: Some(900),
+        ..QueryFilter::new()
+    };
+    let result = store
+        .query(&only_before_ok, QueryOrder::NewestFirst)
+        .await
+        .expect("query");
+    assert_eq!(result.braids.len(), 1);
 }
 
 #[tokio::test]

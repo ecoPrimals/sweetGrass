@@ -123,13 +123,10 @@ fn test_config_chain() {
 
 #[tokio::test]
 async fn connect_refused_returns_connection_error() {
-    let config = PostgresConfig {
-        database_url: "postgresql://nobody:pass@127.0.0.1:59999/noexist".to_string(),
-        max_connections: 1,
-        min_connections: 0,
-        connect_timeout_secs: 2,
-        idle_timeout_secs: 1,
-    };
+    let config = PostgresConfig::new("postgresql://nobody:pass@127.0.0.1:59999/noexist")
+        .connect_timeout_secs(2)
+        .max_connections(1)
+        .min_connections(0);
     let result = PostgresStore::connect(&config).await;
     assert!(result.is_err());
     let err = result.unwrap_err();
@@ -141,14 +138,49 @@ async fn connect_refused_returns_connection_error() {
 
 #[tokio::test]
 async fn connect_url_refused_returns_connection_error() {
-    let result =
-        PostgresStore::connect_url("postgresql://nobody:pass@127.0.0.1:59998/noexist").await;
+    let result = PostgresStore::connect(
+        &PostgresConfig::new("postgresql://nobody:pass@127.0.0.1:59998/noexist")
+            .connect_timeout_secs(2)
+            .max_connections(1)
+            .min_connections(0),
+    )
+    .await;
     assert!(result.is_err());
     let err = result.unwrap_err();
     assert!(
         matches!(err, PostgresError::Connection(_)),
         "expected Connection variant, got: {err}"
     );
+}
+
+#[tokio::test]
+async fn test_connect_refused_returns_connection_error() {
+    let result = PostgresStore::connect(
+        &PostgresConfig::new("postgres://localhost:59999/nonexistent")
+            .connect_timeout_secs(3)
+            .max_connections(1)
+            .min_connections(0),
+    )
+    .await;
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        matches!(err, PostgresError::Connection(_)),
+        "expected Connection variant, got: {err}"
+    );
+}
+
+#[test]
+fn test_config_default_values() {
+    let config = PostgresConfig::new("postgres://test");
+    assert_eq!(config.database_url, "postgres://test");
+    assert_eq!(config.max_connections, crate::DEFAULT_MAX_CONNECTIONS);
+    assert_eq!(config.min_connections, 1);
+    assert_eq!(
+        config.connect_timeout_secs,
+        crate::DEFAULT_CONNECT_TIMEOUT_SECS
+    );
+    assert_eq!(config.idle_timeout_secs, crate::DEFAULT_IDLE_TIMEOUT_SECS);
 }
 
 #[test]

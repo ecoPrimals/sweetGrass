@@ -201,7 +201,6 @@ impl BraidStore for MemoryStore {
     }
 }
 
-#[async_trait]
 impl IndexStore for MemoryStore {
     async fn index_braid(&self, braid: &Braid) -> Result<()> {
         self.indexes.add(braid);

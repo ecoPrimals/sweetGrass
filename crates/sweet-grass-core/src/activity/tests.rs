@@ -128,3 +128,23 @@ fn test_activity_builder_toadstool_task() {
         .build();
     assert_eq!(activity.ecop.toadstool_task, Some("task-99".to_string()));
 }
+
+#[test]
+fn test_activity_id_from_str_ref() {
+    let id: ActivityId = "urn:activity:custom:abc".into();
+    assert_eq!(id.as_str(), "urn:activity:custom:abc");
+}
+
+#[test]
+fn test_activity_id_from_owned_string() {
+    let id: ActivityId = String::from("urn:activity:custom:owned").into();
+    assert_eq!(id.as_str(), "urn:activity:custom:owned");
+}
+
+#[test]
+fn test_activity_type_custom_display() {
+    let custom = ActivityType::Custom {
+        type_uri: "https://example.org/custom-activity".to_string(),
+    };
+    assert_eq!(format!("{custom}"), "https://example.org/custom-activity");
+}

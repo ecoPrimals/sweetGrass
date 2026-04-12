@@ -185,7 +185,9 @@ pub fn row_to_activity(row: &sqlx::postgres::PgRow) -> sweet_grass_store::Result
 }
 
 /// Convert a pre-`WireWitnessRef` (LD-Proof) JSONB value into a [`Witness`].
-fn legacy_signature_to_witness(v: &serde_json::Value) -> sweet_grass_core::dehydration::Witness {
+pub fn legacy_signature_to_witness(
+    v: &serde_json::Value,
+) -> sweet_grass_core::dehydration::Witness {
     use sweet_grass_core::dehydration::{
         WITNESS_ALGORITHM_ED25519, WITNESS_ENCODING_BASE64, WITNESS_ENCODING_NONE,
         WITNESS_KIND_MARKER, WITNESS_KIND_SIGNATURE, WITNESS_TIER_LOCAL, WITNESS_TIER_OPEN,
@@ -237,7 +239,7 @@ fn legacy_signature_to_witness(v: &serde_json::Value) -> sweet_grass_core::dehyd
 }
 
 /// Parse an activity type from its string representation.
-fn parse_activity_type(s: &str) -> ActivityType {
+pub fn parse_activity_type(s: &str) -> ActivityType {
     match s {
         "Creation" => ActivityType::Creation,
         "Import" => ActivityType::Import,
@@ -274,5 +276,184 @@ fn parse_activity_type(s: &str) -> ActivityType {
         other => ActivityType::Custom {
             type_uri: other.to_string(),
         },
+    }
+}
+
+#[cfg(test)]
+#[expect(clippy::expect_used, reason = "test assertions")]
+mod tests {
+    use proptest::prelude::*;
+
+    use sweet_grass_core::{
+        activity::ActivityType,
+        dehydration::{
+            WITNESS_ALGORITHM_ED25519, WITNESS_ENCODING_BASE64, WITNESS_ENCODING_NONE,
+            WITNESS_KIND_MARKER, WITNESS_KIND_SIGNATURE, WITNESS_TIER_LOCAL, WITNESS_TIER_OPEN,
+        },
+    };
+    use sweet_grass_store::StoreError;
+
+    use super::{
+        i64_to_u64, i64_to_usize, legacy_signature_to_witness, parse_activity_type, u64_to_i64,
+    };
+
+    #[test]
+    fn u64_to_i64_zero() {
+        assert_eq!(u64_to_i64(0).expect("zero"), 0);
+    }
+
+    #[test]
+    fn u64_to_i64_max_representable() {
+        assert_eq!(u64_to_i64(i64::MAX as u64).expect("fits"), i64::MAX);
+    }
+
+    #[test]
+    fn u64_to_i64_overflows_past_i64_max() {
+        let err = u64_to_i64((i64::MAX as u64) + 1).expect_err("overflow");
+        assert!(matches!(err, StoreError::Internal(_)));
+    }
+
+    #[test]
+    fn u64_to_i64_u64_max_overflows() {
+        let err = u64_to_i64(u64::MAX).expect_err("overflow");
+        assert!(matches!(err, StoreError::Internal(_)));
+    }
+
+    proptest! {
+        #[test]
+        fn u64_to_i64_roundtrip_via_i64_to_u64_for_nonnegative(n in 0i64..=i64::MAX) {
+            let u = i64_to_u64(n);
+            let back = u64_to_i64(u).expect("non-negative i64 fits in u64 and i64");
+            prop_assert_eq!(back, n);
+        }
+    }
+
+    #[test]
+    fn i64_to_u64_cases() {
+        assert_eq!(i64_to_u64(0), 0);
+        assert_eq!(i64_to_u64(-1), 0);
+        assert_eq!(i64_to_u64(i64::MAX), i64::MAX as u64);
+        assert_eq!(i64_to_u64(i64::MIN), 0);
+    }
+
+    #[test]
+    fn i64_to_usize_cases() {
+        assert_eq!(i64_to_usize(0), 0);
+        assert_eq!(i64_to_usize(-1), 0);
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "verifying production behavior"
+        )]
+        let expected = i64::MAX as usize;
+        assert_eq!(i64_to_usize(i64::MAX), expected);
+        assert_eq!(i64_to_usize(i64::MIN), 0);
+    }
+
+    #[test]
+    fn parse_activity_type_known_variants() {
+        let cases = [
+            ("Creation", ActivityType::Creation),
+            ("Import", ActivityType::Import),
+            ("Extraction", ActivityType::Extraction),
+            ("Generation", ActivityType::Generation),
+            ("Transformation", ActivityType::Transformation),
+            ("Derivation", ActivityType::Derivation),
+            ("Aggregation", ActivityType::Aggregation),
+            ("Filtering", ActivityType::Filtering),
+            ("Merge", ActivityType::Merge),
+            ("Split", ActivityType::Split),
+            ("Analysis", ActivityType::Analysis),
+            ("Computation", ActivityType::Computation),
+            ("Simulation", ActivityType::Simulation),
+            ("MachineLearning", ActivityType::MachineLearning),
+            ("Inference", ActivityType::Inference),
+            ("Experiment", ActivityType::Experiment),
+            ("Observation", ActivityType::Observation),
+            ("Measurement", ActivityType::Measurement),
+            ("Validation", ActivityType::Validation),
+            ("Editing", ActivityType::Editing),
+            ("Review", ActivityType::Review),
+            ("Approval", ActivityType::Approval),
+            ("Publication", ActivityType::Publication),
+            ("SessionStart", ActivityType::SessionStart),
+            ("SessionCommit", ActivityType::SessionCommit),
+            ("SessionRollback", ActivityType::SessionRollback),
+            ("SliceCheckout", ActivityType::SliceCheckout),
+            ("SliceReturn", ActivityType::SliceReturn),
+            ("CertificateMint", ActivityType::CertificateMint),
+            ("CertificateTransfer", ActivityType::CertificateTransfer),
+            ("CertificateLoan", ActivityType::CertificateLoan),
+            ("CertificateReturn", ActivityType::CertificateReturn),
+        ];
+        for (s, expected) in cases {
+            assert_eq!(parse_activity_type(s), expected, "mismatch for {s:?}");
+        }
+    }
+
+    #[test]
+    fn parse_activity_type_unknown_is_custom() {
+        let s = "https://example.com/types/Foo";
+        match parse_activity_type(s) {
+            ActivityType::Custom { type_uri } => assert_eq!(type_uri, s),
+            other => panic!("expected Custom, got {other:?}"),
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn parse_activity_type_never_panics(s in any::<String>()) {
+            let _ = parse_activity_type(&s);
+        }
+    }
+
+    #[test]
+    fn legacy_signature_empty_object_is_unsigned_marker() {
+        let v = serde_json::json!({});
+        let w = legacy_signature_to_witness(&v);
+        assert_eq!(w.kind, WITNESS_KIND_MARKER);
+        assert_eq!(w.evidence, "");
+        assert_eq!(w.witnessed_at, 0);
+        assert_eq!(w.encoding, WITNESS_ENCODING_NONE);
+        assert_eq!(w.algorithm, None);
+        assert_eq!(w.tier.as_deref(), Some(WITNESS_TIER_OPEN));
+        assert_eq!(w.agent.as_str(), "");
+    }
+
+    #[test]
+    fn legacy_signature_null_is_unsigned_marker() {
+        let v = serde_json::Value::Null;
+        let w = legacy_signature_to_witness(&v);
+        assert_eq!(w.kind, WITNESS_KIND_MARKER);
+        assert_eq!(w.encoding, WITNESS_ENCODING_NONE);
+    }
+
+    #[test]
+    fn legacy_signature_signed_ed25519() {
+        let v = serde_json::json!({
+            "type": "Ed25519Signature2020",
+            "proof_value": "c2lnZWQ=",
+            "verification_method": "did:example:alice#key-1",
+            "created": 1_700_000_000_u64
+        });
+        let w = legacy_signature_to_witness(&v);
+        assert_eq!(w.kind, WITNESS_KIND_SIGNATURE);
+        assert_eq!(w.evidence, "c2lnZWQ=");
+        assert_eq!(w.witnessed_at, 1_700_000_000);
+        assert_eq!(w.encoding, WITNESS_ENCODING_BASE64);
+        assert_eq!(w.algorithm.as_deref(), Some(WITNESS_ALGORITHM_ED25519));
+        assert_eq!(w.tier.as_deref(), Some(WITNESS_TIER_LOCAL));
+        assert_eq!(w.agent.as_str(), "did:example:alice");
+    }
+
+    #[test]
+    fn legacy_signature_missing_fields_use_defaults() {
+        let v = serde_json::json!({"type": "Ed25519Signature2020"});
+        let w = legacy_signature_to_witness(&v);
+        assert_eq!(w.kind, WITNESS_KIND_MARKER);
+        assert_eq!(w.evidence, "");
+        assert_eq!(w.witnessed_at, 0);
+        assert_eq!(w.encoding, WITNESS_ENCODING_NONE);
+        assert_eq!(w.algorithm.as_deref(), Some(WITNESS_ALGORITHM_ED25519));
+        assert_eq!(w.tier.as_deref(), Some(WITNESS_TIER_OPEN));
     }
 }

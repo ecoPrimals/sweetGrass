@@ -27,8 +27,8 @@ attribution before distributing rewards.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 (required) + tarpc (optional high-perf) + REST + UDS
 - **License:** scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0)
-- **Tests:** 1,315 passing
-- **Coverage:** 90%+ region coverage (llvm-cov, excluding Postgres which needs runtime)
+- **Tests:** 1,416 passing
+- **Coverage:** 90.3% line coverage, 92.4% region coverage (llvm-cov)
 - **BTSP:** Phase 2 — server handshake on accept (UDS + TCP) when `FAMILY_ID` set
 - **MSRV:** 1.87 (Edition 2024)
 - **Crate count:** 10 workspace crates

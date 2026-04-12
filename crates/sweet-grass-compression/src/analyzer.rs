@@ -388,4 +388,97 @@ mod tests {
 
         assert_eq!(branches.len(), 2);
     }
+
+    fn make_analysis_base() -> SessionAnalysis {
+        SessionAnalysis {
+            vertex_count: 5,
+            branch_count: 0,
+            max_depth: 1,
+            convergence: 1.0,
+            unique_outputs: vec![ContentHash::from("sha256:out")],
+            contributors: HashSet::new(),
+            activity_types: std::collections::HashMap::new(),
+            semantic_coherence: 0.9,
+            temporal_span_ns: 0,
+            outcome: SessionOutcome::Committed,
+            hint: CompressionHint::Auto,
+            committed_count: 5,
+        }
+    }
+
+    #[test]
+    fn test_single_hint_returns_single() {
+        let analyzer = SessionAnalyzer::default();
+        let analysis = SessionAnalysis {
+            hint: CompressionHint::Single,
+            committed_count: 3,
+            ..make_analysis_base()
+        };
+        assert!(matches!(
+            analyzer.select_strategy(&analysis),
+            CompressionStrategy::Single
+        ));
+    }
+
+    #[test]
+    fn test_atomic_hint_returns_single() {
+        let analyzer = SessionAnalyzer::default();
+        let analysis = SessionAnalysis {
+            hint: CompressionHint::Atomic,
+            committed_count: 1,
+            ..make_analysis_base()
+        };
+        assert!(matches!(
+            analyzer.select_strategy(&analysis),
+            CompressionStrategy::Single
+        ));
+    }
+
+    #[test]
+    fn test_split_strategy_low_convergence() {
+        let analyzer = SessionAnalyzer::default();
+        let analysis = SessionAnalysis {
+            vertex_count: 200,
+            branch_count: 5,
+            convergence: 0.3,
+            unique_outputs: vec![ContentHash::from("sha256:a"), ContentHash::from("sha256:b")],
+            ..make_analysis_base()
+        };
+        assert!(matches!(
+            analyzer.select_strategy(&analysis),
+            CompressionStrategy::Split(_)
+        ));
+    }
+
+    #[test]
+    fn test_hierarchical_strategy_deep_session() {
+        let analyzer = SessionAnalyzer::default();
+        let analysis = SessionAnalysis {
+            vertex_count: 2500,
+            unique_outputs: vec![ContentHash::from("sha256:a"), ContentHash::from("sha256:b")],
+            ..make_analysis_base()
+        };
+        let strategy = analyzer.select_strategy(&analysis);
+        if let CompressionStrategy::Hierarchical(levels) = strategy {
+            assert_eq!(levels.len(), 3, "vertex_count > 2×threshold → 3 levels");
+        } else {
+            panic!("expected Hierarchical strategy");
+        }
+    }
+
+    #[test]
+    fn test_hierarchical_strategy_two_levels() {
+        let analyzer = SessionAnalyzer::default();
+        let analysis = SessionAnalysis {
+            vertex_count: 1500,
+            unique_outputs: vec![ContentHash::from("sha256:a"), ContentHash::from("sha256:b")],
+            ..make_analysis_base()
+        };
+        let strategy = analyzer.select_strategy(&analysis);
+        if let CompressionStrategy::Hierarchical(levels) = strategy {
+            assert_eq!(levels.len(), 2, "vertex_count ≤ 2×threshold → 2 levels");
+        } else {
+            panic!("expected Hierarchical strategy");
+        }
+    }
 }

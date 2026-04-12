@@ -138,6 +138,8 @@ impl PostgresStore {
 
     /// Connect with a simple URL.
     ///
+    /// Equivalent to [`Self::connect`] with [`PostgresConfig::new`].
+    ///
     /// # Errors
     ///
     /// Returns [`PostgresError::Connection`] if the database is unreachable.

@@ -12,6 +12,8 @@
 //! - No hardcoded primal names, ports, or addresses
 //! - Runtime discovery via the universal adapter
 
+use std::future::Future;
+
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
@@ -76,13 +78,15 @@ pub trait SigningClient: Send + Sync {
 }
 
 /// Trait for signing Braids.
-#[async_trait]
+///
+/// Uses native `impl Future + Send` (Rust 2024) instead of `#[async_trait]`
+/// because this trait is never used as a trait object (`dyn Signer`).
 pub trait Signer: Send + Sync {
     /// Sign a Braid, returning a signed copy.
-    async fn sign_braid(&self, braid: &Braid) -> Result<Braid>;
+    fn sign_braid(&self, braid: &Braid) -> impl Future<Output = Result<Braid>> + Send;
 
     /// Verify a Braid's signature.
-    async fn verify_braid(&self, braid: &Braid) -> Result<bool>;
+    fn verify_braid(&self, braid: &Braid) -> impl Future<Output = Result<bool>> + Send;
 
     /// Get the signer's DID.
     fn signer_did(&self) -> &Did;

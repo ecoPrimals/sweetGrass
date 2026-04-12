@@ -39,6 +39,7 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 
 [dev-dependencies]
+proptest = { workspace = true }
 sweet-grass-integration = { path = "../sweet-grass-integration", features = ["test"] }
 tokio = { workspace = true, features = ["test-util", "macros"] }
 testcontainers = { workspace = true }

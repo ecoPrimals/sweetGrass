@@ -1,6 +1,6 @@
 # 🌾 SweetGrass — Development Guide
 
-**Last Updated**: April 9, 2026  
+**Last Updated**: April 12, 2026  
 **Version**: v0.7.27
 
 ---
@@ -188,7 +188,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 1,315 tests passing (86.9% line coverage, 90%+ excluding Postgres CI + binary main)
+- **Overall**: 1,416 tests passing (90.3% line coverage via llvm-cov)
 - **Target**: 90%+ coverage on core crates (achieved)
 
 ### Per-Crate Coverage

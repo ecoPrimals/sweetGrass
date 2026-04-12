@@ -12,7 +12,6 @@
 
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use tracing::{debug, instrument, warn};
 
 use sweet_grass_core::Braid;
@@ -120,7 +119,6 @@ impl DiscoverySigner {
     }
 }
 
-#[async_trait]
 impl Signer for DiscoverySigner {
     #[instrument(skip(self, braid), fields(braid_id = %braid.id))]
     async fn sign_braid(&self, braid: &Braid) -> Result<Braid> {
@@ -165,7 +163,6 @@ impl LegacySigner {
     }
 }
 
-#[async_trait]
 impl Signer for LegacySigner {
     async fn sign_braid(&self, braid: &Braid) -> Result<Braid> {
         let witness = self.client.sign(braid).await?;

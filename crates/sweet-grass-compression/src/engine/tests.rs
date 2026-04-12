@@ -395,3 +395,80 @@ fn test_compression_result_none_accessors() {
         Some(DiscardReason::EmptySession)
     ));
 }
+
+#[test]
+fn test_hierarchical_triggers_multiple_with_summary() {
+    let config = CompressionConfig {
+        split_threshold: 2,
+        hierarchical_threshold: 3,
+        generate_summaries: true,
+        ..Default::default()
+    };
+    let engine = CompressionEngine::new(make_factory()).with_config(config);
+
+    let mut session = Session::new("hier-with-summary");
+    session.add_vertex(make_vertex("v1", "sha256:h1").committed());
+    session.add_vertex(make_vertex("v2", "sha256:h2").with_parent("v1").committed());
+    session.add_vertex(make_vertex("v3", "sha256:h3").with_parent("v2").committed());
+    session.add_vertex(make_vertex("v4", "sha256:h4").with_parent("v3").committed());
+    session.finalize(SessionOutcome::Committed);
+
+    let result = engine.compress(&session).expect("should compress");
+    assert!(result.has_braids());
+    if let CompressionResult::Multiple { braids, summary } = &result {
+        assert!(!braids.is_empty());
+        assert!(summary.is_some(), "summaries enabled → should have summary");
+    } else {
+        panic!("expected Multiple result from hierarchical strategy");
+    }
+}
+
+#[test]
+fn test_split_triggers_multiple_with_summary() {
+    let config = CompressionConfig {
+        split_threshold: 2,
+        generate_summaries: true,
+        ..Default::default()
+    };
+    let engine = CompressionEngine::new(make_factory()).with_config(config);
+
+    // Diamond DAG: v1→(v2,v3), v2+v3→v4, v4→(v5,v6), v5+v6→v7, v7→(v8,v9), v8+v9→v10
+    // branch_count = 3 (v1,v4,v7 each have >1 child), tips = 1 (v10)
+    // convergence = 1/3 ≈ 0.33 < 0.5 → Split
+    let mut session = Session::new("split-diamond");
+    session.add_vertex(make_vertex("v1", "sha256:d1").committed());
+    session.add_vertex(make_vertex("v2", "sha256:d2").with_parent("v1").committed());
+    session.add_vertex(make_vertex("v3", "sha256:d3").with_parent("v1").committed());
+    session.add_vertex(
+        make_vertex("v4", "sha256:d4")
+            .with_parent("v2")
+            .with_parent("v3")
+            .committed(),
+    );
+    session.add_vertex(make_vertex("v5", "sha256:d5").with_parent("v4").committed());
+    session.add_vertex(make_vertex("v6", "sha256:d6").with_parent("v4").committed());
+    session.add_vertex(
+        make_vertex("v7", "sha256:d7")
+            .with_parent("v5")
+            .with_parent("v6")
+            .committed(),
+    );
+    session.add_vertex(make_vertex("v8", "sha256:d8").with_parent("v7").committed());
+    session.add_vertex(make_vertex("v9", "sha256:d9").with_parent("v7").committed());
+    session.add_vertex(
+        make_vertex("v10", "sha256:d10")
+            .with_parent("v8")
+            .with_parent("v9")
+            .committed(),
+    );
+    session.finalize(SessionOutcome::Committed);
+
+    let result = engine.compress(&session).expect("should compress");
+    assert!(result.has_braids());
+    if let CompressionResult::Multiple { braids, summary } = &result {
+        assert!(!braids.is_empty());
+        assert!(summary.is_some(), "summaries enabled → should have summary");
+    } else {
+        panic!("expected Multiple result from split strategy");
+    }
+}

@@ -111,19 +111,19 @@ pub struct Witness {
 
     /// Cryptographic algorithm (when `kind` = `"signature"`).
     /// `None` for non-crypto witnesses.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub algorithm: Option<String>,
 
     /// Provenance tier.
     /// `"local"` = same gate, `"gateway"` = remote gate,
     /// `"anchor"` = public chain, `"external"` = third-party,
     /// `"open"` = unsigned / no cryptographic backing.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub tier: Option<String>,
 
     /// Freeform context for the witness.
     /// `"game:tick:42"`, `"conversation:thread:abc"`, `"experiment:run:7"`.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub context: Option<String>,
 }
 
@@ -221,6 +221,7 @@ mod tests {
     use super::*;
     use crate::agent::Did;
     use crate::test_fixtures::TEST_SOURCE_PRIMAL;
+    use base64::Engine;
 
     fn sample_summary() -> DehydrationSummary {
         DehydrationSummary {
@@ -369,5 +370,215 @@ mod tests {
         assert_eq!(parsed.branch_count, 5);
         assert_eq!(parsed.session_start, 1_000_000);
         assert_eq!(parsed.dehydrated_at, 2_000_000);
+    }
+
+    #[test]
+    fn test_witness_unsigned() {
+        let w = Witness::unsigned();
+        assert_eq!(w.agent.as_str(), "");
+        assert_eq!(w.kind, WITNESS_KIND_MARKER);
+        assert!(w.evidence.is_empty());
+        assert_eq!(w.encoding, WITNESS_ENCODING_NONE);
+        assert_eq!(w.algorithm, None);
+        assert_eq!(w.tier.as_deref(), Some(WITNESS_TIER_OPEN));
+        assert_eq!(w.context, None);
+        assert!(!w.is_signed());
+    }
+
+    #[test]
+    fn test_witness_from_ed25519() {
+        let agent = Did::new("did:key:z6MkSigner");
+        let w = Witness::from_ed25519(&agent, b"test-sig-bytes");
+        assert_eq!(w.agent, agent);
+        assert_eq!(w.kind, WITNESS_KIND_SIGNATURE);
+        assert_eq!(
+            w.evidence,
+            base64::engine::general_purpose::STANDARD.encode(b"test-sig-bytes")
+        );
+        assert_eq!(w.encoding, WITNESS_ENCODING_BASE64);
+        assert_eq!(w.algorithm.as_deref(), Some(WITNESS_ALGORITHM_ED25519));
+        assert_eq!(w.tier.as_deref(), Some(WITNESS_TIER_LOCAL));
+        assert_eq!(w.context, None);
+        assert!(w.is_signed());
+    }
+
+    #[test]
+    fn test_witness_is_signed_edge_cases() {
+        let signature_empty = Witness {
+            agent: Did::new("did:key:z6MkA"),
+            kind: WITNESS_KIND_SIGNATURE.to_string(),
+            evidence: String::new(),
+            witnessed_at: 0,
+            encoding: WITNESS_ENCODING_HEX.to_string(),
+            algorithm: None,
+            tier: None,
+            context: None,
+        };
+        assert!(!signature_empty.is_signed());
+
+        let hash_with_evidence = Witness {
+            agent: Did::new("did:key:z6MkB"),
+            kind: "hash".to_string(),
+            evidence: "deadbeef".to_string(),
+            witnessed_at: 0,
+            encoding: WITNESS_ENCODING_HEX.to_string(),
+            algorithm: None,
+            tier: None,
+            context: None,
+        };
+        assert!(!hash_with_evidence.is_signed());
+
+        let signature_nonempty = Witness {
+            agent: Did::new("did:key:z6MkC"),
+            kind: WITNESS_KIND_SIGNATURE.to_string(),
+            evidence: "not-empty".to_string(),
+            witnessed_at: 0,
+            encoding: WITNESS_ENCODING_HEX.to_string(),
+            algorithm: None,
+            tier: None,
+            context: None,
+        };
+        assert!(signature_nonempty.is_signed());
+    }
+
+    #[test]
+    fn test_witness_serde_defaults() {
+        let json = r#"{"agent": "did:key:z6MkDefaultOnly"}"#;
+        let w: Witness = serde_json::from_str(json).expect("deserialize witness with defaults");
+        assert_eq!(w.kind, WITNESS_KIND_SIGNATURE);
+        assert_eq!(w.encoding, WITNESS_ENCODING_HEX);
+        assert!(w.evidence.is_empty());
+        assert_eq!(w.witnessed_at, 0);
+        assert_eq!(w.agent.as_str(), "did:key:z6MkDefaultOnly");
+    }
+
+    #[test]
+    fn test_multi_witness_round_trip() {
+        let signer = Did::new("did:key:z6MkSigner");
+        let hash_agent = Did::new("did:key:z6MkHasher");
+        let hash_witness = Witness {
+            agent: hash_agent.clone(),
+            kind: "hash".to_string(),
+            evidence: "sha256:observedcontent".to_string(),
+            witnessed_at: 9_001,
+            encoding: WITNESS_ENCODING_HEX.to_string(),
+            algorithm: None,
+            tier: Some("gateway".to_string()),
+            context: Some("experiment:run:3".to_string()),
+        };
+
+        let summary = DehydrationSummary {
+            source_primal: TEST_SOURCE_PRIMAL.to_string(),
+            session_id: "multi-witness-session".to_string(),
+            merkle_root: ContentHash::new("sha256:multiroot"),
+            vertex_count: 7,
+            branch_count: 1,
+            agents: vec![signer.clone(), hash_agent],
+            witnesses: vec![
+                Witness::unsigned(),
+                Witness::from_ed25519(&signer, b"chain-sig"),
+                hash_witness.clone(),
+            ],
+            operations: Vec::new(),
+            session_start: 10,
+            dehydrated_at: 20,
+            frontier: Vec::new(),
+            niche: None,
+            compression_ratio: None,
+        };
+
+        let json = serde_json::to_string(&summary).expect("serialize summary");
+        let parsed: DehydrationSummary = serde_json::from_str(&json).expect("deserialize summary");
+        assert_eq!(parsed.witnesses.len(), 3);
+
+        let w0 = &parsed.witnesses[0];
+        assert_eq!(w0.agent.as_str(), "");
+        assert_eq!(w0.kind, WITNESS_KIND_MARKER);
+        assert!(w0.evidence.is_empty());
+        assert_eq!(w0.encoding, WITNESS_ENCODING_NONE);
+        assert_eq!(w0.algorithm, None);
+        assert_eq!(w0.tier.as_deref(), Some(WITNESS_TIER_OPEN));
+        assert_eq!(w0.context, None);
+        assert_eq!(w0.witnessed_at, summary.witnesses[0].witnessed_at);
+
+        let w1 = &parsed.witnesses[1];
+        assert_eq!(w1.agent, signer);
+        assert_eq!(w1.kind, WITNESS_KIND_SIGNATURE);
+        assert_eq!(
+            w1.evidence,
+            base64::engine::general_purpose::STANDARD.encode(b"chain-sig")
+        );
+        assert_eq!(w1.encoding, WITNESS_ENCODING_BASE64);
+        assert_eq!(w1.algorithm.as_deref(), Some(WITNESS_ALGORITHM_ED25519));
+        assert_eq!(w1.tier.as_deref(), Some(WITNESS_TIER_LOCAL));
+        assert_eq!(w1.witnessed_at, summary.witnesses[1].witnessed_at);
+
+        let w2 = &parsed.witnesses[2];
+        assert_eq!(w2.agent, hash_witness.agent);
+        assert_eq!(w2.kind, "hash");
+        assert_eq!(w2.evidence, hash_witness.evidence);
+        assert_eq!(w2.witnessed_at, hash_witness.witnessed_at);
+        assert_eq!(w2.encoding, WITNESS_ENCODING_HEX);
+        assert_eq!(w2.algorithm, None);
+        assert_eq!(w2.tier, hash_witness.tier);
+        assert_eq!(w2.context, hash_witness.context);
+    }
+
+    #[test]
+    fn test_dehydration_summary_with_frontier_and_operations() {
+        let f1 = ContentHash::new("sha256:frontier-a");
+        let f2 = ContentHash::new("sha256:frontier-b");
+        let f3 = ContentHash::new("sha256:frontier-c");
+        let op1 = SessionOperation {
+            op_type: "create".to_string(),
+            content_hash: ContentHash::new("sha256:op-artifact-1"),
+            agent: Did::new("did:key:z6MkOp1"),
+            timestamp: 100,
+            description: Some("first op".to_string()),
+        };
+        let op2 = SessionOperation {
+            op_type: "merge".to_string(),
+            content_hash: ContentHash::new("sha256:op-artifact-2"),
+            agent: Did::new("did:key:z6MkOp2"),
+            timestamp: 200,
+            description: None,
+        };
+
+        let summary = DehydrationSummary {
+            source_primal: TEST_SOURCE_PRIMAL.to_string(),
+            session_id: "frontier-ops-session".to_string(),
+            merkle_root: ContentHash::new("sha256:merkle-frontier"),
+            vertex_count: 30,
+            branch_count: 4,
+            agents: vec![Did::new("did:key:z6MkOp1"), Did::new("did:key:z6MkOp2")],
+            witnesses: Vec::new(),
+            operations: vec![op1.clone(), op2.clone()],
+            session_start: 1,
+            dehydrated_at: 2,
+            frontier: vec![f1.clone(), f2.clone(), f3.clone()],
+            niche: None,
+            compression_ratio: None,
+        };
+
+        let json = serde_json::to_string(&summary).expect("serialize");
+        let parsed: DehydrationSummary = serde_json::from_str(&json).expect("deserialize");
+
+        assert_eq!(parsed.frontier.len(), 3);
+        assert_eq!(parsed.frontier[0], f1);
+        assert_eq!(parsed.frontier[1], f2);
+        assert_eq!(parsed.frontier[2], f3);
+
+        assert_eq!(parsed.operations.len(), 2);
+        assert_eq!(parsed.operations[0].op_type, op1.op_type);
+        assert_eq!(parsed.operations[0].content_hash, op1.content_hash);
+        assert_eq!(parsed.operations[0].agent, op1.agent);
+        assert_eq!(parsed.operations[0].timestamp, op1.timestamp);
+        assert_eq!(parsed.operations[0].description, op1.description);
+
+        assert_eq!(parsed.operations[1].op_type, op2.op_type);
+        assert_eq!(parsed.operations[1].content_hash, op2.content_hash);
+        assert_eq!(parsed.operations[1].agent, op2.agent);
+        assert_eq!(parsed.operations[1].timestamp, op2.timestamp);
+        assert_eq!(parsed.operations[1].description, op2.description);
     }
 }

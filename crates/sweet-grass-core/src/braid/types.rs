@@ -7,9 +7,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use indexmap::IndexMap;
+use serde::ser::SerializeMap;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+pub use super::braid_type::{BraidType, SummaryType};
 use crate::agent::Did;
 use crate::hash::hex_decode;
 
@@ -179,79 +181,6 @@ impl std::fmt::Display for BraidId {
     }
 }
 
-/// Types of Braids.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "type")]
-#[non_exhaustive]
-pub enum BraidType {
-    /// Standard entity Braid (most common).
-    #[default]
-    Entity,
-
-    /// Activity Braid.
-    Activity,
-
-    /// Agent Braid.
-    Agent,
-
-    /// Meta-Braid (summary of other Braids).
-    Collection {
-        /// Number of Braids summarized.
-        member_count: u64,
-        /// Type of summary.
-        summary_type: SummaryType,
-    },
-
-    /// Delegation Braid (agent acting for another).
-    Delegation {
-        /// The delegate agent.
-        delegate: Did,
-        /// The principal agent.
-        on_behalf_of: Did,
-    },
-
-    /// Slice provenance Braid.
-    Slice {
-        /// Slice operation mode.
-        slice_mode: String,
-        /// Origin spine ID.
-        origin_spine: String,
-    },
-}
-
-/// Summary types for meta-Braids.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub enum SummaryType {
-    /// Session summary.
-    Session {
-        /// The session ID being summarized.
-        session_id: String,
-    },
-    /// Time period summary.
-    Temporal {
-        /// Start timestamp.
-        start: Timestamp,
-        /// End timestamp.
-        end: Timestamp,
-    },
-    /// Activity type summary.
-    ActivityGroup {
-        /// The activity type being summarized.
-        activity_type: String,
-    },
-    /// Agent contribution summary.
-    AgentContributions {
-        /// The agent being summarized.
-        agent: Did,
-    },
-    /// Custom grouping.
-    Custom {
-        /// Criteria description.
-        criteria: String,
-    },
-}
-
 /// W3C PROV-O vocabulary namespace.
 pub const PROV_VOCAB_URI: &str = "http://www.w3.org/ns/prov#";
 /// W3C XML Schema namespace.
@@ -315,19 +244,90 @@ impl<'de> Deserialize<'de> for JsonLdVersion {
 /// Uses [`IndexMap`] for vocabulary imports to guarantee deterministic
 /// serialization order — important for content-addressed hashing and
 /// reproducible JSON-LD output.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+///
+/// **Serialization note**: `#[serde(flatten)]` is incompatible with binary
+/// codecs such as bincode (tarpc). For human-readable formats (JSON), imports
+/// remain flattened into the root object. For non-human-readable serializers,
+/// `imports` is a normal nested field so lengths are known on the wire.
+#[derive(Clone, Debug)]
 pub struct BraidContext {
     /// Base context URL.
-    #[serde(rename = "@base")]
     pub base: String,
 
     /// JSON-LD version (always 1.1).
-    #[serde(rename = "@version")]
     pub version: JsonLdVersion,
 
     /// Vocabulary imports (insertion-ordered for deterministic serialization).
-    #[serde(flatten)]
     pub imports: IndexMap<String, String>,
+}
+
+#[derive(Serialize)]
+struct BraidContextSerBin<'a> {
+    #[serde(rename = "@base")]
+    base: &'a str,
+    #[serde(rename = "@version")]
+    version: JsonLdVersion,
+    imports: &'a IndexMap<String, String>,
+}
+
+#[derive(Deserialize)]
+struct BraidContextDeBin {
+    #[serde(rename = "@base")]
+    base: String,
+    #[serde(rename = "@version")]
+    version: JsonLdVersion,
+    imports: IndexMap<String, String>,
+}
+
+#[derive(Deserialize)]
+struct BraidContextFlat {
+    #[serde(rename = "@base")]
+    base: String,
+    #[serde(rename = "@version")]
+    version: JsonLdVersion,
+    #[serde(flatten)]
+    imports: IndexMap<String, String>,
+}
+
+impl Serialize for BraidContext {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        if !serializer.is_human_readable() {
+            return BraidContextSerBin {
+                base: &self.base,
+                version: self.version,
+                imports: &self.imports,
+            }
+            .serialize(serializer);
+        }
+
+        let mut map = serializer.serialize_map(None)?;
+        map.serialize_entry("@base", &self.base)?;
+        map.serialize_entry("@version", &self.version)?;
+        for (k, v) in &self.imports {
+            map.serialize_entry(k, v)?;
+        }
+        map.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for BraidContext {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        if !deserializer.is_human_readable() {
+            let b = BraidContextDeBin::deserialize(deserializer)?;
+            return Ok(Self {
+                base: b.base,
+                version: b.version,
+                imports: b.imports,
+            });
+        }
+
+        let f = BraidContextFlat::deserialize(deserializer)?;
+        Ok(Self {
+            base: f.base,
+            version: f.version,
+            imports: f.imports,
+        })
+    }
 }
 
 impl Default for BraidContext {
@@ -442,33 +442,27 @@ pub struct LoamAnchor {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct EcoPrimalsAttributes {
     /// Source primal that created this Braid.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub source_primal: Option<Arc<str>>,
 
     /// Niche context.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub niche: Option<Arc<str>>,
 
     /// `RhizoCrypt` session reference.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub rhizo_session: Option<String>,
 
     /// `LoamSpine` commit reference.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub loam_commit: Option<LoamCommitRef>,
 
     /// Certificate reference.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub certificate: Option<String>,
 
     /// Compression metadata.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub compression: Option<CompressionMeta>,
 
     /// Witnesses carried from the dehydration event (signatures, hashes,
     /// checkpoints, markers). The trio never interprets evidence —
     /// verification is delegated to `BearDog` or an external verifier.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub witnesses: Vec<crate::dehydration::Witness>,
 }
 
@@ -496,26 +490,73 @@ pub struct CompressionMeta {
     pub summarizes: Vec<BraidId>,
 }
 
+fn serialize_json_value_map<S>(
+    map: &HashMap<String, serde_json::Value>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    if !serializer.is_human_readable() {
+        let string_map: HashMap<String, String> = map
+            .iter()
+            .map(|(k, v)| {
+                serde_json::to_string(v)
+                    .map(|s| (k.clone(), s))
+                    .map_err(serde::ser::Error::custom)
+            })
+            .collect::<Result<_, _>>()?;
+        return string_map.serialize(serializer);
+    }
+    map.serialize(serializer)
+}
+
+fn deserialize_json_value_map<'de, D>(
+    deserializer: D,
+) -> Result<HashMap<String, serde_json::Value>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    if deserializer.is_human_readable() {
+        HashMap::deserialize(deserializer)
+    } else {
+        let string_map: HashMap<String, String> = HashMap::deserialize(deserializer)?;
+        string_map
+            .into_iter()
+            .map(|(k, s)| {
+                serde_json::from_str(&s)
+                    .map(|v| (k, v))
+                    .map_err(serde::de::Error::custom)
+            })
+            .collect()
+    }
+}
+
 /// Domain-specific metadata.
 ///
 /// String fields use `Arc<str>` for O(1) clone — metadata is shared across
 /// query results and response serialization without per-field allocation.
+///
+/// The `custom` map uses JSON values on human-readable transports; for binary
+/// codecs (e.g. bincode/tarpc), each value is stored as a UTF-8 JSON string.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct BraidMetadata {
     /// Title or name.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<Arc<str>>,
 
     /// Description.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<Arc<str>>,
 
     /// Tags/keywords.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub tags: Vec<Arc<str>>,
 
     /// Custom key-value metadata.
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    #[serde(
+        default,
+        serialize_with = "serialize_json_value_map",
+        deserialize_with = "deserialize_json_value_map"
+    )]
     pub custom: HashMap<String, serde_json::Value>,
 }
 
@@ -531,4 +572,285 @@ pub fn current_timestamp_nanos() -> Timestamp {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_nanos() as u64)
         .unwrap_or(0)
+}
+
+#[cfg(test)]
+#[expect(clippy::expect_used, reason = "bincode roundtrip test setup")]
+mod tests {
+    use std::borrow::Borrow;
+    use std::sync::Arc;
+
+    use super::{
+        BraidContext, BraidId, BraidMetadata, BraidType, ContentHash, DEFAULT_ECOP_BASE_URI,
+        DEFAULT_ECOP_VOCAB_URI, JsonLdVersion, SummaryType, ecop_base_uri, ecop_vocab_uri,
+    };
+    use crate::agent::Did;
+
+    #[test]
+    fn braid_type_bincode_roundtrip_entity() {
+        let bt = BraidType::Entity;
+        let bytes = bincode::serialize(&bt).expect("serialize");
+        let decoded: BraidType = bincode::deserialize(&bytes).expect("deserialize");
+        assert_eq!(decoded, BraidType::Entity);
+    }
+
+    #[test]
+    fn braid_type_bincode_roundtrip_activity() {
+        let bt = BraidType::Activity;
+        let bytes = bincode::serialize(&bt).expect("serialize");
+        let decoded: BraidType = bincode::deserialize(&bytes).expect("deserialize");
+        assert_eq!(decoded, BraidType::Activity);
+    }
+
+    #[test]
+    fn braid_type_bincode_roundtrip_agent() {
+        let bt = BraidType::Agent;
+        let bytes = bincode::serialize(&bt).expect("serialize");
+        let decoded: BraidType = bincode::deserialize(&bytes).expect("deserialize");
+        assert_eq!(decoded, BraidType::Agent);
+    }
+
+    #[test]
+    fn braid_type_bincode_roundtrip_collection() {
+        let bt = BraidType::Collection {
+            member_count: 5,
+            summary_type: SummaryType::Session {
+                session_id: "s1".into(),
+            },
+        };
+        let bytes = bincode::serialize(&bt).expect("serialize");
+        let decoded: BraidType = bincode::deserialize(&bytes).expect("deserialize");
+        assert_eq!(decoded, bt);
+    }
+
+    #[test]
+    fn braid_type_bincode_roundtrip_delegation() {
+        let bt = BraidType::Delegation {
+            delegate: Did::new("did:key:delegate"),
+            on_behalf_of: Did::new("did:key:principal"),
+        };
+        let bytes = bincode::serialize(&bt).expect("serialize");
+        let decoded: BraidType = bincode::deserialize(&bytes).expect("deserialize");
+        assert_eq!(decoded, bt);
+    }
+
+    #[test]
+    fn braid_type_bincode_roundtrip_slice() {
+        let bt = BraidType::Slice {
+            slice_mode: "window".into(),
+            origin_spine: "spine-001".into(),
+        };
+        let bytes = bincode::serialize(&bt).expect("serialize");
+        let decoded: BraidType = bincode::deserialize(&bytes).expect("deserialize");
+        assert_eq!(decoded, bt);
+    }
+
+    #[test]
+    fn braid_context_bincode_roundtrip() {
+        let ctx = BraidContext::default();
+        let bytes = bincode::serialize(&ctx).expect("serialize");
+        let decoded: BraidContext = bincode::deserialize(&bytes).expect("deserialize");
+        assert_eq!(decoded.base, ctx.base);
+        assert_eq!(decoded.imports.len(), ctx.imports.len());
+    }
+
+    #[test]
+    fn braid_metadata_bincode_roundtrip_with_custom() {
+        let meta = BraidMetadata {
+            title: Some(Arc::from("test")),
+            tags: vec![Arc::from("tag1"), Arc::from("tag2")],
+            custom: [
+                ("key".to_string(), serde_json::json!(42)),
+                ("nested".to_string(), serde_json::json!({"a": 1})),
+            ]
+            .into_iter()
+            .collect(),
+            ..Default::default()
+        };
+
+        let bytes = bincode::serialize(&meta).expect("serialize");
+        let decoded: BraidMetadata = bincode::deserialize(&bytes).expect("deserialize");
+        assert_eq!(decoded.title.as_deref(), Some("test"));
+        assert_eq!(decoded.tags.len(), 2);
+        assert_eq!(decoded.custom["key"], serde_json::json!(42));
+    }
+
+    #[test]
+    fn content_hash_from_str_ref() {
+        let h = ContentHash::from("sha256:abc");
+        assert_eq!(h.as_str(), "sha256:abc");
+    }
+
+    #[test]
+    fn content_hash_from_string_ref() {
+        let s = String::from("sha256:xyz");
+        let h = ContentHash::from(&s);
+        assert_eq!(h.as_str(), "sha256:xyz");
+    }
+
+    #[test]
+    fn content_hash_from_self_ref() {
+        let h1 = ContentHash::new("sha256:test");
+        let h2 = ContentHash::from(&h1);
+        assert_eq!(h1, h2);
+    }
+
+    #[test]
+    fn content_hash_partial_eq_str() {
+        let h = ContentHash::new("sha256:cmp");
+        assert!(h.eq("sha256:cmp"));
+        assert!(!h.eq("sha256:other"));
+    }
+
+    #[test]
+    fn content_hash_borrow_str() {
+        let h = ContentHash::new("sha256:borrow");
+        let s: &str = h.borrow();
+        assert_eq!(s, "sha256:borrow");
+    }
+
+    #[test]
+    fn content_hash_as_ref_str() {
+        let h = ContentHash::new("sha256:asref");
+        let s: &str = h.as_ref();
+        assert_eq!(s, "sha256:asref");
+    }
+
+    #[test]
+    fn content_hash_display() {
+        let h = ContentHash::new("sha256:display");
+        assert_eq!(format!("{h}"), "sha256:display");
+    }
+
+    #[test]
+    #[expect(deprecated, reason = "testing deprecated BraidSignature")]
+    fn braid_signature_ed25519() {
+        let did = Did::new("did:key:z6MkSigner");
+        let sig = super::BraidSignature::new_ed25519(&did, "key-1", b"test-sig");
+        assert_eq!(&*sig.sig_type, "Ed25519Signature2020");
+        assert!(!sig.proof_value.is_empty());
+        assert_eq!(&*sig.proof_purpose, "assertionMethod");
+        assert!(sig.verification_method.contains("key-1"));
+    }
+
+    #[test]
+    #[expect(deprecated, reason = "testing deprecated BraidSignature")]
+    fn braid_signature_unsigned() {
+        let sig = super::BraidSignature::unsigned();
+        assert_eq!(&*sig.sig_type, "Unsigned");
+        assert!(sig.proof_value.is_empty());
+        assert_eq!(&*sig.proof_purpose, "pending");
+    }
+
+    #[test]
+    fn json_ld_version_rejects_bad_version() {
+        let result: Result<JsonLdVersion, _> = serde_json::from_str("2.0");
+        let err = result
+            .expect_err("2.0 must not deserialize as JSON-LD 1.1")
+            .to_string();
+        assert!(err.contains("unsupported JSON-LD version"), "{err}");
+    }
+
+    #[test]
+    fn ecop_vocab_uri_default() {
+        temp_env::with_vars([("ECOP_VOCAB_URI", None::<&str>)], || {
+            assert_eq!(ecop_vocab_uri(), DEFAULT_ECOP_VOCAB_URI);
+        });
+    }
+
+    #[test]
+    fn ecop_vocab_uri_env_override() {
+        temp_env::with_vars(
+            [("ECOP_VOCAB_URI", Some("https://custom.io/vocab#"))],
+            || {
+                assert_eq!(ecop_vocab_uri(), "https://custom.io/vocab#");
+            },
+        );
+    }
+
+    #[test]
+    fn ecop_base_uri_default() {
+        temp_env::with_vars([("ECOP_BASE_URI", None::<&str>)], || {
+            assert_eq!(ecop_base_uri(), DEFAULT_ECOP_BASE_URI);
+        });
+    }
+
+    #[test]
+    fn braid_id_display() {
+        let id = BraidId::from_string("urn:braid:uuid:test");
+        assert_eq!(format!("{id}"), "urn:braid:uuid:test");
+    }
+
+    #[test]
+    fn braid_id_from_hash() {
+        let h = ContentHash::new("sha256:abc");
+        let id = BraidId::from_hash(&h);
+        assert_eq!(id.as_str(), "urn:braid:sha256:abc");
+    }
+
+    #[test]
+    fn content_hash_default() {
+        let h = ContentHash::default();
+        assert_eq!(h.as_str(), "");
+    }
+
+    #[test]
+    fn braid_id_default() {
+        let id = BraidId::default();
+        assert!(id.as_str().starts_with("urn:braid:uuid:"));
+    }
+
+    #[test]
+    fn braid_type_json_roundtrip_collection() {
+        let bt = BraidType::Collection {
+            member_count: 7,
+            summary_type: SummaryType::Temporal {
+                start: 100,
+                end: 999,
+            },
+        };
+        let json = serde_json::to_string(&bt).expect("serialize");
+        let decoded: BraidType = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(decoded, bt);
+    }
+
+    #[test]
+    fn braid_type_json_roundtrip_delegation() {
+        let bt = BraidType::Delegation {
+            delegate: Did::new("did:key:delegate"),
+            on_behalf_of: Did::new("did:key:principal"),
+        };
+        let json = serde_json::to_string(&bt).expect("serialize");
+        let decoded: BraidType = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(decoded, bt);
+    }
+
+    #[test]
+    fn braid_type_json_roundtrip_slice() {
+        let bt = BraidType::Slice {
+            slice_mode: "window".into(),
+            origin_spine: "spine-001".into(),
+        };
+        let json = serde_json::to_string(&bt).expect("serialize");
+        let decoded: BraidType = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(decoded, bt);
+    }
+
+    #[test]
+    fn braid_type_json_roundtrip_entity_activity_agent() {
+        for bt in [BraidType::Entity, BraidType::Activity, BraidType::Agent] {
+            let json = serde_json::to_string(&bt).expect("serialize");
+            let decoded: BraidType = serde_json::from_str(&json).expect("deserialize");
+            assert_eq!(decoded, bt);
+        }
+    }
+
+    #[test]
+    fn braid_id_extract_uuid() {
+        let id = BraidId::new();
+        assert!(id.extract_uuid().is_some());
+
+        let hash_id = BraidId::from_hash(&ContentHash::new("sha256:test"));
+        assert!(hash_id.extract_uuid().is_none());
+    }
 }

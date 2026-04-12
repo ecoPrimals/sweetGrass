@@ -14,7 +14,7 @@
 //! - 3: network error
 
 #![forbid(unsafe_code)]
-#![warn(clippy::unwrap_used, clippy::expect_used)]
+#![warn(missing_docs, clippy::unwrap_used, clippy::expect_used)]
 
 use std::io::Write;
 

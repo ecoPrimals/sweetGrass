@@ -361,3 +361,61 @@ fn test_capability_custom_prefix_variants() {
         Some(Capability::Custom("my_cap".to_string()))
     );
 }
+
+#[test]
+fn test_find_config_path_xdg() {
+    let temp = std::env::temp_dir();
+    let xdg_dir = temp.join("sweetgrass_test_xdg_config");
+    let primal_dir = xdg_dir.join(identity::PRIMAL_NAME);
+    std::fs::create_dir_all(&primal_dir).expect("create dirs");
+    let config_file = primal_dir.join("config.toml");
+    std::fs::write(&config_file, "name = \"XdgTest\"").expect("write");
+
+    let xdg_str = xdg_dir.to_string_lossy().to_string();
+    let reader = mock_reader(&[("XDG_CONFIG_HOME", &xdg_str)]);
+    let config = SweetGrassConfig::load_with_reader(reader).expect("load");
+    assert_eq!(config.name, "XdgTest");
+
+    let _ = std::fs::remove_dir_all(&xdg_dir);
+}
+
+#[test]
+fn test_find_config_path_home() {
+    let temp = std::env::temp_dir();
+    let home_dir = temp.join("sweetgrass_test_home_config");
+    let config_dir = home_dir.join(".config").join(identity::PRIMAL_NAME);
+    std::fs::create_dir_all(&config_dir).expect("create dirs");
+    let config_file = config_dir.join("config.toml");
+    std::fs::write(&config_file, "name = \"HomeTest\"").expect("write");
+
+    let home_str = home_dir.to_string_lossy().to_string();
+    let reader = mock_reader(&[("HOME", &home_str)]);
+    let config = SweetGrassConfig::load_with_reader(reader).expect("load");
+    assert_eq!(config.name, "HomeTest");
+
+    let _ = std::fs::remove_dir_all(&home_dir);
+}
+
+#[test]
+fn test_find_config_path_sweetgrass_config_not_a_file() {
+    let reader = mock_reader(&[("SWEETGRASS_CONFIG", "/nonexistent/path.toml")]);
+    let config = SweetGrassConfig::load_with_reader(reader).expect("load");
+    assert_eq!(config.name, identity::PRIMAL_DISPLAY_NAME);
+}
+
+#[test]
+fn test_default_name_fn() {
+    let json = r#"{"name": "FromJson"}"#;
+    let config: SweetGrassConfig = serde_json::from_str(json).expect("parse");
+    assert_eq!(config.name, "FromJson");
+
+    let no_name = "{}";
+    let config: SweetGrassConfig = serde_json::from_str(no_name).expect("parse");
+    assert_eq!(config.name, identity::PRIMAL_DISPLAY_NAME);
+}
+
+#[test]
+fn test_config_load_delegates_to_load_with_reader() {
+    let config = SweetGrassConfig::load();
+    assert!(config.is_ok());
+}

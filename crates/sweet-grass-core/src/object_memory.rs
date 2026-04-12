@@ -352,4 +352,41 @@ mod tests {
         let report = memory.export_prov_timeline("nonexistent");
         assert!(report.contains("No history"));
     }
+
+    #[test]
+    fn object_event_with_metadata() {
+        let actor = Did::new("did:key:alice");
+        let event = ObjectEvent::new("mint", "Minted sword", actor)
+            .with_metadata("rarity", "legendary")
+            .with_metadata("level", "99");
+        assert_eq!(event.metadata.len(), 2);
+        assert_eq!(event.metadata.get("rarity").unwrap(), "legendary");
+    }
+
+    #[test]
+    fn default_object_memory() {
+        let memory = ObjectMemory::default();
+        assert_eq!(memory.total_braids(), 0);
+        assert!(memory.tracked_objects().is_empty());
+    }
+
+    #[test]
+    fn export_prov_timeline_shows_derivation() {
+        let mut memory = ObjectMemory::new();
+        let actor = Did::new("did:key:alice");
+
+        memory
+            .append_object_event(
+                "cert-001",
+                &ObjectEvent::new("mint", "Genesis", actor.clone()),
+            )
+            .unwrap();
+        memory
+            .append_object_event("cert-001", &ObjectEvent::new("trade", "Traded", actor))
+            .unwrap();
+
+        let report = memory.export_prov_timeline("cert-001");
+        assert!(report.contains("(genesis)"));
+        assert!(report.contains("derived from 1 parent(s)"));
+    }
 }

@@ -16,6 +16,7 @@ use crate::activity::Activity;
 use crate::agent::Did;
 use crate::entity::EntityReference;
 
+mod braid_type;
 pub mod builder;
 mod tests;
 pub mod types;
@@ -65,11 +66,10 @@ pub struct Braid {
     pub size: u64,
 
     /// How this data was generated.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub was_generated_by: Option<Activity>,
 
     /// What entities this was derived from.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub was_derived_from: Vec<EntityReference>,
 
     /// Who created/owns this Braid (DID).
@@ -95,7 +95,6 @@ pub struct Braid {
     pub witness: crate::dehydration::Witness,
 
     /// Anchoring provider anchor (if committed).
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub loam_anchor: Option<LoamAnchor>,
 }
 

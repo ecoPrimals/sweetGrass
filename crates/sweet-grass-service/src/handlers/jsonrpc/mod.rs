@@ -18,6 +18,7 @@
 //! | `contribution`| record, record_session, record_dehydration                       |
 //! | `pipeline`    | attribute (provenance trio coordination)                          |
 //! | `health`      | check, liveness, readiness                                       |
+//! | `identity`    | get (biomeOS Neural API: primal name + version)                  |
 //! | `capabilities`| list (canonical per wateringHole v2.1)                            |
 //! | `capability`  | list (alias)                                                     |
 //! | `tools`       | list, call (MCP exposure for Squirrel AI coordination)            |

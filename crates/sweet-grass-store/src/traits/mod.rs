@@ -5,6 +5,8 @@
 //! This module defines the primary interfaces for storing and retrieving
 //! Braids and related provenance data.
 
+use std::future::Future;
+
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use sweet_grass_core::{
@@ -335,25 +337,31 @@ pub trait BraidStore: Send + Sync {
 }
 
 /// Index storage for efficient lookups.
-#[async_trait]
+///
+/// Uses native `impl Future + Send` (Rust 2024) instead of `#[async_trait]`
+/// because this trait is never used as a trait object (`dyn IndexStore`).
 pub trait IndexStore: Send + Sync {
     /// Index a Braid for search.
-    async fn index_braid(&self, braid: &Braid) -> Result<()>;
+    fn index_braid(&self, braid: &Braid) -> impl Future<Output = Result<()>> + Send;
 
     /// Remove a Braid from the index.
-    async fn unindex_braid(&self, id: &BraidId) -> Result<()>;
+    fn unindex_braid(&self, id: &BraidId) -> impl Future<Output = Result<()>> + Send;
 
     /// Get Braid IDs by tag.
-    async fn by_tag(&self, tag: &str) -> Result<Vec<BraidId>>;
+    fn by_tag(&self, tag: &str) -> impl Future<Output = Result<Vec<BraidId>>> + Send;
 
     /// Get Braid IDs by MIME type.
-    async fn by_mime_type(&self, mime: &str) -> Result<Vec<BraidId>>;
+    fn by_mime_type(&self, mime: &str) -> impl Future<Output = Result<Vec<BraidId>>> + Send;
 
     /// Get Braid IDs by time range.
-    async fn by_time_range(&self, start: Timestamp, end: Timestamp) -> Result<Vec<BraidId>>;
+    fn by_time_range(
+        &self,
+        start: Timestamp,
+        end: Timestamp,
+    ) -> impl Future<Output = Result<Vec<BraidId>>> + Send;
 
     /// Rebuild indexes.
-    async fn rebuild(&self) -> Result<()>;
+    fn rebuild(&self) -> impl Future<Output = Result<()>> + Send;
 }
 
 #[cfg(test)]

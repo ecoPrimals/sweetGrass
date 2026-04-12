@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Coverage 90%+, Smart Refactoring, async-trait Evolution (April 12, 2026)
+
+Coverage push 87→90.3% (1,315→1,416 tests), braid/types.rs smart refactor
+(1138→856 lines via braid_type.rs extraction), async-trait evolution
+(IndexStore + Signer → native `impl Future + Send`), comprehensive deep debt
+audit (all clean). 168 .rs files, 48,719 LOC.
+
+### Added
+
+- **101 new tests** across compression (analyzer strategy branches, engine Split/Hierarchical paths), store backends (redb/sled derived_from semantics, pagination, agent filter, corruption handling), core types (JSON serde roundtrips for BraidType, AgentType, EntityReference variants), config (XDG/HOME discovery paths), activity (From impls, Custom Display), and object memory (metadata, Default, derivation export)
+- **Witness chain round-trip test** — store→witness→verify end-to-end validation per primalSpring audit action
+- **BTSP write_frame oversized test** — verifies 16 MiB frame limit rejection
+- **Dehydration coverage** — from_ed25519, is_signed, defaults, multi-witness round-trip
+
+### Changed
+
+- **`braid/types.rs` smart refactor** — extracted `BraidType` + `SummaryType` + dual-format serde machinery (JSON internally-tagged / bincode externally-tagged) into `braid/braid_type.rs` (275 lines); types.rs reduced 1138→856 lines. Semantic split by domain boundary, not mechanical line-count splitting
+- **`IndexStore` trait** — removed `#[async_trait]`, migrated to native `impl Future<Output = T> + Send` (Rust 2024 edition); eliminates `Pin<Box<dyn Future>>` allocation overhead
+- **`Signer` trait** — same native async migration; both `DiscoverySigner` and `LegacySigner` impls updated
+- **Removed unused `async_trait` import** from `signer/discovery.rs`
+
+### Deep Debt Audit (all clean)
+
+- **Hardcoded primals/ports**: Zero violations — all capability-based, env-driven
+- **Mocks in production**: All properly `#[cfg(test)]` / `feature = "test"` gated
+- **Unsafe code**: Zero blocks, `#![forbid(unsafe_code)]` on all 11 crate roots
+- **TODO/FIXME/HACK**: Zero markers
+- **`cargo deny check`**: advisories ok, bans ok, licenses ok, sources ok
+- **sqlx**: Confirmed pure Rust PostgreSQL wire protocol (no libpq)
+- **Files >1000 lines**: Zero (max: 958 lines, test file)
+
 ### Smart Refactoring, Config Extraction, Clone Reduction (April 11, 2026)
 
 Smart module splits: braids.rs (677→310), health.rs (579→294), config/mod.rs

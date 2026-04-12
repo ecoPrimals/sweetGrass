@@ -72,14 +72,15 @@ impl From<String> for Did {
 }
 
 /// Agent types in the PROV model.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "type")]
+///
+/// **Serialization**: JSON uses an internal `type` tag (see [`AgentTypeJson`]);
+/// binary codecs use an externally tagged enum for bincode/tarpc compatibility.
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum AgentType {
     /// Human person.
     Person {
         /// Optional display name.
-        #[serde(skip_serializing_if = "Option::is_none")]
         name: Option<String>,
     },
 
@@ -96,7 +97,6 @@ pub enum AgentType {
         /// Organization name.
         name: String,
         /// Organization type.
-        #[serde(skip_serializing_if = "Option::is_none")]
         org_type: Option<String>,
     },
 
@@ -105,9 +105,187 @@ pub enum AgentType {
         /// Device type.
         device_type: String,
         /// Device identifier.
+        device_id: Option<String>,
+    },
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type")]
+enum AgentTypeJson {
+    /// Human person.
+    Person {
+        /// Optional display name.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        name: Option<String>,
+    },
+    /// Software agent (AI, bot, service).
+    SoftwareAgent {
+        /// Software name.
+        software_name: String,
+        /// Software version.
+        version: String,
+    },
+    /// Organization.
+    Organization {
+        /// Organization name.
+        name: String,
+        /// Organization type.
+        #[serde(skip_serializing_if = "Option::is_none")]
+        org_type: Option<String>,
+    },
+    /// Hardware device.
+    Device {
+        /// Device type.
+        device_type: String,
+        /// Device identifier.
         #[serde(skip_serializing_if = "Option::is_none")]
         device_id: Option<String>,
     },
+}
+
+#[derive(Serialize, Deserialize)]
+enum AgentTypeBin {
+    /// Human person.
+    Person {
+        /// Optional display name.
+        name: Option<String>,
+    },
+    /// Software agent (AI, bot, service).
+    SoftwareAgent {
+        /// Software name.
+        software_name: String,
+        /// Software version.
+        version: String,
+    },
+    /// Organization.
+    Organization {
+        /// Organization name.
+        name: String,
+        /// Organization type.
+        org_type: Option<String>,
+    },
+    /// Hardware device.
+    Device {
+        /// Device type.
+        device_type: String,
+        /// Device identifier.
+        device_id: Option<String>,
+    },
+}
+
+impl From<AgentType> for AgentTypeJson {
+    fn from(t: AgentType) -> Self {
+        match t {
+            AgentType::Person { name } => Self::Person { name },
+            AgentType::SoftwareAgent {
+                software_name,
+                version,
+            } => Self::SoftwareAgent {
+                software_name,
+                version,
+            },
+            AgentType::Organization { name, org_type } => Self::Organization { name, org_type },
+            AgentType::Device {
+                device_type,
+                device_id,
+            } => Self::Device {
+                device_type,
+                device_id,
+            },
+        }
+    }
+}
+
+impl From<AgentTypeJson> for AgentType {
+    fn from(t: AgentTypeJson) -> Self {
+        match t {
+            AgentTypeJson::Person { name } => Self::Person { name },
+            AgentTypeJson::SoftwareAgent {
+                software_name,
+                version,
+            } => Self::SoftwareAgent {
+                software_name,
+                version,
+            },
+            AgentTypeJson::Organization { name, org_type } => Self::Organization { name, org_type },
+            AgentTypeJson::Device {
+                device_type,
+                device_id,
+            } => Self::Device {
+                device_type,
+                device_id,
+            },
+        }
+    }
+}
+
+impl From<&AgentType> for AgentTypeBin {
+    fn from(t: &AgentType) -> Self {
+        match t {
+            AgentType::Person { name } => Self::Person { name: name.clone() },
+            AgentType::SoftwareAgent {
+                software_name,
+                version,
+            } => Self::SoftwareAgent {
+                software_name: software_name.clone(),
+                version: version.clone(),
+            },
+            AgentType::Organization { name, org_type } => Self::Organization {
+                name: name.clone(),
+                org_type: org_type.clone(),
+            },
+            AgentType::Device {
+                device_type,
+                device_id,
+            } => Self::Device {
+                device_type: device_type.clone(),
+                device_id: device_id.clone(),
+            },
+        }
+    }
+}
+
+impl From<AgentTypeBin> for AgentType {
+    fn from(t: AgentTypeBin) -> Self {
+        match t {
+            AgentTypeBin::Person { name } => Self::Person { name },
+            AgentTypeBin::SoftwareAgent {
+                software_name,
+                version,
+            } => Self::SoftwareAgent {
+                software_name,
+                version,
+            },
+            AgentTypeBin::Organization { name, org_type } => Self::Organization { name, org_type },
+            AgentTypeBin::Device {
+                device_type,
+                device_id,
+            } => Self::Device {
+                device_type,
+                device_id,
+            },
+        }
+    }
+}
+
+impl Serialize for AgentType {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        if serializer.is_human_readable() {
+            AgentTypeJson::from(self.clone()).serialize(serializer)
+        } else {
+            AgentTypeBin::from(self).serialize(serializer)
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for AgentType {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        if deserializer.is_human_readable() {
+            AgentTypeJson::deserialize(deserializer).map(Into::into)
+        } else {
+            AgentTypeBin::deserialize(deserializer).map(Into::into)
+        }
+    }
 }
 
 impl Default for AgentType {
@@ -296,12 +474,55 @@ impl Agent {
 }
 
 #[cfg(test)]
-#[expect(
-    clippy::expect_used,
-    reason = "test module: expect is standard in tests"
-)]
+#[expect(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
+
+    fn assert_agent_type_bincode_roundtrip(original: &AgentType) {
+        let bytes = bincode::serialize(original).unwrap();
+        let decoded: AgentType = bincode::deserialize(&bytes).unwrap();
+        assert_eq!(&decoded, original);
+    }
+
+    #[test]
+    fn agent_type_bincode_roundtrip_person() {
+        assert_agent_type_bincode_roundtrip(&AgentType::Person { name: None });
+        assert_agent_type_bincode_roundtrip(&AgentType::Person {
+            name: Some("Bincode Person".to_string()),
+        });
+    }
+
+    #[test]
+    fn agent_type_bincode_roundtrip_software_agent() {
+        assert_agent_type_bincode_roundtrip(&AgentType::SoftwareAgent {
+            software_name: "SweetGrass".to_string(),
+            version: "0.7.27".to_string(),
+        });
+    }
+
+    #[test]
+    fn agent_type_bincode_roundtrip_organization() {
+        assert_agent_type_bincode_roundtrip(&AgentType::Organization {
+            name: "ecoPrimals".to_string(),
+            org_type: None,
+        });
+        assert_agent_type_bincode_roundtrip(&AgentType::Organization {
+            name: "Acme".to_string(),
+            org_type: Some("Corporation".to_string()),
+        });
+    }
+
+    #[test]
+    fn agent_type_bincode_roundtrip_device() {
+        assert_agent_type_bincode_roundtrip(&AgentType::Device {
+            device_type: "sensor".to_string(),
+            device_id: None,
+        });
+        assert_agent_type_bincode_roundtrip(&AgentType::Device {
+            device_type: "edge".to_string(),
+            device_id: Some("device-99".to_string()),
+        });
+    }
 
     #[test]
     fn test_did_creation() {
@@ -425,19 +646,28 @@ mod tests {
         assert_eq!(format!("{}", AgentRole::Creator), "Creator");
         assert_eq!(format!("{}", AgentRole::Contributor), "Contributor");
         assert_eq!(format!("{}", AgentRole::Publisher), "Publisher");
+        assert_eq!(format!("{}", AgentRole::Validator), "Validator");
+        assert_eq!(format!("{}", AgentRole::DataProvider), "DataProvider");
+        assert_eq!(format!("{}", AgentRole::ComputeProvider), "ComputeProvider");
+        assert_eq!(format!("{}", AgentRole::StorageProvider), "StorageProvider");
+        assert_eq!(format!("{}", AgentRole::Orchestrator), "Orchestrator");
+        assert_eq!(format!("{}", AgentRole::Curator), "Curator");
+        assert_eq!(format!("{}", AgentRole::Transformer), "Transformer");
+        assert_eq!(format!("{}", AgentRole::Owner), "Owner");
     }
 
     #[test]
     fn test_agent_role_all_weights() {
-        assert!((AgentRole::Publisher.default_weight() - 0.1).abs() < f64::EPSILON);
-        assert!((AgentRole::Validator.default_weight() - 0.1).abs() < f64::EPSILON);
-        assert!((AgentRole::DataProvider.default_weight() - 0.4).abs() < f64::EPSILON);
-        assert!((AgentRole::Transformer.default_weight() - 0.3).abs() < f64::EPSILON);
-        assert!((AgentRole::StorageProvider.default_weight() - 0.2).abs() < f64::EPSILON);
-        assert!((AgentRole::Curator.default_weight() - 0.2).abs() < f64::EPSILON);
-        assert!((AgentRole::Orchestrator.default_weight() - 0.15).abs() < f64::EPSILON);
-        assert!((AgentRole::Owner.default_weight() - 0.8).abs() < f64::EPSILON);
-        assert!((AgentRole::Custom("x".to_string()).default_weight() - 0.2).abs() < f64::EPSILON);
+        let epsilon = f64::EPSILON;
+        assert!((AgentRole::Publisher.default_weight() - 0.1).abs() < epsilon);
+        assert!((AgentRole::Validator.default_weight() - 0.1).abs() < epsilon);
+        assert!((AgentRole::DataProvider.default_weight() - 0.4).abs() < epsilon);
+        assert!((AgentRole::Transformer.default_weight() - 0.3).abs() < epsilon);
+        assert!((AgentRole::StorageProvider.default_weight() - 0.2).abs() < epsilon);
+        assert!((AgentRole::Curator.default_weight() - 0.2).abs() < epsilon);
+        assert!((AgentRole::Orchestrator.default_weight() - 0.15).abs() < epsilon);
+        assert!((AgentRole::Owner.default_weight() - 0.8).abs() < epsilon);
+        assert!((AgentRole::Custom("x".to_string()).default_weight() - 0.2).abs() < epsilon);
     }
 
     #[test]
@@ -470,5 +700,27 @@ mod tests {
         assert!(json.contains("Device"));
         let parsed: AgentType = serde_json::from_str(&json).expect("deserialize");
         assert!(matches!(parsed, AgentType::Device { .. }));
+    }
+
+    #[test]
+    fn test_agent_type_software_agent_json_roundtrip() {
+        let agent_type = AgentType::SoftwareAgent {
+            software_name: "SweetGrass".to_string(),
+            version: "0.7.27".to_string(),
+        };
+        let json = serde_json::to_string(&agent_type).expect("serialize");
+        let parsed: AgentType = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(parsed, agent_type);
+    }
+
+    #[test]
+    fn test_agent_type_organization_json_roundtrip() {
+        let agent_type = AgentType::Organization {
+            name: "ecoPrimals".to_string(),
+            org_type: Some("Foundation".to_string()),
+        };
+        let json = serde_json::to_string(&agent_type).expect("serialize");
+        let parsed: AgentType = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(parsed, agent_type);
     }
 }

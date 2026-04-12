@@ -204,18 +204,139 @@ async fn test_activities_for_braid() {
         .activities_for_braid(&braid.id)
         .await
         .expect("activities");
-    assert!(activities.is_empty() || !activities.is_empty());
+    assert!(activities.is_empty());
 }
 
 #[tokio::test]
-async fn test_derived_from() {
+async fn test_activities_for_braid_returns_embedded_activity() {
+    use sweet_grass_core::activity::{Activity, ActivityType};
+
     let (store, _temp) = create_test_store();
 
-    let braid = create_test_braid("sha256:derived_test");
+    let activity = Activity::builder(ActivityType::Creation).build();
+    let braid = BraidBuilder::default()
+        .data_hash("sha256:with_activity")
+        .mime_type("text/plain")
+        .size(100)
+        .attributed_to(Did::new("did:key:z6MkTest"))
+        .generated_by(activity.clone())
+        .build()
+        .expect("build braid");
+
     store.put(&braid).await.expect("put");
 
-    let braids = store.derived_from(&braid.data_hash).await.expect("derived");
-    assert!(braids.is_empty() || !braids.is_empty());
+    let activities = store
+        .activities_for_braid(&braid.id)
+        .await
+        .expect("activities");
+    assert_eq!(activities.len(), 1);
+    assert_eq!(activities[0].id, activity.id);
+}
+
+#[tokio::test]
+async fn test_derived_from_returns_child_braid() {
+    use sweet_grass_core::entity::EntityReference;
+
+    let (store, _temp) = create_test_store();
+
+    let parent = create_test_braid("sha256:parent_derived");
+    store.put(&parent).await.expect("put parent");
+
+    let child = BraidBuilder::default()
+        .data_hash("sha256:child_derived")
+        .mime_type("text/plain")
+        .size(50)
+        .attributed_to(Did::new("did:key:z6MkTest"))
+        .derived_from(EntityReference::by_hash(parent.data_hash.clone()))
+        .build()
+        .expect("build child");
+    store.put(&child).await.expect("put child");
+
+    let unrelated = create_test_braid("sha256:unrelated_derived");
+    store.put(&unrelated).await.expect("put unrelated");
+
+    let derived = store
+        .derived_from(&parent.data_hash)
+        .await
+        .expect("derived_from");
+    assert_eq!(derived.len(), 1);
+    assert_eq!(derived[0].id, child.id);
+}
+
+#[tokio::test]
+async fn test_derived_from_empty_when_no_derivations() {
+    let (store, _temp) = create_test_store();
+
+    let braid = create_test_braid("sha256:no_derivations");
+    store.put(&braid).await.expect("put");
+
+    let derived = store
+        .derived_from(&ContentHash::from("sha256:unknown_parent"))
+        .await
+        .expect("derived_from");
+    assert!(derived.is_empty());
+}
+
+#[tokio::test]
+async fn test_delete_multi_tag_cleans_indexes() {
+    let (store, _temp) = create_test_store();
+
+    let mut braid = create_test_braid("sha256:multi_tag_del");
+    braid.metadata.tags = vec!["alpha".into(), "beta".into(), "gamma".into()];
+    store.put(&braid).await.expect("put");
+
+    let filter_alpha = QueryFilter::new().with_tag("alpha");
+    assert_eq!(
+        store
+            .query(&filter_alpha, QueryOrder::NewestFirst)
+            .await
+            .expect("query")
+            .braids
+            .len(),
+        1
+    );
+
+    store.delete(&braid.id).await.expect("delete");
+
+    for tag in &["alpha", "beta", "gamma"] {
+        let filter = QueryFilter::new().with_tag(*tag);
+        let result = store
+            .query(&filter, QueryOrder::NewestFirst)
+            .await
+            .expect("query");
+        assert!(result.braids.is_empty(), "tag {tag} index not cleaned");
+    }
+
+    assert!(
+        store
+            .get_by_hash(&braid.data_hash)
+            .await
+            .expect("get")
+            .is_none()
+    );
+}
+
+#[tokio::test]
+async fn test_get_by_hash_missing_returns_none() {
+    let (store, _temp) = create_test_store();
+
+    let result = store
+        .get_by_hash(&ContentHash::from("sha256:definitely_missing"))
+        .await
+        .expect("get_by_hash");
+    assert!(result.is_none());
+}
+
+#[tokio::test]
+async fn test_activities_for_braid_unknown_returns_empty() {
+    let (store, _temp) = create_test_store();
+
+    let unknown = BraidId::from_string("nonexistent-braid-id".to_string());
+    let activities = store
+        .activities_for_braid(&unknown)
+        .await
+        .expect("activities");
+    assert!(activities.is_empty());
 }
 
 #[tokio::test]

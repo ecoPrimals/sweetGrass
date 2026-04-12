@@ -135,4 +135,11 @@ impl PostgresConfig {
         self.min_connections = n;
         self
     }
+
+    /// Set connection acquire timeout (seconds).
+    #[must_use]
+    pub fn connect_timeout_secs(mut self, secs: u64) -> Self {
+        self.connect_timeout_secs = secs;
+        self
+    }
 }

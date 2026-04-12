@@ -248,4 +248,125 @@ mod tests {
         let json = serde_json::to_string(&err).expect("serialize");
         assert!(json.contains("handshake_failed"));
     }
+
+    #[tokio::test]
+    async fn write_frame_empty_payload() {
+        let mut buf = Vec::new();
+        write_frame(&mut buf, &[]).await.expect("write");
+
+        assert_eq!(buf.len(), 4);
+        assert_eq!(
+            u32::from_be_bytes(buf[..4].try_into().unwrap()),
+            0,
+            "length prefix must be zero for empty payload"
+        );
+    }
+
+    #[tokio::test]
+    async fn read_frame_empty() {
+        let mut buf = Vec::new();
+        buf.extend_from_slice(&0u32.to_be_bytes());
+
+        let mut cursor = std::io::Cursor::new(buf);
+        let frame = read_frame(&mut cursor).await.expect("read");
+        assert!(frame.is_empty());
+    }
+
+    #[tokio::test]
+    async fn message_roundtrip_all_types() {
+        let server_hello = ServerHello {
+            version: 1,
+            server_ephemeral_pub: "c2VydmVy".to_string(),
+            challenge: "Y2hhbGxlbmdl".to_string(),
+        };
+        let mut buf = Vec::new();
+        write_message(&mut buf, &server_hello)
+            .await
+            .expect("write sh");
+        let mut cursor = std::io::Cursor::new(buf);
+        let read_sh: ServerHello = read_message(&mut cursor).await.expect("read sh");
+        assert_eq!(read_sh.version, server_hello.version);
+        assert_eq!(
+            read_sh.server_ephemeral_pub,
+            server_hello.server_ephemeral_pub
+        );
+        assert_eq!(read_sh.challenge, server_hello.challenge);
+
+        let challenge_response = ChallengeResponse {
+            response: "cmVzcA==".to_string(),
+            preferred_cipher: "chacha20_poly1305".to_string(),
+        };
+        let mut buf = Vec::new();
+        write_message(&mut buf, &challenge_response)
+            .await
+            .expect("write cr");
+        let mut cursor = std::io::Cursor::new(buf);
+        let read_cr: ChallengeResponse = read_message(&mut cursor).await.expect("read cr");
+        assert_eq!(read_cr.response, challenge_response.response);
+        assert_eq!(
+            read_cr.preferred_cipher,
+            challenge_response.preferred_cipher
+        );
+
+        let complete = HandshakeComplete {
+            cipher: "chacha20_poly1305".to_string(),
+            session_id: "sess1".to_string(),
+        };
+        let mut buf = Vec::new();
+        write_message(&mut buf, &complete).await.expect("write hc");
+        let mut cursor = std::io::Cursor::new(buf);
+        let read_hc: HandshakeComplete = read_message(&mut cursor).await.expect("read hc");
+        assert_eq!(read_hc.cipher, complete.cipher);
+        assert_eq!(read_hc.session_id, complete.session_id);
+
+        let err = HandshakeError {
+            error: "handshake_failed".to_string(),
+            reason: "family_verification".to_string(),
+        };
+        let mut buf = Vec::new();
+        write_message(&mut buf, &err).await.expect("write he");
+        let mut cursor = std::io::Cursor::new(buf);
+        let read_handshake_err: HandshakeError = read_message(&mut cursor)
+            .await
+            .expect("read handshake error");
+        assert_eq!(read_handshake_err.error, err.error);
+        assert_eq!(read_handshake_err.reason, err.reason);
+    }
+
+    #[test]
+    fn btsp_error_display_variants() {
+        let io_err = BtspError::Io(std::io::Error::new(std::io::ErrorKind::NotFound, "missing"));
+        let io_display = io_err.to_string();
+        assert!(
+            io_display.contains("BTSP I/O") && io_display.contains("missing"),
+            "{io_display}"
+        );
+
+        let json_err: BtspError = serde_json::from_str::<ClientHello>("{").unwrap_err().into();
+        let json_display = json_err.to_string();
+        assert!(json_display.contains("BTSP JSON"), "{json_display}");
+
+        let frame = BtspError::FrameTooLarge { size: 42 };
+        assert!(frame.to_string().contains("too large"));
+
+        let handshake = BtspError::HandshakeFailed {
+            reason: "bad".to_string(),
+        };
+        assert!(handshake.to_string().contains("handshake failed"));
+
+        let crypto = BtspError::CryptoProviderUnavailable("no socket".to_string());
+        assert!(crypto.to_string().contains("crypto provider"));
+
+        let unexpected = BtspError::UnexpectedMessage {
+            expected: "ClientHello".to_string(),
+            actual: "Other".to_string(),
+        };
+        let u_display = unexpected.to_string();
+        assert!(
+            u_display.contains("unexpected message")
+                && u_display.contains("ClientHello")
+                && u_display.contains("Other"),
+            "{u_display}"
+        );
+    }
 }

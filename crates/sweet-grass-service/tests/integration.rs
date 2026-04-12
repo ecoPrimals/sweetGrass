@@ -14,12 +14,21 @@
 
 use std::sync::Arc;
 
+use axum_test::TestServer;
+use serde_json::json;
 use sweet_grass_compression::{CompressionEngine, Session, SessionOutcome, SessionVertex};
 use sweet_grass_core::{
-    activity::ActivityType, agent::Did, braid::BraidMetadata, entity::EntityReference,
+    activity::ActivityType,
+    agent::Did,
+    braid::BraidMetadata,
+    braid::ContentHash,
+    dehydration::{DehydrationSummary, SessionOperation, Witness},
+    entity::EntityReference,
+    test_fixtures::TEST_SOURCE_PRIMAL,
 };
 use sweet_grass_factory::BraidFactory;
 use sweet_grass_query::QueryEngine;
+use sweet_grass_service::{AppState, create_router};
 use sweet_grass_store::{BraidStore, MemoryStore, QueryFilter, QueryOrder};
 
 /// Helper to create a test environment.
@@ -547,4 +556,167 @@ async fn test_special_characters_in_data() {
 
     let retrieved = store.get(&braid.id).await.expect("query");
     assert!(retrieved.is_some());
+}
+
+// =============================================
+// Witness chain (JSON-RPC store round-trip)
+// =============================================
+
+fn witness_chain_test_server() -> TestServer {
+    let state = AppState::new_memory(Did::new("did:key:z6MkWitnessChain"));
+    TestServer::new(create_router(state))
+}
+
+fn jsonrpc_envelope(method: &str, params: &serde_json::Value, id: u64) -> serde_json::Value {
+    json!({
+        "jsonrpc": "2.0",
+        "method": method,
+        "params": params,
+        "id": id
+    })
+}
+
+async fn post_jsonrpc(
+    server: &TestServer,
+    method: &str,
+    params: serde_json::Value,
+    id: u64,
+) -> serde_json::Value {
+    server
+        .post("/jsonrpc")
+        .json(&jsonrpc_envelope(method, &params, id))
+        .await
+        .json()
+}
+
+fn witness_audit_dehydration_summary() -> DehydrationSummary {
+    let alice = Did::new("did:key:z6MkWitnessAlice");
+    let bob = Did::new("did:key:z6MkWitnessBob");
+    let w_unsigned = Witness::unsigned();
+    let w_signed = Witness::from_ed25519(&alice, b"primalSpring-audit-sig");
+    let w_hash = Witness {
+        agent: bob.clone(),
+        kind: "hash".to_string(),
+        evidence: "sha256:checkpoint-observation".to_string(),
+        witnessed_at: 9_001,
+        encoding: sweet_grass_core::dehydration::WITNESS_ENCODING_HEX.to_string(),
+        algorithm: None,
+        tier: Some("gateway".to_string()),
+        context: Some("audit:witness_chain".to_string()),
+    };
+    DehydrationSummary {
+        source_primal: TEST_SOURCE_PRIMAL.to_string(),
+        session_id: "witness-chain-dehydrate-001".to_string(),
+        merkle_root: ContentHash::new("sha256:witnesschain_merkle_root"),
+        vertex_count: 11,
+        branch_count: 4,
+        agents: vec![alice.clone(), bob],
+        witnesses: vec![w_unsigned, w_signed, w_hash],
+        operations: vec![SessionOperation {
+            op_type: "create".to_string(),
+            content_hash: ContentHash::new("sha256:witnesschain_op_artifact"),
+            agent: alice,
+            timestamp: 500_000,
+            description: Some("witness chain op".to_string()),
+        }],
+        session_start: 100_000,
+        dehydrated_at: 300_000,
+        frontier: vec![ContentHash::new("sha256:witnesschain_frontier")],
+        niche: Some("witness_audit".to_string()),
+        compression_ratio: Some(0.61),
+    }
+}
+
+#[tokio::test]
+async fn test_witness_chain_store_roundtrip() {
+    let server = witness_chain_test_server();
+    let mut next_id = 1_u64;
+
+    // 1–4: create braid via JSON-RPC, retrieve, verify default unsigned witness preserved.
+    let create_body: serde_json::Value = post_jsonrpc(
+        &server,
+        "braid.create",
+        json!({
+            "data_hash": "sha256:witnesschain_roundtrip_001",
+            "mime_type": "application/json",
+            "size": 2048
+        }),
+        next_id,
+    )
+    .await;
+    next_id += 1;
+    assert!(
+        create_body["error"].is_null(),
+        "braid.create: {create_body}"
+    );
+    let created = &create_body["result"];
+    let braid_id = created["@id"].as_str().expect("braid @id");
+    let witness_from_create = created["witness"].clone();
+    assert_eq!(witness_from_create["kind"], "marker");
+    assert_eq!(witness_from_create["encoding"], "none");
+    assert_eq!(witness_from_create["tier"], "open");
+    assert!(witness_from_create["evidence"].as_str().unwrap().is_empty());
+
+    let get_body: serde_json::Value =
+        post_jsonrpc(&server, "braid.get", json!({ "id": braid_id }), next_id).await;
+    next_id += 1;
+    assert!(get_body["error"].is_null(), "braid.get: {get_body}");
+    assert_eq!(get_body["result"]["witness"], witness_from_create);
+
+    // 5–7: dehydration summary with multiple witnesses; record and verify on stored braid.
+    let summary = witness_audit_dehydration_summary();
+    let dehydration_params = serde_json::to_value(&summary).expect("serialize DehydrationSummary");
+    let dehydrate_body: serde_json::Value = post_jsonrpc(
+        &server,
+        "contribution.record_dehydration",
+        dehydration_params,
+        next_id,
+    )
+    .await;
+    next_id += 1;
+    assert!(
+        dehydrate_body["error"].is_null(),
+        "contribution.record_dehydration: {dehydrate_body}"
+    );
+    let dehydrate_result = &dehydrate_body["result"];
+    assert_eq!(dehydrate_result["session_id"], summary.session_id);
+    assert_eq!(
+        dehydrate_result["vertex_count"],
+        serde_json::json!(summary.vertex_count)
+    );
+    assert_eq!(
+        dehydrate_result["merkle_root"],
+        summary.merkle_root.as_str()
+    );
+    let braid_ids = dehydrate_result["braid_ids"]
+        .as_array()
+        .expect("braid_ids array");
+    assert_eq!(braid_ids.len(), 1);
+    let dehydration_braid_id = braid_ids[0].as_str().expect("braid id string");
+
+    let fetched: serde_json::Value = post_jsonrpc(
+        &server,
+        "braid.get",
+        json!({ "id": dehydration_braid_id }),
+        next_id,
+    )
+    .await;
+    assert!(
+        fetched["error"].is_null(),
+        "braid.get dehydration: {fetched}"
+    );
+    let d = &fetched["result"];
+    let expected_witnesses = serde_json::to_value(&summary.witnesses).expect("witnesses json");
+    assert_eq!(d["ecop"]["witnesses"], expected_witnesses);
+    assert_eq!(d["ecop"]["source_primal"], summary.source_primal);
+    assert_eq!(d["ecop"]["rhizo_session"], summary.session_id);
+    assert_eq!(
+        d["ecop"]["niche"].as_str(),
+        summary.niche.as_deref(),
+        "niche preserved on ecop"
+    );
+    let compression = &d["ecop"]["compression"];
+    assert_eq!(compression["vertex_count"], summary.vertex_count);
+    assert_eq!(compression["branch_count"], summary.branch_count);
+    assert_eq!(compression["ratio"], summary.compression_ratio.unwrap());
 }

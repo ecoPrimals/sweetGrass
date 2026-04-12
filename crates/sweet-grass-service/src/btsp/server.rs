@@ -345,4 +345,55 @@ mod tests {
         let err = extract_str(&value, "count").unwrap_err();
         assert!(err.to_string().contains("missing"));
     }
+
+    #[test]
+    fn resolve_security_socket_explicit_env() {
+        temp_env::with_vars(
+            [
+                ("SECURITY_PROVIDER_SOCKET", Some("/custom/path.sock")),
+                ("BIOMEOS_SOCKET_DIR", None::<&str>),
+                ("XDG_RUNTIME_DIR", None::<&str>),
+            ],
+            || {
+                assert_eq!(
+                    resolve_security_socket(),
+                    std::path::PathBuf::from("/custom/path.sock")
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn resolve_security_socket_biomeos_dir() {
+        temp_env::with_vars(
+            [
+                ("SECURITY_PROVIDER_SOCKET", None::<&str>),
+                ("BIOMEOS_SOCKET_DIR", Some("/run/biomeos")),
+                ("XDG_RUNTIME_DIR", None::<&str>),
+            ],
+            || {
+                assert_eq!(
+                    resolve_security_socket(),
+                    std::path::PathBuf::from("/run/biomeos/security.sock")
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn resolve_security_socket_xdg_runtime() {
+        temp_env::with_vars(
+            [
+                ("SECURITY_PROVIDER_SOCKET", None::<&str>),
+                ("BIOMEOS_SOCKET_DIR", None::<&str>),
+                ("XDG_RUNTIME_DIR", Some("/run/user/1000")),
+            ],
+            || {
+                assert_eq!(
+                    resolve_security_socket(),
+                    std::path::PathBuf::from("/run/user/1000/biomeos/security.sock")
+                );
+            },
+        );
+    }
 }
