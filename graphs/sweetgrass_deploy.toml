@@ -1,56 +1,88 @@
-# sweetGrass Deploy Graph for biomeOS BYOB Deployment
-# See: wateringHole SPRING_AS_NICHE_DEPLOYMENT_STANDARD
+# sweetGrass Deploy Graph — canonical [[graph.nodes]] schema
+# See: wateringHole/DEPLOYMENT_AND_COMPOSITION.md
 #
 # Declares startup order and dependency topology for biomeOS
 # orchestration. sweetGrass is the last node in the provenance
 # trio sequence.
 
 [graph]
-name = "sweetgrass"
+name = "sweetgrass-attribution"
 version = "0.7.27"
 description = "Semantic provenance and attribution layer"
+owner = "ecoPrimals"
+composition_model = "provenance-trio"
 
-# Binary to execute (UniBin pattern)
+[graph.metadata]
+domain = "attribution"
+wire_standard = "L3"
+btsp_phase = 2
+primal = "sweetgrass"
 binary = "sweetgrass"
 subcommand = "server"
 
-# Startup dependencies — ordered by boot sequence.
-# All dependencies use fallback = "skip" because sweetGrass
-# can operate standalone with degraded capability.
+[graph.bonding_policy]
+security = "required-when-family"
+discovery = "optional"
+storage = "optional"
 
-[[dependencies]]
+[[graph.nodes]]
+name = "sweetgrass"
+binary = "sweetgrass"
+subcommand = "server"
+domain = "attribution"
+capabilities_provided = [
+    "braid.create", "braid.get", "braid.query", "braid.delete",
+    "attribution.chain", "attribution.calculate_rewards",
+    "provenance.graph", "provenance.export_provo",
+    "compression.compress_session", "compression.create_meta_braid",
+    "composition.tower_health", "composition.node_health",
+    "composition.nest_health", "composition.nucleus_health",
+    "health.check", "health.liveness", "health.readiness",
+    "identity.get", "capabilities.list",
+]
+capabilities_consumed = [
+    "crypto.sign", "crypto.verify",
+    "storage.artifact.store", "storage.artifact.get",
+    "dag.session.create", "dag.dehydration.trigger",
+    "spine.create", "commit.session",
+]
+
+[[graph.nodes.dependencies]]
 capability = "crypto.sign"
 description = "Cryptographic signing for anchoring operations"
 required = false
 fallback = "skip"
 
-[[dependencies]]
+[[graph.nodes.dependencies]]
 capability = "discovery.register"
 description = "Mesh registration and heartbeat"
 required = false
 fallback = "skip"
 
-[[dependencies]]
+[[graph.nodes.dependencies]]
 capability = "dag.session.create"
 description = "rhizoCrypt DAG session management"
 required = false
 fallback = "skip"
 
-[[dependencies]]
+[[graph.nodes.dependencies]]
 capability = "spine.create"
 description = "LoamSpine permanence anchoring"
 required = false
 fallback = "skip"
 
-# Startup ordering hint for biomeOS scheduler.
-# Lower priority = starts later (after dependencies).
+[[graph.nodes.dependencies]]
+capability = "storage.artifact.store"
+description = "NestGate delegated storage"
+required = false
+fallback = "skip"
+
 [scheduling]
 priority = 50
 startup_timeout_ms = 10000
 health_check = "health.check"
 readiness_probe = "capabilities.list"
 
-# Environment variables biomeOS should set before launch.
 [environment]
 SWEETGRASS_HTTP_ADDRESS = "0.0.0.0:0"
 SWEETGRASS_TARPC_ADDRESS = "0.0.0.0:0"

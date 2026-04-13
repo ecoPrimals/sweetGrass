@@ -3100,6 +3100,7 @@ dependencies = [
  "sweet-grass-integration",
  "sweet-grass-query",
  "sweet-grass-store",
+ "sweet-grass-store-nestgate",
  "sweet-grass-store-postgres",
  "sweet-grass-store-redb",
  "sweet-grass-store-sled",
@@ -3127,6 +3128,21 @@ dependencies = [
  "sweet-grass-core",
  "thiserror",
  "tokio",
+]
+
+[[package]]
+name = "sweet-grass-store-nestgate"
+version = "0.7.27"
+dependencies = [
+ "async-trait",
+ "serde",
+ "serde_json",
+ "sweet-grass-core",
+ "sweet-grass-store",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]

@@ -17,7 +17,7 @@ type Result<T> = std::result::Result<T, StoreError>;
 /// mutating process environment variables. Safe for multi-threaded contexts.
 #[derive(Clone, Debug, Default)]
 pub struct StorageConfig {
-    /// Backend type: "memory", "postgres", "sled", "redb".
+    /// Backend type: "memory", "postgres", "sled", "redb", "nestgate".
     pub backend: String,
 
     /// `PostgreSQL` connection URL.
@@ -40,6 +40,12 @@ pub struct StorageConfig {
 
     /// Sled flush interval in ms.
     pub sled_flush_ms: Option<u64>,
+
+    /// `NestGate` socket path (explicit override; uses discovery if absent).
+    pub nestgate_socket: Option<String>,
+
+    /// `NestGate` family ID for multi-instance scoping.
+    pub nestgate_family_id: Option<String>,
 }
 
 /// Factory for creating storage backends from environment configuration.
@@ -107,6 +113,8 @@ impl BraidStoreFactory {
             pg_min_connections: Self::parse_reader_var(reader, "PG_MIN_CONNECTIONS"),
             sled_cache_size_mb: Self::parse_reader_var(reader, "SLED_CACHE_SIZE"),
             sled_flush_ms: Self::parse_reader_var(reader, "SLED_FLUSH_MS"),
+            nestgate_socket: reader("NESTGATE_SOCKET"),
+            nestgate_family_id: reader("FAMILY_ID"),
         }
     }
 
@@ -156,6 +164,10 @@ impl BraidStoreFactory {
             "redb" => Self::create_redb_from_config(config).map(|s| (s, "redb".to_string())),
             #[cfg(feature = "sled")]
             "sled" => Self::create_sled_from_config(config).map(|s| (s, "sled".to_string())),
+            #[cfg(feature = "nestgate")]
+            "nestgate" => {
+                Self::create_nestgate_from_config(config).map(|s| (s, "nestgate".to_string()))
+            },
             other => Err(StoreError::Internal(format!(
                 "Unknown storage backend: '{other}'. Valid options: {}",
                 Self::valid_backends()
@@ -227,6 +239,23 @@ impl BraidStoreFactory {
         Ok(Arc::new(store) as Arc<dyn BraidStore>)
     }
 
+    #[cfg(feature = "nestgate")]
+    /// Create `NestGate` backend from explicit config.
+    fn create_nestgate_from_config(config: &StorageConfig) -> Result<Arc<dyn BraidStore>> {
+        use sweet_grass_store_nestgate::{NestGateConfig, NestGateStore};
+
+        let ng_config = NestGateConfig {
+            socket_path: config.nestgate_socket.clone(),
+            family_id: config.nestgate_family_id.clone(),
+            key_prefix: "sweetgrass".to_string(),
+        };
+
+        tracing::info!("Configuring NestGate storage backend");
+        let store = NestGateStore::new(&ng_config)?;
+        tracing::info!("NestGate backend initialized");
+        Ok(Arc::new(store) as Arc<dyn BraidStore>)
+    }
+
     /// Parse a key from a reader as a specific type.
     #[doc(hidden)]
     pub(crate) fn parse_reader_var<T: std::str::FromStr>(
@@ -238,11 +267,19 @@ impl BraidStoreFactory {
 
     /// List valid backend names (varies by enabled features).
     const fn valid_backends() -> &'static str {
-        #[cfg(feature = "sled")]
+        #[cfg(all(feature = "sled", feature = "nestgate"))]
+        {
+            "memory, postgres, redb, sled, nestgate"
+        }
+        #[cfg(all(feature = "sled", not(feature = "nestgate")))]
         {
             "memory, postgres, redb, sled"
         }
-        #[cfg(not(feature = "sled"))]
+        #[cfg(all(not(feature = "sled"), feature = "nestgate"))]
+        {
+            "memory, postgres, redb, nestgate"
+        }
+        #[cfg(all(not(feature = "sled"), not(feature = "nestgate")))]
         {
             "memory, postgres, redb"
         }

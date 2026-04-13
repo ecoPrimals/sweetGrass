@@ -286,6 +286,7 @@ async fn test_capability_list_has_expected_domains() {
     assert!(domains.contains_key("contribution"));
     assert!(domains.contains_key("capabilities"));
     assert!(domains.contains_key("capability"));
+    assert!(domains.contains_key("composition"));
     assert!(domains.contains_key("tools"));
 }
 
@@ -305,7 +306,7 @@ async fn test_capability_list_method_count() {
     .unwrap();
     let result = resp.result.unwrap();
     let methods = result["methods"].as_array().unwrap();
-    assert_eq!(methods.len(), 28);
+    assert_eq!(methods.len(), 32);
 }
 
 // ==================== capabilities.list (canonical per wateringHole v2.1) ========

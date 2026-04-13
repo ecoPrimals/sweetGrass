@@ -19,6 +19,7 @@
 //! | `pipeline`    | attribute (provenance trio coordination)                          |
 //! | `health`      | check, liveness, readiness                                       |
 //! | `identity`    | get (biomeOS Neural API: primal name + version)                  |
+//! | `composition` | tower_health, node_health, nest_health, nucleus_health            |
 //! | `capabilities`| list (canonical per wateringHole v2.1)                            |
 //! | `capability`  | list (alias)                                                     |
 //! | `tools`       | list, call (MCP exposure for Squirrel AI coordination)            |
@@ -27,6 +28,7 @@ mod anchoring;
 mod attribution;
 mod braid;
 mod capability;
+mod composition;
 mod compression;
 mod contribution;
 mod health;
@@ -309,6 +311,22 @@ static METHODS: &[MethodEntry] = &[
     MethodEntry {
         name: "tools.call",
         handler: |s, p| Box::pin(capability::handle_tools_call(s, p)),
+    },
+    MethodEntry {
+        name: "composition.tower_health",
+        handler: |s, p| Box::pin(composition::handle_tower_health(s, p)),
+    },
+    MethodEntry {
+        name: "composition.node_health",
+        handler: |s, p| Box::pin(composition::handle_node_health(s, p)),
+    },
+    MethodEntry {
+        name: "composition.nest_health",
+        handler: |s, p| Box::pin(composition::handle_nest_health(s, p)),
+    },
+    MethodEntry {
+        name: "composition.nucleus_health",
+        handler: |s, p| Box::pin(composition::handle_nucleus_health(s, p)),
     },
 ];
 

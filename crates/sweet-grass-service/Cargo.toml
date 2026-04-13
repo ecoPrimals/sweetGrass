@@ -23,6 +23,7 @@ sweet-grass-store = { path = "../sweet-grass-store" }
 sweet-grass-store-postgres = { path = "../sweet-grass-store-postgres" }
 sweet-grass-store-sled = { path = "../sweet-grass-store-sled", optional = true }
 sweet-grass-store-redb = { path = "../sweet-grass-store-redb" }
+sweet-grass-store-nestgate = { path = "../sweet-grass-store-nestgate", optional = true }
 sweet-grass-factory = { path = "../sweet-grass-factory" }
 sweet-grass-query = { path = "../sweet-grass-query" }
 sweet-grass-compression = { path = "../sweet-grass-compression" }
@@ -69,6 +70,7 @@ clap = { workspace = true }
 [features]
 default = []
 sled = ["dep:sled", "dep:sweet-grass-store-sled"]
+nestgate = ["dep:sweet-grass-store-nestgate"]
 
 [dev-dependencies]
 sweet-grass-core = { path = "../sweet-grass-core", features = ["test"] }

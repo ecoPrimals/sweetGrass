@@ -44,6 +44,10 @@ pub const CAPABILITIES: &[&str] = &[
     "health.readiness",
     "identity.get",
     "pipeline.attribute",
+    "composition.tower_health",
+    "composition.node_health",
+    "composition.nest_health",
+    "composition.nucleus_health",
     "capabilities.list",
     "capability.list",
     "tools.list",
@@ -166,6 +170,10 @@ pub fn operation_dependencies() -> Vec<OperationMeta> {
         OperationMeta::new("pipeline.attribute", &["braid.create"], "medium", 25),
         OperationMeta::new("capabilities.list", &[], "low", 0),
         OperationMeta::new("capability.list", &[], "low", 0),
+        OperationMeta::new("composition.tower_health", &[], "low", 5),
+        OperationMeta::new("composition.node_health", &[], "low", 5),
+        OperationMeta::new("composition.nest_health", &[], "low", 5),
+        OperationMeta::new("composition.nucleus_health", &[], "low", 10),
         OperationMeta::new("tools.list", &[], "low", 0),
         OperationMeta::new("tools.call", &[], "low", 5),
     ]
@@ -187,6 +195,7 @@ pub fn cost_estimates() -> Vec<(&'static str, &'static str)> {
         ("contribution", "low"),
         ("health", "low"),
         ("identity", "low"),
+        ("composition", "low"),
         ("pipeline", "medium"),
         ("capabilities", "low"),
         ("capability", "low"),
@@ -223,6 +232,10 @@ pub const DOMAIN_DESCRIPTIONS: &[(&str, &str)] = &[
     ("capabilities", "Capability self-advertisement"),
     ("capability", "Capability self-advertisement (alias)"),
     ("tools", "MCP tool interface for AI coordination"),
+    (
+        "composition",
+        "Composition health probes (tower/node/nest/nucleus)",
+    ),
 ];
 
 /// Semantic mappings for Neural API translation.

@@ -212,8 +212,8 @@ async fn test_record_session_dispatch() {
 fn test_dispatch_table_completeness() {
     assert_eq!(
         METHODS.len(),
-        28,
-        "dispatch table should have all 28 methods"
+        32,
+        "dispatch table should have all 32 methods"
     );
 
     let expected = [
@@ -241,6 +241,10 @@ fn test_dispatch_table_completeness() {
         "health.liveness",
         "health.readiness",
         "identity.get",
+        "composition.tower_health",
+        "composition.node_health",
+        "composition.nest_health",
+        "composition.nucleus_health",
         "capabilities.list",
         "capability.list",
         "tools.list",

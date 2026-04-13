@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### NestGate Store, Composition Health, Deploy Graph Evolution (April 12, 2026)
+
+Ecosystem evolution: NestGate JSON-RPC store backend (Postgres evolution path),
+composition health handlers per COMPOSITION_HEALTH_STANDARD, canonical
+`[[graph.nodes]]` deploy graph schema, wetSpring pattern alignment. 174 .rs
+files, 49,837 LOC, 1,427 tests, 11 crates.
+
+### Added
+
+- **`sweet-grass-store-nestgate` crate** — new storage backend delegating to NestGate via `storage.store`/`storage.retrieve` JSON-RPC over UDS; socket discovery (env → XDG → fallback), family ID scoping, agent/derivation indices, client-side query filtering; feature-gated in service (`--features nestgate`)
+- **Composition health handlers** — `composition.tower_health` (security+discovery), `composition.node_health` (+compute), `composition.nest_health` (+storage), `composition.nucleus_health` (all+provenance trio) per `wateringHole/COMPOSITION_HEALTH_STANDARD.md`; each probes capability sockets via `health.liveness` with 3s timeout
+- **Deploy graph `[[graph.nodes]]` schema** — canonical `sweetgrass_deploy.toml` with `bonding_policy`, `metadata`, `capabilities_provided`/`consumed`, `composition_model`, per-node dependencies
+- **11 new tests** across NestGate client/discovery/store and composition dispatch
+
+### Changed
+
+- **`StorageConfig`** — added `nestgate_socket` and `nestgate_family_id` fields
+- **`BraidStoreFactory`** — `"nestgate"` backend option (feature-gated)
+- **`CAPABILITIES`** — 28→32 methods (4 composition health)
+- **`DOMAIN_DESCRIPTIONS`** — added composition domain
+- **`operation_dependencies()`** — added composition ops with cost estimates
+- **`cost_estimates()`** — added composition domain tier
+
 ### Coverage 90%+, Smart Refactoring, async-trait Evolution (April 12, 2026)
 
 Coverage push 87→90.3% (1,315→1,416 tests), braid/types.rs smart refactor
