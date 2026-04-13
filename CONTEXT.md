@@ -27,17 +27,17 @@ attribution before distributing rewards.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 (required) + tarpc (optional high-perf) + REST + UDS
 - **License:** scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0)
-- **Tests:** 1,416 passing
-- **Coverage:** 90.3% line coverage, 92.4% region coverage (llvm-cov)
+- **Tests:** 1,427 passing
+- **Coverage:** 90.4% line / 92.2% region (llvm-cov, testable code excl. Postgres/NestGate)
 - **BTSP:** Phase 2 — server handshake on accept (UDS + TCP) when `FAMILY_ID` set
 - **MSRV:** 1.87 (Edition 2024)
-- **Crate count:** 10 workspace crates
+- **Crate count:** 11 workspace crates
 - **Unsafe code:** 0 blocks (`#![forbid(unsafe_code)]` on all crates)
 - **Clippy:** pedantic + nursery, zero warnings
 
 ## Key Capabilities (JSON-RPC methods)
 
-28 semantic methods across 9 domains:
+32 semantic methods across 10 domains:
 
 - `braid.create`, `braid.get`, `braid.get_by_hash`, `braid.query`, `braid.delete`, `braid.commit` — provenance record CRUD
 - `contribution.record`, `contribution.record_session`, `contribution.record_dehydration` — inter-primal contribution tracking
@@ -49,6 +49,7 @@ attribution before distributing rewards.
 - `identity.get` — Wire Standard L2 primal identity
 - `capabilities.list`, `tools.list`, `tools.call` — self-knowledge and MCP tool exposure
 - `pipeline.attribute` — provenance trio pipeline coordination
+- `composition.tower_health`, `composition.node_health`, `composition.nest_health`, `composition.nucleus_health` — ecosystem composition health probes
 
 ## What This Does NOT Do
 
