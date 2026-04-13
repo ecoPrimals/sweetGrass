@@ -120,8 +120,8 @@ fn test_config_from_env() {
 
 #[test]
 fn test_config_from_file() {
-    let temp_dir = std::env::temp_dir();
-    let config_path = temp_dir.join("sweetgrass_test_config.toml");
+    let dir = tempfile::tempdir().expect("tempdir");
+    let config_path = dir.path().join("config.toml");
     let toml_content = r#"
 name = "FromFile"
 [compression]
@@ -129,9 +129,7 @@ min_vertices = 42
 split_threshold = 200
 "#;
     std::fs::write(&config_path, toml_content).expect("write temp config");
-    let result = SweetGrassConfig::from_file(&config_path);
-    let _ = std::fs::remove_file(&config_path);
-    let config = result.expect("should parse valid TOML");
+    let config = SweetGrassConfig::from_file(&config_path).expect("should parse valid TOML");
     assert_eq!(config.name, "FromFile");
     assert_eq!(config.compression.min_vertices, 42);
     assert_eq!(config.compression.split_threshold, 200);
@@ -139,8 +137,8 @@ split_threshold = 200
 
 #[test]
 fn test_load_env_overrides_file() {
-    let temp_dir = std::env::temp_dir();
-    let config_path = temp_dir.join("sweetgrass_test_env_override.toml");
+    let dir = tempfile::tempdir().expect("tempdir");
+    let config_path = dir.path().join("config.toml");
     let toml_content = r#"
 name = "FromFile"
 [network]
@@ -154,9 +152,7 @@ tarpc_listen = "127.0.0.1:9999"
         ("SWEETGRASS_NAME", "FromEnv"),
     ]);
 
-    let result = SweetGrassConfig::load_with_reader(reader);
-    let _ = std::fs::remove_file(&config_path);
-    let config = result.expect("load should succeed");
+    let config = SweetGrassConfig::load_with_reader(reader).expect("load should succeed");
     assert_eq!(config.name, "FromEnv", "env var should override file");
     assert_eq!(
         config.network.tarpc_listen.as_deref(),
@@ -175,13 +171,15 @@ fn test_load_missing_file_returns_defaults() {
 
 #[test]
 fn test_from_file_invalid_toml_returns_error() {
-    let temp_dir = std::env::temp_dir();
-    let config_path = temp_dir.join("sweetgrass_test_invalid.toml");
+    let dir = tempfile::tempdir().expect("tempdir");
+    let config_path = dir.path().join("invalid.toml");
     std::fs::write(&config_path, "name = [ invalid toml").expect("write invalid");
     let result = SweetGrassConfig::from_file(&config_path);
-    let _ = std::fs::remove_file(&config_path);
-    assert!(result.is_err());
-    assert!(matches!(result.unwrap_err(), ConfigError::Parse(_)));
+    assert!(result.is_err(), "invalid TOML should produce an error");
+    assert!(
+        matches!(result.unwrap_err(), ConfigError::Parse(_)),
+        "error should be a Parse variant"
+    );
 }
 
 #[test]
@@ -364,36 +362,30 @@ fn test_capability_custom_prefix_variants() {
 
 #[test]
 fn test_find_config_path_xdg() {
-    let temp = std::env::temp_dir();
-    let xdg_dir = temp.join("sweetgrass_test_xdg_config");
-    let primal_dir = xdg_dir.join(identity::PRIMAL_NAME);
+    let dir = tempfile::tempdir().expect("tempdir");
+    let primal_dir = dir.path().join(identity::PRIMAL_NAME);
     std::fs::create_dir_all(&primal_dir).expect("create dirs");
     let config_file = primal_dir.join("config.toml");
     std::fs::write(&config_file, "name = \"XdgTest\"").expect("write");
 
-    let xdg_str = xdg_dir.to_string_lossy().to_string();
+    let xdg_str = dir.path().to_string_lossy().to_string();
     let reader = mock_reader(&[("XDG_CONFIG_HOME", &xdg_str)]);
     let config = SweetGrassConfig::load_with_reader(reader).expect("load");
     assert_eq!(config.name, "XdgTest");
-
-    let _ = std::fs::remove_dir_all(&xdg_dir);
 }
 
 #[test]
 fn test_find_config_path_home() {
-    let temp = std::env::temp_dir();
-    let home_dir = temp.join("sweetgrass_test_home_config");
-    let config_dir = home_dir.join(".config").join(identity::PRIMAL_NAME);
+    let dir = tempfile::tempdir().expect("tempdir");
+    let config_dir = dir.path().join(".config").join(identity::PRIMAL_NAME);
     std::fs::create_dir_all(&config_dir).expect("create dirs");
     let config_file = config_dir.join("config.toml");
     std::fs::write(&config_file, "name = \"HomeTest\"").expect("write");
 
-    let home_str = home_dir.to_string_lossy().to_string();
+    let home_str = dir.path().to_string_lossy().to_string();
     let reader = mock_reader(&[("HOME", &home_str)]);
     let config = SweetGrassConfig::load_with_reader(reader).expect("load");
     assert_eq!(config.name, "HomeTest");
-
-    let _ = std::fs::remove_dir_all(&home_dir);
 }
 
 #[test]

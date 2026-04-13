@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Deep Debt Cleanup: Capability-Based Naming, DI, Smart Refactoring (April 12, 2026)
+
+Hardcoding elimination and code quality evolution sprint:
+- Renamed `call_beardog_at` → `call_security_provider_at` (capability-based)
+- Evolved composition health variables from primal-names to domain-names
+- Replaced `Box<dyn Error>` in composition probe with typed `std::io::Error`
+- Injected env reader into composition health (DI-friendly `probe_capability_with_reader`)
+- Smart refactored `uds/tests.rs` (958→5 submodules: resolution, symlink, guard, roundtrip, env)
+- Fixed config test temp file isolation (shared `/tmp/` → isolated `tempfile::tempdir`)
+
 ### NestGate Store, Composition Health, Deploy Graph Evolution (April 12, 2026)
 
 Ecosystem evolution: NestGate JSON-RPC store backend (Postgres evolution path),

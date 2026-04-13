@@ -50,8 +50,12 @@ fn resolve_security_socket() -> std::path::PathBuf {
     std::env::temp_dir().join(DEFAULT_SECURITY_SOCKET)
 }
 
-/// Call a `BearDog` JSON-RPC method at an explicit socket path.
-async fn call_beardog_at(
+/// Call a security-provider JSON-RPC method at an explicit socket path.
+///
+/// Capability-based: this function targets whichever primal provides the
+/// `crypto.*` capability domain, discovered via `SECURITY_PROVIDER_SOCKET`
+/// or `{BIOMEOS_SOCKET_DIR}/security.sock`.
+async fn call_security_provider_at(
     socket_path: &std::path::Path,
     method: &str,
     params: serde_json::Value,
@@ -141,7 +145,7 @@ where
 
     debug!(client_pub = %client_hello.client_ephemeral_pub, "BTSP: received ClientHello");
 
-    let session = call_beardog_at(
+    let session = call_security_provider_at(
         security_socket,
         "btsp.session.create",
         serde_json::json!({
@@ -181,7 +185,7 @@ where
     let challenge_response: ChallengeResponse = read_message(stream).await?;
     debug!("BTSP: received ChallengeResponse");
 
-    let verify_result = call_beardog_at(
+    let verify_result = call_security_provider_at(
         security_socket,
         "btsp.session.verify",
         serde_json::json!({
@@ -252,7 +256,7 @@ where
     let challenge_response =
         exchange_challenge(stream, &client_hello, &ctx, security_socket).await?;
 
-    let negotiate_result = call_beardog_at(
+    let negotiate_result = call_security_provider_at(
         security_socket,
         "btsp.negotiate",
         serde_json::json!({

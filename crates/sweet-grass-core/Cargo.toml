@@ -34,5 +34,6 @@ indexmap = { workspace = true }
 [dev-dependencies]
 bincode = { workspace = true }
 temp-env = { workspace = true }
+tempfile = { workspace = true }
 tokio = { workspace = true, features = ["test-util", "macros"] }
 proptest = { workspace = true }
