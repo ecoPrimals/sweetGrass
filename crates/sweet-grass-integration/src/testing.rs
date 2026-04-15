@@ -146,4 +146,47 @@ mod tests {
         let result = TcpListener::bind(format!("127.0.0.1:{port}"));
         assert!(result.is_ok(), "Port {port} should be available");
     }
+
+    #[test]
+    fn test_postgres_test_url_for_port() {
+        let url = postgres_test_url_for_port(15432);
+        assert_eq!(
+            url,
+            "postgresql://postgres:postgres@127.0.0.1:15432/postgres"
+        );
+    }
+
+    #[test]
+    fn test_postgres_test_url_for_port_different_ports() {
+        let url1 = postgres_test_url_for_port(5432);
+        let url2 = postgres_test_url_for_port(5433);
+        assert_ne!(url1, url2);
+        assert!(url1.contains("5432"));
+        assert!(url2.contains("5433"));
+    }
+
+    #[test]
+    fn test_db_url_returns_string() {
+        let url = test_db_url();
+        assert!(url.starts_with("postgresql://"));
+    }
+
+    #[test]
+    fn test_constants_are_valid() {
+        assert!(TEST_BIND_ADDR.contains("127.0.0.1"));
+        assert!(TEST_HTTP_BASE.starts_with("http://"));
+        assert!(TEST_REST_URL.starts_with("http://"));
+        assert!(!TEST_TARPC_ADDR.is_empty());
+        assert!(!TEST_TARPC_URI.is_empty());
+        assert!(TEST_DB_URL.starts_with("postgresql://"));
+        assert!(TEST_DB_URL_PRIMARY.starts_with("postgresql://"));
+        assert!(TEST_DB_URL_SECONDARY.starts_with("postgresql://"));
+        assert!(TEST_DB_URL_FALLBACK.starts_with("postgresql://"));
+    }
+
+    #[test]
+    fn test_allocate_zero_ports() {
+        let ports = allocate_test_ports::<0>();
+        assert!(ports.is_empty());
+    }
 }

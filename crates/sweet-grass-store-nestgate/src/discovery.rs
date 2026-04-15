@@ -63,6 +63,10 @@ pub fn discover_socket_with_family(
 }
 
 #[cfg(test)]
+#[expect(
+    clippy::expect_used,
+    reason = "test module: expect is standard in tests"
+)]
 mod tests {
     use super::*;
 
@@ -126,5 +130,60 @@ mod tests {
     fn test_discover_with_family_falls_back() {
         let path = discover_socket_with_family(&|_| None, Some("test-family"));
         assert_eq!(path.to_str(), Some("/tmp/biomeos/nestgate.sock"));
+    }
+
+    #[test]
+    fn test_discover_with_family_uses_family_socket_when_exists() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let family_sock = dir.path().join("nestgate-my-family.sock");
+        std::fs::write(&family_sock, b"").expect("create socket file");
+
+        let dir_str = dir.path().to_string_lossy().to_string();
+        let path = discover_socket_with_family(
+            &|key| match key {
+                "BIOMEOS_SOCKET_DIR" => Some(dir_str.clone()),
+                _ => None,
+            },
+            Some("my-family"),
+        );
+        assert_eq!(path, family_sock);
+    }
+
+    #[test]
+    fn test_discover_with_family_falls_back_when_socket_missing() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let dir_str = dir.path().to_string_lossy().to_string();
+        let path = discover_socket_with_family(
+            &|key| match key {
+                "BIOMEOS_SOCKET_DIR" => Some(dir_str.clone()),
+                _ => None,
+            },
+            Some("missing-family"),
+        );
+        assert_eq!(path, dir.path().join(NESTGATE_SOCK));
+    }
+
+    #[test]
+    fn test_discover_with_family_none_uses_standard_chain() {
+        let path = discover_socket_with_family(
+            &|key| match key {
+                "NESTGATE_SOCKET" => Some("/explicit/path.sock".to_string()),
+                _ => None,
+            },
+            None,
+        );
+        assert_eq!(path.to_str(), Some("/explicit/path.sock"));
+    }
+
+    #[test]
+    fn test_discover_with_family_no_biomeos_dir_ignores_family() {
+        let path = discover_socket_with_family(
+            &|key| match key {
+                "XDG_RUNTIME_DIR" => Some("/run/user/1000".to_string()),
+                _ => None,
+            },
+            Some("some-family"),
+        );
+        assert_eq!(path.to_str(), Some("/run/user/1000/biomeos/nestgate.sock"));
     }
 }

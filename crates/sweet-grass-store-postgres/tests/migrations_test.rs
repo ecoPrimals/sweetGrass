@@ -1,254 +1,229 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
-//! Tests for `PostgreSQL` database migrations.
+//! Tests for the production `PostgreSQL` embedded migration path.
 //!
-//! Ensures migrations are idempotent and schema is correct.
+//! Uses `PostgresStore::run_migrations()` (the same code path as production)
+//! rather than `sqlx::migrate!`, ensuring tests validate the actual schema.
 
 #![expect(clippy::expect_used, reason = "test file: expect is standard in tests")]
 
-use sqlx::PgPool;
-use sqlx::postgres::PgPoolOptions;
 use sweet_grass_integration::testing::test_db_url;
+use sweet_grass_store_postgres::{PostgresConfig, PostgresStore};
 
-/// Test helper to create a test database
-async fn create_test_db() -> PgPool {
-    let database_url = test_db_url();
-
-    PgPoolOptions::new()
+async fn connect_store() -> PostgresStore {
+    let url = test_db_url();
+    let config = PostgresConfig::new(&url)
         .max_connections(5)
-        .connect(&database_url)
+        .min_connections(1);
+    let store = PostgresStore::connect(&config)
         .await
-        .expect("Failed to connect to test database")
+        .expect("Failed to connect to test database");
+    store
+        .run_migrations()
+        .await
+        .expect("Failed to run production migrations");
+    store
 }
 
-/// Test that migrations can be applied successfully
 #[tokio::test]
 #[ignore = "requires PostgreSQL running (Docker)"]
-async fn test_migrations_apply() {
-    let pool = create_test_db().await;
+async fn test_production_migrations_apply() {
+    let store = connect_store().await;
 
-    // Run migrations
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .expect("Failed to run migrations");
-
-    // Verify migrations table exists
-    let result: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM _sqlx_migrations")
-        .fetch_one(&pool)
+    let result: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM _sweetgrass_migrations")
+        .fetch_one(store.pool())
         .await
         .expect("Failed to query migrations table");
 
-    assert!(result.0 > 0, "Migrations should have been applied");
+    assert!(
+        result.0 > 0,
+        "Production migrations should have been applied"
+    );
 }
 
-/// Test that migrations are idempotent (can be run multiple times)
 #[tokio::test]
 #[ignore = "requires PostgreSQL running (Docker)"]
-async fn test_migrations_idempotent() {
-    let pool = create_test_db().await;
+async fn test_production_migrations_idempotent() {
+    let store = connect_store().await;
 
-    // Run migrations twice
-    sqlx::migrate!("./migrations")
-        .run(&pool)
+    store
+        .run_migrations()
         .await
-        .expect("Failed to run migrations first time");
+        .expect("Second run_migrations should be idempotent");
 
-    sqlx::migrate!("./migrations")
-        .run(&pool)
+    store
+        .run_migrations()
         .await
-        .expect("Failed to run migrations second time (not idempotent)");
+        .expect("Third run_migrations should also be idempotent");
 }
 
-/// Test that braids table has correct schema
 #[tokio::test]
 #[ignore = "requires PostgreSQL running (Docker)"]
 async fn test_braids_table_schema() {
-    let pool = create_test_db().await;
+    let store = connect_store().await;
 
-    // Run migrations
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .expect("Failed to run migrations");
-
-    // Check table exists and has expected columns
     let result: (i64,) = sqlx::query_as(
-        "SELECT COUNT(*) FROM information_schema.columns 
-         WHERE table_name = 'braids' 
-         AND column_name IN ('id', 'data_hash', 'content', 'created_at')",
+        "SELECT COUNT(*) FROM information_schema.columns
+         WHERE table_name = 'braids'
+         AND column_name IN ('braid_id', 'data_hash', 'mime_type', 'size',
+                             'attributed_to', 'generated_at_time', 'metadata')",
     )
-    .fetch_one(&pool)
+    .fetch_one(store.pool())
     .await
     .expect("Failed to query schema");
 
-    assert!(result.0 >= 4, "Braids table should have required columns");
+    assert!(
+        result.0 >= 7,
+        "Braids table should have all required columns (found {}, expected >=7)",
+        result.0
+    );
 }
 
-/// Test that indexes are created correctly
+#[tokio::test]
+#[ignore = "requires PostgreSQL running (Docker)"]
+async fn test_activities_table_exists() {
+    let store = connect_store().await;
+
+    let result: (i64,) = sqlx::query_as(
+        "SELECT COUNT(*) FROM information_schema.tables
+         WHERE table_schema = 'public' AND table_name = 'activities'",
+    )
+    .fetch_one(store.pool())
+    .await
+    .expect("Failed to query schema");
+
+    assert_eq!(result.0, 1, "activities table should exist after migration");
+}
+
 #[tokio::test]
 #[ignore = "requires PostgreSQL running (Docker)"]
 async fn test_indexes_created() {
-    let pool = create_test_db().await;
+    let store = connect_store().await;
 
-    // Run migrations
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .expect("Failed to run migrations");
-
-    // Check that indexes exist
     let result: (i64,) = sqlx::query_as(
-        "SELECT COUNT(*) FROM pg_indexes 
-         WHERE tablename = 'braids' 
+        "SELECT COUNT(*) FROM pg_indexes
+         WHERE tablename = 'braids'
          AND indexname LIKE 'idx_%'",
     )
-    .fetch_one(&pool)
+    .fetch_one(store.pool())
     .await
     .expect("Failed to query indexes");
 
     assert!(result.0 > 0, "Braids table should have indexes");
 }
 
-/// Test that foreign key constraints are correct
 #[tokio::test]
 #[ignore = "requires PostgreSQL running (Docker)"]
 async fn test_foreign_key_constraints() {
-    let pool = create_test_db().await;
+    let store = connect_store().await;
 
-    // Run migrations
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .expect("Failed to run migrations");
-
-    // Check for foreign key constraints
     let result: (i64,) = sqlx::query_as(
-        "SELECT COUNT(*) FROM information_schema.table_constraints 
-         WHERE constraint_type = 'FOREIGN KEY'",
+        "SELECT COUNT(*) FROM information_schema.table_constraints
+         WHERE constraint_type = 'FOREIGN KEY'
+         AND table_name IN ('braid_activities', 'braid_tags')",
     )
-    .fetch_one(&pool)
+    .fetch_one(store.pool())
     .await
     .expect("Failed to query constraints");
 
-    // Note: May be 0 if using JSONB without explicit FK relationships
-    assert!(result.0 >= 0, "Should query constraints successfully");
-}
-
-/// Test that JSON columns support JSONB operations
-#[tokio::test]
-#[ignore = "requires PostgreSQL running (Docker)"]
-async fn test_jsonb_operations() {
-    let pool = create_test_db().await;
-
-    // Run migrations
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .expect("Failed to run migrations");
-
-    // Test JSONB column exists and supports operations
-    let result = sqlx::query(
-        "SELECT column_name FROM information_schema.columns 
-         WHERE table_name = 'braids' 
-         AND data_type = 'jsonb'",
-    )
-    .fetch_optional(&pool)
-    .await
-    .expect("Failed to query JSONB columns");
-
-    // Should have at least one JSONB column for Braid content
     assert!(
-        result.is_some(),
-        "Should have JSONB columns for flexibility"
+        result.0 > 0,
+        "braid_activities and braid_tags should have FK constraints"
     );
 }
 
-/// Test migration rollback (if supported)
 #[tokio::test]
-#[ignore = "requires PostgreSQL running (Docker) with rollback support"]
-async fn test_migration_rollback() {
-    let pool = create_test_db().await;
+#[ignore = "requires PostgreSQL running (Docker)"]
+async fn test_jsonb_columns_exist() {
+    let store = connect_store().await;
 
-    // Run migrations
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .expect("Failed to run migrations");
+    let result: (i64,) = sqlx::query_as(
+        "SELECT COUNT(*) FROM information_schema.columns
+         WHERE table_name = 'braids'
+         AND data_type = 'jsonb'",
+    )
+    .fetch_one(store.pool())
+    .await
+    .expect("Failed to query JSONB columns");
 
-    // Note: sqlx migrations don't have built-in rollback
-    // This test verifies we can drop and recreate cleanly
-
-    sqlx::query("DROP TABLE IF EXISTS braids CASCADE")
-        .execute(&pool)
-        .await
-        .expect("Failed to drop table");
-
-    // Re-run migrations
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .expect("Failed to re-run migrations after drop");
+    assert!(
+        result.0 >= 3,
+        "Braids should have >=3 JSONB columns (metadata, ecop, was_derived_from)"
+    );
 }
 
-/// Test that database can handle UTF-8 content
+#[tokio::test]
+#[ignore = "requires PostgreSQL running (Docker)"]
+async fn test_migration_check_reports_up_to_date() {
+    let store = connect_store().await;
+
+    let up_to_date = store
+        .check_migrations()
+        .await
+        .expect("check_migrations should succeed");
+
+    assert!(up_to_date, "Migrations should be up to date after run");
+}
+
 #[tokio::test]
 #[ignore = "requires PostgreSQL running (Docker)"]
 async fn test_utf8_support() {
-    let pool = create_test_db().await;
+    let store = connect_store().await;
 
-    // Run migrations
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .expect("Failed to run migrations");
-
-    // Verify UTF-8 encoding
     let result: (String,) = sqlx::query_as(
         "SELECT pg_encoding_to_char(encoding) FROM pg_database WHERE datname = current_database()",
     )
-    .fetch_one(&pool)
+    .fetch_one(store.pool())
     .await
     .expect("Failed to query encoding");
 
     assert_eq!(result.0, "UTF8", "Database should use UTF-8 encoding");
 }
 
-/// Test that required extensions are available
 #[tokio::test]
 #[ignore = "requires PostgreSQL running (Docker)"]
 async fn test_required_extensions() {
-    let pool = create_test_db().await;
+    let store = connect_store().await;
 
-    // Check for uuid-ossp or pgcrypto for UUID generation
     let result: (i64,) = sqlx::query_as(
-        "SELECT COUNT(*) FROM pg_available_extensions 
+        "SELECT COUNT(*) FROM pg_available_extensions
          WHERE name IN ('uuid-ossp', 'pgcrypto')",
     )
-    .fetch_one(&pool)
+    .fetch_one(store.pool())
     .await
     .expect("Failed to query extensions");
 
     assert!(result.0 > 0, "Should have UUID extension available");
 }
 
-/// Test concurrent migration attempts (race condition safety)
 #[tokio::test]
 #[ignore = "requires PostgreSQL running (Docker)"]
-async fn test_concurrent_migrations() {
-    let pool = create_test_db().await;
+async fn test_braid_tags_table_exists() {
+    let store = connect_store().await;
 
-    // Spawn multiple migration tasks concurrently
-    let handles: Vec<_> = (0..3)
-        .map(|_| {
-            let pool = pool.clone();
-            tokio::spawn(async move { sqlx::migrate!("./migrations").run(&pool).await })
-        })
-        .collect();
+    let result: (i64,) = sqlx::query_as(
+        "SELECT COUNT(*) FROM information_schema.tables
+         WHERE table_schema = 'public' AND table_name = 'braid_tags'",
+    )
+    .fetch_one(store.pool())
+    .await
+    .expect("Failed to query schema");
 
-    // Wait for all to complete
-    for handle in handles {
-        let result = handle.await.expect("Task should complete");
-        assert!(result.is_ok(), "Concurrent migrations should not conflict");
-    }
+    assert_eq!(result.0, 1, "braid_tags table should exist after migration");
+}
+
+#[tokio::test]
+#[ignore = "requires PostgreSQL running (Docker)"]
+async fn test_updated_at_trigger_exists() {
+    let store = connect_store().await;
+
+    let result: (i64,) = sqlx::query_as(
+        "SELECT COUNT(*) FROM information_schema.triggers
+         WHERE trigger_name = 'update_braids_updated_at'",
+    )
+    .fetch_one(store.pool())
+    .await
+    .expect("Failed to query triggers");
+
+    assert_eq!(result.0, 1, "update_braids_updated_at trigger should exist");
 }

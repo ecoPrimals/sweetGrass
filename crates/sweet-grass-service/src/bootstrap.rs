@@ -235,6 +235,31 @@ pub async fn infant_bootstrap_with_config_and_reader(
     })
 }
 
+/// Resolve the advertise host for discovery announcements (DI-friendly).
+///
+/// Uses `PRIMAL_ADVERTISE_ADDRESS` if set via the reader, otherwise falls
+/// back to the system hostname. `0.0.0.0` is never announced — it's a
+/// listen wildcard, not a routable address.
+fn resolve_advertise_host(reader: &impl Fn(&str) -> Option<String>) -> String {
+    reader("PRIMAL_ADVERTISE_ADDRESS").unwrap_or_else(|| {
+        hostname::get()
+            .ok()
+            .and_then(|h| h.into_string().ok())
+            .unwrap_or_else(|| "localhost".to_string())
+    })
+}
+
+/// Build an advertise address from the resolved host and a port.
+///
+/// Returns `None` when the port is `0` (not yet bound / auto-allocate).
+fn advertise_address(reader: &impl Fn(&str) -> Option<String>, port: u16) -> Option<String> {
+    if port > 0 {
+        Some(format!("{}:{port}", resolve_advertise_host(reader)))
+    } else {
+        None
+    }
+}
+
 /// Announce this primal's capabilities to the discovery service.
 ///
 /// Per IPC v3.1 §Discovery, primals SHOULD register with Songbird (or any
@@ -251,44 +276,37 @@ async fn announce_capabilities(self_knowledge: &SelfKnowledge, state: &AppState)
     }
 
     let discovery = create_discovery().await;
+    let env_reader = |key: &str| std::env::var(key).ok();
 
     let primal = DiscoveredPrimal {
         instance_id: self_knowledge.instance_id.clone(),
         name: self_knowledge.name.clone(),
         capabilities: self_knowledge.capabilities.clone(),
-        tarpc_address: state.self_knowledge.as_ref().and_then(|sk| {
-            if sk.tarpc_port > 0 {
-                Some(format!("0.0.0.0:{}", sk.tarpc_port))
-            } else {
-                None
-            }
-        }),
-        rest_address: state.self_knowledge.as_ref().and_then(|sk| {
-            if sk.rest_port > 0 {
-                Some(format!("0.0.0.0:{}", sk.rest_port))
-            } else {
-                None
-            }
-        }),
+        tarpc_address: state
+            .self_knowledge
+            .as_ref()
+            .and_then(|sk| advertise_address(&env_reader, sk.tarpc_port)),
+        rest_address: state
+            .self_knowledge
+            .as_ref()
+            .and_then(|sk| advertise_address(&env_reader, sk.rest_port)),
         last_seen: std::time::SystemTime::now(),
         healthy: true,
     };
 
-    match discovery.announce(&primal).await {
-        Ok(()) => {
-            info!(
-                capabilities = ?self_knowledge.capabilities,
-                "Announced capabilities to discovery service"
-            );
-        },
-        Err(e) => {
-            debug!(
-                error = %e,
-                "Discovery service unreachable — continuing in standalone mode \
-                 (IPC v3.1 §Standalone Startup)"
-            );
-        },
+    if let Err(e) = discovery.announce(&primal).await {
+        debug!(
+            error = %e,
+            "Discovery service unreachable — continuing in standalone mode \
+             (IPC v3.1 §Standalone Startup)"
+        );
+        return;
     }
+
+    info!(
+        capabilities = ?self_knowledge.capabilities,
+        "Announced capabilities to discovery service"
+    );
 }
 
 /// Create application state with runtime-discovered storage.

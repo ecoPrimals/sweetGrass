@@ -2,7 +2,7 @@
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! `NestGate` `JSON-RPC` storage backend for `SweetGrass`.
 //!
-//! This crate implements [`BraidStore`] by delegating persistence to `NestGate`
+//! This crate implements [`sweet_grass_store::BraidStore`] by delegating persistence to `NestGate`
 //! via `storage.*` `JSON-RPC` methods over Unix Domain Sockets. This aligns with
 //! the ecosystem pattern where `NestGate` owns durable persistence and primals
 //! discover it at runtime via capability-based socket resolution.

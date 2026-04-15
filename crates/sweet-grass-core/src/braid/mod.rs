@@ -18,6 +18,7 @@ use crate::entity::EntityReference;
 
 mod braid_type;
 pub mod builder;
+pub mod context;
 mod tests;
 pub mod types;
 
@@ -25,8 +26,9 @@ pub use builder::BraidBuilder;
 pub use types::{
     BraidContext, BraidId, BraidMetadata, BraidType, CompressionMeta, ContentHash,
     DEFAULT_ECOP_BASE_URI, DEFAULT_ECOP_VOCAB_URI, EcoPrimalsAttributes, JsonLdVersion, LoamAnchor,
-    LoamCommitRef, PROV_VOCAB_URI, SCHEMA_VOCAB_URI, SummaryType, Timestamp, XSD_VOCAB_URI,
-    current_timestamp_nanos, ecop_base_uri, ecop_vocab_uri,
+    LoamCommitRef, PROV_VOCAB_URI, RDFS_VOCAB_URI, SCHEMA_VOCAB_URI, SummaryType, Timestamp,
+    XSD_VOCAB_URI, current_timestamp_nanos, ecop_base_uri, ecop_base_uri_with_reader,
+    ecop_vocab_uri, ecop_vocab_uri_with_reader,
 };
 
 #[expect(

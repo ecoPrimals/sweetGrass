@@ -1,6 +1,6 @@
 # 🌾 SweetGrass — Development Guide
 
-**Last Updated**: April 12, 2026  
+**Last Updated**: April 15, 2026  
 **Version**: v0.7.27
 
 ---
@@ -188,7 +188,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 1,427 tests passing (90.4% line coverage via llvm-cov, testable code)
+- **Overall**: 1,463 tests (1,405 local + 58 Docker CI), 90.4% line coverage via llvm-cov
 - **Target**: 90%+ coverage on core crates (achieved)
 
 ### Per-Crate Coverage
@@ -202,8 +202,9 @@ cargo audit
 | sweet-grass-service | 92% | 90% | ✅ Above target |
 | sweet-grass-store | 96% | 90% | ✅ Excellent |
 | sweet-grass-store-redb | 90%+ | 90% | ✅ Above target |
+| sweet-grass-store-nestgate | 89% | 80% | ✅ Above target |
 | sweet-grass-store-postgres | 5% | 80% | ❌ Needs CI/Docker |
-| sweet-grass-integration | 80% | 80% | ✅ At target |
+| sweet-grass-integration | 81% | 80% | ✅ Above target |
 | sweet-grass-store-sled | 80% | 90% | ⚠️ Legacy (feature-gated) |
 
 ### Improving Coverage

@@ -67,6 +67,9 @@ async-trait = { workspace = true }
 # CLI
 clap = { workspace = true }
 
+# Hostname resolution for discovery announcements (pure Rust, no libc)
+hostname = "0.4"
+
 [features]
 default = []
 sled = ["dep:sled", "dep:sweet-grass-store-sled"]

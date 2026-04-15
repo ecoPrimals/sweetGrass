@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### primalSpring Audit Resolution: Docker CI, Coverage 90%+, Deep Debt (April 15, 2026)
+
+Resolves primalSpring post-Phase 43 audit items for sweetGrass: Postgres
+Docker CI coverage and 90% target. Comprehensive deep debt evolution pass.
+
+#### Added
+
+- **Docker CI Postgres tests** — `.github/workflows/test.yml` uses `--include-ignored` to run Docker-dependent PostgreSQL integration tests in CI
+- **NestGate store tests** — comprehensive coverage for queries, indexing, error handling, edge cases (`get_by_hash`, `query` with filters/pagination, `count`, `by_agent`, `derived_from`, `put_activity`/`get_activity`, index cleanup, config defaults, error display, client error handling)
+- **Composition health tests** — `handle_tower_health`, `handle_node_health`, `handle_nest_health`, `handle_nucleus_health`, probe degraded/invalid-json scenarios
+- **Factory NestGate tests** — `from_config_nestgate`, `from_config_nestgate_via_reader`, `nestgate_config_from_reader`
+- **Discovery family tests** — `discover_socket_with_family` happy path, fallback, None family, missing env
+- **Integration testing helper tests** — `postgres_test_url_for_port`, `test_db_url`, constants validation
+- **`braid/context.rs`** — extracted JSON-LD context types (`JsonLdVersion`, `BraidContext`, vocabulary URI constants, DI-friendly URI resolvers) from `braid/types.rs`
+
+#### Changed
+
+- **`braid/types.rs`** — reduced from 856→649 lines via `context.rs` extraction (semantic split by JSON-LD concern)
+- **`bootstrap.rs`** — `resolve_advertise_host()` and `advertise_address()` evolved to DI-friendly pattern; hostname resolution replaces hardcoded `0.0.0.0`; `hostname` crate added
+- **`migrations_test.rs`** — rewritten to use production `PostgresStore::connect()` + `run_migrations()` path instead of `sqlx::migrate!`
+- **Removed outdated `migrations/20250101000000_initial.sql`** — production uses embedded Rust migrations in `src/migrations.rs`; docker-compose mount cleaned
+- **Coverage**: 89.0% → 90.4% line (exceeds 90% target)
+- **Tests**: 1,427 → 1,463 (1,405 local + 58 Docker CI)
+- **Files**: 186 .rs files, 51,283 LOC, max file 876 lines
+
 ### Deep Debt Cleanup: Capability-Based Naming, DI, Smart Refactoring (April 12, 2026)
 
 Hardcoding elimination and code quality evolution sprint:

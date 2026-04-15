@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
-//! [`BraidStore`] implementation backed by `NestGate` `JSON-RPC`.
+//! [`BraidStore`](sweet_grass_store::BraidStore) implementation backed by `NestGate` `JSON-RPC`.
 
 use std::sync::Arc;
 
@@ -449,3 +449,7 @@ impl BraidStore for NestGateStore {
         Ok(braid.and_then(|b| b.was_generated_by).into_iter().collect())
     }
 }
+
+#[cfg(test)]
+#[expect(clippy::expect_used, clippy::unwrap_used, reason = "test code")]
+mod tests;

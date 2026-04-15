@@ -422,7 +422,7 @@
 - [ ] Evolved `MemoryStore` indexes (collision-preserving)
 - [ ] `convergence.query` JSON-RPC method
 - [ ] PostgreSQL `content_convergence` table and migrations
-- [x] Coverage target: 90%+ with llvm-cov *(90.90% region coverage, 1,218 tests)*
+- [x] Coverage target: 90%+ with llvm-cov *(90.4% line coverage, 1,463 tests)*
 
 ### v0.9.0 — sunCloud Integration (Q3 2026)
 
@@ -463,7 +463,7 @@
 - [ ] Lazy loading for large provenance graphs
 
 ### Infrastructure
-- [ ] CI/CD pipeline
+- [x] CI/CD pipeline *(GitHub Actions: fmt, clippy, test, coverage, Docker Postgres)*
 - [ ] Automated performance regression testing
 - [ ] Monitoring and observability
 

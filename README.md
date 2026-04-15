@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.27 | 1,427 tests | 90%+ coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 2 | Wire L3 | NestGate store | Composition health
+v0.7.27 | 1,463 tests | 90%+ coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 2 | Wire L3 | NestGate store | Composition health
 
 ---
 
@@ -78,6 +78,7 @@ curl http://localhost:8080/api/v1/braids
 | `sweet-grass-factory` | Braid creation + attribution engine |
 | `sweet-grass-query` | Graph traversal, PROV-O export |
 | `sweet-grass-compression` | 0/1/Many session compression |
+| `sweet-grass-store-nestgate` | Delegated storage via NestGate JSON-RPC over UDS (feature-gated) |
 | `sweet-grass-integration` | Primal discovery + capability clients |
 | `sweet-grass-service` | UniBin server (REST + JSON-RPC + tarpc + UDS + BTSP) |
 
@@ -200,14 +201,14 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Metric | Value |
 |--------|-------|
 | Version | v0.7.27 |
-| Tests | 1,427 passing |
-| Coverage | 90.3% line (llvm-cov) |
+| Tests | 1,463 (1,405 local + 58 Docker CI) |
+| Coverage | 90.4% line (llvm-cov) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
-| Max file size | 898 lines (limit: 1000) |
-| .rs files | 179 (49,869 LOC) |
+| Max file size | 876 lines (limit: 1000) |
+| .rs files | 186 (51,283 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |

@@ -419,6 +419,54 @@ fn test_redb_config_custom_path_via_reader() {
     assert_eq!(config.redb_path.as_deref(), Some("/tmp/custom.redb"));
 }
 
+// ==================== NestGate Backend Tests ====================
+
+#[cfg(feature = "nestgate")]
+#[tokio::test]
+async fn test_from_config_nestgate() {
+    let config = StorageConfig {
+        backend: "nestgate".to_string(),
+        nestgate_socket: Some("/tmp/test-nestgate-factory.sock".to_string()),
+        nestgate_family_id: Some("test-family".to_string()),
+        ..StorageConfig::default()
+    };
+    let result = BraidStoreFactory::from_config_with_name(&config).await;
+    assert!(result.is_ok());
+    let (store, name) = result.unwrap();
+    assert_eq!(name, "nestgate");
+    assert!(Arc::strong_count(&store) >= 1);
+}
+
+#[cfg(feature = "nestgate")]
+#[tokio::test]
+async fn test_from_config_nestgate_via_reader() {
+    let reader = mock_reader(&[
+        ("STORAGE_BACKEND", "nestgate"),
+        ("NESTGATE_SOCKET", "/tmp/test-ng-reader.sock"),
+    ]);
+    let result = BraidStoreFactory::from_reader_with_name(reader).await;
+    assert!(result.is_ok());
+    let (_, name) = result.unwrap();
+    assert_eq!(name, "nestgate");
+}
+
+#[cfg(feature = "nestgate")]
+#[test]
+fn test_nestgate_config_from_reader() {
+    let reader = mock_reader(&[
+        ("STORAGE_BACKEND", "nestgate"),
+        ("NESTGATE_SOCKET", "/custom/nestgate.sock"),
+        ("FAMILY_ID", "fam-001"),
+    ]);
+    let config = BraidStoreFactory::config_from_reader(&reader);
+    assert_eq!(config.backend, "nestgate");
+    assert_eq!(
+        config.nestgate_socket.as_deref(),
+        Some("/custom/nestgate.sock")
+    );
+    assert_eq!(config.nestgate_family_id.as_deref(), Some("fam-001"));
+}
+
 // ==================== StorageConfig defaults ====================
 
 #[test]
