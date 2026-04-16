@@ -207,8 +207,8 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
-| Max file size | 803 lines (limit: 1000) |
-| .rs files | 190 (51,328 LOC) |
+| Max file size | 726 lines (limit: 1000) |
+| .rs files | 191 (51,355 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |

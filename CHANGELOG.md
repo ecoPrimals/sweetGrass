@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Entity Tests Extraction & Final Deep Debt Pass (April 16, 2026)
+
+Extracted `entity.rs` inline tests (322 lines) to `entity/tests.rs`, reducing
+the production file from 803 → 483 lines. Max file size is now 726 lines
+(agent.rs). Zero files over 800 lines.
+
+Full deep debt audit confirms: zero unsafe, zero TODOs, zero production
+unwrap/expect, zero `#[allow]` (all `#[expect]`), zero hardcoded primal names,
+all mocks test-gated, `cargo deny` clean.
+
 ### async-trait Formal Audit (April 16, 2026)
 
 Audited all 22 `#[async_trait]` uses across the codebase. All 5 trait
