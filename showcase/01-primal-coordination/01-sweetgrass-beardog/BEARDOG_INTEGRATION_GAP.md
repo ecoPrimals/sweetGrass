@@ -95,7 +95,6 @@ pub struct HttpSigningClient {
     http_client: reqwest::Client,
 }
 
-#[async_trait]
 impl SigningClient for HttpSigningClient {
     async fn sign(&self, braid: &Braid) -> Result<BraidSignature> {
         let response = self.http_client

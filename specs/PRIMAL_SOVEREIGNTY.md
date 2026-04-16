@@ -113,7 +113,7 @@ use tarpc::{server, context::Context};
 
 /// SweetGrass tarpc server
 pub struct SweetGrassServer {
-    store: Arc<dyn BraidStore>,
+    store: Arc<BraidBackend>,
     factory: Arc<BraidFactory>,
     query_engine: Arc<QueryEngine>,
     compression: Arc<CompressionEngine>,

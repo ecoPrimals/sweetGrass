@@ -166,7 +166,7 @@ pub struct SessionEventsProcessor {
     client: Arc<dyn SessionEventsClient>,
     compression: Arc<CompressionEngine>,
     factory: Arc<BraidFactory>,
-    store: Arc<dyn BraidStore>,
+    store: Arc<BraidBackend>,
 }
 
 impl RhizoCryptProcessor {
@@ -312,7 +312,7 @@ impl TarpcAnchoringClient {
 /// Manage Braid anchoring (capability-based)
 pub struct AnchorManager {
     anchoring_client: Arc<dyn AnchoringClient>,
-    store: Arc<dyn BraidStore>,
+    store: Arc<BraidBackend>,
 }
 
 impl AnchorManager {
@@ -472,7 +472,7 @@ pub struct TaskCompletion {
 pub struct ComputeProcessor {
     client: Arc<dyn ComputeClient>,
     factory: Arc<BraidFactory>,
-    store: Arc<dyn BraidStore>,
+    store: Arc<BraidBackend>,
 }
 
 impl ToadStoolProcessor {

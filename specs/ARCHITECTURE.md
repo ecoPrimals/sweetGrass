@@ -126,7 +126,7 @@ Handles the DAG → Linear compression (fungal leather model):
 ```rust
 /// Compression Engine component
 pub struct CompressionEngine {
-    store: Arc<dyn BraidStore>,
+    store: Arc<BraidBackend>,
     config: CompressionConfig,
 }
 
@@ -184,7 +184,7 @@ Provides rich querying over the Braid graph:
 ```rust
 /// Query Engine component
 pub struct QueryEngine {
-    store: Arc<dyn BraidStore>,
+    store: Arc<BraidBackend>,
     index: Arc<dyn IndexStore>,
 }
 
@@ -231,7 +231,7 @@ pub struct EventListener {
     loam_client: Arc<dyn LoamSpineClient>,
     toadstool_client: Option<Arc<dyn ToadStoolClient>>,
     factory: Arc<BraidFactory>,
-    store: Arc<dyn BraidStore>,
+    store: Arc<BraidBackend>,
 }
 
 impl EventListener {
@@ -260,7 +260,7 @@ Manages Braid anchoring to LoamSpine:
 /// Anchor Manager component
 pub struct AnchorManager {
     loam_client: Arc<dyn LoamSpineClient>,
-    store: Arc<dyn BraidStore>,
+    store: Arc<BraidBackend>,
 }
 
 impl AnchorManager {

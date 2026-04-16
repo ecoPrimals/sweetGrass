@@ -119,7 +119,7 @@ pub struct ResourceContribution {
 /// Attribution calculator
 pub struct AttributionCalculator {
     config: AttributionConfig,
-    store: Arc<dyn BraidStore>,
+    store: Arc<BraidBackend>,
 }
 
 impl AttributionCalculator {
@@ -368,7 +368,7 @@ SweetGrass provides this interface for sunCloud to query attribution:
 
 ```rust
 /// sunCloud interface for attribution
-#[async_trait]
+// Native async fn in trait (Rust 2024 RPITIT)
 pub trait SunCloudInterface: Send + Sync {
     /// Get attribution chain for an entity
     async fn get_attribution(
@@ -593,7 +593,7 @@ pub struct RadiatedShare {
 
 ```rust
 /// Attribution query interface
-#[async_trait]
+// Native async fn in trait (Rust 2024 RPITIT)
 pub trait AttributionQuery: Send + Sync {
     /// Get attribution for entity
     async fn attribution(
@@ -689,7 +689,7 @@ Attribution calculations can be verified:
 ```rust
 /// Attribution verification
 pub struct AttributionVerifier {
-    store: Arc<dyn BraidStore>,
+    store: Arc<BraidBackend>,
 }
 
 impl AttributionVerifier {

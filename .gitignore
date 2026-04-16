@@ -19,6 +19,8 @@ fuzz/coverage/
 # Coverage artifacts (cargo-llvm-cov)
 *.profraw
 *.profdata
+lcov.info
+*.lcov
 
 *.swp
 *.swo

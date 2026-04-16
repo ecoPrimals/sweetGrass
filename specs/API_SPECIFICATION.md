@@ -261,7 +261,7 @@ use std::sync::Arc;
 use tarpc::{server, context::Context};
 
 pub struct SweetGrassServer {
-    store: Arc<dyn BraidStore>,
+    store: Arc<BraidBackend>,
     factory: Arc<BraidFactory>,
     query: Arc<QueryEngine>,
     compression: Arc<CompressionEngine>,

@@ -127,14 +127,16 @@ let backend = PostgresBackend::new();
 All backends implement the same trait:
 
 ```rust
-#[async_trait]
-pub trait BraidStore {
-    async fn put(&self, braid: &Braid) -> Result<()>;
-    async fn get(&self, id: &BraidId) -> Result<Option<Braid>>;
-    async fn query(&self, filter: &Filter) -> Result<Vec<Braid>>;
-    async fn delete(&self, id: &BraidId) -> Result<()>;
+pub trait BraidStore: Send + Sync {
+    fn put(&self, braid: &Braid) -> impl Future<Output = Result<()>> + Send;
+    fn get(&self, id: &BraidId) -> impl Future<Output = Result<Option<Braid>>> + Send;
+    fn query(&self, filter: &Filter, order: QueryOrder) -> impl Future<Output = Result<QueryResult>> + Send;
+    fn delete(&self, id: &BraidId) -> impl Future<Output = Result<bool>> + Send;
 }
 ```
+
+Concrete backends are selected at runtime via `BraidBackend` enum dispatch — zero `dyn`
+allocation, native async (no `#[async_trait]` boxing).
 
 **Result**: Swap backends without changing application code!
 
