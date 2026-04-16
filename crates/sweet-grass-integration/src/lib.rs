@@ -84,19 +84,20 @@ pub mod testing;
 
 // Re-exports
 pub use anchor::{
-    AnchorInfo, AnchorManager, AnchorReceipt, AnchoringClient, TarpcAnchoringClient,
-    create_anchoring_client_async,
+    AnchorInfo, AnchorManager, AnchorReceipt, AnchoringBackend, AnchoringClient,
+    TarpcAnchoringClient, create_anchoring_client_async,
 };
 pub use discovery::{
-    CachedDiscovery, DiscoveredPrimal, LocalDiscovery, PrimalDiscovery, RegistryDiscovery,
-    extract_capabilities,
+    CachedDiscovery, DiscoveredPrimal, DiscoveryBackend, LocalDiscovery, PrimalDiscovery,
+    RegistryDiscovery, extract_capabilities,
 };
 pub use error::{IntegrationError, IpcErrorPhase, extract_rpc_error};
 pub use listener::{
-    EventHandler, SessionEventStream, SessionEventsClient, create_session_events_client_async,
+    EventHandler, SessionEventStream, SessionEventStreamBackend, SessionEventsBackend,
+    SessionEventsClient, create_session_events_client_async,
     tarpc_client::TarpcSessionEventsClient,
 };
-pub use signer::{SignatureInfo, SigningClient, create_signing_client_async};
+pub use signer::{SignatureInfo, SigningBackend, SigningClient, create_signing_client_async};
 pub use sweet_grass_core::config::Capability;
 
 pub use discovery::create_discovery;
@@ -137,7 +138,7 @@ pub type Result<T> = std::result::Result<T, IntegrationError>;
 pub mod capability_based {
 
     pub use super::{
-        AnchoringClient, Capability, DiscoveredPrimal, LocalDiscovery, PrimalDiscovery,
-        SessionEventsClient, SigningClient, create_discovery,
+        AnchoringClient, Capability, DiscoveredPrimal, DiscoveryBackend, LocalDiscovery,
+        PrimalDiscovery, SessionEventsClient, SigningClient, create_discovery,
     };
 }

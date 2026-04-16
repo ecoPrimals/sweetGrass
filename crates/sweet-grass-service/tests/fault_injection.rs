@@ -8,135 +8,13 @@
 #![expect(clippy::expect_used, reason = "test file: expect is standard in tests")]
 
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
-
-use async_trait::async_trait;
-use sweet_grass_core::{Activity, ActivityId, Braid, BraidId, ContentHash, agent::Did};
-use sweet_grass_factory::BraidFactory;
-use sweet_grass_service::{AppState, create_router};
-use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder, QueryResult, Result, StoreError};
 
 use axum_test::TestServer;
 use serde_json::json;
-
-/// Store wrapper that fails on specific operations for fault injection.
-struct FailingStore {
-    inner: sweet_grass_store::MemoryStore,
-    fail_puts: AtomicBool,
-    fail_gets: AtomicBool,
-    fail_queries: AtomicBool,
-}
-
-impl FailingStore {
-    fn new() -> Arc<Self> {
-        Arc::new(Self {
-            inner: sweet_grass_store::MemoryStore::new(),
-            fail_puts: AtomicBool::new(false),
-            fail_gets: AtomicBool::new(false),
-            fail_queries: AtomicBool::new(false),
-        })
-    }
-
-    fn set_fail_puts(&self, fail: bool) {
-        self.fail_puts.store(fail, Ordering::SeqCst);
-    }
-
-    fn set_fail_gets(&self, fail: bool) {
-        self.fail_gets.store(fail, Ordering::SeqCst);
-    }
-
-    fn set_fail_queries(&self, fail: bool) {
-        self.fail_queries.store(fail, Ordering::SeqCst);
-    }
-
-    fn fault_error() -> StoreError {
-        StoreError::Internal("injected fault".to_string())
-    }
-}
-
-#[async_trait]
-impl BraidStore for FailingStore {
-    async fn put(&self, braid: &Braid) -> Result<()> {
-        if self.fail_puts.load(Ordering::SeqCst) {
-            return Err(Self::fault_error());
-        }
-        self.inner.put(braid).await
-    }
-
-    async fn get(&self, id: &BraidId) -> Result<Option<Braid>> {
-        if self.fail_gets.load(Ordering::SeqCst) {
-            return Err(Self::fault_error());
-        }
-        self.inner.get(id).await
-    }
-
-    async fn get_by_hash(&self, hash: &ContentHash) -> Result<Option<Braid>> {
-        if self.fail_gets.load(Ordering::SeqCst) {
-            return Err(Self::fault_error());
-        }
-        self.inner.get_by_hash(hash).await
-    }
-
-    async fn delete(&self, id: &BraidId) -> Result<bool> {
-        self.inner.delete(id).await
-    }
-
-    async fn exists(&self, id: &BraidId) -> Result<bool> {
-        if self.fail_gets.load(Ordering::SeqCst) {
-            return Err(Self::fault_error());
-        }
-        self.inner.exists(id).await
-    }
-
-    async fn query(&self, filter: &QueryFilter, order: QueryOrder) -> Result<QueryResult> {
-        if self.fail_queries.load(Ordering::SeqCst) {
-            return Err(Self::fault_error());
-        }
-        self.inner.query(filter, order).await
-    }
-
-    async fn count(&self, filter: &QueryFilter) -> Result<usize> {
-        if self.fail_queries.load(Ordering::SeqCst) {
-            return Err(Self::fault_error());
-        }
-        self.inner.count(filter).await
-    }
-
-    async fn by_agent(&self, agent: &Did) -> Result<Vec<Braid>> {
-        if self.fail_queries.load(Ordering::SeqCst) {
-            return Err(Self::fault_error());
-        }
-        self.inner.by_agent(agent).await
-    }
-
-    async fn derived_from(&self, hash: &ContentHash) -> Result<Vec<Braid>> {
-        if self.fail_queries.load(Ordering::SeqCst) {
-            return Err(Self::fault_error());
-        }
-        self.inner.derived_from(hash).await
-    }
-
-    async fn put_activity(&self, activity: &Activity) -> Result<()> {
-        if self.fail_puts.load(Ordering::SeqCst) {
-            return Err(Self::fault_error());
-        }
-        self.inner.put_activity(activity).await
-    }
-
-    async fn get_activity(&self, id: &ActivityId) -> Result<Option<Activity>> {
-        if self.fail_gets.load(Ordering::SeqCst) {
-            return Err(Self::fault_error());
-        }
-        self.inner.get_activity(id).await
-    }
-
-    async fn activities_for_braid(&self, braid_id: &BraidId) -> Result<Vec<Activity>> {
-        if self.fail_queries.load(Ordering::SeqCst) {
-            return Err(Self::fault_error());
-        }
-        self.inner.activities_for_braid(braid_id).await
-    }
-}
+use sweet_grass_core::agent::Did;
+use sweet_grass_factory::BraidFactory;
+use sweet_grass_service::{AppState, BraidBackend, FaultInjectionStore, create_router};
+use sweet_grass_store::BraidStore;
 
 fn fault_injection_rest_body() -> serde_json::Value {
     json!({
@@ -147,9 +25,9 @@ fn fault_injection_rest_body() -> serde_json::Value {
     })
 }
 
-fn fault_injection_test_server(store: Arc<FailingStore>) -> TestServer {
+fn fault_injection_test_server(store: Arc<FaultInjectionStore>) -> TestServer {
     let state = AppState::with_store(
-        store as Arc<dyn BraidStore>,
+        Arc::new(BraidBackend::FaultInjection(store)),
         Did::new("did:key:z6MkFaultTest"),
     );
     let router = create_router(state);
@@ -160,7 +38,7 @@ fn fault_injection_test_server(store: Arc<FailingStore>) -> TestServer {
 
 #[tokio::test]
 async fn test_fault_store_put_failure() {
-    let store = FailingStore::new();
+    let store = FaultInjectionStore::new();
     store.set_fail_puts(true);
 
     let server = fault_injection_test_server(store);
@@ -175,7 +53,7 @@ async fn test_fault_store_put_failure() {
 
 #[tokio::test]
 async fn test_fault_store_get_failure() {
-    let store = FailingStore::new();
+    let store = FaultInjectionStore::new();
     let factory = Arc::new(BraidFactory::new(Did::new("did:key:z6MkFaultTest")));
     let braid = factory
         .from_data(b"get fault test", "text/plain", None)
@@ -194,7 +72,7 @@ async fn test_fault_store_get_failure() {
 
 #[tokio::test]
 async fn test_fault_store_query_failure() {
-    let store = FailingStore::new();
+    let store = FaultInjectionStore::new();
     store.set_fail_queries(true);
 
     let server = fault_injection_test_server(store);
@@ -206,7 +84,7 @@ async fn test_fault_store_query_failure() {
 
 #[tokio::test]
 async fn test_fault_recovery_after_transient_failure() {
-    let store = FailingStore::new();
+    let store = FaultInjectionStore::new();
     let server = fault_injection_test_server(Arc::clone(&store));
 
     store.set_fail_puts(true);
@@ -236,7 +114,7 @@ async fn test_fault_recovery_after_transient_failure() {
 
 #[tokio::test]
 async fn test_fault_partial_batch_failure() {
-    let store = FailingStore::new();
+    let store = FaultInjectionStore::new();
     let server = fault_injection_test_server(Arc::clone(&store));
 
     let body1 = json!({
@@ -290,7 +168,7 @@ async fn test_fault_partial_batch_failure() {
 
 #[tokio::test]
 async fn test_graceful_degradation_under_load() {
-    let store = FailingStore::new();
+    let store = FaultInjectionStore::new();
     let server = fault_injection_test_server(store);
 
     for i in 0..100 {
@@ -307,7 +185,7 @@ async fn test_graceful_degradation_under_load() {
 
 #[tokio::test]
 async fn test_malformed_request_resilience() {
-    let store = FailingStore::new();
+    let store = FaultInjectionStore::new();
     let server = fault_injection_test_server(store);
 
     let parse_error_resp = server.post("/jsonrpc").json(&json!(123)).await;
@@ -346,7 +224,7 @@ async fn test_malformed_request_resilience() {
 
 #[tokio::test]
 async fn test_data_integrity_after_failed_write() {
-    let store = FailingStore::new();
+    let store = FaultInjectionStore::new();
     let factory = Arc::new(BraidFactory::new(Did::new("did:key:z6MkFaultTest")));
 
     let braid1 = factory
@@ -367,7 +245,7 @@ async fn test_data_integrity_after_failed_write() {
 
 #[tokio::test]
 async fn test_concurrent_reads_during_write_failure() {
-    let store = FailingStore::new();
+    let store = FaultInjectionStore::new();
     let factory = Arc::new(BraidFactory::new(Did::new("did:key:z6MkFaultTest")));
 
     let braid = factory

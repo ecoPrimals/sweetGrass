@@ -5,10 +5,11 @@ use super::*;
 
 #[tokio::test]
 async fn test_cached_discovery() {
-    let inner = Arc::new(LocalDiscovery::new());
+    let local = LocalDiscovery::new();
     let signer = make_test_primal("signer", vec![Capability::Signing]);
-    inner.register(signer).await;
+    local.register(signer).await;
 
+    let inner = Arc::new(DiscoveryBackend::Local(local.clone()));
     let cached = CachedDiscovery::new(inner, Duration::from_secs(60));
 
     // First call populates cache
@@ -28,10 +29,11 @@ async fn test_cached_discovery() {
 
 #[tokio::test]
 async fn test_cached_discovery_find_one() {
-    let inner = Arc::new(LocalDiscovery::new());
+    let local = LocalDiscovery::new();
     let signer = make_test_primal("cached-signer", vec![Capability::Signing]);
-    inner.register(signer).await;
+    local.register(signer).await;
 
+    let inner = Arc::new(DiscoveryBackend::Local(local));
     let cached = CachedDiscovery::new(inner, Duration::from_secs(60));
     let found = cached.find_one(&Capability::Signing).await.expect("find");
     assert_eq!(found.name, "cached-signer");
@@ -39,17 +41,18 @@ async fn test_cached_discovery_find_one() {
 
 #[tokio::test]
 async fn test_cached_discovery_health() {
-    let inner = Arc::new(LocalDiscovery::new());
+    let inner = Arc::new(DiscoveryBackend::Local(LocalDiscovery::new()));
     let cached = CachedDiscovery::new(inner, Duration::from_secs(60));
     assert!(cached.health().await);
 }
 
 #[tokio::test]
 async fn test_cached_discovery_invalidate() {
-    let inner = Arc::new(LocalDiscovery::new());
+    let local = LocalDiscovery::new();
     let signer = make_test_primal("signer", vec![Capability::Signing]);
-    inner.register(signer).await;
+    local.register(signer).await;
 
+    let inner = Arc::new(DiscoveryBackend::Local(local));
     let cached = CachedDiscovery::new(inner, Duration::from_secs(60));
 
     // Populate cache
@@ -69,10 +72,11 @@ async fn test_cached_discovery_invalidate() {
 
 #[tokio::test]
 async fn test_cached_discovery_invalidate_all() {
-    let inner = Arc::new(LocalDiscovery::new());
+    let local = LocalDiscovery::new();
     let signer = make_test_primal("signer", vec![Capability::Signing]);
-    inner.register(signer).await;
+    local.register(signer).await;
 
+    let inner = Arc::new(DiscoveryBackend::Local(local));
     let cached = CachedDiscovery::new(inner, Duration::from_secs(60));
     let _ = cached
         .find_by_capability(&Capability::Signing)
@@ -89,10 +93,11 @@ async fn test_cached_discovery_invalidate_all() {
 
 #[tokio::test]
 async fn test_cached_discovery_expired_entries() {
-    let inner = Arc::new(LocalDiscovery::new());
+    let local = LocalDiscovery::new();
     let signer = make_test_primal("signer", vec![Capability::Signing]);
-    inner.register(signer).await;
+    local.register(signer).await;
 
+    let inner = Arc::new(DiscoveryBackend::Local(local));
     let cached = CachedDiscovery::new(inner, Duration::from_millis(1));
 
     let _ = cached
@@ -111,7 +116,7 @@ async fn test_cached_discovery_expired_entries() {
 
 #[tokio::test]
 async fn test_cached_discovery_announce() {
-    let inner = Arc::new(LocalDiscovery::new());
+    let inner = Arc::new(DiscoveryBackend::Local(LocalDiscovery::new()));
     let cached = CachedDiscovery::new(inner, Duration::from_secs(60));
 
     let primal = make_test_primal("announced", vec![Capability::Signing]);
@@ -127,20 +132,20 @@ async fn test_cached_discovery_announce() {
 
 #[tokio::test]
 async fn test_cached_discovery_invalidate_forces_refresh() {
-    let inner = Arc::new(LocalDiscovery::new());
+    let local = LocalDiscovery::new();
     let signer = make_test_primal("signer-original", vec![Capability::Signing]);
-    inner.register(signer).await;
+    local.register(signer).await;
 
-    let inner_dyn: Arc<dyn PrimalDiscovery> = Arc::clone(&inner) as Arc<dyn PrimalDiscovery>;
-    let cached = CachedDiscovery::new(inner_dyn, Duration::from_secs(300));
+    let inner = Arc::new(DiscoveryBackend::Local(local.clone()));
+    let cached = CachedDiscovery::new(inner, Duration::from_secs(300));
     let _ = cached
         .find_by_capability(&Capability::Signing)
         .await
         .unwrap();
 
-    inner.unregister("signer-original-instance").await;
+    local.unregister("signer-original-instance").await;
     let updated = make_test_primal("signer-updated", vec![Capability::Signing]);
-    inner.register(updated).await;
+    local.register(updated).await;
 
     cached.invalidate(&Capability::Signing).await;
     let result = cached
@@ -153,14 +158,15 @@ async fn test_cached_discovery_invalidate_forces_refresh() {
 
 #[tokio::test]
 async fn test_cached_discovery_different_capabilities_separate_cache() {
-    let inner = Arc::new(LocalDiscovery::new());
-    inner
+    let local = LocalDiscovery::new();
+    local
         .register(make_test_primal("signer", vec![Capability::Signing]))
         .await;
-    inner
+    local
         .register(make_test_primal("anchor", vec![Capability::Anchoring]))
         .await;
 
+    let inner = Arc::new(DiscoveryBackend::Local(local));
     let cached = CachedDiscovery::new(inner, Duration::from_secs(60));
 
     let signers = cached
@@ -180,11 +186,12 @@ async fn test_cached_discovery_different_capabilities_separate_cache() {
 
 #[tokio::test]
 async fn test_cached_discovery_find_one_no_healthy_uses_cache() {
-    let inner = Arc::new(LocalDiscovery::new());
+    let local = LocalDiscovery::new();
     let mut unhealthy = make_test_primal("unhealthy", vec![Capability::Signing]);
     unhealthy.healthy = false;
-    inner.register(unhealthy).await;
+    local.register(unhealthy).await;
 
+    let inner = Arc::new(DiscoveryBackend::Local(local));
     let cached = CachedDiscovery::new(inner, Duration::from_secs(60));
 
     let result = cached.find_one(&Capability::Signing).await;

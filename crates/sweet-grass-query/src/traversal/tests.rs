@@ -44,10 +44,7 @@ async fn test_single_entity_graph() {
 
     let builder = ProvenanceGraphBuilder::new();
     let graph = builder
-        .build(
-            EntityReference::by_hash("sha256:root"),
-            &(store as Arc<dyn BraidStore>),
-        )
+        .build(EntityReference::by_hash("sha256:root"), &store)
         .await
         .expect("should build");
 
@@ -70,10 +67,7 @@ async fn test_derivation_chain() {
 
     let builder = ProvenanceGraphBuilder::new();
     let graph = builder
-        .build(
-            EntityReference::by_hash("sha256:child"),
-            &(store as Arc<dyn BraidStore>),
-        )
+        .build(EntityReference::by_hash("sha256:child"), &store)
         .await
         .expect("should build");
 
@@ -105,10 +99,7 @@ async fn test_depth_limit() {
 
     let builder = ProvenanceGraphBuilder::new().max_depth(5);
     let graph = builder
-        .build(
-            EntityReference::by_hash("sha256:e14"),
-            &(store as Arc<dyn BraidStore>),
-        )
+        .build(EntityReference::by_hash("sha256:e14"), &store)
         .await
         .expect("should build");
 
@@ -134,10 +125,7 @@ async fn test_multiple_parents() {
 
     let builder = ProvenanceGraphBuilder::new();
     let graph = builder
-        .build(
-            EntityReference::by_hash("sha256:child"),
-            &(store as Arc<dyn BraidStore>),
-        )
+        .build(EntityReference::by_hash("sha256:child"), &store)
         .await
         .expect("should build");
 
@@ -161,10 +149,7 @@ async fn test_children() {
 
     let builder = ProvenanceGraphBuilder::new();
     let graph = builder
-        .build(
-            EntityReference::by_hash("sha256:c1"),
-            &(store as Arc<dyn BraidStore>),
-        )
+        .build(EntityReference::by_hash("sha256:c1"), &store)
         .await
         .expect("should build");
 
@@ -180,10 +165,7 @@ async fn test_root_braid() {
 
     let builder = ProvenanceGraphBuilder::new();
     let graph = builder
-        .build(
-            EntityReference::by_hash("sha256:root"),
-            &(store as Arc<dyn BraidStore>),
-        )
+        .build(EntityReference::by_hash("sha256:root"), &store)
         .await
         .expect("should build");
 
@@ -200,10 +182,7 @@ async fn test_entity_and_activity_accessors() {
 
     let builder = ProvenanceGraphBuilder::new();
     let graph = builder
-        .build(
-            EntityReference::by_hash("sha256:test"),
-            &(store as Arc<dyn BraidStore>),
-        )
+        .build(EntityReference::by_hash("sha256:test"), &store)
         .await
         .expect("should build");
 
@@ -223,10 +202,7 @@ async fn test_contains_entity() {
 
     let builder = ProvenanceGraphBuilder::new();
     let graph = builder
-        .build(
-            EntityReference::by_hash("sha256:exists"),
-            &(store as Arc<dyn BraidStore>),
-        )
+        .build(EntityReference::by_hash("sha256:exists"), &store)
         .await
         .expect("should build");
 
@@ -242,10 +218,7 @@ async fn test_without_activities() {
 
     let builder = ProvenanceGraphBuilder::new().include_activities(false);
     let graph = builder
-        .build(
-            EntityReference::by_hash("sha256:no_activity"),
-            &(store as Arc<dyn BraidStore>),
-        )
+        .build(EntityReference::by_hash("sha256:no_activity"), &store)
         .await
         .expect("should build");
 
@@ -260,10 +233,7 @@ async fn test_generating_activity() {
 
     let builder = ProvenanceGraphBuilder::new();
     let graph = builder
-        .build(
-            EntityReference::by_hash("sha256:gen_test"),
-            &(store as Arc<dyn BraidStore>),
-        )
+        .build(EntityReference::by_hash("sha256:gen_test"), &store)
         .await
         .expect("should build");
 
@@ -279,10 +249,7 @@ async fn test_parents_empty() {
 
     let builder = ProvenanceGraphBuilder::new();
     let graph = builder
-        .build(
-            EntityReference::by_hash("sha256:no_parents"),
-            &(store as Arc<dyn BraidStore>),
-        )
+        .build(EntityReference::by_hash("sha256:no_parents"), &store)
         .await
         .expect("should build");
 
@@ -302,10 +269,7 @@ async fn test_missing_root() {
 
     let builder = ProvenanceGraphBuilder::new();
     let graph = builder
-        .build(
-            EntityReference::by_hash("sha256:missing"),
-            &(store as Arc<dyn BraidStore>),
-        )
+        .build(EntityReference::by_hash("sha256:missing"), &store)
         .await
         .expect("should build");
 
@@ -349,7 +313,7 @@ async fn test_children_with_multi_derivation() {
     let graph = builder
         .build(
             EntityReference::by_hash("sha256:child1_c"),
-            &(Arc::clone(&store) as Arc<dyn BraidStore>),
+            &Arc::clone(&store),
         )
         .await
         .expect("should build");
@@ -366,10 +330,7 @@ async fn test_root_braid_accessible() {
 
     let builder = ProvenanceGraphBuilder::new();
     let graph = builder
-        .build(
-            EntityReference::by_hash("sha256:root_b"),
-            &(store as Arc<dyn BraidStore>),
-        )
+        .build(EntityReference::by_hash("sha256:root_b"), &store)
         .await
         .expect("should build");
 
@@ -384,10 +345,7 @@ async fn test_root_braid_when_missing() {
 
     let builder = ProvenanceGraphBuilder::new();
     let graph = builder
-        .build(
-            EntityReference::by_hash("sha256:gone"),
-            &(store as Arc<dyn BraidStore>),
-        )
+        .build(EntityReference::by_hash("sha256:gone"), &store)
         .await
         .expect("should build");
 
@@ -406,10 +364,7 @@ async fn test_cycle_detection() {
 
     let builder = ProvenanceGraphBuilder::new().max_depth(20);
     let graph = builder
-        .build(
-            EntityReference::by_hash("sha256:cycle_a"),
-            &(store as Arc<dyn BraidStore>),
-        )
+        .build(EntityReference::by_hash("sha256:cycle_a"), &store)
         .await
         .expect("should not infinite loop");
 
@@ -425,10 +380,7 @@ async fn test_max_depth_zero() {
 
     let builder = ProvenanceGraphBuilder::new().max_depth(0);
     let graph = builder
-        .build(
-            EntityReference::by_hash("sha256:depth0"),
-            &(store as Arc<dyn BraidStore>),
-        )
+        .build(EntityReference::by_hash("sha256:depth0"), &store)
         .await
         .expect("should build");
 

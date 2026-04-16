@@ -7,7 +7,6 @@
 
 use std::future::Future;
 
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use sweet_grass_core::{
     Activity, ActivityId, Braid, BraidId, BraidType, ContentHash, agent::Did, braid::Timestamp,
@@ -181,19 +180,14 @@ impl QueryResult {
 
 /// Core trait for storing and retrieving Braids.
 ///
-/// Uses `#[async_trait]` because `BraidStore` is used as `Arc<dyn BraidStore>`
-/// for runtime backend selection (memory, redb, postgres, nestgate, sled).
-/// Native `async fn in trait` does not yet support `dyn` dispatch. When Rust
-/// stabilizes dyn-compatible async traits, this can migrate.
-#[async_trait]
+/// Uses native `impl Future + Send` (RPITIT, Rust 2024) instead of
+/// `#[async_trait]`. Runtime backend selection uses enum dispatch via
+/// `BraidBackend` in the service crate rather than `dyn` dispatch.
 pub trait BraidStore: Send + Sync {
     /// Store a new Braid.
-    async fn put(&self, braid: &Braid) -> Result<()>;
+    fn put(&self, braid: &Braid) -> impl Future<Output = Result<()>> + Send;
 
     /// Store multiple Braids in parallel with bounded concurrency.
-    ///
-    /// This method provides optimized batch insertion by processing
-    /// multiple braids concurrently with controlled parallelism.
     ///
     /// # Arguments
     /// * `braids` - Slice of braids to store
@@ -201,48 +195,42 @@ pub trait BraidStore: Send + Sync {
     ///
     /// # Returns
     /// A tuple of (`success_count`, errors) where errors contains any failures
-    ///
-    /// # Example
-    /// ```rust,ignore
-    /// let braids = vec![braid1, braid2, braid3];
-    /// let (succeeded, errors) = store.put_batch(&braids, Some(10)).await;
-    /// println!("Stored {succeeded} braids, {errors} errors", errors = errors.len());
-    /// ```
-    async fn put_batch(
+    fn put_batch(
         &self,
         braids: &[Braid],
         concurrency: Option<usize>,
-    ) -> (usize, Vec<crate::StoreError>) {
-        use futures::stream::{self, StreamExt};
+    ) -> impl Future<Output = (usize, Vec<crate::StoreError>)> + Send {
+        async move {
+            use futures::stream::{self, StreamExt};
 
-        let concurrency = concurrency.unwrap_or(DEFAULT_BATCH_CONCURRENCY);
+            let concurrency = concurrency.unwrap_or(DEFAULT_BATCH_CONCURRENCY);
 
-        // Collect futures first, then execute in parallel
-        let mut futures = Vec::with_capacity(braids.len());
-        for braid in braids {
-            futures.push(self.put(braid));
-        }
-
-        let results: Vec<Result<()>> = stream::iter(futures)
-            .buffer_unordered(concurrency)
-            .collect()
-            .await;
-
-        let mut success_count = 0;
-        let mut errors = Vec::new();
-
-        for result in results {
-            match result {
-                Ok(()) => success_count += 1,
-                Err(e) => errors.push(e),
+            let mut futures = Vec::with_capacity(braids.len());
+            for braid in braids {
+                futures.push(self.put(braid));
             }
-        }
 
-        (success_count, errors)
+            let results: Vec<Result<()>> = stream::iter(futures)
+                .buffer_unordered(concurrency)
+                .collect()
+                .await;
+
+            let mut success_count = 0;
+            let mut errors = Vec::new();
+
+            for result in results {
+                match result {
+                    Ok(()) => success_count += 1,
+                    Err(e) => errors.push(e),
+                }
+            }
+
+            (success_count, errors)
+        }
     }
 
     /// Get a Braid by ID.
-    async fn get(&self, id: &BraidId) -> Result<Option<Braid>>;
+    fn get(&self, id: &BraidId) -> impl Future<Output = Result<Option<Braid>>> + Send;
 
     /// Get multiple Braids by ID in parallel with bounded concurrency.
     ///
@@ -250,50 +238,39 @@ pub trait BraidStore: Send + Sync {
     /// Each result corresponds positionally to the input ID: `Some(braid)` if found,
     /// `None` if the ID does not exist. Store failures are collected in `errors`
     /// and the corresponding position gets `None`.
-    ///
-    /// # Arguments
-    /// * `ids` - Slice of braid IDs to retrieve
-    /// * `concurrency` - Maximum number of concurrent operations (defaults to 20)
-    ///
-    /// # Example
-    /// ```rust,ignore
-    /// let ids = vec![id1, id2, id3];
-    /// let (braids, errors) = store.get_batch(&ids, Some(20)).await;
-    /// if !errors.is_empty() {
-    ///     eprintln!("get_batch had {} store errors", errors.len());
-    /// }
-    /// ```
-    async fn get_batch(
+    fn get_batch(
         &self,
         ids: &[BraidId],
         concurrency: Option<usize>,
-    ) -> (Vec<Option<Braid>>, Vec<crate::StoreError>) {
-        use futures::stream::{self, StreamExt};
+    ) -> impl Future<Output = (Vec<Option<Braid>>, Vec<crate::StoreError>)> + Send {
+        async move {
+            use futures::stream::{self, StreamExt};
 
-        let concurrency = concurrency.unwrap_or(DEFAULT_BATCH_CONCURRENCY);
+            let concurrency = concurrency.unwrap_or(DEFAULT_BATCH_CONCURRENCY);
 
-        let mut futures = Vec::with_capacity(ids.len());
-        for id in ids {
-            futures.push(self.get(id));
-        }
-
-        let results: Vec<Result<Option<Braid>>> =
-            stream::iter(futures).buffered(concurrency).collect().await;
-
-        let mut braids = Vec::with_capacity(results.len());
-        let mut errors = Vec::new();
-
-        for result in results {
-            match result {
-                Ok(braid) => braids.push(braid),
-                Err(e) => {
-                    errors.push(e);
-                    braids.push(None);
-                },
+            let mut futures = Vec::with_capacity(ids.len());
+            for id in ids {
+                futures.push(self.get(id));
             }
-        }
 
-        (braids, errors)
+            let results: Vec<Result<Option<Braid>>> =
+                stream::iter(futures).buffered(concurrency).collect().await;
+
+            let mut braids = Vec::with_capacity(results.len());
+            let mut errors = Vec::new();
+
+            for result in results {
+                match result {
+                    Ok(braid) => braids.push(braid),
+                    Err(e) => {
+                        errors.push(e);
+                        braids.push(None);
+                    },
+                }
+            }
+
+            (braids, errors)
+        }
     }
 
     /// Get a Braid by content hash.
@@ -301,7 +278,8 @@ pub trait BraidStore: Send + Sync {
     /// When multiple braids share the same content hash (provenance
     /// convergence), returns one arbitrarily. Use
     /// [`get_all_by_hash`](Self::get_all_by_hash) to retrieve all.
-    async fn get_by_hash(&self, hash: &ContentHash) -> Result<Option<Braid>>;
+    fn get_by_hash(&self, hash: &ContentHash)
+    -> impl Future<Output = Result<Option<Braid>>> + Send;
 
     /// Get all Braids sharing a content hash (content convergence).
     ///
@@ -309,36 +287,49 @@ pub trait BraidStore: Send + Sync {
     /// this method returns every braid at the convergence point.
     /// Backends that do not support 1:many hash indexing fall back
     /// to wrapping the single-result `get_by_hash`.
-    async fn get_all_by_hash(&self, hash: &ContentHash) -> Result<Vec<Braid>> {
-        Ok(self.get_by_hash(hash).await?.into_iter().collect())
+    fn get_all_by_hash(
+        &self,
+        hash: &ContentHash,
+    ) -> impl Future<Output = Result<Vec<Braid>>> + Send {
+        async move { Ok(self.get_by_hash(hash).await?.into_iter().collect()) }
     }
 
     /// Delete a Braid.
-    async fn delete(&self, id: &BraidId) -> Result<bool>;
+    fn delete(&self, id: &BraidId) -> impl Future<Output = Result<bool>> + Send;
 
     /// Check if a Braid exists.
-    async fn exists(&self, id: &BraidId) -> Result<bool>;
+    fn exists(&self, id: &BraidId) -> impl Future<Output = Result<bool>> + Send;
 
     /// Query Braids with a filter.
-    async fn query(&self, filter: &QueryFilter, order: QueryOrder) -> Result<QueryResult>;
+    fn query(
+        &self,
+        filter: &QueryFilter,
+        order: QueryOrder,
+    ) -> impl Future<Output = Result<QueryResult>> + Send;
 
     /// Count Braids matching a filter.
-    async fn count(&self, filter: &QueryFilter) -> Result<usize>;
+    fn count(&self, filter: &QueryFilter) -> impl Future<Output = Result<usize>> + Send;
 
     /// Get all Braids attributed to an agent.
-    async fn by_agent(&self, agent: &Did) -> Result<Vec<Braid>>;
+    fn by_agent(&self, agent: &Did) -> impl Future<Output = Result<Vec<Braid>>> + Send;
 
     /// Get all Braids derived from a given entity.
-    async fn derived_from(&self, hash: &ContentHash) -> Result<Vec<Braid>>;
+    fn derived_from(&self, hash: &ContentHash) -> impl Future<Output = Result<Vec<Braid>>> + Send;
 
     /// Store an Activity.
-    async fn put_activity(&self, activity: &Activity) -> Result<()>;
+    fn put_activity(&self, activity: &Activity) -> impl Future<Output = Result<()>> + Send;
 
     /// Get an Activity by ID.
-    async fn get_activity(&self, id: &ActivityId) -> Result<Option<Activity>>;
+    fn get_activity(
+        &self,
+        id: &ActivityId,
+    ) -> impl Future<Output = Result<Option<Activity>>> + Send;
 
     /// Get activities associated with a Braid.
-    async fn activities_for_braid(&self, braid_id: &BraidId) -> Result<Vec<Activity>>;
+    fn activities_for_braid(
+        &self,
+        braid_id: &BraidId,
+    ) -> impl Future<Output = Result<Vec<Activity>>> + Send;
 }
 
 /// Index storage for efficient lookups.

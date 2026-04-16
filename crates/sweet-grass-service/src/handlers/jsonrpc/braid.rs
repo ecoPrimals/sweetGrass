@@ -5,7 +5,7 @@
 use base64::Engine;
 use serde::Deserialize;
 use sweet_grass_core::braid::{BraidId, BraidMetadata, ContentHash};
-use sweet_grass_store::{QueryFilter, QueryOrder};
+use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder};
 
 use crate::state::AppState;
 

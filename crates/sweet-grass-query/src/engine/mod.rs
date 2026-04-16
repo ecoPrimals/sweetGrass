@@ -23,20 +23,17 @@ use futures;
 
 /// Query Engine for `SweetGrass`.
 ///
-/// Provides a unified interface for:
-/// - Basic Braid queries
-/// - Provenance graph traversal
-/// - Attribution chain calculation
-/// - PROV-O export
-pub struct QueryEngine {
-    store: Arc<dyn BraidStore>,
+/// Generic over `S: BraidStore` — the service crate monomorphizes with
+/// `BraidBackend` for zero-cost enum dispatch; tests use `MemoryStore`.
+pub struct QueryEngine<S: BraidStore> {
+    store: Arc<S>,
     max_depth: u32,
 }
 
-impl QueryEngine {
+impl<S: BraidStore> QueryEngine<S> {
     /// Create a new query engine.
     #[must_use]
-    pub fn new(store: Arc<dyn BraidStore>) -> Self {
+    pub const fn new(store: Arc<S>) -> Self {
         Self {
             store,
             max_depth: DEFAULT_MAX_DEPTH,
@@ -137,7 +134,10 @@ impl QueryEngine {
         &self,
         hash: &ContentHash,
         depth: Option<u32>,
-    ) -> Result<Vec<Braid>> {
+    ) -> Result<Vec<Braid>>
+    where
+        S: 'static,
+    {
         use futures::future::try_join_all;
 
         let max_depth = depth.unwrap_or(self.max_depth);
@@ -149,7 +149,6 @@ impl QueryEngine {
                 break;
             }
 
-            // Spawn concurrent queries for all current level hashes
             let store = Arc::clone(&self.store);
             let mut handles = Vec::new();
 
@@ -158,14 +157,12 @@ impl QueryEngine {
                 handles.push(tokio::spawn(async move { store.get_by_hash(&hash).await }));
             }
 
-            // Collect results
             let results = try_join_all(handles)
                 .await
                 .map_err(|e| QueryError::Internal(format!("Task join error: {e}")))?;
 
             let mut next_hashes = Vec::new();
             for braid in results.into_iter().flatten().flatten() {
-                // Extract parent hashes for next level
                 for deriv in &braid.was_derived_from {
                     if let EntityReference::ByHash { data_hash, .. } = deriv {
                         next_hashes.push(data_hash.clone());

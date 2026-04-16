@@ -7,6 +7,7 @@
 use super::*;
 use crate::state::AppState;
 use sweet_grass_core::agent::Did;
+use sweet_grass_store::BraidStore;
 
 fn test_state() -> AppState {
     AppState::new_memory(Did::new("did:key:z6MkTest"))

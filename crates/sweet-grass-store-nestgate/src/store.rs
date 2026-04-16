@@ -4,7 +4,6 @@
 
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use serde_json::{Value, json};
 use sweet_grass_core::{Activity, ActivityId, Braid, BraidId, ContentHash, agent::Did};
 use sweet_grass_store::traits::{QueryFilter, QueryOrder, QueryResult};
@@ -259,7 +258,6 @@ impl NestGateStore {
     }
 }
 
-#[async_trait]
 impl BraidStore for NestGateStore {
     async fn put(&self, braid: &Braid) -> Result<()> {
         let key = self.braid_key(&braid.id);

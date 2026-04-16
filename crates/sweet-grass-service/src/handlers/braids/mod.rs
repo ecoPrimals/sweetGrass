@@ -16,7 +16,7 @@ use sweet_grass_core::{
     braid::{BraidId, BraidMetadata},
     entity::EntityReference,
 };
-use sweet_grass_store::{QueryFilter, QueryOrder};
+use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder};
 
 use crate::{error::ServiceError, state::AppState};
 

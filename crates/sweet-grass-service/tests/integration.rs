@@ -28,17 +28,17 @@ use sweet_grass_core::{
 };
 use sweet_grass_factory::BraidFactory;
 use sweet_grass_query::QueryEngine;
-use sweet_grass_service::{AppState, create_router};
+use sweet_grass_service::{AppState, BraidBackend, create_router};
 use sweet_grass_store::{BraidStore, MemoryStore, QueryFilter, QueryOrder};
 
 /// Helper to create a test environment.
 fn setup() -> (
-    Arc<dyn BraidStore>,
+    Arc<BraidBackend>,
     Arc<BraidFactory>,
-    Arc<QueryEngine>,
+    Arc<QueryEngine<BraidBackend>>,
     Arc<CompressionEngine>,
 ) {
-    let store: Arc<dyn BraidStore> = Arc::new(MemoryStore::new());
+    let store = Arc::new(BraidBackend::Memory(MemoryStore::new()));
     let factory = Arc::new(BraidFactory::new(Did::new("did:key:z6MkTest")));
     let query = Arc::new(QueryEngine::new(Arc::clone(&store)));
     let compression = Arc::new(CompressionEngine::new(Arc::clone(&factory)));

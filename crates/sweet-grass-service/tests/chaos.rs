@@ -18,7 +18,6 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
-use async_trait::async_trait;
 use sweet_grass_core::{Activity, ActivityId, Braid, BraidId, ContentHash, agent::Did};
 use sweet_grass_factory::BraidFactory;
 use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder, QueryResult, Result, StoreError};
@@ -29,7 +28,7 @@ use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder, QueryResult, Result
 
 /// A store wrapper that can inject failures for testing.
 pub struct FaultyStore {
-    inner: Arc<dyn BraidStore>,
+    inner: Arc<sweet_grass_store::MemoryStore>,
     /// Fail rate as percentage (0-100).
     fail_rate: AtomicUsize,
     /// Whether to fail on next operation.
@@ -40,7 +39,7 @@ pub struct FaultyStore {
 
 impl FaultyStore {
     /// Create a new faulty store wrapping an inner store.
-    pub fn new(inner: Arc<dyn BraidStore>) -> Arc<Self> {
+    pub fn new(inner: Arc<sweet_grass_store::MemoryStore>) -> Arc<Self> {
         Arc::new(Self {
             inner,
             fail_rate: AtomicUsize::new(0),
@@ -90,7 +89,6 @@ impl FaultyStore {
     }
 }
 
-#[async_trait]
 impl BraidStore for FaultyStore {
     async fn put(&self, braid: &Braid) -> Result<()> {
         if self.should_fail() {
@@ -183,7 +181,7 @@ impl BraidStore for FaultyStore {
 
 /// Helper to create test environment with faulty store.
 fn setup_faulty() -> (Arc<FaultyStore>, Arc<BraidFactory>) {
-    let inner: Arc<dyn BraidStore> = Arc::new(sweet_grass_store::MemoryStore::new());
+    let inner = Arc::new(sweet_grass_store::MemoryStore::new());
     let store = FaultyStore::new(inner);
     let factory = Arc::new(BraidFactory::new(Did::new("did:key:z6MkTest")));
     (store, factory)

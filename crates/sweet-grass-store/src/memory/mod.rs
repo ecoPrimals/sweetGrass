@@ -14,7 +14,6 @@
 mod filter;
 mod indexes;
 
-use async_trait::async_trait;
 use indexmap::IndexMap;
 use parking_lot::RwLock;
 use std::collections::{HashMap, HashSet};
@@ -84,7 +83,6 @@ impl Default for MemoryStore {
     }
 }
 
-#[async_trait]
 impl BraidStore for MemoryStore {
     async fn put(&self, braid: &Braid) -> Result<()> {
         let id = braid.id.clone();

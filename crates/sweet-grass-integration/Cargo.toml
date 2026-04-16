@@ -49,9 +49,6 @@ tracing = { workspace = true }
 # Time
 chrono = { workspace = true }
 
-# Required for dyn-compatible async traits (PrimalDiscovery, SigningClient, etc.).
-async-trait = { workspace = true }
-
 # Zero-copy byte buffers (wateringHole standards)
 bytes = { workspace = true }
 

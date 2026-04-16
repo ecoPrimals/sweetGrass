@@ -5,9 +5,9 @@
 //! This module provides runtime selection of storage backends based on
 //! environment configuration, enabling zero-knowledge startup.
 
-use std::sync::Arc;
+use sweet_grass_store::{MemoryStore, StoreError};
 
-use sweet_grass_store::{BraidStore, MemoryStore, StoreError};
+use crate::backend::BraidBackend;
 
 type Result<T> = std::result::Result<T, StoreError>;
 
@@ -70,7 +70,7 @@ impl BraidStoreFactory {
     /// # Errors
     ///
     /// Returns error if backend initialization fails.
-    pub async fn from_env() -> Result<Arc<dyn BraidStore>> {
+    pub async fn from_env() -> Result<BraidBackend> {
         Self::from_env_with_name().await.map(|(store, _)| store)
     }
 
@@ -79,7 +79,7 @@ impl BraidStoreFactory {
     /// # Errors
     ///
     /// Returns error if backend initialization fails.
-    pub async fn from_env_with_name() -> Result<(Arc<dyn BraidStore>, String)> {
+    pub async fn from_env_with_name() -> Result<(BraidBackend, String)> {
         let config = Self::config_from_reader(&|key| std::env::var(key).ok());
         Self::from_config_with_name(&config).await
     }
@@ -95,7 +95,7 @@ impl BraidStoreFactory {
     /// Returns error if backend initialization fails.
     pub async fn from_reader_with_name(
         reader: impl Fn(&str) -> Option<String>,
-    ) -> Result<(Arc<dyn BraidStore>, String)> {
+    ) -> Result<(BraidBackend, String)> {
         let config = Self::config_from_reader(&reader);
         Self::from_config_with_name(&config).await
     }
@@ -126,7 +126,7 @@ impl BraidStoreFactory {
     /// # Errors
     ///
     /// Returns error if backend initialization fails.
-    pub async fn from_config(config: &StorageConfig) -> Result<Arc<dyn BraidStore>> {
+    pub async fn from_config(config: &StorageConfig) -> Result<BraidBackend> {
         Self::from_config_with_name(config)
             .await
             .map(|(store, _)| store)
@@ -139,9 +139,7 @@ impl BraidStoreFactory {
     /// # Errors
     ///
     /// Returns error if backend initialization fails.
-    pub async fn from_config_with_name(
-        config: &StorageConfig,
-    ) -> Result<(Arc<dyn BraidStore>, String)> {
+    pub async fn from_config_with_name(config: &StorageConfig) -> Result<(BraidBackend, String)> {
         let backend = if config.backend.is_empty() {
             sweet_grass_core::identity::DEFAULT_STORAGE_BACKEND
         } else {
@@ -154,7 +152,7 @@ impl BraidStoreFactory {
             "memory" => {
                 tracing::info!("Using in-memory storage backend");
                 Ok((
-                    Arc::new(MemoryStore::new()) as Arc<dyn BraidStore>,
+                    BraidBackend::Memory(MemoryStore::new()),
                     sweet_grass_core::identity::DEFAULT_STORAGE_BACKEND.to_string(),
                 ))
             },
@@ -176,7 +174,7 @@ impl BraidStoreFactory {
     }
 
     /// Create `PostgreSQL` backend from explicit config.
-    async fn create_postgres_from_config(config: &StorageConfig) -> Result<Arc<dyn BraidStore>> {
+    async fn create_postgres_from_config(config: &StorageConfig) -> Result<BraidBackend> {
         use sweet_grass_store_postgres::PostgresStore;
 
         let url = config.database_url.as_deref().ok_or_else(|| {
@@ -196,11 +194,11 @@ impl BraidStoreFactory {
         tracing::info!("Running database migrations");
         store.run_migrations().await?;
         tracing::info!("PostgreSQL backend initialized");
-        Ok(Arc::new(store) as Arc<dyn BraidStore>)
+        Ok(BraidBackend::Postgres(store))
     }
 
     /// Create redb backend from explicit config.
-    fn create_redb_from_config(config: &StorageConfig) -> Result<Arc<dyn BraidStore>> {
+    fn create_redb_from_config(config: &StorageConfig) -> Result<BraidBackend> {
         use sweet_grass_store_redb::{RedbConfig, RedbStore};
 
         let path = config
@@ -212,13 +210,13 @@ impl BraidStoreFactory {
         tracing::info!(path = %path, "Opening redb database");
         let store = RedbStore::open(&redb_config)?;
         tracing::info!("redb backend initialized");
-        Ok(Arc::new(store) as Arc<dyn BraidStore>)
+        Ok(BraidBackend::Redb(store))
     }
 
     #[cfg(feature = "sled")]
     #[expect(deprecated, reason = "sled backend deprecated — use redb instead")]
     /// Create Sled backend from explicit config.
-    fn create_sled_from_config(config: &StorageConfig) -> Result<Arc<dyn BraidStore>> {
+    fn create_sled_from_config(config: &StorageConfig) -> Result<BraidBackend> {
         use sweet_grass_store_sled::{SledConfig, SledStore};
 
         let path = config
@@ -236,12 +234,12 @@ impl BraidStoreFactory {
         tracing::info!(path = %path, "Opening Sled database");
         let store = SledStore::open(&sled_config)?;
         tracing::info!("Sled backend initialized");
-        Ok(Arc::new(store) as Arc<dyn BraidStore>)
+        Ok(BraidBackend::Sled(store))
     }
 
     #[cfg(feature = "nestgate")]
     /// Create `NestGate` backend from explicit config.
-    fn create_nestgate_from_config(config: &StorageConfig) -> Result<Arc<dyn BraidStore>> {
+    fn create_nestgate_from_config(config: &StorageConfig) -> Result<BraidBackend> {
         use sweet_grass_store_nestgate::{NestGateConfig, NestGateStore};
 
         let ng_config = NestGateConfig {
@@ -253,7 +251,7 @@ impl BraidStoreFactory {
         tracing::info!("Configuring NestGate storage backend");
         let store = NestGateStore::new(&ng_config)?;
         tracing::info!("NestGate backend initialized");
-        Ok(Arc::new(store) as Arc<dyn BraidStore>)
+        Ok(BraidBackend::NestGate(store))
     }
 
     /// Parse a key from a reader as a specific type.

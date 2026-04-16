@@ -19,6 +19,7 @@ use sweet_grass_compression::{
 use sweet_grass_core::{agent::Did, entity::EntityReference, hash::sha256};
 use sweet_grass_factory::{AttributionCalculator, BraidFactory};
 use sweet_grass_query::ProvenanceGraphBuilder;
+use sweet_grass_service::BraidBackend;
 use sweet_grass_store::{BraidStore, MemoryStore, QueryFilter, QueryOrder};
 use tokio::runtime::Runtime;
 
@@ -178,7 +179,7 @@ fn bench_compression(c: &mut Criterion) {
 /// Provenance graph traversal.
 fn bench_query_traversal(c: &mut Criterion) {
     let rt = rt();
-    let store: Arc<dyn BraidStore> = Arc::new(MemoryStore::new());
+    let store = Arc::new(BraidBackend::Memory(MemoryStore::new()));
     let factory = make_factory();
 
     // Build a chain: root -> child -> grandchild

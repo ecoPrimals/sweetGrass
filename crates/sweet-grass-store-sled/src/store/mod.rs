@@ -2,7 +2,6 @@
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Sled `BraidStore` implementation.
 
-use async_trait::async_trait;
 use sled::{Db, Tree};
 use std::path::Path;
 use std::sync::Arc;
@@ -212,7 +211,6 @@ impl SledStore {
     }
 }
 
-#[async_trait]
 #[expect(
     deprecated,
     reason = "BraidStore impl for deprecated SledStore — migration period"

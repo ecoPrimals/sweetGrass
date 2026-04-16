@@ -25,6 +25,7 @@ use sweet_grass_core::{
 };
 use sweet_grass_factory::BraidFactory;
 use sweet_grass_query::QueryEngine;
+use sweet_grass_service::BraidBackend;
 use sweet_grass_store::{BraidStore, MemoryStore};
 
 /// Unified error type for the demo — avoids `Box<dyn Error>` per ecosystem
@@ -52,7 +53,7 @@ async fn main() -> Result<(), DemoError> {
     println!("==========================================\n");
 
     // Create shared components
-    let store: Arc<dyn BraidStore> = Arc::new(MemoryStore::new());
+    let store = Arc::new(BraidBackend::Memory(MemoryStore::new()));
     let alice = Did::new("did:key:z6MkAlice");
     let bob = Did::new("did:key:z6MkBob");
     let charlie = Did::new("did:key:z6MkCharlie");

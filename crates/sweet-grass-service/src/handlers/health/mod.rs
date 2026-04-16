@@ -9,7 +9,7 @@
 
 use axum::{Json, extract::State, http::StatusCode};
 use serde::Serialize;
-use sweet_grass_store::QueryFilter;
+use sweet_grass_store::{BraidStore, QueryFilter};
 
 use sweet_grass_core::identity;
 

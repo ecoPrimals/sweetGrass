@@ -53,6 +53,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
+pub mod backend;
 pub mod bootstrap;
 #[cfg(unix)]
 pub mod btsp;
@@ -70,6 +71,9 @@ pub mod tcp_jsonrpc;
 #[cfg(unix)]
 pub mod uds;
 
+pub use backend::BraidBackend;
+#[doc(hidden)]
+pub use backend::{CountFailingStore, FaultInjectionStore};
 pub use bootstrap::{
     BootstrapConfig, BootstrapError, BootstrapResult, infant_bootstrap,
     infant_bootstrap_with_config,

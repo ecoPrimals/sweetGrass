@@ -18,6 +18,7 @@ mod capabilities;
 mod registry;
 
 use std::collections::HashMap;
+use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -118,28 +119,35 @@ impl DiscoveredPrimal {
 /// - mDNS/DNS-SD for local networks
 /// - Bootstrap nodes for wider networks
 /// - Static configuration for testing
-#[async_trait::async_trait]
 pub trait PrimalDiscovery: Send + Sync {
     /// Find primals offering a specific capability.
-    async fn find_by_capability(
+    fn find_by_capability(
         &self,
         capability: &Capability,
-    ) -> Result<Vec<DiscoveredPrimal>, DiscoveryError>;
+    ) -> impl Future<Output = Result<Vec<DiscoveredPrimal>, DiscoveryError>> + Send;
 
     /// Find a single primal offering a capability (first healthy one).
-    async fn find_one(&self, capability: &Capability) -> Result<DiscoveredPrimal, DiscoveryError> {
-        let primals = self.find_by_capability(capability).await?;
-        primals
-            .into_iter()
-            .find(|p| p.healthy)
-            .ok_or_else(|| DiscoveryError::CapabilityNotFound(capability.clone()))
+    fn find_one(
+        &self,
+        capability: &Capability,
+    ) -> impl Future<Output = Result<DiscoveredPrimal, DiscoveryError>> + Send {
+        async {
+            let primals = self.find_by_capability(capability).await?;
+            primals
+                .into_iter()
+                .find(|p| p.healthy)
+                .ok_or_else(|| DiscoveryError::CapabilityNotFound(capability.clone()))
+        }
     }
 
     /// Announce this primal's capabilities to the network.
-    async fn announce(&self, primal: &DiscoveredPrimal) -> Result<(), DiscoveryError>;
+    fn announce(
+        &self,
+        primal: &DiscoveredPrimal,
+    ) -> impl Future<Output = Result<(), DiscoveryError>> + Send;
 
     /// Check if discovery service is available.
-    async fn health(&self) -> bool;
+    fn health(&self) -> impl Future<Output = bool> + Send;
 }
 
 /// In-memory discovery registry for testing and single-node deployments.
@@ -189,7 +197,14 @@ impl Default for LocalDiscovery {
     }
 }
 
-#[async_trait::async_trait]
+impl Clone for LocalDiscovery {
+    fn clone(&self) -> Self {
+        Self {
+            primals: Arc::clone(&self.primals),
+        }
+    }
+}
+
 impl PrimalDiscovery for LocalDiscovery {
     async fn find_by_capability(
         &self,
@@ -215,26 +230,95 @@ impl PrimalDiscovery for LocalDiscovery {
     }
 }
 
+/// Unified primal discovery backend (local registry, remote registry, or cached wrapper).
+#[derive(Clone)]
+pub enum DiscoveryBackend {
+    /// In-memory registry for tests and single-node deployments.
+    Local(LocalDiscovery),
+    /// Remote registry via tarpc.
+    Registry(RegistryDiscovery),
+    /// TTL cache over another backend.
+    Cached(CachedDiscovery),
+}
+
+impl PrimalDiscovery for DiscoveryBackend {
+    fn find_by_capability(
+        &self,
+        capability: &Capability,
+    ) -> impl Future<Output = Result<Vec<DiscoveredPrimal>, DiscoveryError>> + Send {
+        let this = self.clone();
+        let capability = capability.clone();
+        async move {
+            match this {
+                Self::Local(d) => d.find_by_capability(&capability).await,
+                Self::Registry(d) => d.find_by_capability(&capability).await,
+                Self::Cached(d) => d.find_by_capability(&capability).await,
+            }
+        }
+    }
+
+    fn find_one(
+        &self,
+        capability: &Capability,
+    ) -> impl Future<Output = Result<DiscoveredPrimal, DiscoveryError>> + Send {
+        let this = self.clone();
+        let capability = capability.clone();
+        async move {
+            match this {
+                Self::Local(d) => d.find_one(&capability).await,
+                Self::Registry(d) => d.find_one(&capability).await,
+                Self::Cached(d) => d.find_one(&capability).await,
+            }
+        }
+    }
+
+    fn announce(
+        &self,
+        primal: &DiscoveredPrimal,
+    ) -> impl Future<Output = Result<(), DiscoveryError>> + Send {
+        let this = self.clone();
+        let primal = primal.clone();
+        async move {
+            match this {
+                Self::Local(d) => d.announce(&primal).await,
+                Self::Registry(d) => d.announce(&primal).await,
+                Self::Cached(d) => d.announce(&primal).await,
+            }
+        }
+    }
+
+    fn health(&self) -> impl Future<Output = bool> + Send {
+        let this = self.clone();
+        async move {
+            match this {
+                Self::Local(d) => d.health().await,
+                Self::Registry(d) => d.health().await,
+                Self::Cached(d) => d.health().await,
+            }
+        }
+    }
+}
+
 /// Create a discovery client based on environment.
 ///
 /// If discovery address is set (via `DISCOVERY_ADDRESS`, `UNIVERSAL_ADAPTER_ADDRESS`,
 /// or `DISCOVERY_BOOTSTRAP`), connects to that universal adapter service.
 ///
 /// Otherwise, returns a local discovery instance for single-node deployments.
-pub async fn create_discovery() -> Arc<dyn PrimalDiscovery> {
+pub async fn create_discovery() -> Arc<DiscoveryBackend> {
     create_discovery_with_reader(|key| std::env::var(key).ok()).await
 }
 
 /// Create a discovery client using an injectable key reader (DI-friendly).
 pub async fn create_discovery_with_reader(
     reader: impl Fn(&str) -> Option<String>,
-) -> Arc<dyn PrimalDiscovery> {
+) -> Arc<DiscoveryBackend> {
     match RegistryDiscovery::from_reader(reader).await {
         Ok(discovery) => {
             tracing::info!(
                 "Using network discovery service (universal adapter) for primal coordination"
             );
-            Arc::new(discovery)
+            Arc::new(DiscoveryBackend::Registry(discovery))
         },
         Err(e) => {
             tracing::info!(
@@ -242,7 +326,7 @@ pub async fn create_discovery_with_reader(
                  (network discovery unavailable: {})",
                 e
             );
-            Arc::new(LocalDiscovery::new())
+            Arc::new(DiscoveryBackend::Local(LocalDiscovery::new()))
         },
     }
 }

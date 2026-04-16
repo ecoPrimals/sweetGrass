@@ -14,7 +14,6 @@
 
 use std::future::Future;
 
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use sweet_grass_core::Braid;
@@ -52,9 +51,8 @@ pub struct SignatureInfo {
 /// This trait abstracts the signing implementation, allowing connection
 /// to any primal that offers the `Capability::Signing` capability.
 ///
-/// Uses `#[async_trait]` because `SigningClient` is used as `Arc<dyn SigningClient>`
-/// for runtime provider selection (tarpc, mock). When Rust stabilizes
-/// dyn-compatible async traits, this can migrate.
+/// Uses native `impl Future + Send` (Rust 2024). Runtime dispatch uses
+/// [`crate::signer::SigningBackend`].
 ///
 /// ## Discovery Pattern
 ///
@@ -63,22 +61,24 @@ pub struct SignatureInfo {
 /// let primal = discovery.find_one(&Capability::Signing).await?;
 /// let client = create_signing_client(&primal).await?;
 /// ```
-#[async_trait]
 pub trait SigningClient: Send + Sync {
     /// Sign a Braid, returning a `Witness` (`WireWitnessRef`).
-    async fn sign(&self, braid: &Braid) -> Result<Witness>;
+    fn sign(&self, braid: &Braid) -> impl Future<Output = Result<Witness>> + Send;
 
     /// Verify a Braid's signature.
-    async fn verify(&self, braid: &Braid) -> Result<SignatureInfo>;
+    fn verify(&self, braid: &Braid) -> impl Future<Output = Result<SignatureInfo>> + Send;
 
     /// Get the current agent's DID.
-    async fn current_did(&self) -> Result<Did>;
+    fn current_did(&self) -> impl Future<Output = Result<Did>> + Send;
 
     /// Resolve a DID to its document.
-    async fn resolve_did(&self, did: &Did) -> Result<Option<serde_json::Value>>;
+    fn resolve_did(
+        &self,
+        did: &Did,
+    ) -> impl Future<Output = Result<Option<serde_json::Value>>> + Send;
 
     /// Check connection health.
-    async fn health(&self) -> Result<bool>;
+    fn health(&self) -> impl Future<Output = Result<bool>> + Send;
 }
 
 /// Trait for signing Braids.

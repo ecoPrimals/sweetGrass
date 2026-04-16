@@ -6,8 +6,12 @@
 
 ## Completed
 
-### v0.7.27 — Deep Debt: Coordinated Shutdown, Zero-Copy Phase 3, Type Safety (March–April 2026)
+### v0.7.27 — Deep Debt: Stadial Parity, Zero-Copy Phase 3, Type Safety (March–April 2026)
 
+- [x] **Stadial parity: `async-trait` elimination** — removed all 22 `#[async_trait]` attributes and `async-trait` crate from all 7 `Cargo.toml` files; all 6 traits (`BraidStore`, `SigningClient`, `AnchoringClient`, `SessionEventsClient`, `SessionEventStream`, `PrimalDiscovery`) use native RPITIT
+- [x] **Stadial parity: `dyn` dispatch elimination** — created `BraidBackend`, `SigningBackend`, `AnchoringBackend`, `SessionEventsBackend`, `SessionEventStreamBackend`, `DiscoveryBackend` enums; ~130 `Arc<dyn Trait>` → zero for finite-implementor traits
+- [x] **Generic query engine** — `QueryEngine<S: BraidStore>`, `AnchorManager<S>`, `EventHandler<S>` generic over store backend; monomorphization at construction site
+- [x] **Lockfile debt documented** — `ring` (dev-only via testcontainers), `libsqlite3-sys` (sqlx lockfile phantom, never compiled), `sled` (feature-gated, not in defaults)
 - [x] **Coordinated graceful shutdown** — `tokio::sync::watch` channel coordinates HTTP, tarpc, and UDS; spawned servers drain in-flight requests before process exit (was fire-and-forget `tokio::spawn`)
 - [x] **Zero-copy Phase 3: `BraidMetadata`** — `title`, `description` → `Option<Arc<str>>`, `tags` → `Vec<Arc<str>>`; cross-crate migration across all 10 crates + 4 store backends
 - [x] **`JsonLdVersion` type** — replaces `f32` for `BraidContext.@version`; zero-size type always serializes to `1.1`, validates on deserialization (eliminates float precision drift)
@@ -37,7 +41,7 @@
 - [x] proptest added to `sweet-grass-query` and `sweet-grass-compression` (graph invariants, session properties)
 - [x] `serial_test` dev-dep removed (unused)
 - [x] `DEFAULT_CONTRIBUTION_MIME` constant replacing runtime allocation
-- [x] Workspace dependency centralization — `async-trait`, `clap`, `tempfile`, `axum-test`, `testcontainers`, `testcontainers-modules` moved to `[workspace.dependencies]`; unused `tower` and `serial_test` workspace slots removed; stale advisory cleaned from `deny.toml`
+- [x] Workspace dependency centralization — `clap`, `tempfile`, `axum-test`, `testcontainers`, `testcontainers-modules` moved to `[workspace.dependencies]`; unused `tower`, `serial_test`, and `async-trait` workspace slots removed; stale advisory cleaned from `deny.toml`
 
 ### v0.7.26 — Ecosystem Absorption: scyBorg License, Sled Deprecation, Lint Evolution (March 2026)
 
@@ -51,7 +55,7 @@
 - [x] **`normalize_method()`** — case-insensitive JSON-RPC dispatch (barraCuda → loamSpine → wetSpring ecosystem pattern)
 - [x] **`cargo-llvm-cov` CI aliases** — `.cargo/config.toml`: `cargo coverage`, `cargo coverage-html`, `cargo coverage-json`
 - [x] **`/tmp/` path audit** — 13 occurrences verified as config struct string fixtures (not filesystem ops); safe
-- [x] **async-trait dyn-compatibility documented** — comments on all 6 retained Cargo.toml deps explaining object safety
+- [x] **async-trait dyn-compatibility documented** — (superseded: all 6 deps eliminated in v0.7.27 stadial parity pass)
 - [x] **`primal_names::names` deprecated** — hardcoded other-primal constants deprecated; generic `socket_env_var()`/`address_env_var()` retained for runtime-discovered names
 - [x] **Primal sovereignty audit** — production code has self-knowledge only (`niche.rs`, `primal_info.rs`); discovery is capability-based, no compile-time coupling to peer primals
 - [x] **Mock audit** — all `Mock*` types gated behind `#[cfg(any(test, feature = "test"))]`; zero mocks in production paths

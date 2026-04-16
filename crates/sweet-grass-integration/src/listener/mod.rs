@@ -10,9 +10,9 @@ pub mod tarpc_client;
 
 pub use tarpc_client::create_session_events_client_async;
 
+use std::future::Future;
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, instrument, trace};
 
@@ -22,7 +22,7 @@ use sweet_grass_core::braid::Timestamp;
 use sweet_grass_core::config::Capability;
 
 use crate::Result;
-use crate::discovery::{DiscoveredPrimal, PrimalDiscovery};
+use crate::discovery::{DiscoveredPrimal, DiscoveryBackend, PrimalDiscovery};
 use crate::error::IntegrationError;
 
 /// Session event from a primal with `Capability::SessionEvents`.
@@ -67,43 +67,110 @@ pub enum SessionEventType {
     BranchesMerged,
 }
 
+/// Stream of session events.
+///
+/// Uses native `impl Future + Send` (Rust 2024). Runtime dispatch uses
+/// [`SessionEventStreamBackend`].
+pub trait SessionEventStream: Send + Sync {
+    /// Get the next event.
+    fn next(&mut self) -> impl Future<Output = Option<SessionEvent>> + Send;
+
+    /// Close the stream.
+    fn close(&mut self) -> impl Future<Output = ()> + Send;
+}
+
+/// Unified session event stream for runtime dispatch.
+pub enum SessionEventStreamBackend {
+    /// Production tarpc-backed stream.
+    Tarpc(tarpc_client::TarpcEventStream),
+    /// Test-only mock stream.
+    #[cfg(any(test, feature = "test"))]
+    #[doc(hidden)]
+    Mock(testing::MockEventStream),
+}
+
+impl SessionEventStream for SessionEventStreamBackend {
+    async fn next(&mut self) -> Option<SessionEvent> {
+        match self {
+            Self::Tarpc(s) => s.next().await,
+            #[cfg(any(test, feature = "test"))]
+            Self::Mock(m) => m.next().await,
+        }
+    }
+
+    async fn close(&mut self) {
+        match self {
+            Self::Tarpc(s) => s.close().await,
+            #[cfg(any(test, feature = "test"))]
+            Self::Mock(m) => m.close().await,
+        }
+    }
+}
+
 /// Trait for session events client connections.
 ///
 /// Implemented by clients connecting to primals with `Capability::SessionEvents`.
-/// Uses `#[async_trait]` for `Arc<dyn SessionEventsClient>` object safety.
-#[async_trait]
+/// Uses native `impl Future + Send` (Rust 2024). Runtime dispatch uses
+/// [`SessionEventsBackend`].
 pub trait SessionEventsClient: Send + Sync {
     /// Subscribe to session events.
-    async fn subscribe(&self) -> Result<Box<dyn SessionEventStream>>;
+    fn subscribe(&self) -> impl Future<Output = Result<SessionEventStreamBackend>> + Send;
 
     /// Get a specific session by ID.
-    async fn get_session(&self, session_id: &str) -> Result<Option<Session>>;
+    fn get_session(&self, session_id: &str)
+    -> impl Future<Output = Result<Option<Session>>> + Send;
 
     /// Check connection health.
-    async fn health(&self) -> Result<bool>;
+    fn health(&self) -> impl Future<Output = Result<bool>> + Send;
 }
 
-/// Stream of session events.
-///
-/// Uses `#[async_trait]` for `Box<dyn SessionEventStream>` object safety.
-#[async_trait]
-pub trait SessionEventStream: Send + Sync {
-    /// Get the next event.
-    async fn next(&mut self) -> Option<SessionEvent>;
+/// Unified session events client for runtime dispatch (tarpc production path or test mock).
+pub enum SessionEventsBackend {
+    /// Production tarpc client.
+    Tarpc(tarpc_client::TarpcSessionEventsClient),
+    /// Test-only mock client.
+    #[cfg(any(test, feature = "test"))]
+    #[doc(hidden)]
+    Mock(testing::MockSessionEventsClient),
+}
 
-    /// Close the stream.
-    async fn close(&mut self);
+impl SessionEventsClient for SessionEventsBackend {
+    async fn subscribe(&self) -> Result<SessionEventStreamBackend> {
+        match self {
+            Self::Tarpc(c) => c.subscribe().await,
+            #[cfg(any(test, feature = "test"))]
+            Self::Mock(m) => m.subscribe().await,
+        }
+    }
+
+    async fn get_session(&self, session_id: &str) -> Result<Option<Session>> {
+        match self {
+            Self::Tarpc(c) => c.get_session(session_id).await,
+            #[cfg(any(test, feature = "test"))]
+            Self::Mock(m) => m.get_session(session_id).await,
+        }
+    }
+
+    async fn health(&self) -> Result<bool> {
+        match self {
+            Self::Tarpc(c) => c.health().await,
+            #[cfg(any(test, feature = "test"))]
+            Self::Mock(m) => m.health().await,
+        }
+    }
 }
 
 /// Event handler that processes session events using discovery.
-pub struct EventHandler {
-    discovery: Arc<dyn PrimalDiscovery>,
-    session_client: parking_lot::RwLock<Arc<dyn SessionEventsClient>>,
+///
+/// Generic over `S: BraidStore` for zero-cost store dispatch.
+pub struct EventHandler<S: sweet_grass_store::BraidStore> {
+    discovery: Arc<DiscoveryBackend>,
+    session_client: parking_lot::RwLock<Arc<SessionEventsBackend>>,
     compression: Arc<sweet_grass_compression::CompressionEngine>,
-    store: Arc<dyn sweet_grass_store::BraidStore>,
+    store: Arc<S>,
 }
 
-impl EventHandler {
+impl<S: sweet_grass_store::BraidStore> EventHandler<S> {
     /// Create a new event handler using discovery.
     ///
     /// # Errors
@@ -111,13 +178,13 @@ impl EventHandler {
     /// Returns an error if no primal offering `Capability::SessionEvents` is discovered.
     #[instrument(skip(discovery, compression, store, client_factory))]
     pub async fn new<F>(
-        discovery: Arc<dyn PrimalDiscovery>,
+        discovery: Arc<DiscoveryBackend>,
         compression: Arc<sweet_grass_compression::CompressionEngine>,
-        store: Arc<dyn sweet_grass_store::BraidStore>,
+        store: Arc<S>,
         client_factory: F,
     ) -> Result<Self>
     where
-        F: FnOnce(&DiscoveredPrimal) -> Arc<dyn SessionEventsClient>,
+        F: FnOnce(&DiscoveredPrimal) -> Arc<SessionEventsBackend>,
     {
         debug!("Discovering session events capability");
 
@@ -141,11 +208,13 @@ impl EventHandler {
     /// Create with an existing client.
     #[must_use]
     pub fn with_client(
-        client: Arc<dyn SessionEventsClient>,
+        client: Arc<SessionEventsBackend>,
         compression: Arc<sweet_grass_compression::CompressionEngine>,
-        store: Arc<dyn sweet_grass_store::BraidStore>,
+        store: Arc<S>,
     ) -> Self {
-        let discovery = Arc::new(crate::discovery::LocalDiscovery::new());
+        let discovery = Arc::new(DiscoveryBackend::Local(
+            crate::discovery::LocalDiscovery::new(),
+        ));
         Self {
             discovery,
             session_client: parking_lot::RwLock::new(client),
@@ -165,7 +234,7 @@ impl EventHandler {
     #[instrument(skip(self, client_factory))]
     pub async fn reconnect<F>(&self, client_factory: F) -> Result<()>
     where
-        F: FnOnce(&DiscoveredPrimal) -> Arc<dyn SessionEventsClient>,
+        F: FnOnce(&DiscoveredPrimal) -> Arc<SessionEventsBackend>,
     {
         debug!("Re-discovering session events capability for reconnection");
 
@@ -238,7 +307,7 @@ impl EventHandler {
 
     /// Get the underlying client reference.
     #[must_use]
-    pub fn client(&self) -> Arc<dyn SessionEventsClient> {
+    pub fn client(&self) -> Arc<SessionEventsBackend> {
         Arc::clone(&self.session_client.read())
     }
 }

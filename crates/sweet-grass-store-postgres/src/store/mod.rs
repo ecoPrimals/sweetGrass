@@ -4,7 +4,6 @@
 
 mod row_mapping;
 
-use async_trait::async_trait;
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
@@ -223,7 +222,6 @@ impl PostgresStore {
     }
 }
 
-#[async_trait]
 impl BraidStore for PostgresStore {
     #[instrument(skip(self, braid), fields(braid_id = %braid.id))]
     async fn put(&self, braid: &Braid) -> sweet_grass_store::Result<()> {

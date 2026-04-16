@@ -10,6 +10,7 @@
 
 use super::*;
 use sweet_grass_compression::SessionVertex;
+use sweet_grass_store::BraidStore;
 
 #[test]
 fn test_session_event_type() {
@@ -197,8 +198,9 @@ async fn test_create_session_events_client_requires_real_server() {
 
 #[tokio::test]
 async fn test_mock_session_events_client_directly() {
-    let client: std::sync::Arc<dyn SessionEventsClient> =
-        std::sync::Arc::new(testing::MockSessionEventsClient::new());
+    let client: std::sync::Arc<SessionEventsBackend> = std::sync::Arc::new(
+        SessionEventsBackend::Mock(testing::MockSessionEventsClient::new()),
+    );
     assert!(client.health().await.expect("health"));
 }
 
@@ -268,18 +270,19 @@ async fn test_mock_client_default() {
 
 #[tokio::test]
 async fn test_event_handler_new_discovery_failure() {
-    use crate::discovery::{LocalDiscovery, PrimalDiscovery};
+    use crate::discovery::{DiscoveryBackend, LocalDiscovery};
     use std::sync::Arc;
 
-    let discovery: Arc<dyn PrimalDiscovery> = Arc::new(LocalDiscovery::new());
+    let discovery: Arc<DiscoveryBackend> = Arc::new(DiscoveryBackend::Local(LocalDiscovery::new()));
     let compression = Arc::new(sweet_grass_compression::CompressionEngine::new(Arc::new(
         sweet_grass_factory::BraidFactory::new(Did::new("did:key:z6MkTest")),
     )));
-    let store: Arc<dyn sweet_grass_store::BraidStore> =
-        Arc::new(sweet_grass_store::MemoryStore::new());
+    let store = Arc::new(sweet_grass_store::MemoryStore::new());
 
     let result = EventHandler::new(discovery, compression, store, |_| {
-        Arc::new(testing::MockSessionEventsClient::new())
+        Arc::new(SessionEventsBackend::Mock(
+            testing::MockSessionEventsClient::new(),
+        ))
     })
     .await;
 
@@ -294,12 +297,11 @@ async fn test_event_handler_new_discovery_failure() {
 async fn test_event_handler_start_processes_committed_event() {
     use std::sync::Arc;
 
-    let client = Arc::new(testing::MockSessionEventsClient::new());
+    let mock = testing::MockSessionEventsClient::new();
     let compression = Arc::new(sweet_grass_compression::CompressionEngine::new(Arc::new(
         sweet_grass_factory::BraidFactory::new(Did::new("did:key:z6MkTest")),
     )));
-    let store: Arc<dyn sweet_grass_store::BraidStore> =
-        Arc::new(sweet_grass_store::MemoryStore::new());
+    let store = Arc::new(sweet_grass_store::MemoryStore::new());
 
     let mut session = Session::new("compress-test");
     session.add_vertex(
@@ -324,15 +326,16 @@ async fn test_event_handler_start_processes_committed_event() {
         .committed(),
     );
 
-    client
-        .queue_event(SessionEvent {
-            session_id: "compress-test".to_string(),
-            event_type: SessionEventType::Committed,
-            session: Some(session),
-            timestamp: u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0),
-            agent: Did::new("did:key:z6MkTest"),
-        })
-        .await;
+    mock.queue_event(SessionEvent {
+        session_id: "compress-test".to_string(),
+        event_type: SessionEventType::Committed,
+        session: Some(session),
+        timestamp: u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0),
+        agent: Did::new("did:key:z6MkTest"),
+    })
+    .await;
+
+    let client = Arc::new(SessionEventsBackend::Mock(mock));
 
     let handler = EventHandler::with_client(client, compression, Arc::clone(&store));
     handler.start().await.expect("start");
@@ -354,22 +357,22 @@ async fn test_event_handler_start_processes_committed_event() {
 async fn test_event_handler_start_ignores_rolled_back() {
     use std::sync::Arc;
 
-    let client = Arc::new(testing::MockSessionEventsClient::new());
+    let mock = testing::MockSessionEventsClient::new();
     let compression = Arc::new(sweet_grass_compression::CompressionEngine::new(Arc::new(
         sweet_grass_factory::BraidFactory::new(Did::new("did:key:z6MkTest")),
     )));
-    let store: Arc<dyn sweet_grass_store::BraidStore> =
-        Arc::new(sweet_grass_store::MemoryStore::new());
+    let store = Arc::new(sweet_grass_store::MemoryStore::new());
 
-    client
-        .queue_event(SessionEvent {
-            session_id: "rollback-session".to_string(),
-            event_type: SessionEventType::RolledBack,
-            session: None,
-            timestamp: u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0),
-            agent: Did::new("did:key:z6MkTest"),
-        })
-        .await;
+    mock.queue_event(SessionEvent {
+        session_id: "rollback-session".to_string(),
+        event_type: SessionEventType::RolledBack,
+        session: None,
+        timestamp: u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0),
+        agent: Did::new("did:key:z6MkTest"),
+    })
+    .await;
+
+    let client = Arc::new(SessionEventsBackend::Mock(mock));
 
     let handler = EventHandler::with_client(client, compression, Arc::clone(&store));
     handler.start().await.expect("start");

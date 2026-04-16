@@ -6,9 +6,9 @@
 //! that offer permanent storage capabilities. Uses `Capability::Anchoring`
 //! for discovery - no specific primal names are hardcoded.
 
+use std::future::Future;
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, instrument};
 
@@ -17,7 +17,7 @@ use sweet_grass_core::braid::{BraidId, Timestamp};
 use sweet_grass_core::config::Capability;
 
 use crate::Result;
-use crate::discovery::{DiscoveredPrimal, PrimalDiscovery};
+use crate::discovery::{DiscoveredPrimal, DiscoveryBackend, PrimalDiscovery};
 use crate::error::{IntegrationError, IpcErrorPhase};
 
 /// Information about an anchor in a permanent storage primal.
@@ -58,30 +58,84 @@ pub struct AnchorReceipt {
 /// Trait for anchoring client connections.
 ///
 /// Implemented by clients connecting to primals with `Capability::Anchoring`.
-/// Uses `#[async_trait]` for `Arc<dyn AnchoringClient>` object safety.
-#[async_trait]
+/// Uses native `impl Future + Send` (Rust 2024). Runtime dispatch uses
+/// [`AnchoringBackend`].
 pub trait AnchoringClient: Send + Sync {
     /// Anchor a Braid to a spine.
-    async fn anchor(&self, braid: &Braid, spine_id: &str) -> Result<AnchorReceipt>;
+    fn anchor(
+        &self,
+        braid: &Braid,
+        spine_id: &str,
+    ) -> impl Future<Output = Result<AnchorReceipt>> + Send;
 
     /// Verify an anchor.
-    async fn verify(&self, braid_id: &BraidId) -> Result<Option<AnchorInfo>>;
+    fn verify(&self, braid_id: &BraidId)
+    -> impl Future<Output = Result<Option<AnchorInfo>>> + Send;
 
     /// Get all anchors for a Braid.
-    async fn get_anchors(&self, braid_id: &BraidId) -> Result<Vec<AnchorInfo>>;
+    fn get_anchors(
+        &self,
+        braid_id: &BraidId,
+    ) -> impl Future<Output = Result<Vec<AnchorInfo>>> + Send;
 
     /// Check connection health.
-    async fn health(&self) -> Result<bool>;
+    fn health(&self) -> impl Future<Output = Result<bool>> + Send;
+}
+
+/// Unified anchoring client for runtime dispatch (tarpc production path or test mock).
+pub enum AnchoringBackend {
+    /// Production tarpc client.
+    Tarpc(TarpcAnchoringClient),
+    /// Test-only mock client.
+    #[cfg(any(test, feature = "test"))]
+    #[doc(hidden)]
+    Mock(testing::MockAnchoringClient),
+}
+
+impl AnchoringClient for AnchoringBackend {
+    async fn anchor(&self, braid: &Braid, spine_id: &str) -> Result<AnchorReceipt> {
+        match self {
+            Self::Tarpc(c) => c.anchor(braid, spine_id).await,
+            #[cfg(any(test, feature = "test"))]
+            Self::Mock(m) => m.anchor(braid, spine_id).await,
+        }
+    }
+
+    async fn verify(&self, braid_id: &BraidId) -> Result<Option<AnchorInfo>> {
+        match self {
+            Self::Tarpc(c) => c.verify(braid_id).await,
+            #[cfg(any(test, feature = "test"))]
+            Self::Mock(m) => m.verify(braid_id).await,
+        }
+    }
+
+    async fn get_anchors(&self, braid_id: &BraidId) -> Result<Vec<AnchorInfo>> {
+        match self {
+            Self::Tarpc(c) => c.get_anchors(braid_id).await,
+            #[cfg(any(test, feature = "test"))]
+            Self::Mock(m) => m.get_anchors(braid_id).await,
+        }
+    }
+
+    async fn health(&self) -> Result<bool> {
+        match self {
+            Self::Tarpc(c) => c.health().await,
+            #[cfg(any(test, feature = "test"))]
+            Self::Mock(m) => m.health().await,
+        }
+    }
 }
 
 /// Manages Braid anchoring using capability-based discovery.
-pub struct AnchorManager {
-    discovery: Arc<dyn PrimalDiscovery>,
-    anchoring_client: parking_lot::RwLock<Arc<dyn AnchoringClient>>,
-    store: Arc<dyn sweet_grass_store::BraidStore>,
+///
+/// Generic over `S: BraidStore` for zero-cost store dispatch.
+pub struct AnchorManager<S: sweet_grass_store::BraidStore> {
+    discovery: Arc<DiscoveryBackend>,
+    anchoring_client: parking_lot::RwLock<Arc<AnchoringBackend>>,
+    store: Arc<S>,
 }
 
-impl AnchorManager {
+impl<S: sweet_grass_store::BraidStore> AnchorManager<S> {
     /// Create a new anchor manager using discovery.
     ///
     /// # Errors
@@ -89,12 +143,12 @@ impl AnchorManager {
     /// Returns an error if no primal offering `Capability::Anchoring` is discovered.
     #[instrument(skip(discovery, store, client_factory))]
     pub async fn new<F>(
-        discovery: Arc<dyn PrimalDiscovery>,
-        store: Arc<dyn sweet_grass_store::BraidStore>,
+        discovery: Arc<DiscoveryBackend>,
+        store: Arc<S>,
         client_factory: F,
     ) -> Result<Self>
     where
-        F: FnOnce(&DiscoveredPrimal) -> Arc<dyn AnchoringClient>,
+        F: FnOnce(&DiscoveredPrimal) -> Arc<AnchoringBackend>,
     {
         debug!("Discovering anchoring capability");
 
@@ -116,11 +170,10 @@ impl AnchorManager {
 
     /// Create with an existing client.
     #[must_use]
-    pub fn with_client(
-        client: Arc<dyn AnchoringClient>,
-        store: Arc<dyn sweet_grass_store::BraidStore>,
-    ) -> Self {
-        let discovery = Arc::new(crate::discovery::LocalDiscovery::new());
+    pub fn with_client(client: Arc<AnchoringBackend>, store: Arc<S>) -> Self {
+        let discovery = Arc::new(DiscoveryBackend::Local(
+            crate::discovery::LocalDiscovery::new(),
+        ));
         Self {
             discovery,
             anchoring_client: parking_lot::RwLock::new(client),
@@ -140,7 +193,7 @@ impl AnchorManager {
     #[instrument(skip(self, client_factory))]
     pub async fn reconnect<F>(&self, client_factory: F) -> Result<()>
     where
-        F: FnOnce(&DiscoveredPrimal) -> Arc<dyn AnchoringClient>,
+        F: FnOnce(&DiscoveredPrimal) -> Arc<AnchoringBackend>,
     {
         debug!("Re-discovering anchoring capability for reconnection");
 
@@ -196,7 +249,7 @@ impl AnchorManager {
 
     /// Get the underlying client reference.
     #[must_use]
-    pub fn client(&self) -> Arc<dyn AnchoringClient> {
+    pub fn client(&self) -> Arc<AnchoringBackend> {
         Arc::clone(&self.anchoring_client.read())
     }
 }
@@ -271,7 +324,6 @@ impl TarpcAnchoringClient {
     }
 }
 
-#[async_trait]
 impl AnchoringClient for TarpcAnchoringClient {
     async fn anchor(&self, braid: &Braid, spine_id: &str) -> Result<AnchorReceipt> {
         let braid_bytes = bytes::Bytes::from(
@@ -344,9 +396,9 @@ impl AnchoringClient for TarpcAnchoringClient {
 /// Returns an error if the primal has no tarpc address or connection fails.
 pub async fn create_anchoring_client_async(
     primal: &DiscoveredPrimal,
-) -> std::result::Result<Arc<dyn AnchoringClient>, IntegrationError> {
+) -> std::result::Result<Arc<AnchoringBackend>, IntegrationError> {
     let client = TarpcAnchoringClient::from_primal(primal).await?;
-    Ok(Arc::new(client))
+    Ok(Arc::new(AnchoringBackend::Tarpc(client)))
 }
 
 // ============================================================================
@@ -356,7 +408,7 @@ pub async fn create_anchoring_client_async(
 /// Test-only module containing mock implementations.
 #[cfg(any(test, feature = "test"))]
 pub mod testing {
-    use super::{AnchorInfo, AnchorReceipt, AnchoringClient, Braid, BraidId, Result, async_trait};
+    use super::{AnchorInfo, AnchorReceipt, AnchoringClient, Braid, BraidId, Result};
     use parking_lot::{RwLock, const_rwlock};
 
     /// Mock anchoring client for testing.
@@ -389,7 +441,6 @@ pub mod testing {
         }
     }
 
-    #[async_trait]
     impl AnchoringClient for MockAnchoringClient {
         async fn anchor(&self, braid: &Braid, spine_id: &str) -> Result<AnchorReceipt> {
             let anchor = AnchorInfo {

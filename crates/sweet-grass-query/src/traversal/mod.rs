@@ -153,10 +153,10 @@ impl ProvenanceGraphBuilder {
     /// # Errors
     ///
     /// Returns an error if the store operation fails during traversal.
-    pub async fn build(
+    pub async fn build<S: BraidStore>(
         &self,
         root: EntityReference,
-        store: &Arc<dyn BraidStore>,
+        store: &Arc<S>,
     ) -> Result<ProvenanceGraph> {
         let mut graph = ProvenanceGraph {
             root: root.clone(),
@@ -179,9 +179,9 @@ impl ProvenanceGraphBuilder {
         Ok(graph)
     }
 
-    fn traverse<'a>(
+    fn traverse<'a, S: BraidStore>(
         &'a self,
-        store: &'a Arc<dyn BraidStore>,
+        store: &'a Arc<S>,
         hash: &'a ContentHash,
         depth: u32,
         graph: &'a mut ProvenanceGraph,

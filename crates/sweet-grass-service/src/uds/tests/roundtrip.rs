@@ -4,10 +4,11 @@
 
 use std::sync::Arc;
 
+use crate::backend::BraidBackend;
 use sweet_grass_core::SelfKnowledge;
 use sweet_grass_core::agent::Did;
 use sweet_grass_core::primal_names::env_vars;
-use sweet_grass_store::{BraidStore, MemoryStore};
+use sweet_grass_store::MemoryStore;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 use super::super::*;
@@ -348,7 +349,7 @@ fn test_start_uds_listener_resolves_path_from_self_knowledge() {
         name: primal_name.to_string(),
         ..Default::default()
     };
-    let store: Arc<dyn BraidStore> = Arc::new(MemoryStore::new());
+    let store = Arc::new(BraidBackend::Memory(MemoryStore::new()));
     let state = crate::state::AppState::with_self_knowledge(
         store,
         Did::new("did:key:z6MkUdsSelfKnowledge"),

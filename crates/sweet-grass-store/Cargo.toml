@@ -25,10 +25,6 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 indexmap = { workspace = true }
 
-# Required for dyn-compatible async traits (BraidStore, IndexStore).
-# Native RPITIT is not object-safe; async_trait boxes futures for dyn dispatch.
-async-trait = { workspace = true }
-
 # Synchronization (Pure Rust, no poisoning, better perf than std)
 parking_lot = { workspace = true }
 

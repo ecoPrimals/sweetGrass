@@ -12,7 +12,6 @@
 
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use tracing::{debug, instrument};
 
 use sweet_grass_core::Braid;
@@ -109,7 +108,6 @@ impl TarpcSigningClient {
     }
 }
 
-#[async_trait]
 impl SigningClient for TarpcSigningClient {
     async fn sign(&self, braid: &Braid) -> Result<Witness> {
         let braid_bytes = bytes::Bytes::from(
@@ -206,9 +204,9 @@ impl SigningClient for TarpcSigningClient {
 /// or if the connection to the signing service fails.
 pub async fn create_signing_client_async(
     primal: &DiscoveredPrimal,
-) -> std::result::Result<Arc<dyn SigningClient>, IntegrationError> {
+) -> std::result::Result<Arc<crate::signer::SigningBackend>, IntegrationError> {
     let client = TarpcSigningClient::from_primal(primal).await?;
-    Ok(Arc::new(client))
+    Ok(Arc::new(crate::signer::SigningBackend::Tarpc(client)))
 }
 
 #[cfg(test)]

@@ -6,6 +6,8 @@ use serde::Deserialize;
 use sweet_grass_compression::Session;
 use sweet_grass_core::braid::{BraidId, SummaryType};
 
+use sweet_grass_store::BraidStore;
+
 use crate::state::AppState;
 
 use super::{DispatchResult, internal, parse_params, to_value};

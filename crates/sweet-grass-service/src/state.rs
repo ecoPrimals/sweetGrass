@@ -9,16 +9,18 @@ use sweet_grass_core::SelfKnowledge;
 use sweet_grass_core::agent::Did;
 use sweet_grass_factory::BraidFactory;
 use sweet_grass_query::QueryEngine;
-use sweet_grass_store::{BraidStore, MemoryStore};
+use sweet_grass_store::MemoryStore;
+
+use crate::backend::BraidBackend;
 
 /// Application state shared across handlers.
 #[derive(Clone)]
 pub struct AppState {
     /// Braid storage.
-    pub store: Arc<dyn BraidStore>,
+    pub store: Arc<BraidBackend>,
 
     /// Query engine.
-    pub query: Arc<QueryEngine>,
+    pub query: Arc<QueryEngine<BraidBackend>>,
 
     /// Braid factory.
     pub factory: Arc<BraidFactory>,
@@ -37,7 +39,7 @@ impl AppState {
     /// Create a new application state with in-memory store.
     #[must_use]
     pub fn new_memory(default_agent: Did) -> Self {
-        let store: Arc<dyn BraidStore> = Arc::new(MemoryStore::new());
+        let store = Arc::new(BraidBackend::Memory(MemoryStore::new()));
         let factory = Arc::new(BraidFactory::new(default_agent));
         let query = Arc::new(QueryEngine::new(Arc::clone(&store)));
         let compression = Arc::new(CompressionEngine::new(Arc::clone(&factory)));
@@ -54,7 +56,7 @@ impl AppState {
 
     /// Create with custom store.
     #[must_use]
-    pub fn with_store(store: Arc<dyn BraidStore>, default_agent: Did) -> Self {
+    pub fn with_store(store: Arc<BraidBackend>, default_agent: Did) -> Self {
         let factory = Arc::new(BraidFactory::new(default_agent));
         let query = Arc::new(QueryEngine::new(Arc::clone(&store)));
         let compression = Arc::new(CompressionEngine::new(Arc::clone(&factory)));
@@ -75,7 +77,7 @@ impl AppState {
     /// compression engine) instead of hardcoded defaults.
     #[must_use]
     pub fn with_self_knowledge(
-        store: Arc<dyn BraidStore>,
+        store: Arc<BraidBackend>,
         default_agent: Did,
         self_knowledge: SelfKnowledge,
         store_backend: impl Into<String>,
@@ -108,7 +110,6 @@ mod tests {
     fn test_app_state_new_memory() {
         let state = AppState::new_memory(Did::new("did:key:z6MkTestAgent"));
 
-        // Verify all components are initialized
         assert!(Arc::strong_count(&state.store) >= 1);
         assert!(Arc::strong_count(&state.query) >= 1);
         assert!(Arc::strong_count(&state.factory) >= 1);
@@ -117,10 +118,9 @@ mod tests {
 
     #[test]
     fn test_app_state_with_store() {
-        let store: Arc<dyn BraidStore> = Arc::new(MemoryStore::new());
+        let store = Arc::new(BraidBackend::Memory(MemoryStore::new()));
         let state = AppState::with_store(store, Did::new("did:key:z6MkTestAgent"));
 
-        // Verify all components are initialized
         assert!(Arc::strong_count(&state.store) >= 1);
         assert!(Arc::strong_count(&state.query) >= 1);
     }
@@ -138,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_app_state_with_self_knowledge() {
-        let store: Arc<dyn BraidStore> = Arc::new(MemoryStore::new());
+        let store = Arc::new(BraidBackend::Memory(MemoryStore::new()));
         let sk = SelfKnowledge::default();
         let state = AppState::with_self_knowledge(store, Did::new("did:key:z6MkSK"), sk, "memory");
         assert!(state.self_knowledge.is_some());
@@ -147,7 +147,7 @@ mod tests {
 
     #[test]
     fn test_app_state_default_store_backend() {
-        let store: Arc<dyn BraidStore> = Arc::new(MemoryStore::new());
+        let store = Arc::new(BraidBackend::Memory(MemoryStore::new()));
         let state = AppState::with_store(store, Did::new("did:key:z6MkTest"));
         assert_eq!(state.store_backend, "unknown");
         assert!(state.self_knowledge.is_none());

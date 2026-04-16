@@ -10,7 +10,7 @@
 use super::*;
 use sweet_grass_core::agent::Did;
 use sweet_grass_core::braid::BraidBuilder;
-use sweet_grass_store::MemoryStore;
+use sweet_grass_store::{BraidStore, MemoryStore};
 
 fn create_test_braid() -> Braid {
     BraidBuilder::default()
@@ -89,8 +89,9 @@ async fn test_mock_client_verify_not_found() {
 
 #[tokio::test]
 async fn test_anchor_manager_with_client() {
-    let client: Arc<dyn AnchoringClient> = Arc::new(MockAnchoringClient::new());
-    let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+    let client: Arc<AnchoringBackend> =
+        Arc::new(AnchoringBackend::Mock(MockAnchoringClient::new()));
+    let store = Arc::new(MemoryStore::new());
 
     let manager = AnchorManager::with_client(client, store);
     let client_ref = manager.client();
@@ -99,8 +100,9 @@ async fn test_anchor_manager_with_client() {
 
 #[tokio::test]
 async fn test_anchor_manager_anchor_by_id() {
-    let client: Arc<dyn AnchoringClient> = Arc::new(MockAnchoringClient::new());
-    let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+    let client: Arc<AnchoringBackend> =
+        Arc::new(AnchoringBackend::Mock(MockAnchoringClient::new()));
+    let store = Arc::new(MemoryStore::new());
     let braid = create_test_braid_with_hash("sha256:anchor_test");
 
     store.put(&braid).await.expect("store");
@@ -115,8 +117,9 @@ async fn test_anchor_manager_anchor_by_id() {
 
 #[tokio::test]
 async fn test_anchor_manager_anchor_by_id_not_found() {
-    let client: Arc<dyn AnchoringClient> = Arc::new(MockAnchoringClient::new());
-    let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+    let client: Arc<AnchoringBackend> =
+        Arc::new(AnchoringBackend::Mock(MockAnchoringClient::new()));
+    let store = Arc::new(MemoryStore::new());
     let braid = create_test_braid();
 
     let manager = AnchorManager::with_client(client, store);
@@ -127,8 +130,9 @@ async fn test_anchor_manager_anchor_by_id_not_found() {
 
 #[tokio::test]
 async fn test_anchor_manager_verify() {
-    let client: Arc<dyn AnchoringClient> = Arc::new(MockAnchoringClient::new());
-    let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+    let client: Arc<AnchoringBackend> =
+        Arc::new(AnchoringBackend::Mock(MockAnchoringClient::new()));
+    let store = Arc::new(MemoryStore::new());
     let braid = create_test_braid_with_hash("sha256:verify_test");
 
     store.put(&braid).await.expect("store");
@@ -143,8 +147,9 @@ async fn test_anchor_manager_verify() {
 
 #[tokio::test]
 async fn test_anchor_manager_get_anchors() {
-    let client: Arc<dyn AnchoringClient> = Arc::new(MockAnchoringClient::new());
-    let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+    let client: Arc<AnchoringBackend> =
+        Arc::new(AnchoringBackend::Mock(MockAnchoringClient::new()));
+    let store = Arc::new(MemoryStore::new());
     let braid = create_test_braid_with_hash("sha256:get_anchors_test");
 
     store.put(&braid).await.expect("store");
@@ -207,19 +212,20 @@ async fn test_create_anchoring_client_requires_real_server() {
 
 #[tokio::test]
 async fn test_mock_anchoring_client_directly() {
-    let client: Arc<dyn AnchoringClient> = Arc::new(MockAnchoringClient::new());
+    let client: Arc<AnchoringBackend> =
+        Arc::new(AnchoringBackend::Mock(MockAnchoringClient::new()));
     assert!(client.health().await.expect("health"));
 }
 
 #[tokio::test]
 async fn test_anchor_manager_new_discovery_failure() {
-    use crate::discovery::{LocalDiscovery, PrimalDiscovery};
+    use crate::discovery::{DiscoveryBackend, LocalDiscovery};
 
-    let discovery: Arc<dyn PrimalDiscovery> = Arc::new(LocalDiscovery::new());
-    let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+    let discovery: Arc<DiscoveryBackend> = Arc::new(DiscoveryBackend::Local(LocalDiscovery::new()));
+    let store = Arc::new(MemoryStore::new());
 
     let result = AnchorManager::new(discovery, store, |_| {
-        Arc::new(MockAnchoringClient::new()) as Arc<dyn AnchoringClient>
+        Arc::new(AnchoringBackend::Mock(MockAnchoringClient::new()))
     })
     .await;
 
@@ -232,11 +238,11 @@ async fn test_anchor_manager_new_discovery_failure() {
 
 #[tokio::test]
 async fn test_anchor_manager_new_with_discovery_success() {
-    use crate::discovery::{DiscoveredPrimal, LocalDiscovery, PrimalDiscovery};
+    use crate::discovery::{DiscoveredPrimal, DiscoveryBackend, LocalDiscovery};
     use sweet_grass_core::config::Capability;
 
-    let discovery = Arc::new(LocalDiscovery::new());
-    discovery
+    let local = LocalDiscovery::new();
+    local
         .register(DiscoveredPrimal {
             instance_id: "test-anchor-primal-1".to_owned(),
             name: "test-anchoring".to_string(),
@@ -248,11 +254,13 @@ async fn test_anchor_manager_new_with_discovery_success() {
         })
         .await;
 
-    let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+    let discovery = Arc::new(DiscoveryBackend::Local(local));
 
-    let manager = AnchorManager::new(discovery as Arc<dyn PrimalDiscovery>, store, |primal| {
+    let store = Arc::new(MemoryStore::new());
+
+    let manager = AnchorManager::new(discovery, store, |primal| {
         assert_eq!(primal.name, "test-anchoring");
-        Arc::new(MockAnchoringClient::new()) as Arc<dyn AnchoringClient>
+        Arc::new(AnchoringBackend::Mock(MockAnchoringClient::new()))
     })
     .await
     .expect("discovery should succeed");
@@ -262,11 +270,11 @@ async fn test_anchor_manager_new_with_discovery_success() {
 
 #[tokio::test]
 async fn test_anchor_manager_reconnect_success() {
-    use crate::discovery::{DiscoveredPrimal, LocalDiscovery, PrimalDiscovery};
+    use crate::discovery::{DiscoveredPrimal, DiscoveryBackend, LocalDiscovery};
     use sweet_grass_core::config::Capability;
 
-    let discovery = Arc::new(LocalDiscovery::new());
-    discovery
+    let local = LocalDiscovery::new();
+    local
         .register(DiscoveredPrimal {
             instance_id: "anchor-primary".to_string(),
             name: "primary-anchor".to_string(),
@@ -278,20 +286,22 @@ async fn test_anchor_manager_reconnect_success() {
         })
         .await;
 
-    let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+    let discovery = Arc::new(DiscoveryBackend::Local(local));
 
-    let manager = AnchorManager::new(
-        Arc::clone(&discovery) as Arc<dyn PrimalDiscovery>,
-        store,
-        |_| Arc::new(MockAnchoringClient::new()) as Arc<dyn AnchoringClient>,
-    )
+    let store = Arc::new(MemoryStore::new());
+
+    let manager = AnchorManager::new(Arc::clone(&discovery), store, |_| {
+        Arc::new(AnchoringBackend::Mock(MockAnchoringClient::new()))
+    })
     .await
     .expect("initial");
 
     let result = manager
         .reconnect(|primal| {
             assert_eq!(primal.name, "primary-anchor");
-            Arc::new(MockAnchoringClient::new().with_health(true)) as Arc<dyn AnchoringClient>
+            Arc::new(AnchoringBackend::Mock(
+                MockAnchoringClient::new().with_health(true),
+            ))
         })
         .await;
     assert!(result.is_ok());
@@ -300,13 +310,14 @@ async fn test_anchor_manager_reconnect_success() {
 
 #[tokio::test]
 async fn test_anchor_manager_reconnect_failure_no_primal() {
-    let client: Arc<dyn AnchoringClient> = Arc::new(MockAnchoringClient::new());
-    let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+    let client: Arc<AnchoringBackend> =
+        Arc::new(AnchoringBackend::Mock(MockAnchoringClient::new()));
+    let store = Arc::new(MemoryStore::new());
 
     let manager = AnchorManager::with_client(client, store);
 
     let result = manager
-        .reconnect(|_| Arc::new(MockAnchoringClient::new()) as Arc<dyn AnchoringClient>)
+        .reconnect(|_| Arc::new(AnchoringBackend::Mock(MockAnchoringClient::new())))
         .await;
 
     assert!(result.is_err(), "empty discovery should fail reconnect");
@@ -314,8 +325,9 @@ async fn test_anchor_manager_reconnect_failure_no_primal() {
 
 #[tokio::test]
 async fn test_anchor_manager_multiple_operations() {
-    let client: Arc<dyn AnchoringClient> = Arc::new(MockAnchoringClient::new());
-    let store: Arc<dyn sweet_grass_store::BraidStore> = Arc::new(MemoryStore::new());
+    let client: Arc<AnchoringBackend> =
+        Arc::new(AnchoringBackend::Mock(MockAnchoringClient::new()));
+    let store = Arc::new(MemoryStore::new());
 
     let braid1 = create_test_braid_with_hash("sha256:multi_op_1");
     let braid2 = create_test_braid_with_hash("sha256:multi_op_2");

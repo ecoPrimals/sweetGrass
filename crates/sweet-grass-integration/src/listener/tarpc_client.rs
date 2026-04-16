@@ -5,12 +5,11 @@
 use std::collections::VecDeque;
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use tracing::{debug, instrument};
 
 use sweet_grass_compression::Session;
 
-use super::{SessionEvent, SessionEventStream, SessionEventsClient};
+use super::{SessionEvent, SessionEventStream, SessionEventStreamBackend, SessionEventsClient};
 use crate::Result;
 use crate::discovery::DiscoveredPrimal;
 use crate::error::{IntegrationError, IpcErrorPhase};
@@ -76,9 +75,8 @@ impl TarpcSessionEventsClient {
     }
 }
 
-#[async_trait]
 impl SessionEventsClient for TarpcSessionEventsClient {
-    async fn subscribe(&self) -> Result<Box<dyn SessionEventStream>> {
+    async fn subscribe(&self) -> Result<SessionEventStreamBackend> {
         let events_bytes = self
             .client
             .subscribe(tarpc::context::current())
@@ -89,7 +87,7 @@ impl SessionEventsClient for TarpcSessionEventsClient {
         let events: Vec<SessionEvent> = serde_json::from_slice(&events_bytes)
             .map_err(|e| IntegrationError::Serialization(e.to_string()))?;
 
-        Ok(Box::new(TarpcEventStream {
+        Ok(SessionEventStreamBackend::Tarpc(TarpcEventStream {
             events: VecDeque::from(events),
         }))
     }
@@ -122,11 +120,10 @@ impl SessionEventsClient for TarpcSessionEventsClient {
 }
 
 /// tarpc-backed event stream.
-struct TarpcEventStream {
+pub struct TarpcEventStream {
     events: VecDeque<SessionEvent>,
 }
 
-#[async_trait]
 impl SessionEventStream for TarpcEventStream {
     async fn next(&mut self) -> Option<SessionEvent> {
         self.events.pop_front()
@@ -150,7 +147,7 @@ impl SessionEventStream for TarpcEventStream {
 /// Returns an error if the primal has no tarpc address or connection fails.
 pub async fn create_session_events_client_async(
     primal: &DiscoveredPrimal,
-) -> std::result::Result<Arc<dyn SessionEventsClient>, IntegrationError> {
+) -> std::result::Result<Arc<crate::listener::SessionEventsBackend>, IntegrationError> {
     let client = TarpcSessionEventsClient::from_primal(primal).await?;
-    Ok(Arc::new(client))
+    Ok(Arc::new(super::SessionEventsBackend::Tarpc(client)))
 }

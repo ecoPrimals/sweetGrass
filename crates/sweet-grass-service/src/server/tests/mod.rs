@@ -15,9 +15,11 @@ mod provenance;
 mod tarpc_roundtrip;
 
 use super::*;
+use crate::backend::BraidBackend;
 use crate::rpc::{CreateBraidRequest, SweetGrassRpc};
 use crate::state::AppState;
 
+use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use sweet_grass_compression::{CompressionEngine, Session, SessionOutcome, SessionVertex};
@@ -26,7 +28,7 @@ use sweet_grass_core::braid::{BraidId, SummaryType};
 use sweet_grass_core::entity::EntityReference;
 use sweet_grass_factory::{AttributionCalculator, AttributionConfig, BraidFactory};
 use sweet_grass_query::QueryEngine;
-use sweet_grass_store::{BraidStore, MemoryStore, QueryFilter, QueryOrder};
+use sweet_grass_store::{MemoryStore, QueryFilter, QueryOrder};
 use tarpc::context;
 
 /// Test bind address (OS-allocated port).
@@ -35,7 +37,7 @@ const TEST_BIND_ADDR: &str = "127.0.0.1:0";
 static COUNTER: AtomicU64 = AtomicU64::new(0);
 
 fn make_server() -> SweetGrassServer {
-    let store: Arc<dyn BraidStore> = Arc::new(MemoryStore::new());
+    let store = Arc::new(BraidBackend::Memory(MemoryStore::new()));
     let did = Did::new("did:key:z6MkTest");
     let factory = Arc::new(BraidFactory::new(did));
     let query = Arc::new(QueryEngine::new(Arc::clone(&store)));

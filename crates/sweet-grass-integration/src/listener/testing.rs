@@ -3,7 +3,8 @@
 //! Test-only mock implementations for session events.
 
 use super::{
-    Arc, Result, Session, SessionEvent, SessionEventStream, SessionEventsClient, async_trait,
+    Arc, Result, Session, SessionEvent, SessionEventStream, SessionEventStreamBackend,
+    SessionEventsClient,
 };
 use parking_lot::RwLock;
 use std::collections::VecDeque;
@@ -53,10 +54,9 @@ impl Default for MockSessionEventsClient {
     }
 }
 
-#[async_trait]
 impl SessionEventsClient for MockSessionEventsClient {
-    async fn subscribe(&self) -> Result<Box<dyn SessionEventStream>> {
-        Ok(Box::new(MockEventStream {
+    async fn subscribe(&self) -> Result<SessionEventStreamBackend> {
+        Ok(SessionEventStreamBackend::Mock(MockEventStream {
             events: Arc::clone(&self.events),
         }))
     }
@@ -76,7 +76,6 @@ pub struct MockEventStream {
     events: Arc<Mutex<VecDeque<SessionEvent>>>,
 }
 
-#[async_trait]
 impl SessionEventStream for MockEventStream {
     async fn next(&mut self) -> Option<SessionEvent> {
         let mut events = self.events.lock().await;

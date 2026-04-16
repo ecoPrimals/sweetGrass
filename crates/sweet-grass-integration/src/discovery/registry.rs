@@ -79,6 +79,7 @@ impl ServiceInfo {
 ///
 /// Connects to any primal offering `Capability::Discovery` via tarpc.
 /// Falls back to `LocalDiscovery` when the registry is unreachable.
+#[derive(Clone)]
 pub struct RegistryDiscovery {
     client: RegistryRpcClient,
     fallback: LocalDiscovery,
@@ -150,7 +151,6 @@ impl RegistryDiscovery {
     }
 }
 
-#[async_trait::async_trait]
 impl PrimalDiscovery for RegistryDiscovery {
     async fn find_by_capability(
         &self,

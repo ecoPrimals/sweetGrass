@@ -5,6 +5,8 @@
 //! The entry point for zero-knowledge startup. A primal is born knowing
 //! only itself and discovers all other services at runtime.
 
+use std::sync::Arc;
+
 use tracing::{debug, info, instrument};
 
 use crate::factory::{BraidStoreFactory, StorageConfig};
@@ -141,7 +143,7 @@ pub async fn infant_bootstrap() -> Result<BootstrapResult, BootstrapError> {
     // Phase 4: Create application state with self-knowledge
     debug!("Phase 4: Creating application state");
     let app_state = AppState::with_self_knowledge(
-        store,
+        Arc::new(store),
         default_agent.clone(),
         self_knowledge.clone(),
         &backend_type,
@@ -213,7 +215,7 @@ pub async fn infant_bootstrap_with_config_and_reader(
 
     debug!("Phase 4: Creating application state");
     let app_state = AppState::with_self_knowledge(
-        store,
+        Arc::new(store),
         default_agent.clone(),
         self_knowledge.clone(),
         &backend_type,
@@ -268,7 +270,7 @@ fn advertise_address(reader: &impl Fn(&str) -> Option<String>, port: u16) -> Opt
 /// graceful degradation per the `PRIMAL_IPC_PROTOCOL` v3.1 standalone
 /// startup requirement.
 async fn announce_capabilities(self_knowledge: &SelfKnowledge, state: &AppState) {
-    use sweet_grass_integration::discovery::{DiscoveredPrimal, create_discovery};
+    use sweet_grass_integration::discovery::{DiscoveredPrimal, PrimalDiscovery, create_discovery};
 
     if self_knowledge.capabilities.is_empty() {
         debug!("No capabilities to announce — standalone mode");
@@ -324,7 +326,7 @@ pub async fn create_app_state_from_env() -> Result<AppState, BootstrapError> {
     let did_str =
         std::env::var("SWEETGRASS_AGENT_DID").unwrap_or_else(|_| "did:primal:test".to_string());
     let default_agent = Did::new(&did_str);
-    Ok(AppState::with_store(store, default_agent))
+    Ok(AppState::with_store(Arc::new(store), default_agent))
 }
 
 #[cfg(test)]

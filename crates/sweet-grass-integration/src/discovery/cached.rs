@@ -9,14 +9,55 @@ use std::time::Duration;
 use sweet_grass_core::config::Capability;
 use tokio::sync::RwLock;
 
-use super::{DiscoveredPrimal, DiscoveryError, PrimalDiscovery};
+use super::{DiscoveredPrimal, DiscoveryBackend, DiscoveryError, PrimalDiscovery};
+
+/// Walk nested backends until a concrete `Local` or `Registry` implementation is reached,
+/// avoiding trait dispatch through [`DiscoveryBackend`] that would recurse through
+/// [`CachedDiscovery`] and produce an infinitely-sized async state machine.
+async fn find_by_capability_leaf(
+    mut current: &DiscoveryBackend,
+    capability: &Capability,
+) -> Result<Vec<DiscoveredPrimal>, DiscoveryError> {
+    loop {
+        match current {
+            DiscoveryBackend::Local(d) => return d.find_by_capability(capability).await,
+            DiscoveryBackend::Registry(d) => return d.find_by_capability(capability).await,
+            DiscoveryBackend::Cached(c) => current = c.inner.as_ref(),
+        }
+    }
+}
+
+async fn announce_leaf(
+    mut current: &DiscoveryBackend,
+    primal: &DiscoveredPrimal,
+) -> Result<(), DiscoveryError> {
+    loop {
+        match current {
+            DiscoveryBackend::Local(d) => return d.announce(primal).await,
+            DiscoveryBackend::Registry(d) => return d.announce(primal).await,
+            DiscoveryBackend::Cached(c) => current = c.inner.as_ref(),
+        }
+    }
+}
+
+async fn health_leaf(current: &DiscoveryBackend) -> bool {
+    let mut current = current;
+    loop {
+        match current {
+            DiscoveryBackend::Local(d) => return d.health().await,
+            DiscoveryBackend::Registry(d) => return d.health().await,
+            DiscoveryBackend::Cached(c) => current = c.inner.as_ref(),
+        }
+    }
+}
 
 /// Discovery client that caches results and handles failover.
 ///
 /// Wraps any [`PrimalDiscovery`] implementation with a TTL-based cache
 /// to reduce repeated network queries for the same capability.
+#[derive(Clone)]
 pub struct CachedDiscovery {
-    inner: Arc<dyn PrimalDiscovery>,
+    inner: Arc<DiscoveryBackend>,
     cache: Arc<RwLock<HashMap<Capability, Vec<DiscoveredPrimal>>>>,
     cache_ttl: Duration,
 }
@@ -24,7 +65,7 @@ pub struct CachedDiscovery {
 impl CachedDiscovery {
     /// Create a new cached discovery client.
     #[must_use]
-    pub fn new(inner: Arc<dyn PrimalDiscovery>, cache_ttl: Duration) -> Self {
+    pub fn new(inner: Arc<DiscoveryBackend>, cache_ttl: Duration) -> Self {
         Self {
             inner,
             cache: Arc::new(RwLock::new(HashMap::new())),
@@ -45,7 +86,6 @@ impl CachedDiscovery {
     }
 }
 
-#[async_trait::async_trait]
 impl PrimalDiscovery for CachedDiscovery {
     async fn find_by_capability(
         &self,
@@ -71,7 +111,7 @@ impl PrimalDiscovery for CachedDiscovery {
             }
         }
 
-        let primals = self.inner.find_by_capability(capability).await?;
+        let primals = find_by_capability_leaf(self.inner.as_ref(), capability).await?;
 
         {
             let mut cache = self.cache.write().await;
@@ -82,11 +122,11 @@ impl PrimalDiscovery for CachedDiscovery {
     }
 
     async fn announce(&self, primal: &DiscoveredPrimal) -> Result<(), DiscoveryError> {
-        self.inner.announce(primal).await
+        announce_leaf(self.inner.as_ref(), primal).await
     }
 
     async fn health(&self) -> bool {
-        self.inner.health().await
+        health_leaf(self.inner.as_ref()).await
     }
 
     async fn find_one(&self, capability: &Capability) -> Result<DiscoveredPrimal, DiscoveryError> {

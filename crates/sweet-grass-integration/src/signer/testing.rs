@@ -11,8 +11,6 @@
 
 #![cfg(any(test, feature = "test"))]
 
-use async_trait::async_trait;
-
 use sweet_grass_core::Braid;
 use sweet_grass_core::agent::Did;
 use sweet_grass_core::dehydration::Witness;
@@ -79,7 +77,6 @@ impl Default for MockSigningClient {
     }
 }
 
-#[async_trait]
 impl SigningClient for MockSigningClient {
     async fn sign(&self, _braid: &Braid) -> Result<Witness> {
         self.sign_result.as_ref().map_or_else(

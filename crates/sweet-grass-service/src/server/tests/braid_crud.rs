@@ -258,7 +258,7 @@ async fn test_agent_contributions_empty_time_range() {
 
 #[tokio::test]
 async fn test_server_with_max_concurrent_requests() {
-    let store = Arc::new(MemoryStore::new());
+    let store = Arc::new(crate::backend::BraidBackend::Memory(MemoryStore::new()));
     let did = Did::new("did:key:z6MkTest");
     let factory = Arc::new(BraidFactory::new(did));
     let query = Arc::new(QueryEngine::new(store.clone()));
@@ -274,7 +274,7 @@ async fn test_server_with_max_concurrent_requests() {
 
 #[tokio::test]
 async fn test_server_with_explicit_max_concurrent_requests() {
-    let store: Arc<dyn BraidStore> = Arc::new(MemoryStore::new());
+    let store = Arc::new(crate::backend::BraidBackend::Memory(MemoryStore::new()));
     let did = Did::new("did:key:z6MkTest");
     let factory = Arc::new(BraidFactory::new(did));
     let query = Arc::new(QueryEngine::new(store.clone()));

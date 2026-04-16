@@ -6,7 +6,7 @@
 //! `PRIMAL_IPC_PROTOCOL` v3.0 health methods aligned with coralReef's
 //! and healthSpring's implementations.
 
-use sweet_grass_store::QueryFilter;
+use sweet_grass_store::{BraidStore, QueryFilter};
 
 use crate::state::AppState;
 

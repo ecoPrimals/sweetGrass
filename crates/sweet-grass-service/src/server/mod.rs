@@ -27,6 +27,8 @@ use sweet_grass_factory::{
 use sweet_grass_query::{ProvenanceGraph, ProvenanceGraphBuilder, QueryEngine};
 use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder, QueryResult};
 
+use crate::backend::BraidBackend;
+
 use crate::rpc::{
     AgentContributions, CreateBraidRequest, HealthStatus, JsonLdDocument, RewardShare, RpcError,
     ServiceStatus, SweetGrassRpc, TimeRange,
@@ -41,9 +43,9 @@ const DEFAULT_MAX_CONCURRENT_REQUESTS: usize = 10;
 /// stack when constructed from `AppState`.
 #[derive(Clone)]
 pub struct SweetGrassServer {
-    store: Arc<dyn BraidStore>,
+    store: Arc<BraidBackend>,
     factory: Arc<BraidFactory>,
-    query: Arc<QueryEngine>,
+    query: Arc<QueryEngine<BraidBackend>>,
     compression: Arc<CompressionEngine>,
     attribution: Arc<AttributionCalculator>,
     store_backend: String,
@@ -60,9 +62,9 @@ impl SweetGrassServer {
     /// or 10 if unset.
     #[must_use]
     pub fn new(
-        store: Arc<dyn BraidStore>,
+        store: Arc<BraidBackend>,
         factory: Arc<BraidFactory>,
-        query: Arc<QueryEngine>,
+        query: Arc<QueryEngine<BraidBackend>>,
         compression: Arc<CompressionEngine>,
         attribution: Arc<AttributionCalculator>,
     ) -> Self {

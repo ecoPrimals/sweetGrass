@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 
-#[expect(
-    unused_imports,
-    reason = "discovery APIs are invoked via super:: paths matching the original tests.rs"
-)]
 use super::*;
 
 #[tokio::test]

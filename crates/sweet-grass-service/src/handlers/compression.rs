@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 use sweet_grass_compression::{CompressionResult, Session, SessionOutcome, SessionVertex};
 use sweet_grass_core::{ActivityType, Braid, agent::Did};
 
+use sweet_grass_store::BraidStore;
+
 use crate::{error::ServiceError, state::AppState};
 
 /// Request to compress a session.

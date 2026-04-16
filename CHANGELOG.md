@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Stadial Parity: async-trait + dyn Elimination (April 16, 2026)
+
+Eliminated all `#[async_trait]` attributes and `Arc<dyn Trait>` dispatch for
+finite-implementor traits. sweetGrass is now stadial-compliant per
+`STADIAL_PARITY_GATE_APR16_2026.md`.
+
+#### Removed
+- `async-trait` crate from all 7 `Cargo.toml` files (workspace root + 6 members)
+- 22 `#[async_trait]` attributes across `BraidStore`, `SigningClient`,
+  `AnchoringClient`, `SessionEventsClient`, `SessionEventStream`, `PrimalDiscovery`
+- ~130 `Arc<dyn Trait>` / `Box<dyn Trait>` usages for finite-implementor traits
+
+#### Added
+- `BraidBackend` enum (Memory, Redb, Postgres, Sled, NestGate) with delegation macro
+- `SigningBackend`, `AnchoringBackend`, `SessionEventsBackend`,
+  `SessionEventStreamBackend`, `DiscoveryBackend` enums for integration traits
+- `QueryEngine<S: BraidStore>` generic over store backend
+- `AnchorManager<S>` and `EventHandler<S>` generic over store backend
+- Native RPITIT (`fn ... -> impl Future + Send`) on all 6 converted traits
+
+#### Lockfile Debt Status
+- `ring`: dev-dep only (testcontainers → bollard → rustls); not in production binary
+- `sled`: feature-gated (not in defaults); `sweet-grass-store-sled` deprecated
+- `libsqlite3-sys`: lockfile phantom from sqlx optional dep; not compiled or linked
+- `async-trait`: dev-dep only (testcontainers transitive); zero direct usage
+
+#### Metrics
+- `#[async_trait]` attributes: 22 → 0
+- `Arc<dyn Trait>` (finite-implementor): ~130 → 0
+- Remaining `dyn`: 2 (recursive future pinning + dispatch table — both legitimate)
+- Tests: 1,504 pass, 0 fail
+- Clippy: 0 warnings (`--all-features --tests -D warnings`)
+
 ### Entity Tests Extraction & Final Deep Debt Pass (April 16, 2026)
 
 Extracted `entity.rs` inline tests (322 lines) to `entity/tests.rs`, reducing
@@ -17,15 +50,11 @@ Full deep debt audit confirms: zero unsafe, zero TODOs, zero production
 unwrap/expect, zero `#[allow]` (all `#[expect]`), zero hardcoded primal names,
 all mocks test-gated, `cargo deny` clean.
 
-### async-trait Formal Audit (April 16, 2026)
+### async-trait Formal Audit → Elimination (April 16, 2026)
 
-Audited all 22 `#[async_trait]` uses across the codebase. All 5 trait
-definitions (`BraidStore`, `SigningClient`, `SessionEventsClient`,
-`SessionEventStream`, `AnchoringClient`) require object safety (`dyn` dispatch).
-17 impl blocks follow. Two traits that do not require `dyn` (`IndexStore`,
-`Signer`) were already migrated to native `impl Future + Send`. Terminal state
-until Rust stabilizes dyn-compatible async traits. Each trait now documents
-why `#[async_trait]` is required.
+Audited all 22 `#[async_trait]` uses, then eliminated all of them. All 6
+trait definitions converted to native RPITIT with enum dispatch backends.
+Superseded by "Stadial Parity" entry above.
 
 ### Capability-Based Naming Evolution & Deep Debt Pass (April 16, 2026)
 

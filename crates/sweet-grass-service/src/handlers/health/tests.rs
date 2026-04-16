@@ -10,57 +10,12 @@ use super::*;
 use axum::extract::State;
 use std::sync::Arc;
 use sweet_grass_core::agent::Did;
-use sweet_grass_core::{Activity, ActivityId, Braid, BraidId, ContentHash};
-use sweet_grass_store::{
-    BraidStore, MemoryStore, QueryFilter, QueryOrder, QueryResult, Result as StoreResult,
-    StoreError,
-};
+use sweet_grass_store::{BraidStore, MemoryStore};
+
+use crate::backend::{BraidBackend, CountFailingStore};
 
 fn create_test_state() -> AppState {
     AppState::new_memory(Did::new("did:key:z6MkTest"))
-}
-
-/// Store that fails on count for testing health/readiness error paths.
-struct CountFailingStore(Arc<MemoryStore>);
-
-#[async_trait::async_trait]
-impl BraidStore for CountFailingStore {
-    async fn put(&self, braid: &Braid) -> StoreResult<()> {
-        self.0.put(braid).await
-    }
-    async fn get(&self, id: &BraidId) -> StoreResult<Option<Braid>> {
-        self.0.get(id).await
-    }
-    async fn get_by_hash(&self, hash: &ContentHash) -> StoreResult<Option<Braid>> {
-        self.0.get_by_hash(hash).await
-    }
-    async fn delete(&self, id: &BraidId) -> StoreResult<bool> {
-        self.0.delete(id).await
-    }
-    async fn exists(&self, id: &BraidId) -> StoreResult<bool> {
-        self.0.exists(id).await
-    }
-    async fn query(&self, filter: &QueryFilter, order: QueryOrder) -> StoreResult<QueryResult> {
-        self.0.query(filter, order).await
-    }
-    async fn count(&self, _filter: &QueryFilter) -> StoreResult<usize> {
-        Err(StoreError::Internal("injected fault".to_string()))
-    }
-    async fn by_agent(&self, agent: &Did) -> StoreResult<Vec<Braid>> {
-        self.0.by_agent(agent).await
-    }
-    async fn derived_from(&self, hash: &ContentHash) -> StoreResult<Vec<Braid>> {
-        self.0.derived_from(hash).await
-    }
-    async fn put_activity(&self, activity: &Activity) -> StoreResult<()> {
-        self.0.put_activity(activity).await
-    }
-    async fn get_activity(&self, id: &ActivityId) -> StoreResult<Option<Activity>> {
-        self.0.get_activity(id).await
-    }
-    async fn activities_for_braid(&self, braid_id: &BraidId) -> StoreResult<Vec<Activity>> {
-        self.0.activities_for_braid(braid_id).await
-    }
 }
 
 #[tokio::test]
@@ -203,7 +158,9 @@ fn test_primal_status_connected_without_address() {
 
 #[tokio::test]
 async fn test_health_returns_service_unavailable_when_store_fails() {
-    let store: Arc<dyn BraidStore> = Arc::new(CountFailingStore(Arc::new(MemoryStore::new())));
+    let store = Arc::new(BraidBackend::CountFailing(CountFailingStore(Arc::new(
+        MemoryStore::new(),
+    ))));
     let state = AppState::with_store(store, Did::new("did:key:z6MkTest"));
 
     let result = health(State(state)).await;
@@ -215,7 +172,9 @@ async fn test_health_returns_service_unavailable_when_store_fails() {
 
 #[tokio::test]
 async fn test_health_detailed_returns_service_unavailable_when_store_fails() {
-    let store: Arc<dyn BraidStore> = Arc::new(CountFailingStore(Arc::new(MemoryStore::new())));
+    let store = Arc::new(BraidBackend::CountFailing(CountFailingStore(Arc::new(
+        MemoryStore::new(),
+    ))));
     let state = AppState::with_store(store, Did::new("did:key:z6MkTest"));
 
     let result = health_detailed(State(state)).await;
@@ -227,7 +186,9 @@ async fn test_health_detailed_returns_service_unavailable_when_store_fails() {
 
 #[tokio::test]
 async fn test_readiness_unavailable_when_store_fails() {
-    let store: Arc<dyn BraidStore> = Arc::new(CountFailingStore(Arc::new(MemoryStore::new())));
+    let store = Arc::new(BraidBackend::CountFailing(CountFailingStore(Arc::new(
+        MemoryStore::new(),
+    ))));
     let state = AppState::with_store(store, Did::new("did:key:z6MkTest"));
 
     let status = readiness(State(state)).await;

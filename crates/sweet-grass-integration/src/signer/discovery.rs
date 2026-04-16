@@ -19,9 +19,10 @@ use sweet_grass_core::agent::Did;
 use sweet_grass_core::config::Capability;
 
 use crate::Result;
-use crate::discovery::{DiscoveredPrimal, PrimalDiscovery};
+use crate::discovery::{DiscoveredPrimal, DiscoveryBackend, PrimalDiscovery};
 use crate::error::IntegrationError;
 
+use super::SigningBackend;
 use super::traits::{Signer, SigningClient};
 
 /// Signing service that uses capability-based discovery to find signing primals.
@@ -29,8 +30,8 @@ use super::traits::{Signer, SigningClient};
 /// This is the recommended signer implementation - it discovers signing
 /// services at runtime based on capabilities, not hardcoded names.
 pub struct DiscoverySigner {
-    discovery: Arc<dyn PrimalDiscovery>,
-    client: Arc<dyn SigningClient>,
+    discovery: Arc<DiscoveryBackend>,
+    client: Arc<SigningBackend>,
     did: Did,
 }
 
@@ -43,9 +44,9 @@ impl DiscoverySigner {
     ///
     /// Returns an error if no signing primal is discovered or client creation fails.
     #[instrument(skip(discovery, client_factory))]
-    pub async fn new<F>(discovery: Arc<dyn PrimalDiscovery>, client_factory: F) -> Result<Self>
+    pub async fn new<F>(discovery: Arc<DiscoveryBackend>, client_factory: F) -> Result<Self>
     where
-        F: FnOnce(&DiscoveredPrimal) -> Arc<dyn SigningClient>,
+        F: FnOnce(&DiscoveredPrimal) -> Arc<SigningBackend>,
     {
         debug!("Discovering signing capability");
 
@@ -71,10 +72,12 @@ impl DiscoverySigner {
     /// # Errors
     ///
     /// Returns an error if retrieving the client's DID fails.
-    pub async fn with_client(client: Arc<dyn SigningClient>) -> Result<Self> {
+    pub async fn with_client(client: Arc<SigningBackend>) -> Result<Self> {
         let did = client.current_did().await?;
         // Use a no-op discovery since we already have the client
-        let discovery = Arc::new(crate::discovery::LocalDiscovery::new());
+        let discovery = Arc::new(DiscoveryBackend::Local(
+            crate::discovery::LocalDiscovery::new(),
+        ));
 
         Ok(Self {
             discovery,
@@ -91,7 +94,7 @@ impl DiscoverySigner {
     #[instrument(skip(self, client_factory))]
     pub async fn reconnect<F>(&mut self, client_factory: F) -> Result<()>
     where
-        F: FnOnce(&DiscoveredPrimal) -> Arc<dyn SigningClient>,
+        F: FnOnce(&DiscoveredPrimal) -> Arc<SigningBackend>,
     {
         warn!("Reconnecting to signing capability");
 
@@ -114,7 +117,7 @@ impl DiscoverySigner {
 
     /// Get the underlying client for advanced operations.
     #[must_use]
-    pub fn client(&self) -> &dyn SigningClient {
+    pub fn client(&self) -> &SigningBackend {
         self.client.as_ref()
     }
 }
@@ -147,7 +150,7 @@ impl Signer for DiscoverySigner {
 ///
 /// Prefer `DiscoverySigner` for new code as it uses proper capability-based discovery.
 pub struct LegacySigner {
-    client: Arc<dyn SigningClient>,
+    client: Arc<SigningBackend>,
     did: Did,
 }
 
@@ -157,7 +160,7 @@ impl LegacySigner {
     /// # Errors
     ///
     /// Returns an error if retrieving the client's DID fails.
-    pub async fn new(client: Arc<dyn SigningClient>) -> Result<Self> {
+    pub async fn new(client: Arc<SigningBackend>) -> Result<Self> {
         let did = client.current_did().await?;
         Ok(Self { client, did })
     }

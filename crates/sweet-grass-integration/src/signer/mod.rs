@@ -32,6 +32,64 @@ mod traits;
 #[cfg(any(test, feature = "test"))]
 pub mod testing;
 
+use sweet_grass_core::Braid;
+use sweet_grass_core::agent::Did;
+use sweet_grass_core::dehydration::Witness;
+
+use crate::Result;
+
+/// Unified signing client for runtime dispatch (tarpc production path or test mock).
+pub enum SigningBackend {
+    /// Production tarpc client.
+    Tarpc(tarpc_client::TarpcSigningClient),
+    /// Test-only mock client.
+    #[cfg(any(test, feature = "test"))]
+    #[doc(hidden)]
+    Mock(testing::MockSigningClient),
+}
+
+impl traits::SigningClient for SigningBackend {
+    async fn sign(&self, braid: &Braid) -> Result<Witness> {
+        match self {
+            Self::Tarpc(c) => c.sign(braid).await,
+            #[cfg(any(test, feature = "test"))]
+            Self::Mock(m) => m.sign(braid).await,
+        }
+    }
+
+    async fn verify(&self, braid: &Braid) -> Result<traits::SignatureInfo> {
+        match self {
+            Self::Tarpc(c) => c.verify(braid).await,
+            #[cfg(any(test, feature = "test"))]
+            Self::Mock(m) => m.verify(braid).await,
+        }
+    }
+
+    async fn current_did(&self) -> Result<Did> {
+        match self {
+            Self::Tarpc(c) => c.current_did().await,
+            #[cfg(any(test, feature = "test"))]
+            Self::Mock(m) => m.current_did().await,
+        }
+    }
+
+    async fn resolve_did(&self, did: &Did) -> Result<Option<serde_json::Value>> {
+        match self {
+            Self::Tarpc(c) => c.resolve_did(did).await,
+            #[cfg(any(test, feature = "test"))]
+            Self::Mock(m) => m.resolve_did(did).await,
+        }
+    }
+
+    async fn health(&self) -> Result<bool> {
+        match self {
+            Self::Tarpc(c) => c.health().await,
+            #[cfg(any(test, feature = "test"))]
+            Self::Mock(m) => m.health().await,
+        }
+    }
+}
+
 // Re-export core traits (capability-based naming)
 pub use traits::{SIGNING_ALGORITHM, SignatureInfo, Signer, SigningClient};
 
@@ -55,7 +113,7 @@ pub use tarpc_client::{
 )]
 mod tests {
     use super::*;
-    use crate::discovery::{DiscoveredPrimal, LocalDiscovery};
+    use crate::discovery::{DiscoveredPrimal, DiscoveryBackend, LocalDiscovery};
     use std::sync::Arc;
     use sweet_grass_core::config::Capability;
 
@@ -110,7 +168,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_discovery_signer_creation() {
-        let discovery = Arc::new(LocalDiscovery::new());
+        let local = LocalDiscovery::new();
 
         // Register a mock signing primal (no hardcoded name needed)
         let mock_primal = DiscoveredPrimal {
@@ -122,11 +180,12 @@ mod tests {
             last_seen: std::time::SystemTime::now(),
             healthy: true,
         };
-        discovery.register(mock_primal).await;
+        local.register(mock_primal).await;
+        let discovery = Arc::new(DiscoveryBackend::Local(local));
 
         // Create signer with mock client factory
         let signer = DiscoverySigner::new(discovery, |_primal| {
-            Arc::new(testing::MockSigningClient::new()) as Arc<dyn SigningClient>
+            Arc::new(SigningBackend::Mock(testing::MockSigningClient::new()))
         })
         .await
         .expect("create signer");
@@ -136,7 +195,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_legacy_signer_sign() {
-        let client = Arc::new(testing::MockSigningClient::new());
+        let client = Arc::new(SigningBackend::Mock(testing::MockSigningClient::new()));
         let signer = LegacySigner::new(client).await.expect("create signer");
 
         let braid = sweet_grass_core::Braid::builder()
@@ -153,7 +212,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_legacy_signer_verify() {
-        let client = Arc::new(testing::MockSigningClient::new());
+        let client = Arc::new(SigningBackend::Mock(testing::MockSigningClient::new()));
         let signer = LegacySigner::new(client).await.expect("create signer");
 
         let braid = sweet_grass_core::Braid::builder()
@@ -170,7 +229,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_mock_client_invalid_verify() {
-        let client = Arc::new(testing::MockSigningClient::new().with_verify_result(false));
+        let client = Arc::new(SigningBackend::Mock(
+            testing::MockSigningClient::new().with_verify_result(false),
+        ));
         let signer = LegacySigner::new(client).await.expect("create signer");
 
         let braid = sweet_grass_core::Braid::builder()
@@ -188,7 +249,9 @@ mod tests {
     #[tokio::test]
     async fn test_custom_did_signer() {
         let custom_did = sweet_grass_core::agent::Did::new("did:key:z6MkCustomSigner");
-        let client = Arc::new(testing::MockSigningClient::new().with_did(custom_did.clone()));
+        let client = Arc::new(SigningBackend::Mock(
+            testing::MockSigningClient::new().with_did(custom_did.clone()),
+        ));
         let signer = LegacySigner::new(client).await.expect("create signer");
 
         assert_eq!(signer.signer_did(), &custom_did);
@@ -212,7 +275,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_mock_client_directly() {
-        let client: Arc<dyn SigningClient> = Arc::new(testing::MockSigningClient::new());
+        let client: Arc<SigningBackend> =
+            Arc::new(SigningBackend::Mock(testing::MockSigningClient::new()));
         assert!(client.health().await.expect("health"));
     }
 
@@ -256,11 +320,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_discovery_signer_no_signer_available() {
-        let discovery = Arc::new(LocalDiscovery::new());
+        let discovery = Arc::new(DiscoveryBackend::Local(LocalDiscovery::new()));
         // No primals registered - discovery will fail
 
         let result = DiscoverySigner::new(discovery, |_primal| {
-            Arc::new(testing::MockSigningClient::new()) as Arc<dyn SigningClient>
+            Arc::new(SigningBackend::Mock(testing::MockSigningClient::new()))
         })
         .await;
 
@@ -274,7 +338,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_discovery_signer_multiple_signers() {
-        let discovery = Arc::new(LocalDiscovery::new());
+        let local = LocalDiscovery::new();
 
         let primal1 = DiscoveredPrimal {
             instance_id: "signer-1".to_string(),
@@ -294,15 +358,16 @@ mod tests {
             last_seen: std::time::SystemTime::now(),
             healthy: true,
         };
-        discovery.register(primal1).await;
-        discovery.register(primal2).await;
+        local.register(primal1).await;
+        local.register(primal2).await;
+        let discovery = Arc::new(DiscoveryBackend::Local(local));
 
         let signer = DiscoverySigner::new(discovery, |primal| {
-            Arc::new(
+            Arc::new(SigningBackend::Mock(
                 testing::MockSigningClient::new().with_did(sweet_grass_core::agent::Did::new(
                     format!("did:key:z6Mk{}", primal.name.replace('-', "")),
                 )),
-            ) as Arc<dyn SigningClient>
+            ))
         })
         .await
         .expect("create signer");
@@ -313,7 +378,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_discovery_signer_with_client() {
-        let client = Arc::new(testing::MockSigningClient::new());
+        let client = Arc::new(SigningBackend::Mock(testing::MockSigningClient::new()));
         let signer = DiscoverySigner::with_client(client).await.expect("create");
 
         assert_eq!(signer.signer_did().as_str(), "did:key:z6MkTestSigner");
@@ -321,7 +386,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_discovery_signer_reconnect() {
-        let discovery = Arc::new(LocalDiscovery::new());
+        let local = LocalDiscovery::new();
         let primal = DiscoveredPrimal {
             instance_id: "signer-reconnect".to_string(),
             name: "reconnect-service".to_string(),
@@ -331,11 +396,11 @@ mod tests {
             last_seen: std::time::SystemTime::now(),
             healthy: true,
         };
-        discovery.register(primal).await;
+        local.register(primal).await;
+        let disc = Arc::new(DiscoveryBackend::Local(local));
 
-        let disc: Arc<dyn crate::PrimalDiscovery> = discovery;
         let mut signer = DiscoverySigner::new(Arc::clone(&disc), |_primal| {
-            Arc::new(testing::MockSigningClient::new()) as Arc<dyn SigningClient>
+            Arc::new(SigningBackend::Mock(testing::MockSigningClient::new()))
         })
         .await
         .expect("create signer");
@@ -343,8 +408,9 @@ mod tests {
         let new_did = sweet_grass_core::agent::Did::new("did:key:z6MkReconnected");
         signer
             .reconnect(|_primal| {
-                Arc::new(testing::MockSigningClient::new().with_did(new_did.clone()))
-                    as Arc<dyn SigningClient>
+                Arc::new(SigningBackend::Mock(
+                    testing::MockSigningClient::new().with_did(new_did.clone()),
+                ))
             })
             .await
             .expect("reconnect");
@@ -354,7 +420,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_discovery_signer_client_accessor() {
-        let client = Arc::new(testing::MockSigningClient::new());
+        let client = Arc::new(SigningBackend::Mock(testing::MockSigningClient::new()));
         let signer = DiscoverySigner::with_client(client).await.expect("create");
 
         let client_ref = signer.client();

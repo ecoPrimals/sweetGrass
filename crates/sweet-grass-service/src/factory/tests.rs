@@ -8,11 +8,12 @@
 )]
 
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use sweet_grass_integration::testing::{TEST_DB_URL, TEST_DB_URL_PRIMARY, TEST_DB_URL_SECONDARY};
 
 use super::*;
+
+use crate::backend::BraidBackend;
 
 fn mock_reader(vars: &[(&str, &str)]) -> impl Fn(&str) -> Option<String> + use<> {
     let map: HashMap<String, String> = vars
@@ -47,7 +48,7 @@ async fn test_memory_backend_explicit() {
     let result = BraidStoreFactory::from_reader_with_name(reader).await;
     assert!(result.is_ok());
     let (store, _) = result.unwrap();
-    assert!(Arc::strong_count(&store) >= 1);
+    assert!(matches!(store, BraidBackend::Memory(_)));
 }
 
 // Error Cases
@@ -282,7 +283,7 @@ async fn test_from_config_empty_backend_defaults_to_memory() {
         .await
         .unwrap();
     assert_eq!(name, "memory");
-    assert!(Arc::strong_count(&store) >= 1);
+    assert!(matches!(store, BraidBackend::Memory(_)));
 }
 
 #[tokio::test]
@@ -328,7 +329,7 @@ async fn test_from_config_sled() {
         .await
         .unwrap();
     assert_eq!(name, "sled");
-    assert!(Arc::strong_count(&store) >= 1);
+    assert!(matches!(store, BraidBackend::Sled(_)));
 }
 
 #[cfg(feature = "sled")]
@@ -355,7 +356,7 @@ async fn test_from_config_with_name_memory() {
         .await
         .unwrap();
     assert_eq!(name, "memory");
-    assert!(Arc::strong_count(&store) >= 1);
+    assert!(matches!(store, BraidBackend::Memory(_)));
 }
 
 // ==================== redb Backend Tests ====================
@@ -373,7 +374,7 @@ async fn test_from_config_redb() {
         .await
         .unwrap();
     assert_eq!(name, "redb");
-    assert!(Arc::strong_count(&store) >= 1);
+    assert!(matches!(store, BraidBackend::Redb(_)));
 }
 
 #[tokio::test]
@@ -434,7 +435,7 @@ async fn test_from_config_nestgate() {
     assert!(result.is_ok());
     let (store, name) = result.unwrap();
     assert_eq!(name, "nestgate");
-    assert!(Arc::strong_count(&store) >= 1);
+    assert!(matches!(store, BraidBackend::NestGate(_)));
 }
 
 #[cfg(feature = "nestgate")]

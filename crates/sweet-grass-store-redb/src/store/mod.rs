@@ -2,7 +2,6 @@
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! redb `BraidStore` implementation.
 
-use async_trait::async_trait;
 use redb::{Database, ReadableTable};
 use std::path::Path;
 use std::sync::Arc;
@@ -152,7 +151,6 @@ impl RedbStore {
     }
 }
 
-#[async_trait]
 impl BraidStore for RedbStore {
     #[instrument(skip(self, braid), fields(braid_id = %braid.id))]
     async fn put(&self, braid: &Braid) -> sweet_grass_store::Result<()> {

@@ -61,9 +61,6 @@ tracing-subscriber = { workspace = true }
 # Time
 chrono = { workspace = true }
 
-# Required for dyn-compatible BraidStore in test fault injection.
-async-trait = { workspace = true }
-
 # CLI
 clap = { workspace = true }
 

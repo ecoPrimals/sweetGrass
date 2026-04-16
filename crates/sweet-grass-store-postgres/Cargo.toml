@@ -26,8 +26,6 @@ sqlx = { workspace = true }
 
 # Async
 tokio = { workspace = true }
-# Required for dyn-compatible BraidStore impl (Arc<dyn BraidStore>).
-async-trait = { workspace = true }
 
 # Serialization
 serde_json = { workspace = true }
