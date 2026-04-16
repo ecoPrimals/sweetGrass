@@ -6,7 +6,7 @@
 
 ## Completed
 
-### v0.7.27 — Deep Debt: Coordinated Shutdown, Zero-Copy Phase 3, Type Safety (March 2026)
+### v0.7.27 — Deep Debt: Coordinated Shutdown, Zero-Copy Phase 3, Type Safety (March–April 2026)
 
 - [x] **Coordinated graceful shutdown** — `tokio::sync::watch` channel coordinates HTTP, tarpc, and UDS; spawned servers drain in-flight requests before process exit (was fire-and-forget `tokio::spawn`)
 - [x] **Zero-copy Phase 3: `BraidMetadata`** — `title`, `description` → `Option<Arc<str>>`, `tags` → `Vec<Arc<str>>`; cross-crate migration across all 10 crates + 4 store backends
@@ -25,7 +25,7 @@
 - [x] 7 new anchor integration tests — `AnchorManager` discovery, reconnect, multiple operations, serialization roundtrips
 - [x] `fuzz/Cargo.toml` edition 2021 → 2024
 - [x] `.cursor/rules/` — persistent AI guidance for ecosystem standards and Rust patterns
-- [x] 1,181 → 1,315 tests passing, 86.9% line coverage (llvm-cov), 0 clippy warnings, 0 doc warnings, 0 unsafe, 0 fmt issues
+- [x] 1,181 → 1,560 tests (1,502 local + 58 Docker CI), 91.7% line coverage (llvm-cov), 0 clippy warnings, 0 doc warnings, 0 unsafe, 0 fmt issues
 - [x] **BTSP Phase 2** — server-side handshake on accept for UDS + TCP listeners, crypto delegated to security provider via `security.sock`
 - [x] **Smart refactoring** — `discovery/mod.rs` (613→250 lines) split into `capabilities.rs`, `cached.rs`, `registry.rs`; `config/mod.rs` (648→567 lines) extracted `Capability` to `capability.rs`
 - [x] **Magic number elimination** — `DEFAULT_BATCH_CONCURRENCY` (10), `DEFAULT_CURATOR_ROLE_WEIGHT` (0.1) replace hardcoded values
@@ -422,7 +422,7 @@
 - [ ] Evolved `MemoryStore` indexes (collision-preserving)
 - [ ] `convergence.query` JSON-RPC method
 - [ ] PostgreSQL `content_convergence` table and migrations
-- [x] Coverage target: 90%+ with llvm-cov *(90.4% line coverage, 1,463 tests)*
+- [x] Coverage target: 90%+ with llvm-cov *(91.7% line coverage, 1,560 tests)*
 
 ### v0.9.0 — sunCloud Integration (Q3 2026)
 

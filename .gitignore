@@ -4,6 +4,7 @@
 showcase/**/outputs/
 showcase/**/logs/
 showcase/**/pids/
+showcase/**/command_history.json
 
 # Fuzz artifacts (cargo-fuzz)
 fuzz/corpus/

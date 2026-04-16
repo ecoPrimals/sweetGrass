@@ -37,7 +37,7 @@ That's it! Service runs with zero config.
 # Development build
 cargo build
 
-# Release build (optimized, 4.0 MB)
+# Release build (optimized)
 cargo build --release
 
 # Check without building
@@ -52,8 +52,8 @@ cargo clean
 ## ✅ TEST COMMANDS
 
 ```bash
-# All tests (1,427 tests)
-cargo test --workspace
+# All tests (1,502 local + 58 Docker CI)
+cargo test --all-features
 
 # Unit tests only
 cargo test --workspace --lib

@@ -16,7 +16,7 @@ design principles are welcome.
    communicates with other primals exclusively via JSON-RPC 2.0 at runtime.
    No compile-time coupling to other primals.
 
-2. Read `specs/ARCHITECTURE.md` for the 10-crate workspace structure.
+2. Read `specs/ARCHITECTURE.md` for the 11-crate workspace structure.
 
 3. Familiarize yourself with the [wateringHole standards](https://github.com/ecoPrimals/wateringHole),
    particularly `STANDARDS_AND_EXPECTATIONS.md`.
@@ -59,7 +59,7 @@ These are enforced at the workspace level and by CI:
 | No TODO/FIXME/HACK in source | Track in ROADMAP or issues |
 | No commented-out code | Git remembers |
 | `Result<T, E>` everywhere | `thiserror` for typed errors |
-| `#![warn(missing_docs)]` | On all 10 crates |
+| `#![warn(missing_docs)]` | On all 11 crates |
 | SPDX header on every `.rs` file | `// SPDX-License-Identifier: AGPL-3.0-or-later` |
 | Named constants | No magic numbers, ports, or primal names as string literals |
 

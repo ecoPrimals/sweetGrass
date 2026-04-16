@@ -13,17 +13,20 @@ SweetGrass supports multiple storage backends for different use cases:
    - Perfect for testing and development
    - Data lost on restart
 
-2. **Sled Backend**
-   - Embedded key-value store
-   - Pure Rust (no external dependencies!)
+2. **redb Backend** (recommended embedded)
+   - Embedded Pure Rust, ACID transactions
+   - Actively maintained, zero C dependencies
    - Perfect for single-node deployments
-   - Persistent, ACID-compliant
 
 3. **PostgreSQL Backend**
    - Production-grade RDBMS
    - Multi-node support
    - Advanced queries and reporting
    - Industry-standard reliability
+
+4. **Sled Backend** (deprecated — use redb)
+   - Feature-gated (`--features sled`)
+   - Unmaintained upstream; kept for backward compatibility
 
 ## Quick Start
 
@@ -55,9 +58,10 @@ Multiple service instances are started on different ports, each with a different
 
 | Backend | Speed | Persistence | Dependencies | Use Case |
 |---------|-------|-------------|--------------|----------|
-| Memory | ⚡⚡⚡ | ❌ Ephemeral | None | Testing, CI/CD |
-| Sled | ⚡⚡ | ✅ Persistent | None | Single-node prod |
-| PostgreSQL | ⚡ | ✅ Persistent | PostgreSQL | Multi-node, enterprise |
+| Memory | Fast | Ephemeral | None | Testing, CI/CD |
+| redb | Fast | Persistent | None (Pure Rust) | Single-node prod (recommended) |
+| PostgreSQL | Moderate | Persistent | PostgreSQL | Multi-node, enterprise |
+| Sled | Fast | Persistent | None | **Deprecated** — use redb |
 
 ## Configuration Examples
 
@@ -66,10 +70,17 @@ Multiple service instances are started on different ports, each with a different
 sweetgrass server --storage memory
 ```
 
-### Sled (Pure Rust Embedded)
+### redb (Pure Rust Embedded — recommended)
+```bash
+STORAGE_BACKEND=redb \
+STORAGE_PATH=/var/lib/sweetgrass/data.redb \
+sweetgrass server
+```
+
+### Sled (deprecated — use redb)
 ```bash
 SLED_DB_PATH=/var/lib/sweetgrass/data \
-sweetgrass server --storage sled
+sweetgrass server --storage sled --features sled
 ```
 
 ### PostgreSQL (Enterprise)
@@ -88,8 +99,8 @@ Different deployments have different needs:
 - **Trade-off**: Data lost on restart
 
 ### Single-Node Production
-- **Use**: Sled backend
-- **Why**: Pure Rust, no dependencies, persistent
+- **Use**: redb backend (recommended)
+- **Why**: Pure Rust, ACID, actively maintained, no dependencies
 - **Trade-off**: Single-node only
 
 ### Multi-Node Production
@@ -131,10 +142,10 @@ pub trait BraidStore {
 
 ### Scenario 1: Startup (Low Budget)
 ```
-Sled backend on single VPS
+redb backend on single VPS
 - $5/month hosting
 - No database management
-- Persistent, reliable
+- Persistent, reliable, actively maintained
 ```
 
 ### Scenario 2: Growing Company

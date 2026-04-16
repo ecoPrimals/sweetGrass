@@ -39,7 +39,7 @@ services:
     networks:
       - sweetgrass
     profiles:
-      - admin  # Only start with: docker-compose --profile admin up
+      - admin  # Only start with: docker compose --profile admin up
 
 volumes:
   postgres_data:
