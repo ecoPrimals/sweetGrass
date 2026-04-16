@@ -32,7 +32,7 @@ pub struct AppState {
     pub self_knowledge: Option<Arc<SelfKnowledge>>,
 
     /// Store backend type (for health reporting).
-    pub store_backend: String,
+    pub store_backend: &'static str,
 }
 
 impl AppState {
@@ -50,7 +50,7 @@ impl AppState {
             factory,
             compression,
             self_knowledge: None,
-            store_backend: "memory".to_owned(),
+            store_backend: "memory",
         }
     }
 
@@ -67,7 +67,7 @@ impl AppState {
             factory,
             compression,
             self_knowledge: None,
-            store_backend: "unknown".to_owned(),
+            store_backend: "unknown",
         }
     }
 
@@ -80,7 +80,7 @@ impl AppState {
         store: Arc<BraidBackend>,
         default_agent: Did,
         self_knowledge: SelfKnowledge,
-        store_backend: impl Into<String>,
+        store_backend: &'static str,
     ) -> Self {
         let factory = Arc::new(BraidFactory::from_self_knowledge(
             default_agent,
@@ -97,7 +97,7 @@ impl AppState {
             factory,
             compression,
             self_knowledge: Some(Arc::new(self_knowledge)),
-            store_backend: store_backend.into(),
+            store_backend,
         }
     }
 }

@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.27 | 1,560 tests | 90%+ coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 2 | Wire L3 | NestGate store | Composition health
+v0.7.27 | 1,502 tests | 90%+ coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 2 | Wire L3 | Stadial parity (zero async-trait, zero dyn dispatch)
 
 ---
 
@@ -201,14 +201,14 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Metric | Value |
 |--------|-------|
 | Version | v0.7.27 |
-| Tests | 1,560 (1,502 local + 58 Docker CI) |
-| Coverage | 91.7% line with Postgres (90.4% without Docker) |
+| Tests | 1,502 local + 56 Docker CI |
+| Coverage | 90%+ line (91.7% with Postgres Docker) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
 | Max file size | 726 lines (limit: 1000) |
-| .rs files | 191 (51,355 LOC) |
+| .rs files | 196 (52,429 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |

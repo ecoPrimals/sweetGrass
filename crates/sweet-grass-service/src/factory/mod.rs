@@ -79,7 +79,7 @@ impl BraidStoreFactory {
     /// # Errors
     ///
     /// Returns error if backend initialization fails.
-    pub async fn from_env_with_name() -> Result<(BraidBackend, String)> {
+    pub async fn from_env_with_name() -> Result<(BraidBackend, &'static str)> {
         let config = Self::config_from_reader(&|key| std::env::var(key).ok());
         Self::from_config_with_name(&config).await
     }
@@ -95,7 +95,7 @@ impl BraidStoreFactory {
     /// Returns error if backend initialization fails.
     pub async fn from_reader_with_name(
         reader: impl Fn(&str) -> Option<String>,
-    ) -> Result<(BraidBackend, String)> {
+    ) -> Result<(BraidBackend, &'static str)> {
         let config = Self::config_from_reader(&reader);
         Self::from_config_with_name(&config).await
     }
@@ -139,7 +139,9 @@ impl BraidStoreFactory {
     /// # Errors
     ///
     /// Returns error if backend initialization fails.
-    pub async fn from_config_with_name(config: &StorageConfig) -> Result<(BraidBackend, String)> {
+    pub async fn from_config_with_name(
+        config: &StorageConfig,
+    ) -> Result<(BraidBackend, &'static str)> {
         let backend = if config.backend.is_empty() {
             sweet_grass_core::identity::DEFAULT_STORAGE_BACKEND
         } else {
@@ -151,21 +153,16 @@ impl BraidStoreFactory {
         match backend {
             "memory" => {
                 tracing::info!("Using in-memory storage backend");
-                Ok((
-                    BraidBackend::Memory(MemoryStore::new()),
-                    sweet_grass_core::identity::DEFAULT_STORAGE_BACKEND.to_string(),
-                ))
+                Ok((BraidBackend::Memory(MemoryStore::new()), "memory"))
             },
             "postgres" => Self::create_postgres_from_config(config)
                 .await
-                .map(|s| (s, "postgres".to_string())),
-            "redb" => Self::create_redb_from_config(config).map(|s| (s, "redb".to_string())),
+                .map(|s| (s, "postgres")),
+            "redb" => Self::create_redb_from_config(config).map(|s| (s, "redb")),
             #[cfg(feature = "sled")]
-            "sled" => Self::create_sled_from_config(config).map(|s| (s, "sled".to_string())),
+            "sled" => Self::create_sled_from_config(config).map(|s| (s, "sled")),
             #[cfg(feature = "nestgate")]
-            "nestgate" => {
-                Self::create_nestgate_from_config(config).map(|s| (s, "nestgate".to_string()))
-            },
+            "nestgate" => Self::create_nestgate_from_config(config).map(|s| (s, "nestgate")),
             other => Err(StoreError::Internal(format!(
                 "Unknown storage backend: '{other}'. Valid options: {}",
                 Self::valid_backends()

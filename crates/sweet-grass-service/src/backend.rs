@@ -6,19 +6,21 @@
 //! `BraidStore` trait can use native `impl Future + Send` (RPITIT) instead
 //! of `#[async_trait]` boxing.
 
+#[cfg(any(test, feature = "test"))]
 use std::sync::Arc;
 
 use sweet_grass_core::{Activity, ActivityId, Braid, BraidId, ContentHash, agent::Did};
-use sweet_grass_store::{
-    BraidStore, MemoryStore, QueryFilter, QueryOrder, QueryResult, Result, StoreError,
-};
+#[cfg(any(test, feature = "test"))]
+use sweet_grass_store::StoreError;
+use sweet_grass_store::{BraidStore, MemoryStore, QueryFilter, QueryOrder, QueryResult, Result};
 
 /// Test-only store: delegates to [`MemoryStore`] but `count()` always fails.
 /// Used by health/readiness handler tests (`SERVICE_UNAVAILABLE` paths).
-#[doc(hidden)]
+#[cfg(any(test, feature = "test"))]
 #[derive(Clone)]
 pub struct CountFailingStore(pub Arc<MemoryStore>);
 
+#[cfg(any(test, feature = "test"))]
 impl BraidStore for CountFailingStore {
     async fn put(&self, braid: &Braid) -> Result<()> {
         self.0.put(braid).await
@@ -70,7 +72,7 @@ impl BraidStore for CountFailingStore {
 }
 
 /// Test-only store for HTTP fault-injection integration tests (`tests/fault_injection.rs`).
-#[doc(hidden)]
+#[cfg(any(test, feature = "test"))]
 pub struct FaultInjectionStore {
     inner: MemoryStore,
     fail_puts: std::sync::atomic::AtomicBool,
@@ -78,6 +80,7 @@ pub struct FaultInjectionStore {
     fail_queries: std::sync::atomic::AtomicBool,
 }
 
+#[cfg(any(test, feature = "test"))]
 impl FaultInjectionStore {
     /// Create a new fault-injecting store backed by memory.
     #[must_use]
@@ -113,6 +116,7 @@ impl FaultInjectionStore {
     }
 }
 
+#[cfg(any(test, feature = "test"))]
 impl BraidStore for FaultInjectionStore {
     async fn put(&self, braid: &Braid) -> Result<()> {
         if self.fail_puts.load(std::sync::atomic::Ordering::SeqCst) {
@@ -223,11 +227,11 @@ pub enum BraidBackend {
     NestGate(sweet_grass_store_nestgate::NestGateStore),
 
     /// Test-only: `count()` fails (health handler error paths).
-    #[doc(hidden)]
+    #[cfg(any(test, feature = "test"))]
     CountFailing(CountFailingStore),
 
     /// Test-only: togglable faults for HTTP fault-injection tests.
-    #[doc(hidden)]
+    #[cfg(any(test, feature = "test"))]
     FaultInjection(Arc<FaultInjectionStore>),
 }
 
@@ -242,7 +246,9 @@ macro_rules! delegate_store {
             Self::Sled(s) => s.$method($($arg),*).await,
             #[cfg(feature = "nestgate")]
             Self::NestGate(s) => s.$method($($arg),*).await,
+            #[cfg(any(test, feature = "test"))]
             Self::CountFailing(s) => s.$method($($arg),*).await,
+            #[cfg(any(test, feature = "test"))]
             Self::FaultInjection(s) => s.$method($($arg),*).await,
         }
     };

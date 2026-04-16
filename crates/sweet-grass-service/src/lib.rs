@@ -72,7 +72,7 @@ pub mod tcp_jsonrpc;
 pub mod uds;
 
 pub use backend::BraidBackend;
-#[doc(hidden)]
+#[cfg(any(test, feature = "test"))]
 pub use backend::{CountFailingStore, FaultInjectionStore};
 pub use bootstrap::{
     BootstrapConfig, BootstrapError, BootstrapResult, infant_bootstrap,

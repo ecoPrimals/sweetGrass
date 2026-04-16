@@ -71,6 +71,7 @@ hostname = "0.4"
 default = []
 sled = ["dep:sled", "dep:sweet-grass-store-sled"]
 nestgate = ["dep:sweet-grass-store-nestgate"]
+test = []
 
 [dev-dependencies]
 sweet-grass-core = { path = "../sweet-grass-core", features = ["test"] }
@@ -88,6 +89,10 @@ harness = false
 [[bin]]
 name = "sweetgrass"
 path = "src/bin/service.rs"
+
+[[test]]
+name = "fault_injection"
+required-features = ["test"]
 
 [[example]]
 name = "demo"

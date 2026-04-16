@@ -146,7 +146,7 @@ pub async fn infant_bootstrap() -> Result<BootstrapResult, BootstrapError> {
         Arc::new(store),
         default_agent.clone(),
         self_knowledge.clone(),
-        &backend_type,
+        backend_type,
     );
 
     // Phase 5: Announce capabilities to discovery service (IPC v3.1)
@@ -218,7 +218,7 @@ pub async fn infant_bootstrap_with_config_and_reader(
         Arc::new(store),
         default_agent.clone(),
         self_knowledge.clone(),
-        &backend_type,
+        backend_type,
     );
 
     // Phase 5: Announce capabilities to discovery service (IPC v3.1)

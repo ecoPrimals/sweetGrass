@@ -48,7 +48,7 @@ pub struct SweetGrassServer {
     query: Arc<QueryEngine<BraidBackend>>,
     compression: Arc<CompressionEngine>,
     attribution: Arc<AttributionCalculator>,
-    store_backend: String,
+    store_backend: &'static str,
     start_time: Instant,
     /// Maximum concurrent requests for parallel operations (e.g. `agent_contributions`).
     /// Configurable via `TARPC_MAX_CONCURRENT_REQUESTS` env var or struct field.
@@ -78,7 +78,7 @@ impl SweetGrassServer {
             query,
             compression,
             attribution,
-            store_backend: "unknown".to_owned(),
+            store_backend: "unknown",
             start_time: Instant::now(),
             max_concurrent_requests,
         }
@@ -97,7 +97,7 @@ impl SweetGrassServer {
             query: Arc::clone(&state.query),
             compression: Arc::clone(&state.compression),
             attribution: Arc::new(AttributionCalculator::new()),
-            store_backend: state.store_backend.clone(),
+            store_backend: state.store_backend,
             start_time: Instant::now(),
             max_concurrent_requests,
         }
@@ -112,8 +112,8 @@ impl SweetGrassServer {
 
     /// Set the store backend label for status reporting.
     #[must_use]
-    pub fn with_store_backend(mut self, backend: impl Into<String>) -> Self {
-        self.store_backend = backend.into();
+    pub const fn with_store_backend(mut self, backend: &'static str) -> Self {
+        self.store_backend = backend;
         self
     }
 
@@ -518,8 +518,8 @@ impl SweetGrassRpc for SweetGrassServer {
             healthy: true,
             uptime_seconds: self.start_time.elapsed().as_secs(),
             braid_count: count,
-            store_type: self.store_backend.clone(),
-            version: env!("CARGO_PKG_VERSION").to_string(),
+            store_type: self.store_backend.to_owned(),
+            version: env!("CARGO_PKG_VERSION").to_owned(),
         })
     }
 }

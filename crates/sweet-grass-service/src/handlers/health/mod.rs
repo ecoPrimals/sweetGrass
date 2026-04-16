@@ -19,13 +19,13 @@ use crate::state::AppState;
 #[derive(Serialize)]
 pub struct HealthResponse {
     /// Service status: "healthy", "degraded", or "unhealthy".
-    pub status: String,
+    pub status: &'static str,
 
     /// Service version.
-    pub version: String,
+    pub version: &'static str,
 
     /// Service name.
-    pub service: String,
+    pub service: &'static str,
 
     /// Uptime in seconds (if tracked).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -49,7 +49,7 @@ pub struct StoreStatus {
     pub braid_count: usize,
 
     /// Store backend type.
-    pub backend: String,
+    pub backend: &'static str,
 }
 
 /// Integration status for connected capabilities.
@@ -134,12 +134,14 @@ impl PrimalStatus {
 }
 
 /// Determine overall status from component statuses.
-fn determine_status(store_available: bool, integrations: Option<&IntegrationStatus>) -> String {
+fn determine_status(
+    store_available: bool,
+    integrations: Option<&IntegrationStatus>,
+) -> &'static str {
     if !store_available {
-        return "unhealthy".to_string();
+        return "unhealthy";
     }
 
-    // Check if any capabilities are configured but failing
     if let Some(int) = integrations {
         let capabilities = [
             &int.signing,
@@ -154,11 +156,11 @@ fn determine_status(store_available: bool, integrations: Option<&IntegrationStat
         });
 
         if has_failures {
-            return "degraded".to_string();
+            return "degraded";
         }
     }
 
-    "healthy".to_string()
+    "healthy"
 }
 
 /// Health check endpoint.
@@ -178,7 +180,7 @@ pub async fn health(State(state): State<AppState>) -> Result<Json<HealthResponse
     let store = StoreStatus {
         available: true,
         braid_count,
-        backend: state.store_backend.clone(),
+        backend: state.store_backend,
     };
 
     // Calculate uptime if self-knowledge is available
@@ -193,8 +195,8 @@ pub async fn health(State(state): State<AppState>) -> Result<Json<HealthResponse
 
     Ok(Json(HealthResponse {
         status,
-        version: env!("CARGO_PKG_VERSION").to_string(),
-        service: identity::PRIMAL_NAME.to_string(),
+        version: env!("CARGO_PKG_VERSION"),
+        service: identity::PRIMAL_NAME,
         uptime_secs,
         store,
         integrations,
@@ -220,7 +222,7 @@ pub async fn health_detailed(
     let store = StoreStatus {
         available: true,
         braid_count,
-        backend: state.store_backend.clone(),
+        backend: state.store_backend,
     };
 
     // Calculate uptime if self-knowledge is available
@@ -235,8 +237,8 @@ pub async fn health_detailed(
 
     Ok(Json(HealthResponse {
         status,
-        version: env!("CARGO_PKG_VERSION").to_string(),
-        service: identity::PRIMAL_NAME.to_string(),
+        version: env!("CARGO_PKG_VERSION"),
+        service: identity::PRIMAL_NAME,
         uptime_secs,
         store,
         integrations: Some(integrations),
