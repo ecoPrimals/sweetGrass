@@ -188,7 +188,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 1,463 tests (1,405 local + 58 Docker CI), 90.4% line coverage via llvm-cov
+- **Overall**: 1,559 tests (1,501 local + 58 Docker CI), 91.7% line coverage via llvm-cov (with Postgres)
 - **Target**: 90%+ coverage on core crates (achieved)
 
 ### Per-Crate Coverage

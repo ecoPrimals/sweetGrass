@@ -7,12 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### primalSpring Audit Resolution: Docker CI, Coverage 90%+, Deep Debt (April 15, 2026)
+### primalSpring Audit Resolution: Postgres Full-Path, Coverage 91.7% (April 16, 2026)
 
-Resolves primalSpring post-Phase 43 audit items for sweetGrass: Postgres
-Docker CI coverage and 90% target. Comprehensive deep debt evolution pass.
+Resolves all primalSpring post-Phase 43 audit items for sweetGrass. The Postgres
+full-path integration tests now pass end-to-end with testcontainers. Coverage
+91.7% with Postgres (90.4% without Docker).
 
-#### Added
+#### Fixed
+
+- **`run_migrations()` multi-statement SQL** — `sqlx::query()` → `sqlx::raw_sql()` for migration DDL; PostgreSQL's extended query protocol rejects multi-statement prepared statements. The simple-query protocol used by `raw_sql()` handles multi-statement DDL correctly. This was the root cause of all 29 testcontainers integration tests failing.
+
+#### Added (April 15)
 
 - **Docker CI Postgres tests** — `.github/workflows/test.yml` uses `--include-ignored` to run Docker-dependent PostgreSQL integration tests in CI
 - **NestGate store tests** — comprehensive coverage for queries, indexing, error handling, edge cases (`get_by_hash`, `query` with filters/pagination, `count`, `by_agent`, `derived_from`, `put_activity`/`get_activity`, index cleanup, config defaults, error display, client error handling)
@@ -28,8 +33,8 @@ Docker CI coverage and 90% target. Comprehensive deep debt evolution pass.
 - **`bootstrap.rs`** — `resolve_advertise_host()` and `advertise_address()` evolved to DI-friendly pattern; hostname resolution replaces hardcoded `0.0.0.0`; `hostname` crate added
 - **`migrations_test.rs`** — rewritten to use production `PostgresStore::connect()` + `run_migrations()` path instead of `sqlx::migrate!`
 - **Removed outdated `migrations/20250101000000_initial.sql`** — production uses embedded Rust migrations in `src/migrations.rs`; docker-compose mount cleaned
-- **Coverage**: 89.0% → 90.4% line (exceeds 90% target)
-- **Tests**: 1,427 → 1,463 (1,405 local + 58 Docker CI)
+- **Coverage**: 89.0% → 91.7% with Postgres / 90.4% without Docker
+- **Tests**: 1,427 → 1,559 (1,501 local + 58 Docker CI)
 - **Files**: 186 .rs files, 51,283 LOC, max file 876 lines
 
 ### Deep Debt Cleanup: Capability-Based Naming, DI, Smart Refactoring (April 12, 2026)

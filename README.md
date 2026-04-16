@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.27 | 1,463 tests | 90%+ coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 2 | Wire L3 | NestGate store | Composition health
+v0.7.27 | 1,559 tests | 90%+ coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 2 | Wire L3 | NestGate store | Composition health
 
 ---
 
@@ -201,8 +201,8 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Metric | Value |
 |--------|-------|
 | Version | v0.7.27 |
-| Tests | 1,463 (1,405 local + 58 Docker CI) |
-| Coverage | 90.4% line (llvm-cov) |
+| Tests | 1,559 (1,501 local + 58 Docker CI) |
+| Coverage | 91.7% line with Postgres (90.4% without Docker) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |

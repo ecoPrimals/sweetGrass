@@ -114,8 +114,8 @@ CREATE TABLE IF NOT EXISTS _sweetgrass_migrations (
 pub async fn run_migrations(pool: &PgPool) -> Result<()> {
     info!("Running database migrations");
 
-    // Ensure migration tracking table exists
-    sqlx::query(MIGRATION_VERSION_TABLE)
+    // Ensure migration tracking table exists (simple-query protocol for DDL)
+    sqlx::raw_sql(MIGRATION_VERSION_TABLE)
         .execute(pool)
         .await
         .map_err(|e| PostgresError::Migration(e.to_string()))?;
@@ -136,10 +136,10 @@ pub async fn run_migrations(pool: &PgPool) -> Result<()> {
         if version > current_version {
             info!("Applying migration {}: {}", version, name);
 
-            // Run migration in transaction
+            // Run migration via simple-query protocol (supports multi-statement DDL)
             let mut tx = pool.begin().await.map_err(PostgresError::from)?;
 
-            sqlx::query(sql).execute(&mut *tx).await.map_err(|e| {
+            sqlx::raw_sql(sql).execute(&mut *tx).await.map_err(|e| {
                 PostgresError::Migration(format!("Migration {version} failed: {e}"))
             })?;
 
