@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.27 | 1,559 tests | 90%+ coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 2 | Wire L3 | NestGate store | Composition health
+v0.7.27 | 1,560 tests | 90%+ coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 2 | Wire L3 | NestGate store | Composition health
 
 ---
 
@@ -201,14 +201,14 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Metric | Value |
 |--------|-------|
 | Version | v0.7.27 |
-| Tests | 1,559 (1,501 local + 58 Docker CI) |
+| Tests | 1,560 (1,502 local + 58 Docker CI) |
 | Coverage | 91.7% line with Postgres (90.4% without Docker) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
-| Max file size | 876 lines (limit: 1000) |
-| .rs files | 186 (51,283 LOC) |
+| Max file size | 803 lines (limit: 1000) |
+| .rs files | 190 (51,328 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |
@@ -232,7 +232,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 ### Zero-Copy
 
-`ContentHash`, `BraidId`, `Did`, `ActivityId`, `Braid.mime_type`, `BraidMetadata.title`, `BraidMetadata.description`, `BraidMetadata.tags`, `EcoPrimalsAttributes.source_primal`, `EcoPrimalsAttributes.niche`, `LoamCommitRef.spine_id`, `BraidFactory.source_primal`, and `CompressionEngine.source_primal` use `Arc<str>` internally — `.clone()` is O(1) atomic refcount increment. MIME type and tag indexes (`MemoryStore`, `AgentContributions`) share the same `Arc<str>`, eliminating per-query allocations on hot paths. `Witness` constructors use named `&'static str` constants (`WITNESS_KIND_SIGNATURE`, `WITNESS_ENCODING_BASE64`, etc.) for the `WireWitnessRef`-aligned provenance vocabulary. `BraidContext.imports` uses `IndexMap` for deterministic serialization. `DEFAULT_MAX_PROVENANCE_DEPTH` is a single shared constant used by all graph traversal and attribution components.
+`ContentHash`, `BraidId`, `Did`, `ActivityId`, `Braid.mime_type`, `BraidMetadata.title`, `BraidMetadata.description`, `BraidMetadata.tags`, `EcoPrimalsAttributes.source_primal`, `EcoPrimalsAttributes.niche`, `LedgerCommitRef.spine_id`, `BraidFactory.source_primal`, and `CompressionEngine.source_primal` use `Arc<str>` internally — `.clone()` is O(1) atomic refcount increment. MIME type and tag indexes (`MemoryStore`, `AgentContributions`) share the same `Arc<str>`, eliminating per-query allocations on hot paths. `Witness` constructors use named `&'static str` constants (`WITNESS_KIND_SIGNATURE`, `WITNESS_ENCODING_BASE64`, etc.) for the `WireWitnessRef`-aligned provenance vocabulary. `BraidContext.imports` uses `IndexMap` for deterministic serialization. `DEFAULT_MAX_PROVENANCE_DEPTH` is a single shared constant used by all graph traversal and attribution components.
 
 ### Configuration
 

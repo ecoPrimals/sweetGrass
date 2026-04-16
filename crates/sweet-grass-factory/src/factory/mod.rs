@@ -13,7 +13,7 @@ use sweet_grass_core::{
     agent::{AgentAssociation, AgentRole, Did},
     braid::{
         Braid, BraidId, BraidMetadata, BraidType, CompressionMeta, EcoPrimalsAttributes,
-        LoamCommitRef, SummaryType,
+        LedgerCommitRef, SummaryType,
     },
     entity::EntityReference,
     hash::hex_encode,
@@ -302,7 +302,7 @@ impl BraidFactory {
 
         let mut braid = self.meta_braid(braids, summary_type, metadata)?;
 
-        braid.ecop.rhizo_session = Some(session_id);
+        braid.ecop.session_ref = Some(session_id);
 
         Ok(braid)
     }
@@ -323,16 +323,16 @@ impl BraidFactory {
         self.meta_braid(braids, summary_type, metadata)
     }
 
-    /// Create a Braid from an anchoring provider entry reference.
+    /// Create a Braid from a permanent ledger entry reference.
     ///
     /// # Errors
     ///
     /// Returns an error if Braid construction fails.
-    pub fn from_loam_entry(&self, entry: &LoamEntryParams) -> Result<Braid> {
+    pub fn from_ledger_entry(&self, entry: &LoamEntryParams) -> Result<Braid> {
         let ecop = EcoPrimalsAttributes {
             source_primal: Some(Arc::clone(&self.source_primal)),
             niche: self.niche.clone(),
-            loam_commit: Some(LoamCommitRef {
+            ledger_commit: Some(LedgerCommitRef {
                 spine_id: Arc::clone(&entry.spine_id),
                 entry_hash: entry.entry_hash.clone(),
                 index: entry.index,
@@ -350,10 +350,12 @@ impl BraidFactory {
             .build()
             .map_err(FactoryError::Core)?;
 
-        braid.was_derived_from.push(EntityReference::by_loam_entry(
-            entry.spine_id.as_ref(),
-            entry.entry_hash.clone(),
-        ));
+        braid
+            .was_derived_from
+            .push(EntityReference::by_ledger_entry(
+                entry.spine_id.as_ref(),
+                entry.entry_hash.clone(),
+            ));
 
         Ok(braid)
     }

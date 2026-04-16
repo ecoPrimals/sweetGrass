@@ -709,7 +709,7 @@ async fn test_witness_chain_store_roundtrip() {
     let expected_witnesses = serde_json::to_value(&summary.witnesses).expect("witnesses json");
     assert_eq!(d["ecop"]["witnesses"], expected_witnesses);
     assert_eq!(d["ecop"]["source_primal"], summary.source_primal);
-    assert_eq!(d["ecop"]["rhizo_session"], summary.session_id);
+    assert_eq!(d["ecop"]["session_ref"], summary.session_id);
     assert_eq!(
         d["ecop"]["niche"].as_str(),
         summary.niche.as_deref(),

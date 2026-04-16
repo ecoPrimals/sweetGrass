@@ -11,7 +11,7 @@ use crate::braid::{BraidId, ContentHash};
 
 /// Reference to a PROV entity.
 ///
-/// **Serialization**: JSON uses the legacy untagged shape (see [`EntityReferenceHuman`]);
+/// **Serialization**: JSON uses the legacy untagged shape (`EntityReferenceHuman`);
 /// binary codecs (e.g. bincode/tarpc) use an externally tagged enum so `serde` never
 /// relies on `deserialize_any`.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -76,13 +76,26 @@ impl EntityReference {
         }
     }
 
-    /// Create a reference by anchoring provider entry.
+    /// Create a reference by permanent ledger entry (capability-based).
     #[must_use]
-    pub fn by_loam_entry(spine_id: impl Into<String>, entry_hash: impl Into<ContentHash>) -> Self {
+    pub fn by_ledger_entry(
+        spine_id: impl Into<String>,
+        entry_hash: impl Into<ContentHash>,
+    ) -> Self {
         Self::ByLoamEntry {
             spine_id: spine_id.into(),
             entry_hash: entry_hash.into(),
         }
+    }
+
+    /// Backward-compatible alias for [`by_ledger_entry`](Self::by_ledger_entry).
+    #[deprecated(
+        since = "0.7.28",
+        note = "use by_ledger_entry (capability-based naming)"
+    )]
+    #[must_use]
+    pub fn by_loam_entry(spine_id: impl Into<String>, entry_hash: impl Into<ContentHash>) -> Self {
+        Self::by_ledger_entry(spine_id, entry_hash)
     }
 
     /// Create an external reference.
@@ -493,10 +506,10 @@ mod tests {
     }
 
     #[test]
-    fn entity_reference_bincode_roundtrip_by_loam_entry() {
-        assert_entity_reference_bincode_roundtrip(&EntityReference::by_loam_entry(
+    fn entity_reference_bincode_roundtrip_by_ledger_entry() {
+        assert_entity_reference_bincode_roundtrip(&EntityReference::by_ledger_entry(
             "spine-bincode",
-            "sha256:loamhash",
+            "sha256:ledgerhash",
         ));
     }
 
@@ -634,8 +647,8 @@ mod tests {
     }
 
     #[test]
-    fn test_entity_reference_by_loam_entry() {
-        let entity = EntityReference::by_loam_entry("spine-1", "sha256:entryhash123");
+    fn test_entity_reference_by_ledger_entry() {
+        let entity = EntityReference::by_ledger_entry("spine-1", "sha256:entryhash123");
         assert_eq!(
             entity.content_hash().map(ContentHash::as_str),
             Some("sha256:entryhash123")
@@ -751,10 +764,10 @@ mod tests {
     }
 
     #[test]
-    fn entity_reference_json_roundtrip_by_loam_entry() {
+    fn entity_reference_json_roundtrip_by_ledger_entry() {
         let r = EntityReference::ByLoamEntry {
             spine_id: "spine-42".to_string(),
-            entry_hash: ContentHash::new("sha256:loam_entry_hash"),
+            entry_hash: ContentHash::new("sha256:ledger_entry_hash"),
         };
         let json = serde_json::to_string(&r).expect("serialize");
         let decoded: EntityReference = serde_json::from_str(&json).expect("deserialize");

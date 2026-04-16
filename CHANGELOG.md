@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Capability-Based Naming Evolution & Deep Debt Pass (April 16, 2026)
+
+Systematic evolution from hardcoded primal names to capability-based naming
+across the entire codebase. All field renames include serde aliases for full
+backward wire compatibility.
+
+#### Changed
+- `toadstool_task` → `compute_task` (compute provider task ID)
+- `rhizo_session` → `session_ref` (session events provider reference)
+- `loam_entry` → `ledger_entry` (permanent ledger entry reference)
+- `loam_commit` → `ledger_commit` (permanent ledger commit reference)
+- `LoamCommitRef` → `LedgerCommitRef` (type alias preserved for compat)
+- `by_loam_entry()` → `by_ledger_entry()` (deprecated alias preserved)
+- `from_loam_entry()` → `from_ledger_entry()` (factory method)
+- `parse_loam_entry()` → `parse_ledger_entry()` (internal parser)
+
+#### Refactored
+- `store-nestgate/src/store/tests.rs` (876L) → split into `tests/mod.rs` + `tests/queries.rs` by concern
+- Fixed 3 pre-existing `rustdoc::private_intra_doc_links` errors (`BraidTypeJson`, `EntityReferenceHuman`, `AgentTypeJson`)
+- Lockfile regenerated (stale phantom entries pruned, deps updated)
+
+#### Added
+- `test_toadstool_task_alias_backward_compat` — verifies old wire format deserializes correctly
+- Backward compatibility serde aliases on all renamed fields
+
+#### Metrics
+- Tests: 1,560 (1,502 local + 58 Docker CI)
+- Coverage: 90.4% (without Docker)
+- Max file size: 803 lines
+- .rs files: 190 (51,328 LOC)
+- Zero clippy warnings, zero `rustdoc -D warnings`, zero TODOs
+
 ### primalSpring Audit Resolution: Postgres Full-Path, Coverage 91.7% (April 16, 2026)
 
 Resolves all primalSpring post-Phase 43 audit items for sweetGrass. The Postgres

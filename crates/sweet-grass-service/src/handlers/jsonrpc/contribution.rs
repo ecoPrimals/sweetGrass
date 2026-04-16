@@ -111,7 +111,7 @@ pub(super) async fn handle_pipeline_attribute(
             .metadata(metadata)
             .ecop(EcoPrimalsAttributes {
                 source_primal: Some(Arc::from(sweet_grass_core::identity::PRIMAL_NAME)),
-                rhizo_session: Some(request.session_id.clone()),
+                session_ref: Some(request.session_id.clone()),
                 niche: request.niche.as_deref().map(Arc::from),
                 ..EcoPrimalsAttributes::default()
             })
@@ -180,7 +180,7 @@ pub(super) async fn handle_record_dehydration(
         });
         EcoPrimalsAttributes {
             source_primal: Some(Arc::from(summary.source_primal.as_str())),
-            rhizo_session: Some(summary.session_id.clone()),
+            session_ref: Some(summary.session_id.clone()),
             niche: summary.niche.as_deref().map(Arc::from),
             compression,
             witnesses: summary.witnesses.clone(),

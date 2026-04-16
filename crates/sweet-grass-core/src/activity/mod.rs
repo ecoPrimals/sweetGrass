@@ -295,17 +295,17 @@ pub struct ActivityEcoPrimals {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub duration_ns: Option<u64>,
 
-    /// Session events provider session ID.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub rhizo_session: Option<String>,
+    /// Session events provider session reference (capability-based, runtime-discovered).
+    #[serde(skip_serializing_if = "Option::is_none", alias = "rhizo_session")]
+    pub session_ref: Option<String>,
 
-    /// `ToadStool` task ID.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub toadstool_task: Option<String>,
+    /// Compute provider task ID (capability-based, runtime-discovered).
+    #[serde(skip_serializing_if = "Option::is_none", alias = "toadstool_task")]
+    pub compute_task: Option<String>,
 
-    /// `LoamSpine` entry reference.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub loam_entry: Option<String>,
+    /// Ledger entry reference (capability-based, runtime-discovered).
+    #[serde(skip_serializing_if = "Option::is_none", alias = "loam_entry")]
+    pub ledger_entry: Option<String>,
 
     /// Niche context.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -455,17 +455,17 @@ impl ActivityBuilder {
         self
     }
 
-    /// Set the session events provider session.
+    /// Set the session events provider session reference.
     #[must_use]
-    pub fn rhizo_session(mut self, session_id: impl Into<String>) -> Self {
-        self.ecop.rhizo_session = Some(session_id.into());
+    pub fn session_ref(mut self, session_id: impl Into<String>) -> Self {
+        self.ecop.session_ref = Some(session_id.into());
         self
     }
 
-    /// Set the `ToadStool` task.
+    /// Set the compute provider task.
     #[must_use]
-    pub fn toadstool_task(mut self, task_id: impl Into<String>) -> Self {
-        self.ecop.toadstool_task = Some(task_id.into());
+    pub fn compute_task(mut self, task_id: impl Into<String>) -> Self {
+        self.ecop.compute_task = Some(task_id.into());
         self
     }
 

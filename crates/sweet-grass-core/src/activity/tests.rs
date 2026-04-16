@@ -114,19 +114,26 @@ fn test_activity_builder_uses() {
 }
 
 #[test]
-fn test_activity_builder_rhizo_session() {
+fn test_activity_builder_session_ref() {
     let activity = Activity::builder(ActivityType::Creation)
-        .rhizo_session("session-42")
+        .session_ref("session-42")
         .build();
-    assert_eq!(activity.ecop.rhizo_session, Some("session-42".to_string()));
+    assert_eq!(activity.ecop.session_ref, Some("session-42".to_string()));
 }
 
 #[test]
-fn test_activity_builder_toadstool_task() {
+fn test_activity_builder_compute_task() {
     let activity = Activity::builder(ActivityType::Computation)
-        .toadstool_task("task-99")
+        .compute_task("task-99")
         .build();
-    assert_eq!(activity.ecop.toadstool_task, Some("task-99".to_string()));
+    assert_eq!(activity.ecop.compute_task, Some("task-99".to_string()));
+}
+
+#[test]
+fn test_toadstool_task_alias_backward_compat() {
+    let json = r#"{"@id":"urn:activity:uuid:test","@type":"Computation","used":[],"was_associated_with":[],"started_at_time":0,"metadata":{"parameters":{}},"ecop":{"toadstool_task":"old-task-1"}}"#;
+    let activity: Activity = serde_json::from_str(json).expect("should deserialize with alias");
+    assert_eq!(activity.ecop.compute_task, Some("old-task-1".to_string()));
 }
 
 #[test]

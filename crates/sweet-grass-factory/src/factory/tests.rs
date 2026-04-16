@@ -107,7 +107,7 @@ mod factory_tests {
             .session_summary("session-123", braids, None)
             .expect("should create");
 
-        assert_eq!(braid.ecop.rhizo_session, Some("session-123".to_string()));
+        assert_eq!(braid.ecop.session_ref, Some("session-123".to_string()));
     }
 
     #[test]
@@ -132,11 +132,11 @@ mod factory_tests {
     }
 
     #[test]
-    fn test_from_loam_entry() {
+    fn test_from_ledger_entry() {
         let factory = make_factory();
 
         let braid = factory
-            .from_loam_entry(&LoamEntryParams {
+            .from_ledger_entry(&LoamEntryParams {
                 spine_id: Arc::from("spine-1"),
                 entry_hash: ContentHash::new("sha256:entry123"),
                 index: 42,
@@ -147,8 +147,8 @@ mod factory_tests {
             })
             .expect("should create");
 
-        assert!(braid.ecop.loam_commit.is_some());
-        let commit = braid.ecop.loam_commit.unwrap();
+        assert!(braid.ecop.ledger_commit.is_some());
+        let commit = braid.ecop.ledger_commit.unwrap();
         assert_eq!(&*commit.spine_id, "spine-1");
         assert_eq!(commit.index, 42);
     }
@@ -262,7 +262,7 @@ mod factory_tests {
             braid.ecop.source_primal.as_deref(),
             Some(TEST_SOURCE_PRIMAL)
         );
-        assert_eq!(braid.ecop.rhizo_session, Some("session-xyz".to_string()));
+        assert_eq!(braid.ecop.session_ref, Some("session-xyz".to_string()));
         assert!(braid.was_generated_by.is_some());
         let activity = braid.was_generated_by.as_ref().unwrap();
         assert!(matches!(
@@ -311,7 +311,7 @@ mod factory_tests {
             ],
             session_start: None,
             session_end: None,
-            loam_entry: None,
+            ledger_entry: None,
             domain: std::collections::HashMap::new(),
         };
 
@@ -323,7 +323,7 @@ mod factory_tests {
         assert_eq!(braids[0].ecop.niche.as_deref(), Some("chemistry"));
         assert_eq!(braids[1].ecop.niche.as_deref(), Some("chemistry"));
         assert_eq!(
-            braids[0].ecop.rhizo_session,
+            braids[0].ecop.session_ref,
             Some("session-batch".to_string())
         );
     }
@@ -364,16 +364,16 @@ mod factory_tests {
     }
 
     #[test]
-    fn test_from_session_with_loam_entry() {
+    fn test_from_session_with_ledger_entry() {
         let factory = make_factory();
         let session = SessionContribution {
-            session_id: "session-loam".to_string(),
+            session_id: "session-ledger".to_string(),
             source_primal: TEST_SOURCE_PRIMAL.to_string(),
             niche: None,
             contributions: vec![ContributionRecord {
-                agent: sweet_grass_core::agent::Did::new("did:key:z6MkLoam"),
+                agent: sweet_grass_core::agent::Did::new("did:key:z6MkLedger"),
                 role: AgentRole::Creator,
-                content_hash: sweet_grass_core::ContentHash::new("sha256:loamhash"),
+                content_hash: sweet_grass_core::ContentHash::new("sha256:ledgerhash"),
                 mime_type: "text/plain".to_string(),
                 size: 50,
                 timestamp: 0,
@@ -384,33 +384,33 @@ mod factory_tests {
             }],
             session_start: None,
             session_end: None,
-            loam_entry: Some("main|sha256:entry123|7".to_string()),
+            ledger_entry: Some("main|sha256:entry123|7".to_string()),
             domain: std::collections::HashMap::new(),
         };
 
         let braids = factory.from_session(&session).expect("should create");
         assert_eq!(braids.len(), 1);
-        let loam = braids[0]
+        let commit = braids[0]
             .ecop
-            .loam_commit
+            .ledger_commit
             .as_ref()
-            .expect("loam_commit set");
-        assert_eq!(&*loam.spine_id, "main");
-        assert_eq!(loam.entry_hash.as_str(), "sha256:entry123");
-        assert_eq!(loam.index, 7);
+            .expect("ledger_commit set");
+        assert_eq!(&*commit.spine_id, "main");
+        assert_eq!(commit.entry_hash.as_str(), "sha256:entry123");
+        assert_eq!(commit.index, 7);
     }
 
     #[test]
-    fn test_from_session_with_invalid_loam_entry() {
+    fn test_from_session_with_invalid_ledger_entry() {
         let factory = make_factory();
         let session = SessionContribution {
-            session_id: "session-bad-loam".to_string(),
+            session_id: "session-bad-ledger".to_string(),
             source_primal: TEST_SOURCE_PRIMAL.to_string(),
             niche: None,
             contributions: vec![ContributionRecord {
-                agent: sweet_grass_core::agent::Did::new("did:key:z6MkBadLoam"),
+                agent: sweet_grass_core::agent::Did::new("did:key:z6MkBadLedger"),
                 role: AgentRole::Creator,
-                content_hash: sweet_grass_core::ContentHash::new("sha256:badloam"),
+                content_hash: sweet_grass_core::ContentHash::new("sha256:badledger"),
                 mime_type: "text/plain".to_string(),
                 size: 10,
                 timestamp: 0,
@@ -421,12 +421,12 @@ mod factory_tests {
             }],
             session_start: None,
             session_end: None,
-            loam_entry: Some("only-two|parts".to_string()),
+            ledger_entry: Some("only-two|parts".to_string()),
             domain: std::collections::HashMap::new(),
         };
 
         let braids = factory.from_session(&session).expect("should create");
         assert_eq!(braids.len(), 1);
-        assert!(braids[0].ecop.loam_commit.is_none());
+        assert!(braids[0].ecop.ledger_commit.is_none());
     }
 }

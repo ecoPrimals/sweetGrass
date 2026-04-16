@@ -91,9 +91,9 @@ pub struct SessionContribution {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub session_end: Option<Timestamp>,
 
-    /// `LoamSpine` entry reference (if already committed to permanent record).
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub loam_entry: Option<String>,
+    /// Ledger entry reference (capability-based; if committed to permanent record).
+    #[serde(skip_serializing_if = "Option::is_none", alias = "loam_entry")]
+    pub ledger_entry: Option<String>,
 
     /// Domain-specific session metadata.
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
@@ -187,7 +187,7 @@ mod tests {
             }],
             session_start: Some(1000),
             session_end: Some(2000),
-            loam_entry: None,
+            ledger_entry: None,
             domain: HashMap::new(),
         };
 

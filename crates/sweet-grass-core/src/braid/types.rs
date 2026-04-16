@@ -285,11 +285,13 @@ pub struct EcoPrimalsAttributes {
     /// Niche context.
     pub niche: Option<Arc<str>>,
 
-    /// `RhizoCrypt` session reference.
-    pub rhizo_session: Option<String>,
+    /// Session events provider session reference (capability-based).
+    #[serde(alias = "rhizo_session")]
+    pub session_ref: Option<String>,
 
-    /// `LoamSpine` commit reference.
-    pub loam_commit: Option<LoamCommitRef>,
+    /// Permanent ledger commit reference (capability-based).
+    #[serde(alias = "loam_commit")]
+    pub ledger_commit: Option<LedgerCommitRef>,
 
     /// Certificate reference.
     pub certificate: Option<String>,
@@ -304,16 +306,21 @@ pub struct EcoPrimalsAttributes {
     pub witnesses: Vec<crate::dehydration::Witness>,
 }
 
-/// `LoamSpine` commit reference.
+/// Permanent ledger commit reference (capability-based).
+///
+/// Represents a commit to the permanent ledger provider, discovered at runtime.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct LoamCommitRef {
-    /// Spine ID.
+pub struct LedgerCommitRef {
+    /// Ledger spine/partition identifier.
     pub spine_id: Arc<str>,
-    /// Entry hash.
+    /// Entry content hash.
     pub entry_hash: ContentHash,
-    /// Entry index.
+    /// Entry index in the ledger.
     pub index: u64,
 }
+
+/// Backward-compatible type alias.
+pub type LoamCommitRef = LedgerCommitRef;
 
 /// Compression metadata for summarized Braids.
 #[derive(Clone, Debug, Serialize, Deserialize)]

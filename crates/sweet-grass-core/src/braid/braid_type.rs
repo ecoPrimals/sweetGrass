@@ -14,7 +14,7 @@ use super::types::Timestamp;
 
 /// Types of Braids.
 ///
-/// **Serialization**: JSON uses `type` as an internal tag (see [`BraidTypeJson`]);
+/// **Serialization**: JSON uses `type` as an internal tag (`BraidTypeJson`);
 /// binary codecs use an externally tagged enum for bincode/tarpc compatibility.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 #[non_exhaustive]

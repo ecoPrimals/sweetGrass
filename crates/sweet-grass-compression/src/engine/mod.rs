@@ -201,7 +201,7 @@ impl CompressionEngine {
         // Build activity
         let mut activity_builder = Activity::builder(ActivityType::SessionCommit)
             .started_at(session.started_at)
-            .rhizo_session(&session.id)
+            .session_ref(&session.id)
             .compute_units(session.compute_units);
 
         if let Some(ended) = session.ended_at {
@@ -249,7 +249,7 @@ impl CompressionEngine {
         // not hardcoded. "unknown" indicates discovery was not used.
         let ecop = EcoPrimalsAttributes {
             source_primal: Some(Arc::clone(&self.source_primal)),
-            rhizo_session: Some(session.id.clone()),
+            session_ref: Some(session.id.clone()),
             compression: Some(CompressionMeta {
                 vertex_count: analysis.vertex_count as u64,
                 branch_count: analysis.branch_count as u64,

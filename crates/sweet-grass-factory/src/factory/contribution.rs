@@ -8,23 +8,23 @@ use sweet_grass_core::{
     ContentHash,
     activity::{Activity, ActivityMetadata, ActivityType},
     agent::AgentAssociation,
-    braid::{Braid, BraidMetadata, EcoPrimalsAttributes, LoamCommitRef},
+    braid::{Braid, BraidMetadata, EcoPrimalsAttributes, LedgerCommitRef},
     contribution::{ContributionRecord, SessionContribution},
 };
 
 use crate::Result;
 use crate::error::FactoryError;
 
-/// Parse `loam_entry` string into [`LoamCommitRef`].
+/// Parse a ledger entry string into a [`LedgerCommitRef`].
 /// Format: `spine_id|entry_hash|index` (pipe-separated).
-fn parse_loam_entry(s: Option<&str>) -> Option<LoamCommitRef> {
+fn parse_ledger_entry(s: Option<&str>) -> Option<LedgerCommitRef> {
     let s = s?;
     let parts: Vec<&str> = s.split('|').collect();
     if parts.len() != 3 {
         return None;
     }
     let index = parts[2].parse::<u64>().ok()?;
-    Some(LoamCommitRef {
+    Some(LedgerCommitRef {
         spine_id: Arc::from(parts[0]),
         entry_hash: ContentHash::new(parts[1]),
         index,
@@ -74,7 +74,7 @@ impl super::BraidFactory {
         let ecop = EcoPrimalsAttributes {
             source_primal: Some(source_primal),
             niche: self.niche.clone(),
-            rhizo_session: record.session_id.clone(),
+            session_ref: record.session_id.clone(),
             ..EcoPrimalsAttributes::default()
         };
 
@@ -106,7 +106,7 @@ impl super::BraidFactory {
     ///
     /// Returns an error if any braid construction fails.
     pub fn from_session(&self, session: &SessionContribution) -> Result<Vec<Braid>> {
-        let loam_commit = parse_loam_entry(session.loam_entry.as_deref());
+        let loam_commit = parse_ledger_entry(session.ledger_entry.as_deref());
 
         let mut braids = Vec::with_capacity(session.contributions.len());
         for contrib in &session.contributions {
@@ -124,7 +124,7 @@ impl super::BraidFactory {
                 braid.ecop.niche = Some(Arc::from(niche.as_str()));
             }
             if let Some(ref loam) = loam_commit {
-                braid.ecop.loam_commit = Some(loam.clone());
+                braid.ecop.ledger_commit = Some(loam.clone());
             }
 
             braids.push(braid);

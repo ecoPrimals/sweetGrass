@@ -111,10 +111,7 @@ fn test_compression_metadata() {
 
         let activity = braid.was_generated_by.unwrap();
         assert_eq!(activity.ecop.compute_units, Some(2.5));
-        assert_eq!(
-            activity.ecop.rhizo_session,
-            Some("metadata-test".to_string())
-        );
+        assert_eq!(activity.ecop.session_ref, Some("metadata-test".to_string()));
     } else {
         panic!("Expected Single result");
     }

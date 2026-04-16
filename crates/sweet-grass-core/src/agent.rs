@@ -73,7 +73,7 @@ impl From<String> for Did {
 
 /// Agent types in the PROV model.
 ///
-/// **Serialization**: JSON uses an internal `type` tag (see [`AgentTypeJson`]);
+/// **Serialization**: JSON uses an internal `type` tag (`AgentTypeJson`);
 /// binary codecs use an externally tagged enum for bincode/tarpc compatibility.
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
