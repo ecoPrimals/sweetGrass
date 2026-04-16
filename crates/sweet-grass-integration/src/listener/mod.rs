@@ -70,6 +70,7 @@ pub enum SessionEventType {
 /// Trait for session events client connections.
 ///
 /// Implemented by clients connecting to primals with `Capability::SessionEvents`.
+/// Uses `#[async_trait]` for `Arc<dyn SessionEventsClient>` object safety.
 #[async_trait]
 pub trait SessionEventsClient: Send + Sync {
     /// Subscribe to session events.
@@ -83,6 +84,8 @@ pub trait SessionEventsClient: Send + Sync {
 }
 
 /// Stream of session events.
+///
+/// Uses `#[async_trait]` for `Box<dyn SessionEventStream>` object safety.
 #[async_trait]
 pub trait SessionEventStream: Send + Sync {
     /// Get the next event.

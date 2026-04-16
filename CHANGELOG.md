@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### async-trait Formal Audit (April 16, 2026)
+
+Audited all 22 `#[async_trait]` uses across the codebase. All 5 trait
+definitions (`BraidStore`, `SigningClient`, `SessionEventsClient`,
+`SessionEventStream`, `AnchoringClient`) require object safety (`dyn` dispatch).
+17 impl blocks follow. Two traits that do not require `dyn` (`IndexStore`,
+`Signer`) were already migrated to native `impl Future + Send`. Terminal state
+until Rust stabilizes dyn-compatible async traits. Each trait now documents
+why `#[async_trait]` is required.
+
 ### Capability-Based Naming Evolution & Deep Debt Pass (April 16, 2026)
 
 Systematic evolution from hardcoded primal names to capability-based naming

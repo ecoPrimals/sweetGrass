@@ -52,6 +52,10 @@ pub struct SignatureInfo {
 /// This trait abstracts the signing implementation, allowing connection
 /// to any primal that offers the `Capability::Signing` capability.
 ///
+/// Uses `#[async_trait]` because `SigningClient` is used as `Arc<dyn SigningClient>`
+/// for runtime provider selection (tarpc, mock). When Rust stabilizes
+/// dyn-compatible async traits, this can migrate.
+///
 /// ## Discovery Pattern
 ///
 /// ```rust,ignore

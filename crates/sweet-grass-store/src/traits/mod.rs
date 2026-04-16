@@ -180,6 +180,11 @@ impl QueryResult {
 }
 
 /// Core trait for storing and retrieving Braids.
+///
+/// Uses `#[async_trait]` because `BraidStore` is used as `Arc<dyn BraidStore>`
+/// for runtime backend selection (memory, redb, postgres, nestgate, sled).
+/// Native `async fn in trait` does not yet support `dyn` dispatch. When Rust
+/// stabilizes dyn-compatible async traits, this can migrate.
 #[async_trait]
 pub trait BraidStore: Send + Sync {
     /// Store a new Braid.

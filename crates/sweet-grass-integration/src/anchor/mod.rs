@@ -58,6 +58,7 @@ pub struct AnchorReceipt {
 /// Trait for anchoring client connections.
 ///
 /// Implemented by clients connecting to primals with `Capability::Anchoring`.
+/// Uses `#[async_trait]` for `Arc<dyn AnchoringClient>` object safety.
 #[async_trait]
 pub trait AnchoringClient: Send + Sync {
     /// Anchor a Braid to a spine.
