@@ -299,3 +299,102 @@ impl BraidStore for BraidBackend {
         delegate_store!(self, activities_for_braid, braid_id)
     }
 }
+
+#[cfg(test)]
+#[expect(
+    clippy::unwrap_used,
+    reason = "test module: unwrap is standard in tests"
+)]
+mod tests {
+    use super::*;
+    use sweet_grass_core::agent::Did;
+
+    fn test_braid() -> Braid {
+        Braid::builder()
+            .data_hash("sha256:backend-test-001")
+            .mime_type("text/plain")
+            .size(128)
+            .attributed_to(Did::new("did:key:z6MkBackendTest"))
+            .build()
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn memory_backend_put_get_roundtrip() {
+        let backend = BraidBackend::Memory(MemoryStore::new());
+        let braid = test_braid();
+        let id = braid.id.clone();
+
+        backend.put(&braid).await.unwrap();
+        let retrieved = backend.get(&id).await.unwrap();
+        assert!(retrieved.is_some());
+        assert_eq!(retrieved.unwrap().id, id);
+    }
+
+    #[tokio::test]
+    async fn memory_backend_exists() {
+        let backend = BraidBackend::Memory(MemoryStore::new());
+        let braid = test_braid();
+        let id = braid.id.clone();
+
+        assert!(!backend.exists(&id).await.unwrap());
+        backend.put(&braid).await.unwrap();
+        assert!(backend.exists(&id).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn memory_backend_delete() {
+        let backend = BraidBackend::Memory(MemoryStore::new());
+        let braid = test_braid();
+        let id = braid.id.clone();
+
+        backend.put(&braid).await.unwrap();
+        let deleted = backend.delete(&id).await.unwrap();
+        assert!(deleted);
+        assert!(!backend.exists(&id).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn memory_backend_count() {
+        let backend = BraidBackend::Memory(MemoryStore::new());
+        let filter = QueryFilter::default();
+
+        let count = backend.count(&filter).await.unwrap();
+        assert_eq!(count, 0);
+
+        backend.put(&test_braid()).await.unwrap();
+        let count = backend.count(&filter).await.unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[tokio::test]
+    async fn memory_backend_get_nonexistent() {
+        let backend = BraidBackend::Memory(MemoryStore::new());
+        let id = BraidId::new();
+
+        let result = backend.get(&id).await.unwrap();
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn count_failing_store_delegates_reads() {
+        let inner = Arc::new(MemoryStore::new());
+        let backend = BraidBackend::CountFailing(CountFailingStore(inner));
+        let braid = test_braid();
+        let id = braid.id.clone();
+
+        backend.put(&braid).await.unwrap();
+        let retrieved = backend.get(&id).await.unwrap();
+        assert!(retrieved.is_some());
+    }
+
+    #[tokio::test]
+    async fn count_failing_store_fails_count() {
+        let inner = Arc::new(MemoryStore::new());
+        let backend = BraidBackend::CountFailing(CountFailingStore(inner));
+        let filter = QueryFilter::default();
+
+        let result = backend.count(&filter).await;
+        assert!(result.is_err());
+    }
+}

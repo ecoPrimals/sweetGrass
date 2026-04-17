@@ -474,7 +474,11 @@ impl Agent {
 }
 
 #[cfg(test)]
-#[expect(clippy::expect_used, clippy::unwrap_used)]
+#[expect(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    reason = "test module: expect/unwrap are standard in tests"
+)]
 mod tests {
     use super::*;
 

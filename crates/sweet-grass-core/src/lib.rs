@@ -90,6 +90,13 @@ pub mod identity {
     /// code should always prefer constructors that accept `SelfKnowledge` so
     /// the source primal is discovered at runtime.
     pub const DEFAULT_SOURCE_PRIMAL: &str = "unknown";
+
+    /// Fallback advertise host when system hostname is unavailable.
+    ///
+    /// Used by `resolve_advertise_host` as a last-resort value. The env var
+    /// `PRIMAL_ADVERTISE_ADDRESS` takes precedence; then the system hostname;
+    /// then this constant.
+    pub const FALLBACK_ADVERTISE_HOST: &str = "localhost";
 }
 
 // Re-exports for convenience

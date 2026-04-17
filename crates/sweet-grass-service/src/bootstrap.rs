@@ -247,7 +247,7 @@ fn resolve_advertise_host(reader: &impl Fn(&str) -> Option<String>) -> String {
         hostname::get()
             .ok()
             .and_then(|h| h.into_string().ok())
-            .unwrap_or_else(|| "localhost".to_string())
+            .unwrap_or_else(|| sweet_grass_core::identity::FALLBACK_ADVERTISE_HOST.to_string())
     })
 }
 

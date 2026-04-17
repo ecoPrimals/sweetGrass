@@ -306,4 +306,5 @@ fn timestamp_to_iso(nanos: u64) -> String {
     }
 }
 
+#[cfg(test)]
 mod tests;
