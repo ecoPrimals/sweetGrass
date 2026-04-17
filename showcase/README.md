@@ -58,7 +58,7 @@ cd 00-local-primal/
 ./03-query-engine/demo-filters.sh              # Query provenance graphs
 ./04-prov-o-standard/demo-prov-o-export.sh     # W3C PROV-O export
 ./05-privacy-controls/demo-privacy.sh          # GDPR-inspired privacy
-./06-storage-backends/demo-backends.sh         # Memory/Sled/Postgres
+./06-storage-backends/demo-backends.sh         # Memory/redb/Postgres
 ./07-real-verification/demo-no-mocks.sh        # Real execution validation
 ./08-compression-power/demo-compression.sh     # ~88% space savings
 ```
@@ -138,7 +138,7 @@ cd 02-full-ecosystem/
 | Query Engine | `03-query-engine/demo-filters.sh` | ✅ Live | Real queries |
 | PROV-O Export | `04-prov-o-standard/demo-prov-o-export.sh` | ✅ Live | W3C standard |
 | Privacy Controls | `05-privacy-controls/demo-privacy.sh` | ✅ Live | GDPR rights |
-| Storage Backends | `06-storage-backends/demo-backends.sh` | ✅ Live | Memory/Sled/PG |
+| Storage Backends | `06-storage-backends/demo-backends.sh` | ✅ Live | Memory/redb/PG |
 | Real Verification | `07-real-verification/demo-no-mocks.sh` | ✅ Live | 10-pt checklist |
 | **Primal Coordination** |
 | BearDog Signing | `demo-signed-braid-live.sh` | ✅ Live | Real binary |
@@ -208,7 +208,7 @@ To enable full live integration, start the primal services:
 - [x] SweetGrass demo runs with correct attribution
 - [x] Individual primal demos show capabilities
 - [x] **NEW**: Privacy controls demo (GDPR-inspired)
-- [x] **NEW**: Storage backends demo (Memory/Sled/Postgres)
+- [x] **NEW**: Storage backends demo (Memory/redb/Postgres)
 - [x] **NEW**: Real verification checklist (no mocks)
 - [x] **NEW**: NestGate integration tested (real binary)
 - [x] **NEW**: Songbird integration tested (real binary)

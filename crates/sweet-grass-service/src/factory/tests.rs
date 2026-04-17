@@ -168,63 +168,6 @@ fn test_config_from_reader_invalid_max_connections_ignored() {
     assert_eq!(config.pg_max_connections, None);
 }
 
-// Sled Backend Tests
-
-#[cfg(feature = "sled")]
-#[test]
-fn test_sled_config_default_path_via_reader() {
-    let config =
-        BraidStoreFactory::config_from_reader(&mock_reader(&[("STORAGE_BACKEND", "sled")]));
-    assert!(config.sled_path.is_none());
-}
-
-#[cfg(feature = "sled")]
-#[test]
-fn test_sled_config_custom_path_via_reader() {
-    let reader = mock_reader(&[
-        ("STORAGE_BACKEND", "sled"),
-        ("STORAGE_PATH", "/tmp/custom/path"),
-    ]);
-    let config = BraidStoreFactory::config_from_reader(&reader);
-    assert_eq!(config.sled_path.as_deref(), Some("/tmp/custom/path"));
-}
-
-#[cfg(feature = "sled")]
-#[test]
-fn test_sled_config_cache_size_via_reader() {
-    let reader = mock_reader(&[
-        ("STORAGE_BACKEND", "sled"),
-        ("STORAGE_PATH", "/tmp/test"),
-        ("SLED_CACHE_SIZE", "512"),
-    ]);
-    let config = BraidStoreFactory::config_from_reader(&reader);
-    assert_eq!(config.sled_cache_size_mb, Some(512));
-}
-
-#[cfg(feature = "sled")]
-#[test]
-fn test_sled_config_flush_interval_via_reader() {
-    let reader = mock_reader(&[
-        ("STORAGE_BACKEND", "sled"),
-        ("STORAGE_PATH", "/tmp/test"),
-        ("SLED_FLUSH_MS", "1000"),
-    ]);
-    let config = BraidStoreFactory::config_from_reader(&reader);
-    assert_eq!(config.sled_flush_ms, Some(1000));
-}
-
-#[cfg(feature = "sled")]
-#[test]
-fn test_sled_config_invalid_cache_size_ignored() {
-    let reader = mock_reader(&[
-        ("STORAGE_BACKEND", "sled"),
-        ("STORAGE_PATH", "/tmp/test"),
-        ("SLED_CACHE_SIZE", "not_a_number"),
-    ]);
-    let config = BraidStoreFactory::config_from_reader(&reader);
-    assert_eq!(config.sled_cache_size_mb, None);
-}
-
 // Helper Function Tests
 
 #[test]
@@ -312,38 +255,6 @@ async fn test_from_config_postgres_missing_url() {
     if let Err(err) = result {
         assert!(err.to_string().contains("database_url"));
     }
-}
-
-#[cfg(feature = "sled")]
-#[tokio::test]
-async fn test_from_config_sled() {
-    let dir = tempfile::tempdir().unwrap();
-    let config = StorageConfig {
-        backend: "sled".to_string(),
-        sled_path: Some(dir.path().to_str().unwrap().to_string()),
-        sled_cache_size_mb: Some(64),
-        sled_flush_ms: Some(500),
-        ..StorageConfig::default()
-    };
-    let (store, name) = BraidStoreFactory::from_config_with_name(&config)
-        .await
-        .unwrap();
-    assert_eq!(name, "sled");
-    assert!(matches!(store, BraidBackend::Sled(_)));
-}
-
-#[cfg(feature = "sled")]
-#[tokio::test]
-async fn test_from_config_sled_default_path() {
-    let config = StorageConfig {
-        backend: "sled".to_string(),
-        ..StorageConfig::default()
-    };
-    let result = BraidStoreFactory::from_config_with_name(&config).await;
-    assert!(result.is_ok());
-    let (_, name) = result.unwrap();
-    assert_eq!(name, "sled");
-    let _ = std::fs::remove_dir_all("./data/sweetgrass");
 }
 
 #[tokio::test]
@@ -475,12 +386,9 @@ fn test_storage_config_default() {
     let config = StorageConfig::default();
     assert!(config.backend.is_empty());
     assert!(config.database_url.is_none());
-    assert!(config.sled_path.is_none());
     assert!(config.redb_path.is_none());
     assert!(config.pg_max_connections.is_none());
     assert!(config.pg_min_connections.is_none());
-    assert!(config.sled_cache_size_mb.is_none());
-    assert!(config.sled_flush_ms.is_none());
 }
 
 #[test]

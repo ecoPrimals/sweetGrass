@@ -19,7 +19,7 @@ pub const DEFAULT_BATCH_CONCURRENCY: usize = 10;
 
 /// Default maximum number of results when no limit is specified.
 ///
-/// Shared across all store backends (memory, sled, postgres) to ensure
+/// Shared across all store backends (memory, redb, postgres) to ensure
 /// consistent pagination behavior regardless of storage choice.
 pub const DEFAULT_QUERY_LIMIT: usize = 100;
 

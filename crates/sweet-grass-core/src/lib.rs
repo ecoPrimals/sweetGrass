@@ -83,12 +83,6 @@ pub mod identity {
     /// environment variable. This is a fallback for local development only.
     pub const DEFAULT_REDB_PATH: &str = "./data/sweetgrass.redb";
 
-    /// Default sled storage directory path (self-config).
-    ///
-    /// Overridden by `SweetGrassConfig.sled_path` or the `SWEETGRASS_SLED_PATH`
-    /// environment variable. This is a fallback for local development only.
-    pub const DEFAULT_SLED_PATH: &str = "./data/sweetgrass";
-
     /// Default source primal name when `SelfKnowledge` is unavailable.
     ///
     /// Used by `BraidFactory` and `CompressionEngine` as a fallback when the

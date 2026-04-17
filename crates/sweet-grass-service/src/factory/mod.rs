@@ -17,14 +17,11 @@ type Result<T> = std::result::Result<T, StoreError>;
 /// mutating process environment variables. Safe for multi-threaded contexts.
 #[derive(Clone, Debug, Default)]
 pub struct StorageConfig {
-    /// Backend type: "memory", "postgres", "sled", "redb", "nestgate".
+    /// Backend type: "memory", "postgres", "redb", "nestgate".
     pub backend: String,
 
     /// `PostgreSQL` connection URL.
     pub database_url: Option<String>,
-
-    /// Sled database path.
-    pub sled_path: Option<String>,
 
     /// redb database path.
     pub redb_path: Option<String>,
@@ -34,12 +31,6 @@ pub struct StorageConfig {
 
     /// `PostgreSQL` min connections.
     pub pg_min_connections: Option<u32>,
-
-    /// Sled cache size in MB.
-    pub sled_cache_size_mb: Option<u64>,
-
-    /// Sled flush interval in ms.
-    pub sled_flush_ms: Option<u64>,
 
     /// `NestGate` socket path (explicit override; uses discovery if absent).
     pub nestgate_socket: Option<String>,
@@ -59,9 +50,9 @@ pub struct StorageConfig {
 ///
 /// ## Environment Variables
 ///
-/// - `STORAGE_BACKEND`: Backend type (`memory`, `postgres`, `sled`, `redb`)
+/// - `STORAGE_BACKEND`: Backend type (`memory`, `postgres`, `redb`)
 /// - `DATABASE_URL` or `STORAGE_URL`: Connection string (postgres)
-/// - `STORAGE_PATH`: Directory path (sled/redb)
+/// - `STORAGE_PATH`: File path (redb)
 pub struct BraidStoreFactory;
 
 impl BraidStoreFactory {
@@ -107,12 +98,9 @@ impl BraidStoreFactory {
             backend: reader("STORAGE_BACKEND")
                 .unwrap_or_else(|| sweet_grass_core::identity::DEFAULT_STORAGE_BACKEND.to_string()),
             database_url: reader("DATABASE_URL").or_else(|| reader("STORAGE_URL")),
-            sled_path: reader("STORAGE_PATH"),
             redb_path: reader("STORAGE_PATH"),
             pg_max_connections: Self::parse_reader_var(reader, "PG_MAX_CONNECTIONS"),
             pg_min_connections: Self::parse_reader_var(reader, "PG_MIN_CONNECTIONS"),
-            sled_cache_size_mb: Self::parse_reader_var(reader, "SLED_CACHE_SIZE"),
-            sled_flush_ms: Self::parse_reader_var(reader, "SLED_FLUSH_MS"),
             nestgate_socket: reader("NESTGATE_SOCKET"),
             nestgate_family_id: reader("FAMILY_ID"),
         }
@@ -159,8 +147,6 @@ impl BraidStoreFactory {
                 .await
                 .map(|s| (s, "postgres")),
             "redb" => Self::create_redb_from_config(config).map(|s| (s, "redb")),
-            #[cfg(feature = "sled")]
-            "sled" => Self::create_sled_from_config(config).map(|s| (s, "sled")),
             #[cfg(feature = "nestgate")]
             "nestgate" => Self::create_nestgate_from_config(config).map(|s| (s, "nestgate")),
             other => Err(StoreError::Internal(format!(
@@ -210,30 +196,6 @@ impl BraidStoreFactory {
         Ok(BraidBackend::Redb(store))
     }
 
-    #[cfg(feature = "sled")]
-    #[expect(deprecated, reason = "sled backend deprecated — use redb instead")]
-    /// Create Sled backend from explicit config.
-    fn create_sled_from_config(config: &StorageConfig) -> Result<BraidBackend> {
-        use sweet_grass_store_sled::{SledConfig, SledStore};
-
-        let path = config
-            .sled_path
-            .as_deref()
-            .unwrap_or(sweet_grass_core::identity::DEFAULT_SLED_PATH);
-        let mut sled_config = SledConfig::new(path);
-        if let Some(cache_mb) = config.sled_cache_size_mb {
-            sled_config = sled_config.cache_capacity(cache_mb * 1024 * 1024);
-        }
-        if let Some(flush_ms) = config.sled_flush_ms {
-            sled_config = sled_config.flush_every_ms(Some(flush_ms));
-        }
-
-        tracing::info!(path = %path, "Opening Sled database");
-        let store = SledStore::open(&sled_config)?;
-        tracing::info!("Sled backend initialized");
-        Ok(BraidBackend::Sled(store))
-    }
-
     #[cfg(feature = "nestgate")]
     /// Create `NestGate` backend from explicit config.
     fn create_nestgate_from_config(config: &StorageConfig) -> Result<BraidBackend> {
@@ -262,19 +224,11 @@ impl BraidStoreFactory {
 
     /// List valid backend names (varies by enabled features).
     const fn valid_backends() -> &'static str {
-        #[cfg(all(feature = "sled", feature = "nestgate"))]
-        {
-            "memory, postgres, redb, sled, nestgate"
-        }
-        #[cfg(all(feature = "sled", not(feature = "nestgate")))]
-        {
-            "memory, postgres, redb, sled"
-        }
-        #[cfg(all(not(feature = "sled"), feature = "nestgate"))]
+        #[cfg(feature = "nestgate")]
         {
             "memory, postgres, redb, nestgate"
         }
-        #[cfg(all(not(feature = "sled"), not(feature = "nestgate")))]
+        #[cfg(not(feature = "nestgate"))]
         {
             "memory, postgres, redb"
         }

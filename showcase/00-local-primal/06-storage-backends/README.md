@@ -24,10 +24,6 @@ SweetGrass supports multiple storage backends for different use cases:
    - Advanced queries and reporting
    - Industry-standard reliability
 
-4. **Sled Backend** (deprecated — use redb)
-   - Feature-gated (`--features sled`)
-   - Unmaintained upstream; kept for backward compatibility
-
 ## Quick Start
 
 ```bash
@@ -40,7 +36,7 @@ SweetGrass supports multiple storage backends for different use cases:
    - Creates and queries Braids
    - Shows ephemeral nature
 
-2. Starts SweetGrass with **Sled** backend
+2. Starts SweetGrass with **redb** backend
    - Creates and queries Braids
    - Shows persistence across restarts
 
@@ -61,7 +57,6 @@ Multiple service instances are started on different ports, each with a different
 | Memory | Fast | Ephemeral | None | Testing, CI/CD |
 | redb | Fast | Persistent | None (Pure Rust) | Single-node prod (recommended) |
 | PostgreSQL | Moderate | Persistent | PostgreSQL | Multi-node, enterprise |
-| Sled | Fast | Persistent | None | **Deprecated** — use redb |
 
 ## Configuration Examples
 
@@ -75,12 +70,6 @@ sweetgrass server --storage memory
 STORAGE_BACKEND=redb \
 STORAGE_PATH=/var/lib/sweetgrass/data.redb \
 sweetgrass server
-```
-
-### Sled (deprecated — use redb)
-```bash
-SLED_DB_PATH=/var/lib/sweetgrass/data \
-sweetgrass server --storage sled --features sled
 ```
 
 ### PostgreSQL (Enterprise)

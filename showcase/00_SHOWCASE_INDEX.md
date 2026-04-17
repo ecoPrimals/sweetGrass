@@ -40,7 +40,7 @@ Demonstrate SweetGrass's value **independently** before showing ecosystem integr
 3. **Provenance Queries** (10 min) - Graph traversal, filtering
 4. **PROV-O Standard** (5 min) - W3C JSON-LD export
 5. **Privacy Controls** (10 min) - GDPR-inspired data rights
-6. **Storage Backends** (10 min) - Memory, PostgreSQL, redb (recommended), Sled (legacy)
+6. **Storage Backends** (10 min) - Memory, redb (recommended), PostgreSQL
 
 **Status**: ✅ Complete  
 **Start**: `cd 00-local-primal && ./RUN_ME_FIRST.sh`

@@ -1268,7 +1268,7 @@ pub struct RewardDistribution {
 - [x] Braid data structures (W3C PROV-O aligned)
 - [x] JSON-LD context and serialization
 - [x] In-memory Braid store
-- [x] PostgreSQL, Sled, and Redb storage backends
+- [x] PostgreSQL and redb storage backends
 - [x] Content hashing (SHA-256)
 
 ### Phase 2: Event Processing — COMPLETE (v0.5.0–v0.6.0)

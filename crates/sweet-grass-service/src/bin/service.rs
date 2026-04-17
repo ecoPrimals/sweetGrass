@@ -58,7 +58,7 @@ enum Commands {
         #[arg(long, env = "SWEETGRASS_TARPC_ADDRESS", default_value = "0.0.0.0:0")]
         tarpc_address: String,
 
-        /// Storage backend: memory, postgres, redb, sled (requires --features sled).
+        /// Storage backend: memory, postgres, redb.
         #[arg(short, long, env = "STORAGE_BACKEND", default_value = "memory")]
         storage: String,
 
@@ -66,9 +66,9 @@ enum Commands {
         #[arg(long, env = "DATABASE_URL")]
         database_url: Option<String>,
 
-        /// Sled database path (if storage=sled).
+        /// Storage path (if storage=redb).
         #[arg(long, env = "STORAGE_PATH")]
-        sled_path: Option<String>,
+        storage_path: Option<String>,
 
         /// Log level.
         #[arg(short, long, env = "RUST_LOG", default_value = "info")]
@@ -112,7 +112,7 @@ async fn main() {
             tarpc_address,
             storage,
             database_url,
-            sled_path,
+            storage_path,
             log_level,
             no_tarpc,
             socket,
@@ -123,7 +123,7 @@ async fn main() {
                 tarpc_address,
                 storage,
                 database_url,
-                sled_path,
+                storage_path,
                 log_level,
                 no_tarpc,
                 socket,
@@ -144,7 +144,7 @@ struct ServerConfig {
     tarpc_address: String,
     storage: String,
     database_url: Option<String>,
-    sled_path: Option<String>,
+    storage_path: Option<String>,
     log_level: String,
     no_tarpc: bool,
     socket: Option<String>,
@@ -171,7 +171,7 @@ async fn run_server(config: ServerConfig) -> i32 {
     let storage_config = StorageConfig {
         backend: config.storage.clone(),
         database_url: config.database_url.clone(),
-        sled_path: config.sled_path.clone(),
+        redb_path: config.storage_path.clone(),
         ..Default::default()
     };
 

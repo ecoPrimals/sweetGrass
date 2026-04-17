@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.27 | 1,502 tests | 90%+ coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 2 | Wire L3 | Stadial parity (zero async-trait, zero dyn dispatch)
+v0.7.27 | 1,423 tests | 90%+ coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 2 | Wire L3 | Stadial parity (zero async-trait, zero dyn dispatch, sled eliminated)
 
 ---
 
@@ -74,7 +74,6 @@ curl http://localhost:8080/api/v1/braids
 | `sweet-grass-store` | BraidStore trait + MemoryStore |
 | `sweet-grass-store-postgres` | PostgreSQL backend |
 | `sweet-grass-store-redb` | Embedded Pure Rust backend (redb, recommended) |
-| `sweet-grass-store-sled` | Embedded Pure Rust backend (sled, **deprecated** — use redb) |
 | `sweet-grass-factory` | Braid creation + attribution engine |
 | `sweet-grass-query` | Graph traversal, PROV-O export |
 | `sweet-grass-compression` | 0/1/Many session compression |
@@ -131,7 +130,6 @@ Single binary with subcommands (`sweetgrass server`, `sweetgrass status`, `sweet
 - **PostgreSQL**: Production scale with migrations
 - **redb**: Embedded Pure Rust, ACID transactions, actively maintained (recommended)
 - **NestGate**: Ecosystem-delegated storage via JSON-RPC over UDS (feature-gated, `--features nestgate`)
-- **Sled**: Embedded Pure Rust, legacy (feature-gated, `--features sled`)
 - Runtime selection via environment
 
 ### Privacy and Consent
@@ -170,7 +168,7 @@ cargo llvm-cov --workspace
 ### Configuration
 
 ```bash
-STORAGE_BACKEND=redb                     # or: memory, postgres, sled (with --features sled)
+STORAGE_BACKEND=redb                     # or: memory, postgres
 DATABASE_URL=postgresql://...            # for postgres backend
 SWEETGRASS_HTTP_ADDRESS=0.0.0.0:8080    # REST + HTTP JSON-RPC endpoint
 SWEETGRASS_PORT=9100                     # TCP JSON-RPC (UniBin --port)
@@ -201,14 +199,14 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Metric | Value |
 |--------|-------|
 | Version | v0.7.27 |
-| Tests | 1,502 local + 56 Docker CI |
+| Tests | 1,423 local + 56 Docker CI |
 | Coverage | 90%+ line (91.7% with Postgres Docker) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
 | Max file size | 726 lines (limit: 1000) |
-| .rs files | 196 (52,429 LOC) |
+| .rs files | 183 (49,520 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |

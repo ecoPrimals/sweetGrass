@@ -217,11 +217,6 @@ pub enum BraidBackend {
     /// `PostgreSQL` store (multi-node production).
     Postgres(sweet_grass_store_postgres::PostgresStore),
 
-    /// Sled embedded store (deprecated — use `redb`).
-    #[cfg(feature = "sled")]
-    #[expect(deprecated, reason = "sled variant kept for migration period")]
-    Sled(sweet_grass_store_sled::SledStore),
-
     /// `NestGate` delegated store (ecosystem storage).
     #[cfg(feature = "nestgate")]
     NestGate(sweet_grass_store_nestgate::NestGateStore),
@@ -237,13 +232,10 @@ pub enum BraidBackend {
 
 macro_rules! delegate_store {
     ($self:ident, $method:ident $(, $arg:expr)*) => {
-        #[allow(deprecated)]
         match $self {
             Self::Memory(s) => s.$method($($arg),*).await,
             Self::Redb(s) => s.$method($($arg),*).await,
             Self::Postgres(s) => s.$method($($arg),*).await,
-            #[cfg(feature = "sled")]
-            Self::Sled(s) => s.$method($($arg),*).await,
             #[cfg(feature = "nestgate")]
             Self::NestGate(s) => s.$method($($arg),*).await,
             #[cfg(any(test, feature = "test"))]

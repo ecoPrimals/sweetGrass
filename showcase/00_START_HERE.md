@@ -2,7 +2,7 @@
 
 **The Attribution Layer for ecoPrimals**
 
-**Version**: 0.7.27 | **Status**: Production Ready | **Tests**: 1,502 passing | **Edition**: 2024
+**Version**: 0.7.27 | **Status**: Production Ready | **Tests**: 1,423 passing | **Edition**: 2024
 
 ---
 
@@ -192,7 +192,7 @@ cd ../01-primal-coordination
 ✅ Provenance graph traversal (DAG queries)
 ✅ W3C PROV-O compliance (JSON-LD export)
 ✅ GDPR-inspired privacy (5 levels)
-✅ Multiple storage backends (Memory/PostgreSQL/redb; sled deprecated)
+✅ Multiple storage backends (Memory/redb/PostgreSQL)
 ✅ Real verification (no mocks proof!)
 ✅ Session compression (~88% space savings)
 ```

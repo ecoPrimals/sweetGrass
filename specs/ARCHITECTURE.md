@@ -390,8 +390,6 @@ sweetGrass/
 │   │       ├── error.rs
 │   │       └── store/            # BraidStore impl
 │   │
-│   ├── sweet-grass-store-sled/   # Sled backend (legacy, feature-gated)
-│   │   └── src/
 │   │       ├── lib.rs
 │   │       ├── error.rs
 │   │       └── store/            # BraidStore impl

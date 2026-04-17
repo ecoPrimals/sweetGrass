@@ -75,7 +75,7 @@ impl RedbConfig {
     }
 }
 
-/// Table name constants (similar to sled trees / column families).
+/// Table name constants (similar to column families).
 pub mod tables {
     use redb::TableDefinition;
 

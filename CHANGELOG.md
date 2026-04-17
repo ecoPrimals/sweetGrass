@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Sled Backend Removal — Lockfile Ghost Elimination (April 16, 2026)
+
+Removed `sweet-grass-store-sled` from the workspace. The crate is archived at
+`archive/sweet-grass-store-sled/` as fossil record. `sled` (0.34.7) and its
+transitive deps (`parking_lot 0.11`, old `hashbrown`, `crc32fast`, `fxhash`,
+`fs2`) are eliminated from `Cargo.lock`.
+
+#### Removed
+- `sweet-grass-store-sled` from workspace members
+- `sled` from `[workspace.dependencies]`
+- `sled` feature + optional deps from `sweet-grass-service`
+- `BraidBackend::Sled` variant, `create_sled_from_config`, sled CLI args
+- `DEFAULT_SLED_PATH` from `sweet-grass-core::identity`
+- `sled` skip-tree entry from `deny.toml`
+- ~79 sled-specific tests (archived, not deleted)
+
+#### Metrics
+- Lockfile: `sled` 0 entries (was 1), `parking_lot` 1 version (was 2)
+- Tests: 1,423 local + 56 Docker CI (was 1,502 — sled tests archived)
+- .rs files: 183 (49,520 LOC)
+- Clippy: 0 warnings, cargo deny: 4/4 clean
+
 ### Stadial Parity: async-trait + dyn Elimination (April 16, 2026)
 
 Eliminated all `#[async_trait]` attributes and `Arc<dyn Trait>` dispatch for
@@ -20,7 +42,7 @@ finite-implementor traits. sweetGrass is now stadial-compliant per
 - ~130 `Arc<dyn Trait>` / `Box<dyn Trait>` usages for finite-implementor traits
 
 #### Added
-- `BraidBackend` enum (Memory, Redb, Postgres, Sled, NestGate) with delegation macro
+- `BraidBackend` enum (Memory, Redb, Postgres, NestGate) with delegation macro
 - `SigningBackend`, `AnchoringBackend`, `SessionEventsBackend`,
   `SessionEventStreamBackend`, `DiscoveryBackend` enums for integration traits
 - `QueryEngine<S: BraidStore>` generic over store backend
@@ -29,7 +51,7 @@ finite-implementor traits. sweetGrass is now stadial-compliant per
 
 #### Lockfile Debt Status
 - `ring`: dev-dep only (testcontainers → bollard → rustls); not in production binary
-- `sled`: feature-gated (not in defaults); `sweet-grass-store-sled` deprecated
+- `sled`: eliminated — crate archived, lockfile ghost resolved
 - `libsqlite3-sys`: lockfile phantom from sqlx optional dep; not compiled or linked
 - `async-trait`: dev-dep only (testcontainers transitive); zero direct usage
 

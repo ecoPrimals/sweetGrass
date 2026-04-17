@@ -188,7 +188,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 1,502 local tests + 56 Docker CI, 90%+ line coverage via llvm-cov (91.7% with Postgres)
+- **Overall**: 1,423 local tests + 56 Docker CI, 90%+ line coverage via llvm-cov
 - **Target**: 90%+ coverage on core crates (achieved)
 
 ### Per-Crate Coverage
@@ -205,7 +205,6 @@ cargo audit
 | sweet-grass-store-nestgate | 89% | 80% | ✅ Above target |
 | sweet-grass-store-postgres | 5% | 80% | ❌ Needs CI/Docker |
 | sweet-grass-integration | 81% | 80% | ✅ Above target |
-| sweet-grass-store-sled | 80% | 90% | ⚠️ Legacy (feature-gated) |
 
 ### Improving Coverage
 

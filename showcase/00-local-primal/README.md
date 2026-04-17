@@ -226,7 +226,6 @@ Multiple storage options for different use cases.
 **What you'll see**:
 - Memory backend (testing, ephemeral)
 - PostgreSQL backend (production, multi-node)
-- Sled backend (embedded, Pure Rust)
 - Runtime backend selection
 
 **Run**:
@@ -240,13 +239,12 @@ cd 06-storage-backends
 |---------|----------|-------------|--------------|
 | **Memory** | Testing, ephemeral | No | None |
 | **PostgreSQL** | Production, multi-node | Yes | PostgreSQL |
-| **Sled** | Embedded, single-node | Yes | None (Pure Rust) |
 
 **Key Concepts**:
 - `BraidStore` trait - Backend abstraction
 - Runtime selection - Choose backend at startup
 - Zero configuration - Sensible defaults
-- Pure Rust option - Sled (no C/C++ deps)
+- Pure Rust option - redb (no C/C++ deps)
 
 ---
 
@@ -291,7 +289,7 @@ After completing this showcase, you should be able to:
 2. **Standard Compliance**: W3C PROV-O compatible
 3. **Privacy Built-In**: GDPR-inspired controls from day one
 4. **Primal Sovereignty**: Pure Rust, no vendor lock-in
-5. **Flexible Storage**: Memory, PostgreSQL, or Sled
+5. **Flexible Storage**: Memory, redb, or PostgreSQL
 
 ### **Real-World Value**:
 
@@ -338,7 +336,7 @@ Graph traversal:   <50ms (1000-node graph)
 PROV-O export:     <5ms
 Storage (memory):  <1ms
 Storage (Postgres): 2-5ms
-Storage (Sled):    1-3ms
+Storage (redb):    1-3ms
 ```
 
 ---
