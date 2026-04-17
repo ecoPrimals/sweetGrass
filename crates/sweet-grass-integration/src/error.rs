@@ -138,21 +138,14 @@ pub enum IntegrationError {
     #[error("Discovery error: {0}")]
     Discovery(String),
 
-    /// Connection to primal failed.
-    #[error("Connection error: {0}")]
-    Connection(String),
-
-    /// Session events service connection failed.
-    #[error("Session events connection error: {0}")]
-    SessionEventsConnection(String),
-
-    /// Anchoring service connection failed.
-    #[error("Anchoring connection error: {0}")]
-    AnchoringConnection(String),
-
-    /// Signing service connection failed.
-    #[error("Signing connection error: {0}")]
-    SigningConnection(String),
+    /// Connection to a capability-providing primal failed.
+    #[error("{capability} connection error: {message}")]
+    Connection {
+        /// Which capability the connection was for.
+        capability: String,
+        /// Human-readable error detail.
+        message: String,
+    },
 
     /// Event processing failed.
     #[error("Event processing error: {0}")]
@@ -357,10 +350,10 @@ mod tests {
         let cases: Vec<IntegrationError> = vec![
             IntegrationError::ipc(IpcErrorPhase::Connect, "refused"),
             IntegrationError::Discovery("not found".into()),
-            IntegrationError::Connection("timeout".into()),
-            IntegrationError::SessionEventsConnection("unreachable".into()),
-            IntegrationError::AnchoringConnection("refused".into()),
-            IntegrationError::SigningConnection("closed".into()),
+            IntegrationError::Connection {
+                capability: "signing".into(),
+                message: "timeout".into(),
+            },
             IntegrationError::EventProcessing("decode failed".into()),
             IntegrationError::Subscription("closed".into()),
             IntegrationError::Anchoring("chain error".into()),

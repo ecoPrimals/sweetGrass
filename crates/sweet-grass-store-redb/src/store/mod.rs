@@ -178,7 +178,7 @@ impl BraidStore for RedbStore {
             Ok(())
         })
         .await
-        .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?
+        .map_err(StoreError::from)?
     }
 
     #[instrument(skip(self))]
@@ -204,7 +204,7 @@ impl BraidStore for RedbStore {
             }
         })
         .await
-        .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?
+        .map_err(StoreError::from)?
     }
 
     #[instrument(skip(self))]
@@ -230,7 +230,7 @@ impl BraidStore for RedbStore {
             }
         })
         .await
-        .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))??;
+        .map_err(StoreError::from)??;
 
         match braid_id_opt {
             Some(braid_id) => self.get(&braid_id).await,
@@ -265,7 +265,7 @@ impl BraidStore for RedbStore {
                 Ok(true)
             })
             .await
-            .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?
+            .map_err(StoreError::from)?
         } else {
             Ok(true)
         }
@@ -289,7 +289,7 @@ impl BraidStore for RedbStore {
                 .map_err(|e| StoreError::Internal(e.to_string()))
         })
         .await
-        .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?
+        .map_err(StoreError::from)?
     }
 
     #[instrument(skip(self, filter))]
@@ -391,7 +391,7 @@ impl BraidStore for RedbStore {
             Ok(QueryResult::new(braids, total, has_more))
         })
         .await
-        .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?
+        .map_err(StoreError::from)?
     }
 
     #[instrument(skip(self))]
@@ -450,7 +450,7 @@ impl BraidStore for RedbStore {
             Ok(())
         })
         .await
-        .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?
+        .map_err(StoreError::from)?
     }
 
     #[instrument(skip(self))]
@@ -477,7 +477,7 @@ impl BraidStore for RedbStore {
             }
         })
         .await
-        .map_err(|e| StoreError::Internal(format!("Task join error: {e}")))?
+        .map_err(StoreError::from)?
     }
 
     #[instrument(skip(self))]

@@ -29,6 +29,10 @@ pub enum QueryError {
     #[error("Store error: {0}")]
     Store(#[from] sweet_grass_store::StoreError),
 
+    /// A spawned task panicked or was cancelled.
+    #[error("Task join error: {0}")]
+    Join(#[from] tokio::task::JoinError),
+
     /// Serialization error.
     #[error("Serialization error: {0}")]
     Serialization(String),

@@ -36,6 +36,10 @@ pub enum StoreError {
     #[error("Transaction error: {0}")]
     Transaction(String),
 
+    /// A `spawn_blocking` / `tokio::spawn` task panicked or was cancelled.
+    #[error("Task join error: {0}")]
+    Join(#[from] tokio::task::JoinError),
+
     /// Internal storage error.
     #[error("Internal error: {0}")]
     Internal(String),

@@ -39,6 +39,14 @@ pub enum NestGateStoreError {
 
 impl From<NestGateStoreError> for StoreError {
     fn from(err: NestGateStoreError) -> Self {
-        Self::Internal(err.to_string())
+        match err {
+            NestGateStoreError::SocketNotFound(msg) | NestGateStoreError::ConnectionFailed(msg) => {
+                Self::Connection(msg)
+            },
+            NestGateStoreError::Serde(e) => Self::Serialization(e.to_string()),
+            NestGateStoreError::Io(e) => Self::Connection(e.to_string()),
+            NestGateStoreError::Rpc(msg)
+            | NestGateStoreError::JsonRpcError { message: msg, .. } => Self::Internal(msg),
+        }
     }
 }

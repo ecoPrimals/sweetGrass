@@ -61,8 +61,8 @@ bytes = { version = "1", features = ["serde"] }
 # Synchronization (Pure Rust, no poisoning, better perf than std)
 parking_lot = "0.12"
 
-# Database (Pure Rust - no OpenSSL)
-sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "chrono", "uuid", "json"] }
+# Database (Pure Rust - no OpenSSL, no SQLite)
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "postgres", "chrono", "uuid", "json", "migrate"] }
 
 # Embedded key-value store (Pure Rust - no C dependencies)
 redb = "2.4"

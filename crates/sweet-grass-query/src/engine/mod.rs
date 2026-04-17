@@ -157,9 +157,7 @@ impl<S: BraidStore> QueryEngine<S> {
                 handles.push(tokio::spawn(async move { store.get_by_hash(&hash).await }));
             }
 
-            let results = try_join_all(handles)
-                .await
-                .map_err(|e| QueryError::Internal(format!("Task join error: {e}")))?;
+            let results = try_join_all(handles).await.map_err(QueryError::from)?;
 
             let mut next_hashes = Vec::new();
             for braid in results.into_iter().flatten().flatten() {
