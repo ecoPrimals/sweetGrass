@@ -126,7 +126,7 @@ impl NestGateStore {
             .call("storage.delete", params)
             .await
             .map(|_| true)
-            .or(Ok(false))
+            .map_err(|e| StoreError::Internal(e.to_string()))
     }
 
     async fn list_keys(&self, prefix: &str) -> Result<Vec<String>> {
@@ -298,9 +298,9 @@ impl BraidStore for NestGateStore {
 
     async fn delete(&self, id: &BraidId) -> Result<bool> {
         if let Some(braid) = self.get(id).await? {
-            self.update_indices_on_delete(&braid).await?;
             let key = self.braid_key(id);
             self.delete_key(&key).await?;
+            self.update_indices_on_delete(&braid).await?;
             debug!(braid_id = %id, "Deleted braid from NestGate");
             Ok(true)
         } else {

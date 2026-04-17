@@ -78,8 +78,10 @@ pub struct BootstrapResult {
 /// - `REST_PORT`: REST endpoint port (default: 0 - dynamic allocation)
 ///
 /// ### Storage
+/// - `STORAGE_BACKEND`: Backend type (`memory`, `redb`, `postgres`, `nestgate`)
+/// - `STORAGE_PATH`: Path for file-backed stores (`redb`)
 /// - `DATABASE_URL`: `PostgreSQL` connection string
-/// - `SLED_PATH`: Sled database path
+/// - `NESTGATE_SOCKET`: `NestGate` UDS socket path
 /// - (default: in-memory)
 ///
 /// ### Discovery (Phase 2)
