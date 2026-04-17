@@ -92,7 +92,7 @@ docker compose down -v
 
 ```
 crates/
-├── Unit Tests          (600+ tests)  - src/ modules across all 11 crates
+├── Unit Tests          (600+ tests)  - src/ modules across all 10 crates
 ├── Integration Tests   (74 tests)    - sweet-grass-service/tests/*.rs
 ├── Chaos Tests        (17 tests)    - sweet-grass-service/tests/chaos.rs
 ├── Fault Injection    (9 tests)     - sweet-grass-service/tests/fault_injection.rs
@@ -188,7 +188,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 1,423 local tests + 56 Docker CI, 90%+ line coverage via llvm-cov
+- **Overall**: 1,430 local tests + 56 Docker CI, 90%+ line coverage via llvm-cov
 - **Target**: 90%+ coverage on core crates (achieved)
 
 ### Per-Crate Coverage

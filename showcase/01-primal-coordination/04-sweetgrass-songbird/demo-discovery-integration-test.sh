@@ -244,7 +244,7 @@ ANNOUNCEMENT=$(cat <<EOF
   ],
   "metadata": {
     "description": "W3C PROV-O compliant provenance tracking",
-    "storage_backends": ["memory", "postgres", "sled"]
+    "storage_backends": ["memory", "postgres", "redb"]
   }
 }
 EOF
@@ -374,7 +374,7 @@ async fn main() -> Result<()> {
             Capability::Custom("w3c-prov-o".into()),
         ],
         metadata: HashMap::from([
-            ("storage_backends".into(), "memory,postgres,sled".into()),
+            ("storage_backends".into(), "memory,postgres,redb".into()),
             ("standard".into(), "W3C PROV-O".into()),
         ]),
     };

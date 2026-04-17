@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Deep Debt: Typed Errors, libsqlite3-sys Elimination, IntegrationError Consolidation (April 16, 2026)
+
+Systematic error type evolution and dependency hygiene pass.
+
+#### Changed
+- **`StoreError::Join`** — new `#[from] tokio::task::JoinError` variant replaces `format!("Task join error: {e}")` in 9 redb store sites and 1 query engine site
+- **`QueryError::Join`** — same typed variant for query crate join errors
+- **`NestGateStoreError` → `StoreError` mapping** — structured `From` impl routes `SocketNotFound`/`ConnectionFailed` → `StoreError::Connection`, `Serde` → `Serialization`, `Io` → `Connection`, `Rpc`/`JsonRpcError` → `Internal` (was blanket `Internal(String)`)
+- **`IntegrationError::Connection`** — evolved from `Connection(String)` to `Connection { capability, message }` for capability-based error context; removed dead `SessionEventsConnection`, `AnchoringConnection`, `SigningConnection` variants
+- **`sqlx` `default-features = false`** — explicitly disables sqlite/mysql features; `libsqlite3-sys`, `sqlx-sqlite`, `sqlx-mysql` eliminated from build graph
+- **`hostname` crate comment** — corrected from `(pure Rust, no libc)` to `(uses libc gethostname)` in `sweet-grass-service/Cargo.toml`
+- **NestGate `delete_key`** — fixed silent error swallowing (`.or(Ok(false))` → proper error propagation)
+- **NestGate `delete` operation order** — data deletion now precedes index cleanup (prevents orphaned data on partial failure)
+
+#### Metrics
+- Tests: 1,430 local + 56 Docker CI (was 1,423)
+- .rs files: 183 (49,639 LOC)
+- Clippy: 0 warnings, cargo deny: 4/4 clean
+
 ### Sled Backend Removal — Lockfile Ghost Elimination (April 16, 2026)
 
 Removed `sweet-grass-store-sled` from the workspace. The crate is archived at
@@ -52,7 +71,7 @@ finite-implementor traits. sweetGrass is now stadial-compliant per
 #### Lockfile Debt Status
 - `ring`: dev-dep only (testcontainers → bollard → rustls); not in production binary
 - `sled`: eliminated — crate archived, lockfile ghost resolved
-- `libsqlite3-sys`: lockfile phantom from sqlx optional dep; not compiled or linked
+- `libsqlite3-sys`: **eliminated** — `sqlx` `default-features = false` removes sqlite from build graph
 - `async-trait`: dev-dep only (testcontainers transitive); zero direct usage
 
 #### Metrics

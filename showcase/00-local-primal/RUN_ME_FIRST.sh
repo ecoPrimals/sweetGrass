@@ -293,7 +293,7 @@ SweetGrass doesn't lock you into one storage system.
 Choose the backend that fits YOUR needs:
   • Memory: Fast, ephemeral (testing/dev)
   • PostgreSQL: Production, multi-node, SQL queries
-  • Sled: Embedded, Pure Rust, no dependencies
+  • redb: Embedded, Pure Rust, ACID, no dependencies (recommended)
 
 All backends support the SAME API - switch anytime with zero code changes.
 This is PRIMAL SOVEREIGNTY in action.
@@ -314,7 +314,7 @@ echo ""
 echo "You've learned:"
 echo "  ✓ Multiple backends"
 echo "  ✓ Runtime selection"
-echo "  ✓ Pure Rust option (Sled)"
+echo "  ✓ Pure Rust option (redb)"
 
 pause
 

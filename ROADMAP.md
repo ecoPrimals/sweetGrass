@@ -11,7 +11,7 @@
 - [x] **Stadial parity: `async-trait` elimination** — removed all 22 `#[async_trait]` attributes and `async-trait` crate from all 7 `Cargo.toml` files; all 6 traits (`BraidStore`, `SigningClient`, `AnchoringClient`, `SessionEventsClient`, `SessionEventStream`, `PrimalDiscovery`) use native RPITIT
 - [x] **Stadial parity: `dyn` dispatch elimination** — created `BraidBackend`, `SigningBackend`, `AnchoringBackend`, `SessionEventsBackend`, `SessionEventStreamBackend`, `DiscoveryBackend` enums; ~130 `Arc<dyn Trait>` → zero for finite-implementor traits
 - [x] **Generic query engine** — `QueryEngine<S: BraidStore>`, `AnchorManager<S>`, `EventHandler<S>` generic over store backend; monomorphization at construction site
-- [x] **Lockfile debt documented** — `ring` (dev-only via testcontainers), `libsqlite3-sys` (sqlx lockfile phantom, never compiled), `sled` (feature-gated, not in defaults)
+- [x] **Lockfile debt resolved** — `ring` (dev-only via testcontainers, cosmetic), `libsqlite3-sys` (eliminated via `sqlx` `default-features = false`), `sled` (**eliminated** — crate archived, zero lockfile entries)
 - [x] **Coordinated graceful shutdown** — `tokio::sync::watch` channel coordinates HTTP, tarpc, and UDS; spawned servers drain in-flight requests before process exit (was fire-and-forget `tokio::spawn`)
 - [x] **Zero-copy Phase 3: `BraidMetadata`** — `title`, `description` → `Option<Arc<str>>`, `tags` → `Vec<Arc<str>>`; cross-crate migration across all 10 crates + 4 store backends
 - [x] **`JsonLdVersion` type** — replaces `f32` for `BraidContext.@version`; zero-size type always serializes to `1.1`, validates on deserialization (eliminates float precision drift)
@@ -403,7 +403,7 @@
 ### v0.4.0 — Phase 2 Evolution (December 2025)
 
 - [x] Service binary with REST API
-- [x] Multiple storage backends (Memory, PostgreSQL, Sled)
+- [x] Multiple storage backends (Memory, PostgreSQL, redb, NestGate)
 - [x] tarpc RPC (pure Rust, no gRPC/protobuf)
 - [x] Showcase with 37 demo scripts
 - [x] 12 agent roles with attribution weights

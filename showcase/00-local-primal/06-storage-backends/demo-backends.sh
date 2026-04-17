@@ -2,7 +2,7 @@
 #
 # 💾 SweetGrass Storage Backends Demo
 #
-# Demonstrates multiple storage backends: Memory, PostgreSQL, and Sled.
+# Demonstrates multiple storage backends: Memory, PostgreSQL, and redb.
 # This is REAL - uses actual SweetGrass service with different backends, no mocks.
 #
 # Time: ~10 minutes
@@ -27,7 +27,7 @@ SERVICE_BINARY="$PROJECT_ROOT/target/release/sweetgrass"
 OUTPUT_DIR="$SCRIPT_DIR/outputs/demo-$(date +%s)"
 MEMORY_PORT=8081
 POSTGRES_PORT=8082
-SLED_PORT=8083
+REDB_PORT=8083
 SERVICE_PIDS=()
 
 # Ensure output directory exists
@@ -88,12 +88,12 @@ echo -e "${BLUE}      • Dependencies: PostgreSQL server${NC}"
 echo -e "${BLUE}      • Performance: Good (2-5ms latency)${NC}"
 echo -e "${BLUE}      • Concurrency: Full (database-level)${NC}"
 echo ""
-echo -e "${GREEN}   3. Sled Backend${NC}"
+echo -e "${GREEN}   3. redb Backend (recommended)${NC}"
 echo -e "${BLUE}      • Use case: Embedded, single-node, Pure Rust${NC}"
-echo -e "${BLUE}      • Persistence: Yes (durable)${NC}"
+echo -e "${BLUE}      • Persistence: Yes (durable, ACID)${NC}"
 echo -e "${BLUE}      • Dependencies: None (Pure Rust!)${NC}"
 echo -e "${BLUE}      • Performance: Excellent (1-3ms latency)${NC}"
-echo -e "${BLUE}      • Concurrency: Full (lock-free)${NC}"
+echo -e "${BLUE}      • Concurrency: Full (MVCC)${NC}"
 echo ""
 
 # Step 3: Start Memory Backend
@@ -163,23 +163,22 @@ echo -e "${YELLOW}      ⚠️  Data lost on restart (ephemeral)${NC}"
 echo -e "${YELLOW}      ⚠️  Not suitable for production${NC}"
 echo ""
 
-# Step 4: Sled Backend (Pure Rust!)
-echo -e "${YELLOW}🦀 Step 4: Sled Backend (Pure Rust, Embedded)...${NC}"
+# Step 4: redb Backend (Pure Rust, recommended!)
+echo -e "${YELLOW}🦀 Step 4: redb Backend (Pure Rust, Embedded, Recommended)...${NC}"
 echo ""
-echo -e "${CYAN}   4.1 Starting service with Sled backend...${NC}"
-SLED_PATH="$OUTPUT_DIR/sled-db"
-mkdir -p "$SLED_PATH"
-"$SERVICE_BINARY" --port "$SLED_PORT" --storage sled --sled-path "$SLED_PATH" > "$OUTPUT_DIR/sled-service.log" 2>&1 &
-SLED_PID=$!
-SERVICE_PIDS+=("$SLED_PID")
-echo -e "${BLUE}      Service PID: $SLED_PID${NC}"
-echo -e "${BLUE}      Port: $SLED_PORT${NC}"
-echo -e "${BLUE}      Database path: $SLED_PATH${NC}"
+echo -e "${CYAN}   4.1 Starting service with redb backend...${NC}"
+REDB_PATH="$OUTPUT_DIR/sweetgrass.redb"
+STORAGE_BACKEND=redb STORAGE_PATH="$REDB_PATH" "$SERVICE_BINARY" server --http-address "0.0.0.0:$REDB_PORT" > "$OUTPUT_DIR/redb-service.log" 2>&1 &
+REDB_PID=$!
+SERVICE_PIDS+=("$REDB_PID")
+echo -e "${BLUE}      Service PID: $REDB_PID${NC}"
+echo -e "${BLUE}      Port: $REDB_PORT${NC}"
+echo -e "${BLUE}      Database path: $REDB_PATH${NC}"
 echo -e "${BLUE}      Waiting for service to be ready...${NC}"
 
 for i in {1..30}; do
-    if curl -s "http://localhost:$SLED_PORT/health" > /dev/null 2>&1; then
-        echo -e "${GREEN}      ✅ Sled backend ready${NC}"
+    if curl -s "http://localhost:$REDB_PORT/health" > /dev/null 2>&1; then
+        echo -e "${GREEN}      ✅ redb backend ready${NC}"
         break
     fi
     if [ $i -eq 30 ]; then
@@ -190,54 +189,55 @@ for i in {1..30}; do
 done
 echo ""
 
-echo -e "${CYAN}   4.2 Creating test Braid in Sled backend...${NC}"
-SLED_REQUEST=$(cat <<EOF
+echo -e "${CYAN}   4.2 Creating test Braid in redb backend...${NC}"
+REDB_REQUEST=$(cat <<EOF
 {
-  "data_hash": "sha256:sled_test_001",
+  "data_hash": "sha256:redb_test_001",
   "mime_type": "text/plain",
   "size": 100,
-  "was_attributed_to": "did:key:z6MkSledTest",
-  "tags": ["sled", "persistent", "pure-rust"]
+  "was_attributed_to": "did:key:z6MkRedbTest",
+  "tags": ["redb", "persistent", "pure-rust"]
 }
 EOF
 )
 
-SLED_START=$(date +%s%N)
-SLED_RESPONSE=$(curl -s -X POST "http://localhost:$SLED_PORT/api/v1/braids" \
+REDB_START=$(date +%s%N)
+REDB_RESPONSE=$(curl -s -X POST "http://localhost:$REDB_PORT/api/v1/braids" \
     -H "Content-Type: application/json" \
-    -d "$SLED_REQUEST")
-SLED_END=$(date +%s%N)
-SLED_LATENCY=$(( (SLED_END - SLED_START) / 1000000 ))
+    -d "$REDB_REQUEST")
+REDB_END=$(date +%s%N)
+REDB_LATENCY=$(( (REDB_END - REDB_START) / 1000000 ))
 
-echo "$SLED_RESPONSE" | jq . > "$OUTPUT_DIR/sled-braid.json"
-SLED_ID=$(echo "$SLED_RESPONSE" | jq -r '.id')
-echo -e "${GREEN}      ✅ Created Braid: $SLED_ID${NC}"
-echo -e "${BLUE}      Latency: ${SLED_LATENCY}ms${NC}"
+echo "$REDB_RESPONSE" | jq . > "$OUTPUT_DIR/redb-braid.json"
+REDB_ID=$(echo "$REDB_RESPONSE" | jq -r '.id')
+echo -e "${GREEN}      ✅ Created Braid: $REDB_ID${NC}"
+echo -e "${BLUE}      Latency: ${REDB_LATENCY}ms${NC}"
 echo ""
 
-echo -e "${CYAN}   4.3 Retrieving Braid from Sled backend...${NC}"
-SLED_GET_START=$(date +%s%N)
-SLED_GET=$(curl -s "http://localhost:$SLED_PORT/api/v1/braids/$SLED_ID")
-SLED_GET_END=$(date +%s%N)
-SLED_GET_LATENCY=$(( (SLED_GET_END - SLED_GET_START) / 1000000 ))
+echo -e "${CYAN}   4.3 Retrieving Braid from redb backend...${NC}"
+REDB_GET_START=$(date +%s%N)
+REDB_GET=$(curl -s "http://localhost:$REDB_PORT/api/v1/braids/$REDB_ID")
+REDB_GET_END=$(date +%s%N)
+REDB_GET_LATENCY=$(( (REDB_GET_END - REDB_GET_START) / 1000000 ))
 
 echo -e "${GREEN}      ✅ Retrieved Braid${NC}"
-echo -e "${BLUE}      Latency: ${SLED_GET_LATENCY}ms${NC}"
+echo -e "${BLUE}      Latency: ${REDB_GET_LATENCY}ms${NC}"
 echo ""
 
 echo -e "${CYAN}   4.4 Verifying persistence...${NC}"
-SLED_SIZE=$(du -sh "$SLED_PATH" | cut -f1)
+REDB_SIZE=$(du -sh "$REDB_PATH" 2>/dev/null | cut -f1 || echo "N/A")
 echo -e "${GREEN}      ✅ Database exists on disk${NC}"
-echo -e "${BLUE}      Size: $SLED_SIZE${NC}"
-echo -e "${BLUE}      Path: $SLED_PATH${NC}"
+echo -e "${BLUE}      Size: $REDB_SIZE${NC}"
+echo -e "${BLUE}      Path: $REDB_PATH${NC}"
 echo ""
 
-echo -e "${CYAN}   4.5 Sled Backend Characteristics:${NC}"
+echo -e "${CYAN}   4.5 redb Backend Characteristics:${NC}"
 echo -e "${GREEN}      ✅ Pure Rust (no C/C++ dependencies!)${NC}"
 echo -e "${GREEN}      ✅ Embedded (no separate database server)${NC}"
-echo -e "${GREEN}      ✅ Persistent (data survives restarts)${NC}"
+echo -e "${GREEN}      ✅ Persistent (ACID transactions)${NC}"
 echo -e "${GREEN}      ✅ Excellent performance (1-3ms)${NC}"
-echo -e "${GREEN}      ✅ Lock-free concurrency${NC}"
+echo -e "${GREEN}      ✅ MVCC concurrency${NC}"
+echo -e "${GREEN}      ✅ Actively maintained${NC}"
 echo -e "${GREEN}      ✅ Perfect for single-node deployments${NC}"
 echo -e "${BLUE}      ℹ️  Primal Sovereignty: 100% Rust!${NC}"
 echo ""
@@ -328,7 +328,7 @@ echo ""
 printf "${BLUE}   %-15s %-15s %-15s${NC}\n" "Backend" "Latency" "Status"
 printf "${BLUE}   %-15s %-15s %-15s${NC}\n" "-------" "-------" "------"
 printf "${GREEN}   %-15s %-15s %-15s${NC}\n" "Memory" "${MEMORY_LATENCY}ms" "✅ Fastest"
-printf "${GREEN}   %-15s %-15s %-15s${NC}\n" "Sled" "${SLED_LATENCY}ms" "✅ Excellent"
+printf "${GREEN}   %-15s %-15s %-15s${NC}\n" "redb" "${REDB_LATENCY}ms" "✅ Excellent"
 if [ -n "${POSTGRES_LATENCY:-}" ]; then
     printf "${GREEN}   %-15s %-15s %-15s${NC}\n" "PostgreSQL" "${POSTGRES_LATENCY}ms" "✅ Good"
 else
@@ -348,7 +348,7 @@ echo -e "${GREEN}   ✅ Maximum performance needs${NC}"
 echo -e "${RED}   ❌ Production (data lost on restart)${NC}"
 echo ""
 
-echo -e "${CYAN}   When to use Sled Backend:${NC}"
+echo -e "${CYAN}   When to use redb Backend (recommended):${NC}"
 echo -e "${GREEN}   ✅ Single-node deployments${NC}"
 echo -e "${GREEN}   ✅ Embedded applications${NC}"
 echo -e "${GREEN}   ✅ Pure Rust requirements${NC}"
@@ -376,8 +376,8 @@ echo ""
 echo -e "${BLUE}   # Memory backend (default for testing)${NC}"
 echo -e "${GREEN}   ./sweetgrass --storage memory${NC}"
 echo ""
-echo -e "${BLUE}   # Sled backend (embedded, Pure Rust)${NC}"
-echo -e "${GREEN}   ./sweetgrass --storage sled --sled-path ./data${NC}"
+echo -e "${BLUE}   # redb backend (embedded, Pure Rust, recommended)${NC}"
+echo -e "${GREEN}   STORAGE_BACKEND=redb STORAGE_PATH=./data.redb ./sweetgrass server${NC}"
 echo ""
 echo -e "${BLUE}   # PostgreSQL backend (production)${NC}"
 echo -e "${GREEN}   export DATABASE_URL=postgresql://localhost/sweetgrass${NC}"
@@ -395,10 +395,10 @@ echo -e "${GREEN}   Memory Backend:${NC}"
 echo -e "${BLUE}      • 100% Rust ✅${NC}"
 echo -e "${BLUE}      • No C/C++ dependencies ✅${NC}"
 echo ""
-echo -e "${GREEN}   Sled Backend:${NC}"
+echo -e "${GREEN}   redb Backend:${NC}"
 echo -e "${BLUE}      • 100% Rust ✅${NC}"
 echo -e "${BLUE}      • No C/C++ dependencies ✅${NC}"
-echo -e "${BLUE}      • No RocksDB (C++) ✅${NC}"
+echo -e "${BLUE}      • ACID transactions ✅${NC}"
 echo -e "${BLUE}      • Complete sovereignty ✅${NC}"
 echo ""
 echo -e "${GREEN}   PostgreSQL Backend:${NC}"
@@ -407,7 +407,7 @@ echo -e "${BLUE}      • No OpenSSL (uses rustls) ✅${NC}"
 echo -e "${BLUE}      • External PostgreSQL server (C)${NC}"
 echo -e "${BLUE}      • Trade-off: Scale vs Sovereignty${NC}"
 echo ""
-echo -e "${MAGENTA}   💡 For complete sovereignty: Use Sled backend!${NC}"
+echo -e "${MAGENTA}   💡 For complete sovereignty: Use redb backend!${NC}"
 echo ""
 
 # Step 10: Summary
@@ -415,25 +415,25 @@ echo -e "${YELLOW}✨ Step 10: Summary and Key Takeaways...${NC}"
 echo ""
 
 echo -e "${CYAN}   What We Demonstrated:${NC}"
-echo -e "${GREEN}   ✅ 3 storage backends (Memory, Sled, PostgreSQL)${NC}"
+echo -e "${GREEN}   ✅ 3 storage backends (Memory, redb, PostgreSQL)${NC}"
 echo -e "${GREEN}   ✅ Runtime backend selection (no code changes)${NC}"
 echo -e "${GREEN}   ✅ Performance comparison${NC}"
 echo -e "${GREEN}   ✅ Trade-offs (speed vs persistence vs scale)${NC}"
-echo -e "${GREEN}   ✅ Pure Rust option (Sled - complete sovereignty)${NC}"
+echo -e "${GREEN}   ✅ Pure Rust option (redb - complete sovereignty)${NC}"
 echo ""
 
 echo -e "${CYAN}   Real-World Recommendations:${NC}"
 echo -e "${GREEN}   • Development: Memory backend${NC}"
-echo -e "${GREEN}   • Single-node production: Sled backend${NC}"
+echo -e "${GREEN}   • Single-node production: redb backend (recommended)${NC}"
 echo -e "${GREEN}   • Multi-node production: PostgreSQL backend${NC}"
-echo -e "${GREEN}   • IoT/Edge: Sled backend${NC}"
-echo -e "${GREEN}   • Maximum sovereignty: Sled backend${NC}"
+echo -e "${GREEN}   • IoT/Edge: redb backend${NC}"
+echo -e "${GREEN}   • Maximum sovereignty: redb backend${NC}"
 echo ""
 
 echo -e "${CYAN}   Key Insights:${NC}"
 echo -e "${MAGENTA}   💡 One API, multiple backends (flexibility)${NC}"
 echo -e "${MAGENTA}   💡 Runtime selection (configure, don't recompile)${NC}"
-echo -e "${MAGENTA}   💡 Sled provides sovereignty AND persistence${NC}"
+echo -e "${MAGENTA}   💡 redb provides sovereignty AND persistence${NC}"
 echo -e "${MAGENTA}   💡 No vendor lock-in (switch backends easily)${NC}"
 echo ""
 
@@ -441,14 +441,14 @@ echo ""
 echo -e "${YELLOW}🔍 Verification: This Demo Used REAL SweetGrass${NC}"
 echo -e "${GREEN}   ✅ Real service binaries (3 instances)${NC}"
 echo -e "${GREEN}   ✅ Real Memory backend${NC}"
-echo -e "${GREEN}   ✅ Real Sled backend (Pure Rust!)${NC}"
+echo -e "${GREEN}   ✅ Real redb backend (Pure Rust!)${NC}"
 if [ -n "${POSTGRES_LATENCY:-}" ]; then
     echo -e "${GREEN}   ✅ Real PostgreSQL backend${NC}"
 fi
 echo -e "${GREEN}   ✅ Real performance measurements${NC}"
 echo -e "${BLUE}   Service logs: $OUTPUT_DIR/*-service.log${NC}"
 echo -e "${BLUE}   Demo outputs: $OUTPUT_DIR/*.json${NC}"
-echo -e "${BLUE}   Sled database: $OUTPUT_DIR/sled-db/${NC}"
+echo -e "${BLUE}   redb database: $OUTPUT_DIR/sweetgrass.redb${NC}"
 echo ""
 
 # Success

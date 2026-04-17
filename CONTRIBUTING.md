@@ -59,7 +59,7 @@ These are enforced at the workspace level and by CI:
 | No TODO/FIXME/HACK in source | Track in ROADMAP or issues |
 | No commented-out code | Git remembers |
 | `Result<T, E>` everywhere | `thiserror` for typed errors |
-| `#![warn(missing_docs)]` | On all 11 crates |
+| `#![warn(missing_docs)]` | On all 10 crates |
 | SPDX header on every `.rs` file | `// SPDX-License-Identifier: AGPL-3.0-or-later` |
 | Named constants | No magic numbers, ports, or primal names as string literals |
 
