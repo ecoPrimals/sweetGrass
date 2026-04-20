@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Hardcoding Elimination — Shared Constants for Ecosystem Paths (April 15, 2026)
+
+Consolidates scattered hardcoded `"biomeos"` directory names, `"/tmp/biomeos"` fallbacks,
+and raw env var string literals into shared constants in `sweet_grass_core::primal_names`.
+
+#### Added
+- `primal_names::paths::BIOMEOS_DIR` — canonical directory name constant
+- `primal_names::paths::DEFAULT_SOCKET_DIR` — canonical fallback socket directory
+
+#### Changed
+- `NestGate` discovery (`discovery.rs`) uses shared `paths::` constants and `env_vars::` constants
+  instead of string literals
+- Composition health probes (`composition.rs`) use shared constants
+- BTSP security socket resolution (`btsp/server.rs`) uses shared constants
+- UDS socket resolution (`uds.rs`) uses shared `BIOMEOS_DIR` constant
+- All `#[expect]` attributes now carry `reason` strings (entity tests fixed)
+
+#### Metrics
+- Tests: 1,436 (unchanged — zero regressions)
+- Clippy: 0 warnings
+- Fmt: clean
+
 ### BTSP First-Byte Protocol Auto-Detection (April 20, 2026)
 
 Resolved primalSpring Phase 45 audit item: sweetGrass (and rhizoCrypt) rejected

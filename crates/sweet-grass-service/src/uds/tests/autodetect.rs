@@ -20,8 +20,7 @@ async fn test_uds_autodetect_json_health_probe() {
 
     let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkAutoDetect"));
 
-    let listener =
-        tokio::net::UnixListener::bind(&sock_path).expect("bind");
+    let listener = tokio::net::UnixListener::bind(&sock_path).expect("bind");
     let state_clone = state.clone();
 
     let listener_handle = tokio::spawn(async move {
@@ -49,17 +48,13 @@ async fn test_uds_autodetect_json_health_probe() {
     writer.flush().await.expect("flush");
 
     let mut lines = BufReader::new(reader).lines();
-    let response_line = tokio::time::timeout(
-        std::time::Duration::from_secs(2),
-        lines.next_line(),
-    )
-    .await
-    .expect("timeout waiting for response")
-    .unwrap()
-    .expect("response");
+    let response_line = tokio::time::timeout(std::time::Duration::from_secs(2), lines.next_line())
+        .await
+        .expect("timeout waiting for response")
+        .unwrap()
+        .expect("response");
 
-    let response: serde_json::Value =
-        serde_json::from_str(&response_line).expect("parse response");
+    let response: serde_json::Value = serde_json::from_str(&response_line).expect("parse response");
 
     assert_eq!(response["jsonrpc"], "2.0");
     assert_eq!(response["id"], 1);
@@ -77,8 +72,7 @@ async fn test_uds_autodetect_sequential_requests() {
 
     let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkAutoDetectSeq"));
 
-    let listener =
-        tokio::net::UnixListener::bind(&sock_path).expect("bind");
+    let listener = tokio::net::UnixListener::bind(&sock_path).expect("bind");
     let state_clone = state.clone();
 
     let listener_handle = tokio::spawn(async move {
@@ -114,14 +108,12 @@ async fn test_uds_autodetect_sequential_requests() {
         writer.write_all(req_str.as_bytes()).await.unwrap();
         writer.flush().await.unwrap();
 
-        let response_line = tokio::time::timeout(
-            std::time::Duration::from_secs(2),
-            lines.next_line(),
-        )
-        .await
-        .expect("timeout waiting for response")
-        .unwrap()
-        .expect("response");
+        let response_line =
+            tokio::time::timeout(std::time::Duration::from_secs(2), lines.next_line())
+                .await
+                .expect("timeout waiting for response")
+                .unwrap()
+                .expect("response");
 
         let response: serde_json::Value =
             serde_json::from_str(&response_line).expect("parse response");
@@ -144,8 +136,7 @@ async fn test_uds_autodetect_concurrent_clients() {
 
     let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkAutoDetectConc"));
 
-    let listener =
-        tokio::net::UnixListener::bind(&sock_path).expect("bind");
+    let listener = tokio::net::UnixListener::bind(&sock_path).expect("bind");
     let state_clone = state.clone();
 
     let listener_handle = tokio::spawn(async move {
@@ -183,14 +174,12 @@ async fn test_uds_autodetect_concurrent_clients() {
                 writer.write_all(req_str.as_bytes()).await.unwrap();
                 writer.flush().await.unwrap();
 
-                let response_line = tokio::time::timeout(
-                    std::time::Duration::from_secs(2),
-                    lines.next_line(),
-                )
-                .await
-                .expect("timeout")
-                .unwrap()
-                .expect("response");
+                let response_line =
+                    tokio::time::timeout(std::time::Duration::from_secs(2), lines.next_line())
+                        .await
+                        .expect("timeout")
+                        .unwrap()
+                        .expect("response");
 
                 let response: serde_json::Value =
                     serde_json::from_str(&response_line).expect("parse");

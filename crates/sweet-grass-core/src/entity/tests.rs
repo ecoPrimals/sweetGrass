@@ -2,7 +2,11 @@
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Tests for entity reference types, serialization, and inline data.
 
-#![expect(clippy::expect_used, clippy::unwrap_used)]
+#![expect(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    reason = "test module: unwrap/expect are standard in tests"
+)]
 
 use super::*;
 

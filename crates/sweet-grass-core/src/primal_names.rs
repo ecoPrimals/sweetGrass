@@ -41,6 +41,21 @@ pub fn address_env_var(primal_name: &str) -> String {
     format!("{}_ADDRESS", primal_name.to_uppercase())
 }
 
+/// Ecosystem-wide filesystem constants.
+pub mod paths {
+    /// Directory name used by `biomeOS` under `$XDG_RUNTIME_DIR` and
+    /// `$TMPDIR` for primal sockets. Not a primal reference — this is a
+    /// filesystem namespace convention.
+    pub const BIOMEOS_DIR: &str = "biomeos";
+
+    /// Last-resort fallback socket directory when no env vars are set.
+    ///
+    /// Used by `NestGate` discovery, composition health probes, and UDS
+    /// resolution when `BIOMEOS_SOCKET_DIR`, `XDG_RUNTIME_DIR`, and
+    /// `TMPDIR` are all absent.
+    pub const DEFAULT_SOCKET_DIR: &str = "/tmp/biomeos";
+}
+
 /// Infrastructure environment variable names.
 ///
 /// These are ecosystem-wide configuration, not primal-specific connections.

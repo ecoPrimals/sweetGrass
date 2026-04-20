@@ -17,13 +17,15 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::UnixStream;
 use tracing::debug;
 
+use sweet_grass_core::primal_names::{env_vars, paths};
+
 use crate::state::AppState;
 
 use super::{DispatchResult, to_value};
 
 const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
 
-/// Resolve the biomeos socket directory from environment, following
+/// Resolve the `biomeOS` socket directory from environment, following
 /// the ecosystem standard fallback chain.
 ///
 /// 1. `BIOMEOS_SOCKET_DIR`
@@ -31,16 +33,16 @@ const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
 /// 3. `{TMPDIR}/biomeos`  (platform-agnostic temp fallback)
 /// 4. `/tmp/biomeos`      (last resort — POSIX only)
 fn resolve_socket_dir(reader: &impl Fn(&str) -> Option<String>) -> PathBuf {
-    if let Some(dir) = reader("BIOMEOS_SOCKET_DIR") {
+    if let Some(dir) = reader(env_vars::BIOMEOS_SOCKET_DIR) {
         return PathBuf::from(dir);
     }
-    if let Some(xdg) = reader("XDG_RUNTIME_DIR") {
-        return PathBuf::from(xdg).join("biomeos");
+    if let Some(xdg) = reader(env_vars::XDG_RUNTIME_DIR) {
+        return PathBuf::from(xdg).join(paths::BIOMEOS_DIR);
     }
     if let Some(tmpdir) = reader("TMPDIR") {
-        return PathBuf::from(tmpdir).join("biomeos");
+        return PathBuf::from(tmpdir).join(paths::BIOMEOS_DIR);
     }
-    PathBuf::from("/tmp/biomeos")
+    PathBuf::from(paths::DEFAULT_SOCKET_DIR)
 }
 
 /// Probe a capability socket with `health.liveness`.

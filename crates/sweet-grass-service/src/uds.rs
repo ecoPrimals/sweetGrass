@@ -173,7 +173,9 @@ pub fn resolve_socket_path_with(config: &SocketConfig) -> PathBuf {
     }
 
     if let Some(ref xdg) = config.xdg_runtime_dir {
-        return PathBuf::from(xdg).join("biomeos").join(&sock_name);
+        return PathBuf::from(xdg)
+            .join(sweet_grass_core::primal_names::paths::BIOMEOS_DIR)
+            .join(&sock_name);
     }
 
     if let Some(ref user) = config.user {

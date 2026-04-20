@@ -33,17 +33,19 @@ const DEFAULT_SECURITY_SOCKET: &str = "security.sock";
 /// 3. `$XDG_RUNTIME_DIR/biomeos/security.sock`
 /// 4. `$TMPDIR/security.sock`
 fn resolve_security_socket() -> std::path::PathBuf {
+    use sweet_grass_core::primal_names::{env_vars, paths};
+
     if let Ok(path) = std::env::var("SECURITY_PROVIDER_SOCKET") {
         return std::path::PathBuf::from(path);
     }
 
-    if let Ok(dir) = std::env::var("BIOMEOS_SOCKET_DIR") {
+    if let Ok(dir) = std::env::var(env_vars::BIOMEOS_SOCKET_DIR) {
         return std::path::PathBuf::from(dir).join(DEFAULT_SECURITY_SOCKET);
     }
 
-    if let Ok(xdg) = std::env::var("XDG_RUNTIME_DIR") {
+    if let Ok(xdg) = std::env::var(env_vars::XDG_RUNTIME_DIR) {
         return std::path::PathBuf::from(xdg)
-            .join("biomeos")
+            .join(paths::BIOMEOS_DIR)
             .join(DEFAULT_SECURITY_SOCKET);
     }
 
