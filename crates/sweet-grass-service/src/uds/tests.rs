@@ -7,6 +7,8 @@
     reason = "test module: expect/unwrap are standard in tests"
 )]
 
+#[path = "tests/autodetect.rs"]
+mod autodetect;
 #[path = "tests/env.rs"]
 mod env;
 #[path = "tests/guard.rs"]

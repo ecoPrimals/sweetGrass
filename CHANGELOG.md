@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### BTSP First-Byte Protocol Auto-Detection (April 20, 2026)
+
+Resolved primalSpring Phase 45 audit item: sweetGrass (and rhizoCrypt) rejected
+plain `health.check` probes with EPIPE/ECONNRESET when BTSP was required
+(FAMILY_ID set). This prevented biomeOS, springs, and guidestone from probing
+liveness without a full BTSP handshake.
+
+#### Added
+- **`PeekedStream<S>`** (`peek.rs`) — generic async stream wrapper that re-presents
+  a single consumed byte, enabling first-byte protocol sniffing without `unsafe`
+  or platform-specific peek syscalls
+- **First-byte auto-detection on UDS** — reads one byte; `{` routes to raw
+  newline-delimited JSON-RPC, anything else routes to BTSP length-prefixed
+  handshake. Matches `BearDog` (PG-35) and `Squirrel` (PG-30) ecosystem pattern.
+- **First-byte auto-detection on TCP** — uses `TcpStream::peek()` (non-consuming)
+  for the same protocol multiplexing
+- 6 new tests: `PeekedStream` unit tests (3), UDS auto-detect roundtrip (1),
+  UDS auto-detect sequential (1), UDS auto-detect concurrent clients (1)
+
+#### Changed
+- UDS/TCP connection handlers now accept `impl AsyncRead + AsyncWrite + Unpin + Send`
+  (generic over stream type) to support `PeekedStream` wrapping
+- BTSP module documentation updated to describe auto-detect behavior
+- `handle_uds_with_autodetect` exposed as `pub(crate)` for direct testing
+
+#### Metrics
+- Tests: 1,436 local + 56 Docker CI (was 1,430)
+- .rs files: 184 (49,750 LOC)
+- Clippy: 0 warnings, cargo deny: 4/4 clean
+
 ### Deep Debt: Typed Errors, libsqlite3-sys Elimination, IntegrationError Consolidation (April 16, 2026)
 
 Systematic error type evolution and dependency hygiene pass.

@@ -59,9 +59,7 @@ pub async fn start_tcp_jsonrpc_listener(
                         tokio::spawn(async move {
                             #[cfg(unix)]
                             if btsp_required {
-                                if let Err(e) = handle_tcp_connection_btsp(stream, state).await {
-                                    warn!("TCP BTSP connection from {peer}: {e}");
-                                }
+                                handle_tcp_with_autodetect(stream, peer, state).await;
                                 return;
                             }
                             if let Err(e) = handle_tcp_connection_raw(stream, state).await {
@@ -84,13 +82,45 @@ pub async fn start_tcp_jsonrpc_listener(
     Ok(())
 }
 
+/// First-byte protocol auto-detection for BTSP-required TCP connections.
+///
+/// Uses `TcpStream::peek()` (non-consuming) to inspect the first byte:
+/// - `{` (0x7B) → raw JSON-RPC (health probes, biomeOS, springs)
+/// - anything else → BTSP length-prefixed handshake
+///
+/// This matches `BearDog` (PG-35) and `Squirrel` (PG-30) auto-detect pattern.
+#[cfg(unix)]
+async fn handle_tcp_with_autodetect(
+    stream: tokio::net::TcpStream,
+    peer: SocketAddr,
+    state: crate::state::AppState,
+) {
+    let mut peek_buf = [0u8; 1];
+    let is_json = stream
+        .peek(&mut peek_buf)
+        .await
+        .is_ok_and(|n| n > 0 && peek_buf[0] == crate::peek::JSON_RPC_FIRST_BYTE);
+
+    if is_json {
+        debug!("TCP from {peer}: first-byte auto-detect → raw JSON-RPC");
+        if let Err(e) = handle_tcp_connection_raw(stream, state).await {
+            warn!("TCP raw connection from {peer} (auto-detected): {e}");
+        }
+    } else if let Err(e) = handle_tcp_connection_btsp(stream, state).await {
+        warn!("TCP BTSP connection from {peer}: {e}");
+    }
+}
+
 /// Handle a TCP connection with BTSP handshake then length-prefixed JSON-RPC.
 ///
 /// Per `BTSP_PROTOCOL_STANDARD` §Phase 2: production mode uses BTSP
 /// handshake before exposing any JSON-RPC methods.
+///
+/// Generic over stream type to support [`PeekedStream`](crate::peek::PeekedStream)
+/// wrapping for first-byte auto-detection.
 #[cfg(unix)]
 async fn handle_tcp_connection_btsp(
-    mut stream: tokio::net::TcpStream,
+    mut stream: impl tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send,
     state: crate::state::AppState,
 ) -> crate::Result<()> {
     use crate::btsp;
@@ -158,15 +188,18 @@ async fn handle_tcp_connection_btsp(
 /// Handle a single TCP connection with raw newline-delimited JSON-RPC.
 ///
 /// Development mode (no `FAMILY_ID`): no handshake, newline framing.
-/// Flushes after every response for reliable composition IPC (trio
-/// hardening). Caller sets `TCP_NODELAY` before dispatch.
+/// Also used for auto-detected plain JSON-RPC connections when BTSP is
+/// required but the client sent `{` as the first byte (health probes).
+///
+/// Generic over stream type to support both `TcpStream` and
+/// [`PeekedStream`](crate::peek::PeekedStream).
 async fn handle_tcp_connection_raw(
-    stream: tokio::net::TcpStream,
+    stream: impl tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send,
     state: crate::state::AppState,
 ) -> crate::Result<()> {
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
-    let (reader, mut writer) = stream.into_split();
+    let (reader, mut writer) = tokio::io::split(stream);
     let mut lines = BufReader::new(reader).lines();
 
     while let Some(line) = lines.next_line().await? {

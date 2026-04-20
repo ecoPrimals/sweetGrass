@@ -246,9 +246,7 @@ pub async fn start_uds_listener_at(
                         let state = state.clone();
                         tokio::spawn(async move {
                             if btsp_required {
-                                if let Err(e) = handle_uds_connection_btsp(stream, state).await {
-                                    warn!("UDS BTSP connection error: {e}");
-                                }
+                                handle_uds_with_autodetect(stream, state).await;
                             } else if let Err(e) = handle_uds_connection_raw(stream, state).await {
                                 warn!("UDS connection error: {e}");
                             }
@@ -269,14 +267,47 @@ pub async fn start_uds_listener_at(
     Ok(())
 }
 
+/// First-byte protocol auto-detection for BTSP-required UDS connections.
+///
+/// Reads one byte to determine the protocol:
+/// - `{` (0x7B) → raw JSON-RPC (health probes, biomeOS, springs)
+/// - anything else → BTSP length-prefixed handshake
+///
+/// This matches `BearDog` (PG-35) and `Squirrel` (PG-30) auto-detect pattern.
+pub(crate) async fn handle_uds_with_autodetect(
+    mut stream: tokio::net::UnixStream,
+    state: crate::state::AppState,
+) {
+    use tokio::io::AsyncReadExt;
+
+    let mut first = [0u8; 1];
+    if stream.read_exact(&mut first).await.is_err() {
+        return;
+    }
+
+    let peeked = crate::peek::PeekedStream::new(first[0], stream);
+
+    if first[0] == crate::peek::JSON_RPC_FIRST_BYTE {
+        debug!("UDS: first-byte auto-detect → raw JSON-RPC");
+        if let Err(e) = handle_uds_connection_raw(peeked, state).await {
+            warn!("UDS raw connection error (auto-detected): {e}");
+        }
+    } else if let Err(e) = handle_uds_connection_btsp(peeked, state).await {
+        warn!("UDS BTSP connection error: {e}");
+    }
+}
+
 /// Handle a UDS connection with BTSP handshake then length-prefixed JSON-RPC.
 ///
 /// Per `BTSP_PROTOCOL_STANDARD` §Phase 2: when `FAMILY_ID` is set, every
 /// incoming connection runs the 4-step handshake before any JSON-RPC
 /// method is exposed.  Post-handshake, frames use 4-byte big-endian
 /// length-prefixed framing instead of newline delimiters.
+///
+/// Generic over stream type to support [`PeekedStream`](crate::peek::PeekedStream)
+/// wrapping for first-byte auto-detection.
 async fn handle_uds_connection_btsp(
-    mut stream: tokio::net::UnixStream,
+    mut stream: impl tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send,
     state: crate::state::AppState,
 ) -> std::result::Result<(), crate::ServiceError> {
     use crate::btsp;
@@ -341,15 +372,18 @@ async fn handle_uds_connection_btsp(
 /// Handle a single UDS connection with raw newline-delimited JSON-RPC.
 ///
 /// Development mode (no `FAMILY_ID`): no handshake, newline framing.
-/// Flushes after every response to prevent buffered data from causing
-/// intermittent stalls under composition load (trio IPC hardening).
+/// Also used for auto-detected plain JSON-RPC connections when BTSP is
+/// required but the client sent `{` as the first byte (health probes).
+///
+/// Generic over stream type to support [`PeekedStream`](crate::peek::PeekedStream)
+/// wrapping for first-byte auto-detection.
 async fn handle_uds_connection_raw(
-    stream: tokio::net::UnixStream,
+    stream: impl tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send,
     state: crate::state::AppState,
 ) -> std::result::Result<(), crate::ServiceError> {
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
-    let (reader, mut writer) = stream.into_split();
+    let (reader, mut writer) = tokio::io::split(stream);
     let mut lines = BufReader::new(reader).lines();
 
     while let Some(line) = lines.next_line().await? {

@@ -62,6 +62,7 @@ pub mod error;
 pub mod exit;
 pub mod factory;
 pub mod handlers;
+pub mod peek;
 pub mod router;
 pub mod rpc;
 pub mod server;
