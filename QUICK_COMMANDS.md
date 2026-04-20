@@ -123,7 +123,7 @@ open target/criterion/report/index.html
 
 ```bash
 # Clippy (pedantic + nursery, zero warnings)
-cargo clippy --workspace --all-targets -- -D warnings
+cargo clippy --workspace --all-features --all-targets -- -D warnings
 
 # Format check
 cargo fmt --all -- --check

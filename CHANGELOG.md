@@ -26,8 +26,8 @@ and raw env var string literals into shared constants in `sweet_grass_core::prim
 
 #### Metrics
 - Tests: 1,436 (unchanged — zero regressions)
-- Clippy: 0 warnings
-- Fmt: clean
+- .rs files: 185 (50,053 LOC)
+- Clippy: 0 warnings, fmt: clean
 
 ### BTSP First-Byte Protocol Auto-Detection (April 20, 2026)
 
@@ -56,7 +56,7 @@ liveness without a full BTSP handshake.
 
 #### Metrics
 - Tests: 1,436 local + 56 Docker CI (was 1,430)
-- .rs files: 184 (49,750 LOC)
+- .rs files: 185 (50,053 LOC)
 - Clippy: 0 warnings, cargo deny: 4/4 clean
 
 ### Deep Debt: Typed Errors, libsqlite3-sys Elimination, IntegrationError Consolidation (April 16, 2026)

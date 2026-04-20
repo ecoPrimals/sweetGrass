@@ -156,7 +156,7 @@ cargo build --release
 
 ```bash
 # All tests
-cargo test --workspace
+cargo test --workspace --all-features
 
 # Pre-commit checks
 ./scripts/check.sh
@@ -206,7 +206,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
 | Max file size | 726 lines (limit: 1000) |
-| .rs files | 183 (49,639 LOC) |
+| .rs files | 185 (50,053 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |

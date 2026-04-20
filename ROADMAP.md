@@ -29,7 +29,7 @@
 - [x] 7 new anchor integration tests — `AnchorManager` discovery, reconnect, multiple operations, serialization roundtrips
 - [x] `fuzz/Cargo.toml` edition 2021 → 2024
 - [x] `.cursor/rules/` — persistent AI guidance for ecosystem standards and Rust patterns
-- [x] 1,181 → 1,560 tests (1,502 local + 58 Docker CI), 91.7% line coverage (llvm-cov), 0 clippy warnings, 0 doc warnings, 0 unsafe, 0 fmt issues
+- [x] 1,181 → 1,436 tests (1,436 local + 56 Docker CI), 91.7% line coverage (llvm-cov), 0 clippy warnings, 0 doc warnings, 0 unsafe, 0 fmt issues
 - [x] **BTSP Phase 2** — server-side handshake on accept for UDS + TCP listeners, crypto delegated to security provider via `security.sock`
 - [x] **Smart refactoring** — `discovery/mod.rs` (613→250 lines) split into `capabilities.rs`, `cached.rs`, `registry.rs`; `config/mod.rs` (648→567 lines) extracted `Capability` to `capability.rs`
 - [x] **Magic number elimination** — `DEFAULT_BATCH_CONCURRENCY` (10), `DEFAULT_CURATOR_ROLE_WEIGHT` (0.1) replace hardcoded values
