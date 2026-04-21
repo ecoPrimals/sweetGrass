@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.27 | 1,436 tests | 90%+ coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 2 | Wire L3 | Stadial parity (zero async-trait, zero dyn dispatch, sled eliminated, libsqlite3-sys eliminated, BTSP auto-detect)
+v0.7.27 | 1,443 tests | 91.7% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 2 | Wire L3 | Stadial parity (zero async-trait, zero dyn dispatch, sled eliminated, libsqlite3-sys eliminated, BTSP first-line auto-detect)
 
 ---
 
@@ -206,7 +206,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
 | Max file size | 726 lines (limit: 1000) |
-| .rs files | 185 (50,053 LOC) |
+| .rs files | 185 (50,638 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |

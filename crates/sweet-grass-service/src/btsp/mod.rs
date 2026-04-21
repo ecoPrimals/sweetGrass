@@ -11,21 +11,29 @@
 //!
 //! When [`is_btsp_required`] returns `true` (i.e. `FAMILY_ID` is set and
 //! `BIOMEOS_INSECURE` is not `"1"`), incoming connections are auto-detected
-//! via first-byte peek: `{` (0x7B) routes to raw JSON-RPC (health probes,
-//! biomeOS), anything else routes to BTSP handshake. In development mode
-//! (no family) all connections use raw newline-delimited JSON-RPC.
+//! via first-line inspection:
 //!
-//! This first-byte auto-detect pattern matches `BearDog` (PG-35) and
-//! `Squirrel` (PG-30) per `PRIMALSPRING_V0917_PHASE45_PRIMAL_EVOLUTION_HANDOFF`.
+//! - First byte **not** `{` → length-prefixed BTSP handshake (canonical wire format)
+//! - First line is `{"protocol":"btsp",...}` → JSON-line BTSP handshake
+//!   (primalSpring-compatible, same 4-step handshake over newline-delimited JSON)
+//! - First line is `{"jsonrpc":"2.0",...}` → raw JSON-RPC (health probes,
+//!   biomeOS, springs)
+//!
+//! In development mode (no family) all connections use raw newline-delimited
+//! JSON-RPC. This first-line auto-detect aligns with Phase 45b wire-format
+//! guidance and matches `BearDog` (PG-35) / `Squirrel` (PG-30) patterns.
 
 pub mod protocol;
 pub mod server;
 
 pub use protocol::{
     BtspError, ChallengeResponse, ClientHello, HandshakeComplete, HandshakeError, ServerHello,
-    read_frame, write_frame,
+    read_frame, read_jsonline, write_frame, write_jsonline,
 };
-pub use server::{perform_server_handshake, perform_server_handshake_with};
+pub use server::{
+    perform_server_handshake, perform_server_handshake_jsonline,
+    perform_server_handshake_jsonline_with, perform_server_handshake_with,
+};
 
 use sweet_grass_core::primal_names::env_vars;
 

@@ -11,7 +11,7 @@ use tracing::{debug, info, warn};
 
 use super::protocol::{
     BtspError, ChallengeResponse, ClientHello, HandshakeComplete, HandshakeError, ServerHello,
-    read_message, write_message,
+    read_jsonline, read_message, write_jsonline, write_message,
 };
 
 /// Default socket name for the ecosystem security provider.
@@ -285,6 +285,143 @@ where
         cipher = %complete.cipher,
         session = %complete.session_id,
         "BTSP: handshake complete"
+    );
+
+    Ok(complete)
+}
+
+/// Run the server-side BTSP handshake using **JSON-line** framing.
+///
+/// This is the wire format used by primalSpring: newline-delimited JSON
+/// messages instead of 4-byte length-prefixed frames. The `ClientHello`
+/// has already been parsed from the first line by the auto-detect layer
+/// (it starts with `{"protocol":"btsp",...}`).
+///
+/// After a successful handshake the stream is in **newline-delimited
+/// JSON-RPC** mode (same as `handle_*_connection_raw`).
+///
+/// # Errors
+///
+/// Returns [`BtspError`] on I/O, protocol, or verification failure.
+pub async fn perform_server_handshake_jsonline<S>(
+    stream: &mut S,
+    client_hello: ClientHello,
+) -> Result<HandshakeComplete, BtspError>
+where
+    S: AsyncReadExt + AsyncWriteExt + Unpin + Send,
+{
+    perform_server_handshake_jsonline_with(stream, client_hello, &resolve_security_socket()).await
+}
+
+/// JSON-line handshake with explicit security-provider socket (DI-friendly).
+///
+/// # Errors
+///
+/// Returns [`BtspError`] on I/O, protocol, or verification failure.
+pub async fn perform_server_handshake_jsonline_with<S>(
+    stream: &mut S,
+    client_hello: ClientHello,
+    security_socket: &std::path::Path,
+) -> Result<HandshakeComplete, BtspError>
+where
+    S: AsyncReadExt + AsyncWriteExt + Unpin + Send,
+{
+    if client_hello.version != 1 {
+        let err = HandshakeError {
+            error: "handshake_failed".to_owned(),
+            reason: format!("unsupported version: {}", client_hello.version),
+        };
+        let _ = write_jsonline(stream, &err).await;
+        return Err(BtspError::HandshakeFailed { reason: err.reason });
+    }
+
+    debug!(
+        client_pub = %client_hello.client_ephemeral_pub,
+        "BTSP JSON-line: received ClientHello"
+    );
+
+    let session = call_security_provider_at(
+        security_socket,
+        "btsp.session.create",
+        serde_json::json!({
+            "family_seed_ref": "env:FAMILY_SEED",
+            "client_ephemeral_pub": client_hello.client_ephemeral_pub,
+        }),
+    )
+    .await?;
+
+    let ctx = SessionContext {
+        session_id: extract_str(&session, "session_id")?,
+        server_pub: extract_str(&session, "server_ephemeral_pub")?,
+        challenge: extract_str(&session, "challenge")?,
+    };
+
+    let server_hello = ServerHello {
+        version: 1,
+        server_ephemeral_pub: ctx.server_pub.clone(),
+        challenge: ctx.challenge.clone(),
+    };
+    write_jsonline(stream, &server_hello).await?;
+    debug!("BTSP JSON-line: sent ServerHello with challenge");
+
+    let challenge_response: ChallengeResponse = read_jsonline(stream).await?;
+    debug!("BTSP JSON-line: received ChallengeResponse");
+
+    let verify_result = call_security_provider_at(
+        security_socket,
+        "btsp.session.verify",
+        serde_json::json!({
+            "session_id": ctx.session_id,
+            "client_response": challenge_response.response,
+            "client_ephemeral_pub": client_hello.client_ephemeral_pub,
+            "server_ephemeral_pub": ctx.server_pub,
+            "challenge": ctx.challenge,
+        }),
+    )
+    .await?;
+
+    let verified = verify_result
+        .get("verified")
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false);
+
+    if !verified {
+        let err = HandshakeError {
+            error: "handshake_failed".to_owned(),
+            reason: "family_verification".to_owned(),
+        };
+        write_jsonline(stream, &err).await?;
+        warn!("BTSP JSON-line: handshake failed — family verification");
+        return Err(BtspError::HandshakeFailed { reason: err.reason });
+    }
+
+    let negotiate_result = call_security_provider_at(
+        security_socket,
+        "btsp.negotiate",
+        serde_json::json!({
+            "session_id": ctx.session_id,
+            "preferred_cipher": challenge_response.preferred_cipher,
+            "bond_type": "Covalent",
+        }),
+    )
+    .await?;
+
+    let cipher = negotiate_result
+        .get("cipher")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("null")
+        .to_owned();
+
+    let complete = HandshakeComplete {
+        cipher,
+        session_id: ctx.session_id.clone(),
+    };
+    write_jsonline(stream, &complete).await?;
+
+    info!(
+        cipher = %complete.cipher,
+        session = %complete.session_id,
+        "BTSP JSON-line: handshake complete"
     );
 
     Ok(complete)

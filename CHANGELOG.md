@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### BTSP Wire-Format Alignment — First-Line Auto-Detect (April 21, 2026)
+
+Resolved primalSpring Phase 45b BTSP escalation: `PeekedStream` first-byte
+auto-detect misclassified JSON-line BTSP `ClientHello` (`{"protocol":"btsp",...}`)
+as JSON-RPC because both start with `{`. Extended auto-detect from single-byte
+to first-line inspection, supporting all three wire formats on the same socket.
+
+#### Added
+- **`detect_protocol()`** (`peek.rs`) — reads first line; routes by content:
+  - First byte not `{` → length-prefixed BTSP (canonical wire format)
+  - `{"protocol":"btsp",...}` → JSON-line BTSP (primalSpring-compatible)
+  - `{"jsonrpc":"2.0",...}` → raw JSON-RPC (health probes, biomeOS, springs)
+- **`DetectedProtocol` enum** — `LengthPrefixedBtsp`, `JsonLineBtsp`, `JsonRpc`, `Unknown`
+- **`read_jsonline` / `write_jsonline`** (`btsp/protocol.rs`) — newline-delimited
+  JSON framing for primalSpring-compatible BTSP handshake
+- **`perform_server_handshake_jsonline`** (`btsp/server.rs`) — 4-step BTSP
+  handshake using JSON-line I/O, accepts pre-parsed `ClientHello`
+- **`handle_*_connection_btsp_jsonline`** — post-handshake enters newline JSON-RPC mode
+- **`handle_*_connection_raw_with_first`** — processes pre-parsed first request
+  then enters normal line-reading loop
+- 7 new tests: `detect_protocol` variants (4), JSON-line roundtrip (3)
+
+#### Changed
+- UDS/TCP auto-detect upgraded from first-byte to first-line routing
+- BTSP module docs updated to describe three-way protocol multiplexing
+
+#### Metrics
+- Tests: 1,443 (was 1,436 — +7 new)
+- .rs files: 185 (50,638 LOC)
+- Clippy: 0 warnings, fmt: clean
+
 ### Hardcoding Elimination — Shared Constants for Ecosystem Paths (April 15, 2026)
 
 Consolidates scattered hardcoded `"biomeos"` directory names, `"/tmp/biomeos"` fallbacks,

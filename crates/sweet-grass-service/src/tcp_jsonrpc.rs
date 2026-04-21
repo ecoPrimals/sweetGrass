@@ -82,32 +82,65 @@ pub async fn start_tcp_jsonrpc_listener(
     Ok(())
 }
 
-/// First-byte protocol auto-detection for BTSP-required TCP connections.
+/// First-line protocol auto-detection for BTSP-required TCP connections.
 ///
-/// Uses `TcpStream::peek()` (non-consuming) to inspect the first byte:
-/// - `{` (0x7B) → raw JSON-RPC (health probes, biomeOS, springs)
-/// - anything else → BTSP length-prefixed handshake
+/// Reads the first line to determine the protocol:
+/// - First byte not `{` → length-prefixed BTSP handshake
+/// - `{"protocol":"btsp",...}` → JSON-line BTSP (primalSpring-compatible)
+/// - `{"jsonrpc":"2.0",...}` → raw JSON-RPC (health probes, biomeOS, springs)
 ///
-/// This matches `BearDog` (PG-35) and `Squirrel` (PG-30) auto-detect pattern.
+/// Aligns with Phase 45b wire-format guidance, `BearDog` (PG-35) / `Squirrel` (PG-30).
 #[cfg(unix)]
 async fn handle_tcp_with_autodetect(
-    stream: tokio::net::TcpStream,
+    mut stream: tokio::net::TcpStream,
     peer: SocketAddr,
     state: crate::state::AppState,
 ) {
-    let mut peek_buf = [0u8; 1];
-    let is_json = stream
-        .peek(&mut peek_buf)
-        .await
-        .is_ok_and(|n| n > 0 && peek_buf[0] == crate::peek::JSON_RPC_FIRST_BYTE);
+    use crate::peek::{DetectedProtocol, detect_protocol};
 
-    if is_json {
-        debug!("TCP from {peer}: first-byte auto-detect → raw JSON-RPC");
-        if let Err(e) = handle_tcp_connection_raw(stream, state).await {
-            warn!("TCP raw connection from {peer} (auto-detected): {e}");
-        }
-    } else if let Err(e) = handle_tcp_connection_btsp(stream, state).await {
-        warn!("TCP BTSP connection from {peer}: {e}");
+    let protocol = match detect_protocol(&mut stream).await {
+        Ok(p) => p,
+        Err(e) => {
+            warn!("TCP from {peer}: protocol detection failed: {e}");
+            return;
+        },
+    };
+
+    match protocol {
+        DetectedProtocol::LengthPrefixedBtsp(byte) => {
+            let peeked = crate::peek::PeekedStream::new(byte, stream);
+            if let Err(e) = handle_tcp_connection_btsp(peeked, state).await {
+                warn!("TCP BTSP connection from {peer}: {e}");
+            }
+        },
+        DetectedProtocol::JsonLineBtsp(client_hello) => {
+            debug!("TCP from {peer}: first-line auto-detect → JSON-line BTSP");
+            match crate::btsp::perform_server_handshake_jsonline(&mut stream, client_hello).await {
+                Ok(complete) => {
+                    debug!(
+                        session = %complete.session_id,
+                        cipher = %complete.cipher,
+                        "TCP BTSP JSON-line handshake from {peer} succeeded"
+                    );
+                    if let Err(e) = handle_tcp_connection_raw(stream, state).await {
+                        warn!("TCP JSON-RPC from {peer} (post BTSP JSON-line): {e}");
+                    }
+                },
+                Err(e) => {
+                    warn!("TCP BTSP JSON-line handshake from {peer} failed: {e}");
+                },
+            }
+        },
+        DetectedProtocol::JsonRpc(first_request) => {
+            debug!("TCP from {peer}: first-line auto-detect → raw JSON-RPC");
+            if let Err(e) = handle_tcp_connection_raw_with_first(stream, state, first_request).await
+            {
+                warn!("TCP raw connection from {peer} (auto-detected): {e}");
+            }
+        },
+        DetectedProtocol::Unknown(obj) => {
+            warn!("TCP from {peer}: unrecognized first-line protocol: {obj}");
+        },
     }
 }
 
@@ -200,6 +233,61 @@ async fn handle_tcp_connection_raw(
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
     let (reader, mut writer) = tokio::io::split(stream);
+    let mut lines = BufReader::new(reader).lines();
+
+    while let Some(line) = lines.next_line().await? {
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        let request: serde_json::Value = match serde_json::from_str(&line) {
+            Ok(v) => v,
+            Err(e) => {
+                let err_response = serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "error": {
+                        "code": crate::handlers::jsonrpc::error_code::PARSE_ERROR,
+                        "message": format!("Parse error: {e}"),
+                    },
+                    "id": null
+                });
+                let mut resp = serde_json::to_string(&err_response)?;
+                resp.push('\n');
+                writer.write_all(resp.as_bytes()).await?;
+                writer.flush().await?;
+                continue;
+            },
+        };
+
+        if let Some(response) = crate::handlers::jsonrpc::process_single(&state, request).await {
+            let mut resp = serde_json::to_string(&response)?;
+            resp.push('\n');
+            writer.write_all(resp.as_bytes()).await?;
+            writer.flush().await?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Handle a TCP connection where the first JSON-RPC request has already been
+/// consumed by the auto-detect layer.
+async fn handle_tcp_connection_raw_with_first(
+    stream: tokio::net::TcpStream,
+    state: crate::state::AppState,
+    first_request: serde_json::Value,
+) -> crate::Result<()> {
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+
+    let (reader, mut writer) = tokio::io::split(stream);
+
+    if let Some(response) = crate::handlers::jsonrpc::process_single(&state, first_request).await {
+        let mut resp = serde_json::to_string(&response)?;
+        resp.push('\n');
+        writer.write_all(resp.as_bytes()).await?;
+        writer.flush().await?;
+    }
+
     let mut lines = BufReader::new(reader).lines();
 
     while let Some(line) = lines.next_line().await? {

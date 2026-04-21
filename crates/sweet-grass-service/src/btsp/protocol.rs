@@ -167,6 +167,60 @@ pub async fn write_message<W: AsyncWriteExt + Unpin + Send, T: Serialize + Sync>
     write_frame(writer, &payload).await
 }
 
+// -- JSON-line framing for primalSpring-compatible BTSP handshake --
+
+/// Maximum size for a single JSON-line handshake message (64 KiB).
+const MAX_JSONLINE_SIZE: usize = 64 * 1024;
+
+/// Read a single newline-delimited JSON message from an async reader.
+///
+/// Reads bytes until `\n` and deserializes. This is the wire format
+/// used by primalSpring's BTSP handshake (JSON-line, not length-prefixed).
+///
+/// # Errors
+///
+/// Returns [`BtspError::Io`] on read failure or if the line exceeds 64 KiB,
+/// or [`BtspError::Json`] on parse failure.
+pub async fn read_jsonline<R: AsyncReadExt + Unpin + Send, T: serde::de::DeserializeOwned>(
+    reader: &mut R,
+) -> Result<T, BtspError> {
+    let mut buf = Vec::with_capacity(256);
+    loop {
+        let mut byte = [0u8; 1];
+        reader.read_exact(&mut byte).await?;
+        if byte[0] == b'\n' {
+            break;
+        }
+        buf.push(byte[0]);
+        if buf.len() > MAX_JSONLINE_SIZE {
+            return Err(BtspError::Io(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "JSON-line handshake message exceeds 64 KiB",
+            )));
+        }
+    }
+    Ok(serde_json::from_slice(&buf)?)
+}
+
+/// Serialize and write a handshake message as a newline-delimited JSON line.
+///
+/// This is the wire format used by primalSpring's BTSP handshake.
+///
+/// # Errors
+///
+/// Returns [`BtspError::Json`] on serialization failure,
+/// or [`BtspError::Io`] on write failure.
+pub async fn write_jsonline<W: AsyncWriteExt + Unpin + Send, T: Serialize + Sync>(
+    writer: &mut W,
+    msg: &T,
+) -> Result<(), BtspError> {
+    let mut payload = serde_json::to_vec(msg)?;
+    payload.push(b'\n');
+    writer.write_all(&payload).await?;
+    writer.flush().await?;
+    Ok(())
+}
+
 #[cfg(test)]
 #[expect(clippy::unwrap_used, clippy::expect_used, reason = "test module")]
 mod tests {
@@ -331,6 +385,70 @@ mod tests {
             .expect("read handshake error");
         assert_eq!(read_handshake_err.error, err.error);
         assert_eq!(read_handshake_err.reason, err.reason);
+    }
+
+    #[tokio::test]
+    async fn jsonline_roundtrip() {
+        let hello = ClientHello {
+            version: 1,
+            client_ephemeral_pub: "dGVzdA==".to_string(),
+        };
+
+        let mut buf = Vec::new();
+        write_jsonline(&mut buf, &hello).await.expect("write");
+        assert!(buf.ends_with(b"\n"), "JSON-line must end with newline");
+
+        let mut cursor = std::io::Cursor::new(buf);
+        let read_back: ClientHello = read_jsonline(&mut cursor).await.expect("read");
+        assert_eq!(read_back.version, 1);
+        assert_eq!(read_back.client_ephemeral_pub, "dGVzdA==");
+    }
+
+    #[tokio::test]
+    async fn jsonline_roundtrip_all_types() {
+        let server_hello = ServerHello {
+            version: 1,
+            server_ephemeral_pub: "c2VydmVy".to_string(),
+            challenge: "Y2hhbGxlbmdl".to_string(),
+        };
+        let mut buf = Vec::new();
+        write_jsonline(&mut buf, &server_hello)
+            .await
+            .expect("write sh");
+        let mut cursor = std::io::Cursor::new(buf);
+        let read_sh: ServerHello = read_jsonline(&mut cursor).await.expect("read sh");
+        assert_eq!(read_sh.server_ephemeral_pub, "c2VydmVy");
+
+        let challenge_response = ChallengeResponse {
+            response: "cmVzcA==".to_string(),
+            preferred_cipher: "null".to_string(),
+        };
+        let mut buf = Vec::new();
+        write_jsonline(&mut buf, &challenge_response)
+            .await
+            .expect("write cr");
+        let mut cursor = std::io::Cursor::new(buf);
+        let read_cr: ChallengeResponse = read_jsonline(&mut cursor).await.expect("read cr");
+        assert_eq!(read_cr.preferred_cipher, "null");
+
+        let complete = HandshakeComplete {
+            cipher: "null".to_string(),
+            session_id: "sess1".to_string(),
+        };
+        let mut buf = Vec::new();
+        write_jsonline(&mut buf, &complete).await.expect("write hc");
+        let mut cursor = std::io::Cursor::new(buf);
+        let read_hc: HandshakeComplete = read_jsonline(&mut cursor).await.expect("read hc");
+        assert_eq!(read_hc.session_id, "sess1");
+    }
+
+    #[tokio::test]
+    async fn jsonline_ignores_extra_fields() {
+        let json = b"{\"protocol\":\"btsp\",\"version\":1,\"client_ephemeral_pub\":\"dGVzdA==\"}\n";
+        let mut cursor = std::io::Cursor::new(json.to_vec());
+        let hello: ClientHello = read_jsonline(&mut cursor).await.expect("read");
+        assert_eq!(hello.version, 1);
+        assert_eq!(hello.client_ephemeral_pub, "dGVzdA==");
     }
 
     #[test]

@@ -269,33 +269,49 @@ pub async fn start_uds_listener_at(
     Ok(())
 }
 
-/// First-byte protocol auto-detection for BTSP-required UDS connections.
+/// First-line protocol auto-detection for BTSP-required UDS connections.
 ///
-/// Reads one byte to determine the protocol:
-/// - `{` (0x7B) → raw JSON-RPC (health probes, biomeOS, springs)
-/// - anything else → BTSP length-prefixed handshake
+/// Reads the first line to determine the protocol:
+/// - First byte not `{` → length-prefixed BTSP handshake (canonical wire format)
+/// - `{"protocol":"btsp",...}` → JSON-line BTSP handshake (primalSpring-compatible)
+/// - `{"jsonrpc":"2.0",...}` → raw JSON-RPC (health probes, biomeOS, springs)
 ///
-/// This matches `BearDog` (PG-35) and `Squirrel` (PG-30) auto-detect pattern.
+/// Aligns with Phase 45b wire-format guidance, `BearDog` (PG-35) / `Squirrel` (PG-30).
 pub(crate) async fn handle_uds_with_autodetect(
     mut stream: tokio::net::UnixStream,
     state: crate::state::AppState,
 ) {
-    use tokio::io::AsyncReadExt;
+    use crate::peek::{DetectedProtocol, detect_protocol};
 
-    let mut first = [0u8; 1];
-    if stream.read_exact(&mut first).await.is_err() {
-        return;
-    }
+    let protocol = match detect_protocol(&mut stream).await {
+        Ok(p) => p,
+        Err(e) => {
+            warn!("UDS: protocol detection failed: {e}");
+            return;
+        },
+    };
 
-    let peeked = crate::peek::PeekedStream::new(first[0], stream);
-
-    if first[0] == crate::peek::JSON_RPC_FIRST_BYTE {
-        debug!("UDS: first-byte auto-detect → raw JSON-RPC");
-        if let Err(e) = handle_uds_connection_raw(peeked, state).await {
-            warn!("UDS raw connection error (auto-detected): {e}");
-        }
-    } else if let Err(e) = handle_uds_connection_btsp(peeked, state).await {
-        warn!("UDS BTSP connection error: {e}");
+    match protocol {
+        DetectedProtocol::LengthPrefixedBtsp(byte) => {
+            let peeked = crate::peek::PeekedStream::new(byte, stream);
+            if let Err(e) = handle_uds_connection_btsp(peeked, state).await {
+                warn!("UDS BTSP connection error: {e}");
+            }
+        },
+        DetectedProtocol::JsonLineBtsp(client_hello) => {
+            debug!("UDS: first-line auto-detect → JSON-line BTSP");
+            handle_uds_connection_btsp_jsonline(stream, state, client_hello).await;
+        },
+        DetectedProtocol::JsonRpc(first_request) => {
+            debug!("UDS: first-line auto-detect → raw JSON-RPC");
+            if let Err(e) = handle_uds_connection_raw_with_first(stream, state, first_request).await
+            {
+                warn!("UDS raw connection error (auto-detected): {e}");
+            }
+        },
+        DetectedProtocol::Unknown(obj) => {
+            warn!("UDS: unrecognized first-line protocol (no 'protocol' or 'jsonrpc' key): {obj}");
+        },
     }
 }
 
@@ -371,11 +387,96 @@ async fn handle_uds_connection_btsp(
     Ok(())
 }
 
+/// Handle a UDS connection with JSON-line BTSP handshake then newline JSON-RPC.
+///
+/// The `ClientHello` has already been parsed from the first line by the
+/// auto-detect layer (`{"protocol":"btsp",...}`). After the 4-step JSON-line
+/// handshake, the stream enters newline-delimited JSON-RPC mode.
+async fn handle_uds_connection_btsp_jsonline(
+    mut stream: tokio::net::UnixStream,
+    state: crate::state::AppState,
+    client_hello: crate::btsp::ClientHello,
+) {
+    match crate::btsp::perform_server_handshake_jsonline(&mut stream, client_hello).await {
+        Ok(complete) => {
+            debug!(
+                session = %complete.session_id,
+                cipher = %complete.cipher,
+                "UDS BTSP JSON-line handshake succeeded — entering newline JSON-RPC mode"
+            );
+        },
+        Err(e) => {
+            warn!("UDS BTSP JSON-line handshake failed: {e}");
+            return;
+        },
+    }
+
+    if let Err(e) = handle_uds_connection_raw(stream, state).await {
+        warn!("UDS JSON-RPC error (post BTSP JSON-line handshake): {e}");
+    }
+}
+
+/// Handle a UDS connection where the first JSON-RPC request has already been
+/// consumed by the auto-detect layer.
+///
+/// Processes `first_request` immediately, then enters the normal line-reading
+/// loop for subsequent requests.
+async fn handle_uds_connection_raw_with_first(
+    stream: tokio::net::UnixStream,
+    state: crate::state::AppState,
+    first_request: serde_json::Value,
+) -> std::result::Result<(), crate::ServiceError> {
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+
+    let (reader, mut writer) = tokio::io::split(stream);
+
+    if let Some(response) = crate::handlers::jsonrpc::process_single(&state, first_request).await {
+        let mut resp = serde_json::to_string(&response)?;
+        resp.push('\n');
+        writer.write_all(resp.as_bytes()).await?;
+        writer.flush().await?;
+    }
+
+    let mut lines = BufReader::new(reader).lines();
+
+    while let Some(line) = lines.next_line().await? {
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        let request: serde_json::Value = match serde_json::from_str(&line) {
+            Ok(v) => v,
+            Err(e) => {
+                let err_response = serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "error": {"code": crate::handlers::jsonrpc::error_code::PARSE_ERROR, "message": format!("Parse error: {e}")},
+                    "id": null
+                });
+                let mut resp = serde_json::to_string(&err_response)?;
+                resp.push('\n');
+                writer.write_all(resp.as_bytes()).await?;
+                writer.flush().await?;
+                continue;
+            },
+        };
+
+        if let Some(response) = crate::handlers::jsonrpc::process_single(&state, request).await {
+            let mut resp = serde_json::to_string(&response)?;
+            resp.push('\n');
+            writer.write_all(resp.as_bytes()).await?;
+            writer.flush().await?;
+        }
+    }
+
+    Ok(())
+}
+
 /// Handle a single UDS connection with raw newline-delimited JSON-RPC.
 ///
 /// Development mode (no `FAMILY_ID`): no handshake, newline framing.
 /// Also used for auto-detected plain JSON-RPC connections when BTSP is
-/// required but the client sent `{` as the first byte (health probes).
+/// required but the client sent `{` as the first byte (health probes),
+/// and as the post-handshake mode for JSON-line BTSP.
 ///
 /// Generic over stream type to support [`PeekedStream`](crate::peek::PeekedStream)
 /// wrapping for first-byte auto-detection.
