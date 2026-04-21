@@ -245,12 +245,14 @@ pub async fn infant_bootstrap_with_config_and_reader(
 /// back to the system hostname. `0.0.0.0` is never announced — it's a
 /// listen wildcard, not a routable address.
 fn resolve_advertise_host(reader: &impl Fn(&str) -> Option<String>) -> String {
-    reader("PRIMAL_ADVERTISE_ADDRESS").unwrap_or_else(|| {
-        hostname::get()
-            .ok()
-            .and_then(|h| h.into_string().ok())
-            .unwrap_or_else(|| sweet_grass_core::identity::FALLBACK_ADVERTISE_HOST.to_string())
-    })
+    reader(sweet_grass_core::primal_names::env_vars::PRIMAL_ADVERTISE_ADDRESS).unwrap_or_else(
+        || {
+            hostname::get()
+                .ok()
+                .and_then(|h| h.into_string().ok())
+                .unwrap_or_else(|| sweet_grass_core::identity::FALLBACK_ADVERTISE_HOST.to_string())
+        },
+    )
 }
 
 /// Build an advertise address from the resolved host and a port.

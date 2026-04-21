@@ -21,11 +21,11 @@ const NESTGATE_SOCK: &str = "nestgate.sock";
 /// Uses the provided reader function for environment variable lookup
 /// (DI-friendly, no direct `std::env::var` calls).
 pub fn discover_socket(reader: &impl Fn(&str) -> Option<String>) -> PathBuf {
-    if let Some(path) = reader("NESTGATE_SOCKET") {
+    if let Some(path) = reader(env_vars::NESTGATE_SOCKET) {
         return PathBuf::from(path);
     }
 
-    if let Some(path) = reader("STORAGE_PROVIDER_SOCKET") {
+    if let Some(path) = reader(env_vars::STORAGE_PROVIDER_SOCKET) {
         return PathBuf::from(path);
     }
 

@@ -101,8 +101,8 @@ impl BraidStoreFactory {
             redb_path: reader("STORAGE_PATH"),
             pg_max_connections: Self::parse_reader_var(reader, "PG_MAX_CONNECTIONS"),
             pg_min_connections: Self::parse_reader_var(reader, "PG_MIN_CONNECTIONS"),
-            nestgate_socket: reader("NESTGATE_SOCKET"),
-            nestgate_family_id: reader("FAMILY_ID"),
+            nestgate_socket: reader(sweet_grass_core::primal_names::env_vars::NESTGATE_SOCKET),
+            nestgate_family_id: reader(sweet_grass_core::primal_names::env_vars::FAMILY_ID),
         }
     }
 

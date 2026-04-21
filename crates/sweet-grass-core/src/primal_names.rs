@@ -76,6 +76,24 @@ pub mod env_vars {
     /// alongside a non-default `FAMILY_ID` is a configuration error: a primal
     /// MUST refuse to start.
     pub const BIOMEOS_INSECURE: &str = "BIOMEOS_INSECURE";
+
+    /// Advertise address override for this primal's network identity.
+    ///
+    /// Takes precedence over system hostname when resolving the advertise host
+    /// for tarpc / TCP listeners.
+    pub const PRIMAL_ADVERTISE_ADDRESS: &str = "PRIMAL_ADVERTISE_ADDRESS";
+
+    /// Capability-based storage provider socket override.
+    ///
+    /// Capability-domain env var: any primal offering storage (currently
+    /// `NestGate`) can be targeted via this override.
+    pub const STORAGE_PROVIDER_SOCKET: &str = "STORAGE_PROVIDER_SOCKET";
+
+    /// Explicit `NestGate` socket path override.
+    ///
+    /// Per-primal override, derived from `socket_env_var("nestgate")`. Takes
+    /// precedence over `STORAGE_PROVIDER_SOCKET` and filesystem discovery.
+    pub const NESTGATE_SOCKET: &str = "NESTGATE_SOCKET";
 }
 
 #[cfg(test)]
@@ -105,6 +123,9 @@ mod tests {
             env_vars::FAMILY_ID,
             env_vars::SWEETGRASS_FAMILY_ID,
             env_vars::BIOMEOS_INSECURE,
+            env_vars::PRIMAL_ADVERTISE_ADDRESS,
+            env_vars::STORAGE_PROVIDER_SOCKET,
+            env_vars::NESTGATE_SOCKET,
         ];
         for var in &all {
             assert_eq!(

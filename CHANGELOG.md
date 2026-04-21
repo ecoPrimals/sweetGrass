@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Env Var Centralization — Capability-Domain Constants (April 21, 2026)
+
+Moved remaining hardcoded env var string literals into `primal_names::env_vars`
+for consistency and single-source-of-truth across the codebase.
+
+#### Added
+- `env_vars::PRIMAL_ADVERTISE_ADDRESS` — network identity override
+- `env_vars::STORAGE_PROVIDER_SOCKET` — capability-domain storage override
+- `env_vars::NESTGATE_SOCKET` — per-primal NestGate socket override
+
+#### Changed
+- `bootstrap.rs` `resolve_advertise_host()` uses constant instead of string literal
+- `discovery.rs` NestGate socket discovery uses `env_vars::` constants
+- `factory/mod.rs` storage config reader uses `env_vars::` constants
+
+#### Metrics
+- Tests: 1,443 (unchanged — zero regressions)
+- .rs files: 185 (50,661 LOC)
+- Clippy: 0 warnings, fmt: clean
+
 ### BTSP Wire-Format Alignment — First-Line Auto-Detect (April 21, 2026)
 
 Resolved primalSpring Phase 45b BTSP escalation: `PeekedStream` first-byte
