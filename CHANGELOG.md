@@ -31,8 +31,9 @@ reaching primalSpring.  Two wire-format bugs identified and resolved.
 ### Deep Debt Cleanup — Env Var Centralization + Deprecated Item Removal (April 22, 2026)
 
 Completes the deep debt audit: centralizes remaining hardcoded env var
-string literals, removes the deprecated `BraidSignature` type (v0.7.29
-target reached), and removes the deprecated `by_loam_entry` method.
+string literals, removes the deprecated `BraidSignature` type (superseded
+by `dehydration::Witness` / `WireWitnessRef`), and removes the deprecated
+`by_loam_entry` method.
 
 #### Added
 - `env_vars::SECURITY_PROVIDER_SOCKET` — BTSP crypto provider socket override

@@ -29,7 +29,10 @@ attribution before distributing rewards.
 - **License:** scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0)
 - **Tests:** 1,446 local + 56 Docker CI
 - **Coverage:** 90%+ line (91.7% with Postgres Docker, llvm-cov)
-- **BTSP:** Phase 2 — server handshake on accept (UDS + TCP) when `FAMILY_ID` set
+- **BTSP:** Phase 2 — `detect_protocol` three-way multiplexer (JSON-RPC, JSON-line BTSP, length-prefixed BTSP) when `FAMILY_SEED` set
+- **Source files:** 194 `.rs` files (53,062 LOC), max 768 lines
+- **Property testing:** 25 proptest strategies across 7 crates
+- **Chaos/fault:** 11 attribution chaos + 17 service chaos + 9 fault injection
 - **MSRV:** 1.87 (Edition 2024)
 - **Crate count:** 10 workspace crates
 - **Unsafe code:** 0 blocks (`#![forbid(unsafe_code)]` on all crates)

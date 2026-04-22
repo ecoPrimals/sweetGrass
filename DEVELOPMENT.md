@@ -92,13 +92,15 @@ docker compose down -v
 
 ```
 crates/
-├── Unit Tests          (600+ tests)  - src/ modules across all 10 crates
-├── Integration Tests   (74 tests)    - sweet-grass-service/tests/*.rs
-├── Chaos Tests        (17 tests)    - sweet-grass-service/tests/chaos.rs
-├── Fault Injection    (9 tests)     - sweet-grass-service/tests/fault_injection.rs
-├── E2E HTTP           (19 tests)    - sweet-grass-service/tests/e2e_http.rs
-├── Property Tests     (12 tests)    - Uses proptest
-└── PostgreSQL         (23 tests)    - sweet-grass-store-postgres/tests/
+├── Unit Tests          (1,300+ tests) - src/ modules across all 10 crates
+├── Integration Tests   (21 tests)     - sweet-grass-service/tests/integration.rs
+├── Chaos Tests         (17 tests)     - sweet-grass-service/tests/chaos.rs
+├── Fault Injection     (9 tests)      - sweet-grass-service/tests/fault_injection.rs
+├── E2E HTTP            (19 tests)     - sweet-grass-service/tests/e2e_http.rs
+├── BTSP Mock           (6 tests)      - sweet-grass-service/tests/btsp_mock_beardog.rs
+├── CLI                 (6 tests)      - sweet-grass-service/tests/cli_bin.rs
+├── Property Tests      (25 strategies) - proptest across 7 crates
+└── PostgreSQL          (41 tests)     - sweet-grass-store-postgres/tests/
 ```
 
 ### Run Specific Tests
@@ -135,7 +137,7 @@ cargo test -- --nocapture
 - Memory store
 
 **Slow Tests** (requires Docker):
-- PostgreSQL store (23 tests)
+- PostgreSQL store (41 tests)
 - Migration tests
 - Schema validation
 

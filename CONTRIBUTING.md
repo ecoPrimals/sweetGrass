@@ -16,7 +16,7 @@ design principles are welcome.
    communicates with other primals exclusively via JSON-RPC 2.0 at runtime.
    No compile-time coupling to other primals.
 
-2. Read `specs/ARCHITECTURE.md` for the 11-crate workspace structure.
+2. Read `specs/ARCHITECTURE.md` for the 10-crate workspace structure.
 
 3. Familiarize yourself with the [wateringHole standards](https://github.com/ecoPrimals/wateringHole),
    particularly `STANDARDS_AND_EXPECTATIONS.md`.
