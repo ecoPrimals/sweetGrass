@@ -39,7 +39,7 @@ fn resolve_socket_dir(reader: &impl Fn(&str) -> Option<String>) -> PathBuf {
     if let Some(xdg) = reader(env_vars::XDG_RUNTIME_DIR) {
         return PathBuf::from(xdg).join(paths::BIOMEOS_DIR);
     }
-    if let Some(tmpdir) = reader("TMPDIR") {
+    if let Some(tmpdir) = reader(env_vars::TMPDIR) {
         return PathBuf::from(tmpdir).join(paths::BIOMEOS_DIR);
     }
     PathBuf::from(paths::DEFAULT_SOCKET_DIR)

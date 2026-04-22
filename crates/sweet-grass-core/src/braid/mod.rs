@@ -31,12 +31,6 @@ pub use types::{
     ecop_base_uri_with_reader, ecop_vocab_uri, ecop_vocab_uri_with_reader,
 };
 
-#[expect(
-    deprecated,
-    reason = "re-export for backward compat; remove with BraidSignature in v0.7.29"
-)]
-pub use types::BraidSignature;
-
 /// A `SweetGrass` Braid (provenance record).
 ///
 /// Braids are the fundamental unit of provenance in `SweetGrass`,
@@ -88,11 +82,10 @@ pub struct Braid {
     #[serde(default)]
     pub ecop: EcoPrimalsAttributes,
 
-    /// Primary witness (WireWitnessRef-aligned provenance event).
+    /// Primary witness (`WireWitnessRef`-aligned provenance event).
     ///
-    /// Supersedes the former `BraidSignature` (LD-Proof pattern).
-    /// `kind: "signature"` with `algorithm` / `evidence` replaces the old
-    /// `sig_type` / `proof_value` / `proof_purpose` fields.
+    /// Uses the `kind: "signature"` vocabulary with `algorithm` / `evidence`
+    /// fields per the `WireWitnessRef` standard.
     #[serde(alias = "signature")]
     pub witness: crate::dehydration::Witness,
 

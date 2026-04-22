@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Deep Debt Cleanup — Env Var Centralization + Deprecated Item Removal (April 22, 2026)
+
+Completes the deep debt audit: centralizes remaining hardcoded env var
+string literals, removes the deprecated `BraidSignature` type (v0.7.29
+target reached), and removes the deprecated `by_loam_entry` method.
+
+#### Added
+- `env_vars::SECURITY_PROVIDER_SOCKET` — BTSP crypto provider socket override
+- `env_vars::SWEETGRASS_SOCKET` — explicit UDS socket path override
+- `env_vars::PRIMAL_NAME` — primal name override for socket filenames
+- `env_vars::TMPDIR` — POSIX temp directory fallback
+
+#### Changed
+- `btsp/server.rs` `resolve_security_socket()` uses `env_vars::SECURITY_PROVIDER_SOCKET`
+- `uds.rs` `resolve_socket_path()` uses `env_vars::SWEETGRASS_SOCKET` and `env_vars::PRIMAL_NAME`
+- `composition.rs` `resolve_socket_dir()` uses `env_vars::TMPDIR`
+
+#### Removed
+- `BraidSignature` struct, impl, re-exports (deprecated since v0.7.28,
+  superseded by `dehydration::Witness` / `WireWitnessRef`)
+- `EntityReference::by_loam_entry` deprecated method (use `by_ledger_entry`)
+- 4 associated constants (`SIG_TYPE_ED25519`, `SIG_TYPE_UNSIGNED`,
+  `PROOF_PURPOSE_ASSERTION`, `PROOF_PURPOSE_PENDING`)
+- 2 tests for `BraidSignature`
+
+#### Metrics
+- Tests: 1,446 (was 1,448 — -2 removed deprecated tests)
+- .rs files: 194 (53,062 LOC)
+- Clippy: 0 warnings, fmt: clean
+- Zero `unsafe`, zero production `unwrap`/`expect`, zero TODO/FIXME
+
 ### BTSP Crypto Relay — `family_seed` + RPC Param Alignment (April 22, 2026)
 
 Resolved primalSpring Phase 45b BTSP escalation: `btsp.session.create` sent

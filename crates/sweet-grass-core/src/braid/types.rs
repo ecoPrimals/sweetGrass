@@ -2,7 +2,6 @@
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Braid type definitions: `ContentHash`, `BraidId`, `BraidContext`, `BraidType`, etc.
 
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -15,7 +14,6 @@ pub use super::context::{
     RDFS_VOCAB_URI, SCHEMA_VOCAB_URI, XSD_VOCAB_URI, ecop_base_uri, ecop_base_uri_with_reader,
     ecop_vocab_uri, ecop_vocab_uri_with_reader,
 };
-use crate::agent::Did;
 use crate::hash::hex_decode;
 
 /// Content-addressed hash (e.g., "sha256:abc123...").
@@ -181,76 +179,6 @@ impl Default for BraidId {
 impl std::fmt::Display for BraidId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
-    }
-}
-
-/// Well-known signature type for Ed25519.
-const SIG_TYPE_ED25519: &str = "Ed25519Signature2020";
-/// Signature type for unsigned placeholders.
-const SIG_TYPE_UNSIGNED: &str = "Unsigned";
-/// Standard proof purpose for assertion signatures.
-const PROOF_PURPOSE_ASSERTION: &str = "assertionMethod";
-/// Proof purpose for pending/unsigned signatures.
-const PROOF_PURPOSE_PENDING: &str = "pending";
-
-/// Braid signature (W3C Data Integrity format) — **deprecated**.
-///
-/// Superseded by [`crate::dehydration::Witness`] (`WireWitnessRef` vocabulary).
-/// Retained for one release cycle so that persisted JSONB rows can
-/// still be deserialized.
-#[deprecated(
-    since = "0.7.28",
-    note = "use crate::dehydration::Witness (WireWitnessRef)"
-)]
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct BraidSignature {
-    /// Signature type (e.g., `Ed25519Signature2020`).
-    #[serde(rename = "type")]
-    pub sig_type: Cow<'static, str>,
-
-    /// When the signature was created.
-    pub created: Timestamp,
-
-    /// Verification method (key reference).
-    pub verification_method: Cow<'static, str>,
-
-    /// Proof purpose.
-    pub proof_purpose: Cow<'static, str>,
-
-    /// Base64-encoded signature value.
-    pub proof_value: Cow<'static, str>,
-}
-
-#[expect(
-    deprecated,
-    reason = "impl for the deprecated type itself; remove with BraidSignature in v0.7.29"
-)]
-impl BraidSignature {
-    /// Create a new Ed25519 signature.
-    #[must_use]
-    pub fn new_ed25519(did: &Did, key_id: &str, signature_bytes: &[u8]) -> Self {
-        use base64::Engine;
-        Self {
-            sig_type: Cow::Borrowed(SIG_TYPE_ED25519),
-            created: current_timestamp_nanos(),
-            verification_method: Cow::Owned(format!("{}#{key_id}", did.as_str())),
-            proof_purpose: Cow::Borrowed(PROOF_PURPOSE_ASSERTION),
-            proof_value: Cow::Owned(
-                base64::engine::general_purpose::STANDARD.encode(signature_bytes),
-            ),
-        }
-    }
-
-    /// Create an unsigned placeholder signature.
-    #[must_use]
-    pub fn unsigned() -> Self {
-        Self {
-            sig_type: Cow::Borrowed(SIG_TYPE_UNSIGNED),
-            created: current_timestamp_nanos(),
-            verification_method: Cow::Borrowed(""),
-            proof_purpose: Cow::Borrowed(PROOF_PURPOSE_PENDING),
-            proof_value: Cow::Borrowed(""),
-        }
     }
 }
 
@@ -553,26 +481,6 @@ mod tests {
     fn content_hash_display() {
         let h = ContentHash::new("sha256:display");
         assert_eq!(format!("{h}"), "sha256:display");
-    }
-
-    #[test]
-    #[expect(deprecated, reason = "testing deprecated BraidSignature")]
-    fn braid_signature_ed25519() {
-        let did = Did::new("did:key:z6MkSigner");
-        let sig = super::BraidSignature::new_ed25519(&did, "key-1", b"test-sig");
-        assert_eq!(&*sig.sig_type, "Ed25519Signature2020");
-        assert!(!sig.proof_value.is_empty());
-        assert_eq!(&*sig.proof_purpose, "assertionMethod");
-        assert!(sig.verification_method.contains("key-1"));
-    }
-
-    #[test]
-    #[expect(deprecated, reason = "testing deprecated BraidSignature")]
-    fn braid_signature_unsigned() {
-        let sig = super::BraidSignature::unsigned();
-        assert_eq!(&*sig.sig_type, "Unsigned");
-        assert!(sig.proof_value.is_empty());
-        assert_eq!(&*sig.proof_purpose, "pending");
     }
 
     #[test]

@@ -88,16 +88,6 @@ impl EntityReference {
         }
     }
 
-    /// Backward-compatible alias for [`by_ledger_entry`](Self::by_ledger_entry).
-    #[deprecated(
-        since = "0.7.28",
-        note = "use by_ledger_entry (capability-based naming)"
-    )]
-    #[must_use]
-    pub fn by_loam_entry(spine_id: impl Into<String>, entry_hash: impl Into<ContentHash>) -> Self {
-        Self::by_ledger_entry(spine_id, entry_hash)
-    }
-
     /// Create an external reference.
     #[must_use]
     pub fn external(url: impl Into<String>) -> Self {

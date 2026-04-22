@@ -138,14 +138,14 @@ pub fn validate_insecure_guard_with(
 #[must_use]
 pub fn resolve_socket_path(primal_name: Option<&str>) -> PathBuf {
     let config = SocketConfig {
-        explicit_socket: std::env::var("SWEETGRASS_SOCKET").ok(),
+        explicit_socket: std::env::var(env_vars::SWEETGRASS_SOCKET).ok(),
         biomeos_socket_dir: std::env::var(env_vars::BIOMEOS_SOCKET_DIR).ok(),
         family_id: resolve_family_id_from_env(),
         xdg_runtime_dir: std::env::var(env_vars::XDG_RUNTIME_DIR).ok(),
         user: std::env::var("USER").ok(),
         primal_name: primal_name
             .map(String::from)
-            .or_else(|| std::env::var("PRIMAL_NAME").ok()),
+            .or_else(|| std::env::var(env_vars::PRIMAL_NAME).ok()),
     };
     resolve_socket_path_with(&config)
 }

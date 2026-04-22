@@ -36,7 +36,7 @@ const DEFAULT_SECURITY_SOCKET: &str = "security.sock";
 fn resolve_security_socket() -> std::path::PathBuf {
     use sweet_grass_core::primal_names::{env_vars, paths};
 
-    if let Ok(path) = std::env::var("SECURITY_PROVIDER_SOCKET") {
+    if let Ok(path) = std::env::var(env_vars::SECURITY_PROVIDER_SOCKET) {
         return std::path::PathBuf::from(path);
     }
 

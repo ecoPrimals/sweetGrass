@@ -104,6 +104,29 @@ pub mod env_vars {
     /// Alias for [`FAMILY_SEED`] — some deployments set the seed under
     /// this name when `BearDog` is the explicit crypto provider.
     pub const BEARDOG_FAMILY_SEED: &str = "BEARDOG_FAMILY_SEED";
+
+    /// Capability-based security provider socket override.
+    ///
+    /// Points at whichever primal provides the `crypto.*` capability
+    /// domain (currently `BearDog`).  Used by the BTSP relay in
+    /// `btsp/server.rs` for handshake delegation.
+    pub const SECURITY_PROVIDER_SOCKET: &str = "SECURITY_PROVIDER_SOCKET";
+
+    /// Explicit sweetGrass UDS socket path override.
+    ///
+    /// When set, bypasses all socket discovery logic in `uds.rs`.
+    pub const SWEETGRASS_SOCKET: &str = "SWEETGRASS_SOCKET";
+
+    /// Override for this primal's advertised name in socket filenames.
+    ///
+    /// Falls back to `identity::PRIMAL_NAME` (`"sweetgrass"`) when absent.
+    pub const PRIMAL_NAME: &str = "PRIMAL_NAME";
+
+    /// POSIX temporary directory override.
+    ///
+    /// Standard POSIX variable; used in socket directory resolution
+    /// as a fallback before `DEFAULT_SOCKET_DIR`.
+    pub const TMPDIR: &str = "TMPDIR";
 }
 
 #[cfg(test)]
@@ -138,6 +161,10 @@ mod tests {
             env_vars::NESTGATE_SOCKET,
             env_vars::FAMILY_SEED,
             env_vars::BEARDOG_FAMILY_SEED,
+            env_vars::SECURITY_PROVIDER_SOCKET,
+            env_vars::SWEETGRASS_SOCKET,
+            env_vars::PRIMAL_NAME,
+            env_vars::TMPDIR,
         ];
         for var in &all {
             assert_eq!(
