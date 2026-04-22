@@ -38,7 +38,7 @@ if cargo run --example demo --package sweet-grass-service 2>&1; then
     echo "✅ Demo completed successfully!"
 else
     echo ""
-    echo "⚠️  Demo example may not exist yet."
+    echo "⚠️  Demo example failed (BearDog may not be running)."
     echo ""
     echo "📝 What SweetGrass does:"
     echo ""

@@ -213,8 +213,8 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | cargo deny | advisories ok, bans ok, licenses ok, sources ok |
 | Benchmarks | 7 criterion groups |
 | JSON-RPC methods | 32 (batch + notification + MCP tool exposure + Wire Standard L3 + composition health) |
-| Property-based tests | proptest (20+ strategies across 6 crates) |
-| Chaos/fault tests | 11 attribution + 17 service scenarios |
+| Property-based tests | proptest (25 strategies across 7 crates) |
+| Chaos/fault tests | 11 attribution chaos + 17 service chaos + 9 fault injection |
 | BTSP | Phase 2 — server handshake on UDS + TCP when `FAMILY_ID` set |
 
 ### ecoBin Compliance

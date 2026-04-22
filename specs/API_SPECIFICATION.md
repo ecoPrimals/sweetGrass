@@ -2,7 +2,7 @@
 
 **Version**: 1.0.0  
 **Status**: Canonical  
-**Last Updated**: December 2025
+**Last Updated**: April 2026
 
 ---
 
@@ -447,7 +447,7 @@ curl -X POST http://localhost:8080/jsonrpc \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
-    "method": "sweetgrass.calculateRewards",
+    "method": "attribution.calculate_rewards",
     "params": { "hash": "sha256:abc123", "value": 1000.0 },
     "id": 3
   }'

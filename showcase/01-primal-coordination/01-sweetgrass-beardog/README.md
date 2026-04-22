@@ -36,17 +36,18 @@ let signer = discovery.find_one(&Capability::Signing).await?;
 // signer.address = "localhost:8091" (discovered at runtime)
 ```
 
-### BraidSignature
+### Witness (WireWitnessRef)
 
-W3C Data Integrity compatible signature:
+W3C Data Integrity compatible witness attestation:
 
 ```rust
-pub struct BraidSignature {
-    pub sig_type: SignatureType,     // Ed25519Signature2020
+pub struct Witness {
+    pub kind: Arc<str>,               // "Ed25519Signature2020"
     pub created: Timestamp,
-    pub verification_method: String, // did:key:z6Mk...#keys-1
-    pub proof_purpose: ProofPurpose, // AssertionMethod
-    pub proof_value: String,         // Base64-encoded signature
+    pub verification_method: Arc<str>, // did:key:z6Mk...#keys-1
+    pub proof_purpose: Arc<str>,       // "assertionMethod"
+    pub encoding: Arc<str>,            // "base64"
+    pub value: Arc<str>,               // Base64-encoded signature
 }
 ```
 
@@ -78,21 +79,22 @@ Step 2: Creating Braid...
   Agent: did:key:z6MkAlice...
   ✅ Braid created: urn:braid:abc123
 
-Step 3: Signing with BearDog...
+Step 3: Witnessing with BearDog...
   Connecting via tarpc...
-  ✅ Signature created
+  ✅ Witness created
 
-Signature Details:
-  Type: Ed25519Signature2020
-  Created: 2025-12-23T12:00:00Z
+Witness Details:
+  Kind: Ed25519Signature2020
+  Created: 2026-04-15T12:00:00Z
   Verification Method: did:key:z6MkBearDog...#keys-1
   Proof Purpose: assertionMethod
-  Proof Value: eyJhbGciOiJFZERTQSIsInR5cCI6...
+  Encoding: base64
+  Value: eyJhbGciOiJFZERTQSIsInR5cCI6...
 
-Step 4: Verifying signature...
-  ✅ Signature valid!
+Step 4: Verifying witness...
+  ✅ Witness valid!
 
-✅ Signed Braid ready!
+✅ Witnessed Braid ready!
 ```
 
 ---
@@ -121,7 +123,7 @@ let signer = DiscoverySigner::new(discovery)?;
 let braid = factory.from_data(b"data", "text/plain", None)?;
 let signed_braid = signer.sign(&braid).await?;
 
-println!("Signature: {:?}", signed_braid.signature);
+println!("Witness: {:?}", signed_braid.witness);
 ```
 
 ### Verifying
@@ -142,15 +144,15 @@ BearDog's address is discovered at runtime via capability lookup.
 tarpc provides type-safe RPC without gRPC/protobuf dependencies.
 
 ### W3C Data Integrity
-Signatures follow the W3C Data Integrity standard for interoperability.
+Witness attestations follow the W3C Data Integrity standard for interoperability.
 
 ---
 
 ## 🎯 Success Criteria
 
 - [ ] Discovered BearDog by capability
-- [ ] Signed a Braid
-- [ ] Verified the signature
+- [ ] Witnessed a Braid
+- [ ] Verified the witness
 - [ ] Understood tarpc integration
 
 ---

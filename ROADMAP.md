@@ -453,7 +453,7 @@
 
 ### Testing
 - [x] Coverage to 90%+ *(region coverage 91% in v0.7.5)*
-- [x] Property-based testing in 5 crates *(core, factory, integration, query, compression — 17 strategies)*
+- [x] Property-based testing in 7 crates *(core, factory, integration, query, compression, store, store-postgres — 25 strategies)*
 - [ ] Expand chaos testing scenarios
 - [ ] Fuzz testing campaigns
 - [ ] Load testing for production scenarios
@@ -501,7 +501,7 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.27 | **March 2026** | Deep Debt: Coordinated Shutdown, Zero-Copy Phase 3, Type Safety (DONE) |
+| v0.7.27 | **March–April 2026** | Deep Debt: Coordinated Shutdown, Zero-Copy Phase 3, Type Safety (DONE) |
 | v0.7.26 | March 2026 | Ecosystem Absorption: scyBorg License, Sled Deprecation, Lint Evolution (DONE) |
 | v0.7.25 | March 2026 | Coverage Push, Test Hygiene, PUBLIC_SURFACE_STANDARD Compliance (DONE) |
 | v0.7.24 | March 2026 | Deep Debt: Zero-Copy Phase 2, Public Surface, Audit (DONE) |
