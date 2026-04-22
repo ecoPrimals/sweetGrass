@@ -3,7 +3,7 @@
 //! BTSP integration test with a mock `BearDog` security provider.
 //!
 //! Spins up a fake `BearDog` UDS that responds to the 3 BTSP JSON-RPC
-//! methods (`btsp.session.create`, `btsp.session.verify`, `btsp.negotiate`),
+//! methods (`btsp.session.create`, `btsp.session.verify`, `btsp.session.negotiate`),
 //! then exercises `perform_server_handshake_with` end-to-end using DI
 //! (no `set_var` needed — safe under `forbid(unsafe_code)`).
 
@@ -56,7 +56,7 @@ mod btsp_tests {
                                 "session_id": "mock-session-001",
                                 "cipher": "AES-256-GCM",
                             }),
-                            "btsp.negotiate" => serde_json::json!({
+                            "btsp.session.negotiate" => serde_json::json!({
                                 "accepted": true,
                                 "cipher": "AES-256-GCM",
                             }),

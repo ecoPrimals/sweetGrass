@@ -72,6 +72,12 @@ pub struct ServerHello {
     pub server_ephemeral_pub: String,
     /// Random 32-byte challenge (base64).
     pub challenge: String,
+    /// Opaque session identifier from the security provider.
+    ///
+    /// Required by primalSpring's `ServerHello` wire format.  Populated
+    /// from `btsp.session.create`'s `session_token`.
+    #[serde(default)]
+    pub session_id: String,
 }
 
 /// Client → Server: HMAC-SHA256 challenge response.
@@ -276,6 +282,7 @@ mod tests {
             version: 1,
             server_ephemeral_pub: "c2VydmVy".to_string(),
             challenge: "Y2hhbGxlbmdl".to_string(),
+            session_id: String::new(),
         };
         let json = serde_json::to_string(&hello).expect("serialize");
         assert!(json.contains("server_ephemeral_pub"));
@@ -332,6 +339,7 @@ mod tests {
             version: 1,
             server_ephemeral_pub: "c2VydmVy".to_string(),
             challenge: "Y2hhbGxlbmdl".to_string(),
+            session_id: "test-session".to_string(),
         };
         let mut buf = Vec::new();
         write_message(&mut buf, &server_hello)
@@ -410,6 +418,7 @@ mod tests {
             version: 1,
             server_ephemeral_pub: "c2VydmVy".to_string(),
             challenge: "Y2hhbGxlbmdl".to_string(),
+            session_id: "test-session".to_string(),
         };
         let mut buf = Vec::new();
         write_jsonline(&mut buf, &server_hello)

@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### BTSP Step 3→4 Verification Relay Fix (April 2026)
+
+Fixes the BTSP handshake relay that prevented `HandshakeComplete` from
+reaching primalSpring.  Two wire-format bugs identified and resolved.
+
+#### Fixed
+- `btsp.negotiate` → `btsp.session.negotiate` — BearDog only accepts the
+  `btsp.server.negotiate` / `btsp.session.negotiate` method names; the bare
+  `btsp.negotiate` alias was never registered.  After a successful verify,
+  the negotiate call returned "Method not found" and the connection dropped
+  without sending `HandshakeComplete`.
+- `ServerHello` now includes `session_id` (from `btsp.session.create`'s
+  `session_token`) — primalSpring's wire format requires this field.
+  Deserialization would fail at step 2 on the JSON-line path.
+
+#### Metrics
+- Tests: 1,446 pass, 0 failures
+- Clippy: 0 warnings, fmt: clean
+
+---
+
 ### Deep Debt Cleanup — Env Var Centralization + Deprecated Item Removal (April 22, 2026)
 
 Completes the deep debt audit: centralizes remaining hardcoded env var

@@ -3,7 +3,7 @@
 //! BTSP server-side handshake.
 //!
 //! Delegates all crypto to `BearDog` via JSON-RPC (`btsp.session.create`,
-//! `btsp.session.verify`, `btsp.negotiate`) per the
+//! `btsp.session.verify`, `btsp.session.negotiate`) per the
 //! `BTSP_PROTOCOL_STANDARD.md` §Phase 2 pattern.
 
 use base64::Engine;
@@ -217,6 +217,7 @@ where
         version: 1,
         server_ephemeral_pub: ctx.server_pub.clone(),
         challenge: ctx.challenge.clone(),
+        session_id: ctx.session_token.clone(),
     };
     write_message(stream, &server_hello).await?;
     debug!("BTSP: sent ServerHello with challenge");
@@ -302,7 +303,7 @@ where
 
     let negotiate_result = call_security_provider_at(
         security_socket,
-        "btsp.negotiate",
+        "btsp.session.negotiate",
         serde_json::json!({
             "session_token": ctx.session_token,
             "cipher": challenge_response.preferred_cipher,
@@ -399,6 +400,7 @@ where
         version: 1,
         server_ephemeral_pub: ctx.server_pub.clone(),
         challenge: ctx.challenge.clone(),
+        session_id: ctx.session_token.clone(),
     };
     write_jsonline(stream, &server_hello).await?;
     debug!("BTSP JSON-line: sent ServerHello with challenge");
@@ -441,7 +443,7 @@ where
 
     let negotiate_result = call_security_provider_at(
         security_socket,
-        "btsp.negotiate",
+        "btsp.session.negotiate",
         serde_json::json!({
             "session_token": ctx.session_token,
             "cipher": challenge_response.preferred_cipher,
