@@ -1,6 +1,6 @@
 # 🌾 SweetGrass — Development Guide
 
-**Last Updated**: April 20, 2026  
+**Last Updated**: April 21, 2026  
 **Version**: v0.7.27
 
 ---
@@ -188,7 +188,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 1,436 local tests + 56 Docker CI, 90%+ line coverage via llvm-cov
+- **Overall**: 1,443 local tests + 56 Docker CI, 90%+ line coverage via llvm-cov
 - **Target**: 90%+ coverage on core crates (achieved)
 
 ### Per-Crate Coverage
