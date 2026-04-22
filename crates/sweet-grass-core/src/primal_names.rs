@@ -94,6 +94,16 @@ pub mod env_vars {
     /// Per-primal override, derived from `socket_env_var("nestgate")`. Takes
     /// precedence over `STORAGE_PROVIDER_SOCKET` and filesystem discovery.
     pub const NESTGATE_SOCKET: &str = "NESTGATE_SOCKET";
+
+    /// Family seed for BTSP handshake key derivation.
+    ///
+    /// Set by `primalSpring` guidestone / harness as a hex-encoded 32-byte
+    /// seed. Read by the BTSP relay to forward to the crypto provider.
+    pub const FAMILY_SEED: &str = "FAMILY_SEED";
+
+    /// Alias for [`FAMILY_SEED`] — some deployments set the seed under
+    /// this name when `BearDog` is the explicit crypto provider.
+    pub const BEARDOG_FAMILY_SEED: &str = "BEARDOG_FAMILY_SEED";
 }
 
 #[cfg(test)]
@@ -126,6 +136,8 @@ mod tests {
             env_vars::PRIMAL_ADVERTISE_ADDRESS,
             env_vars::STORAGE_PROVIDER_SOCKET,
             env_vars::NESTGATE_SOCKET,
+            env_vars::FAMILY_SEED,
+            env_vars::BEARDOG_FAMILY_SEED,
         ];
         for var in &all {
             assert_eq!(

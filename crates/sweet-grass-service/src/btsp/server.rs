@@ -6,6 +6,7 @@
 //! `btsp.session.verify`, `btsp.negotiate`) per the
 //! `BTSP_PROTOCOL_STANDARD.md` §Phase 2 pattern.
 
+use base64::Engine;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tracing::{debug, info, warn};
 
@@ -50,6 +51,35 @@ fn resolve_security_socket() -> std::path::PathBuf {
     }
 
     std::env::temp_dir().join(DEFAULT_SECURITY_SOCKET)
+}
+
+/// Read the family seed from the environment and base64-encode it for
+/// the `btsp.session.create` RPC.
+///
+/// Resolution order:
+/// 1. `FAMILY_SEED` — canonical seed variable set by primalSpring guidestone
+/// 2. `BEARDOG_FAMILY_SEED` — explicit BearDog-scoped alias
+///
+/// The env value is typically a hex string (64 ASCII chars = 32 seed
+/// bytes).  `BearDog` expects the raw UTF-8 bytes base64-encoded in the
+/// `family_seed` JSON-RPC param.
+///
+/// # Errors
+///
+/// Returns [`BtspError::CryptoProviderUnavailable`] when neither variable
+/// is set.
+fn resolve_family_seed() -> Result<String, BtspError> {
+    use sweet_grass_core::primal_names::env_vars;
+
+    let raw = std::env::var(env_vars::FAMILY_SEED)
+        .or_else(|_| std::env::var(env_vars::BEARDOG_FAMILY_SEED))
+        .map_err(|_| {
+            BtspError::CryptoProviderUnavailable(
+                "FAMILY_SEED not set (checked FAMILY_SEED and BEARDOG_FAMILY_SEED)".to_string(),
+            )
+        })?;
+
+    Ok(base64::engine::general_purpose::STANDARD.encode(raw.as_bytes()))
 }
 
 /// Call a security-provider JSON-RPC method at an explicit socket path.
@@ -108,8 +138,11 @@ async fn call_security_provider_at(
 }
 
 /// Intermediate state after `btsp.session.create` succeeds.
+///
+/// `session_token` is `BearDog`'s opaque handle; `session_id` is resolved
+/// later from the `btsp.session.verify` response.
 struct SessionContext {
-    session_id: String,
+    session_token: String,
     server_pub: String,
     challenge: String,
 }
@@ -147,18 +180,19 @@ where
 
     debug!(client_pub = %client_hello.client_ephemeral_pub, "BTSP: received ClientHello");
 
+    let family_seed = resolve_family_seed()?;
+
     let session = call_security_provider_at(
         security_socket,
         "btsp.session.create",
         serde_json::json!({
-            "family_seed_ref": "env:FAMILY_SEED",
-            "client_ephemeral_pub": client_hello.client_ephemeral_pub,
+            "family_seed": family_seed,
         }),
     )
     .await?;
 
     let ctx = SessionContext {
-        session_id: extract_str(&session, "session_id")?,
+        session_token: extract_str(&session, "session_token")?,
         server_pub: extract_str(&session, "server_ephemeral_pub")?,
         challenge: extract_str(&session, "challenge")?,
     };
@@ -167,12 +201,15 @@ where
 }
 
 /// Steps 3–5: Exchange challenge, verify response via `BearDog`.
+///
+/// Returns `(ChallengeResponse, session_id)` — the `session_id` comes from
+/// `BearDog`'s verify response (falling back to `session_token` if absent).
 async fn exchange_challenge<S>(
     stream: &mut S,
     client_hello: &ClientHello,
     ctx: &SessionContext,
     security_socket: &std::path::Path,
-) -> Result<ChallengeResponse, BtspError>
+) -> Result<(ChallengeResponse, String), BtspError>
 where
     S: AsyncReadExt + AsyncWriteExt + Unpin + Send,
 {
@@ -191,11 +228,10 @@ where
         security_socket,
         "btsp.session.verify",
         serde_json::json!({
-            "session_id": ctx.session_id,
-            "client_response": challenge_response.response,
+            "session_token": ctx.session_token,
             "client_ephemeral_pub": client_hello.client_ephemeral_pub,
-            "server_ephemeral_pub": ctx.server_pub,
-            "challenge": ctx.challenge,
+            "response": challenge_response.response,
+            "preferred_cipher": challenge_response.preferred_cipher,
         }),
     )
     .await?;
@@ -215,7 +251,13 @@ where
         return Err(BtspError::HandshakeFailed { reason: err.reason });
     }
 
-    Ok(challenge_response)
+    let session_id = verify_result
+        .get("session_id")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or(&ctx.session_token)
+        .to_owned();
+
+    Ok((challenge_response, session_id))
 }
 
 /// Run the server-side BTSP handshake on an accepted connection.
@@ -255,16 +297,15 @@ where
     S: AsyncReadExt + AsyncWriteExt + Unpin + Send,
 {
     let (client_hello, ctx) = receive_hello_and_create_session(stream, security_socket).await?;
-    let challenge_response =
+    let (challenge_response, session_id) =
         exchange_challenge(stream, &client_hello, &ctx, security_socket).await?;
 
     let negotiate_result = call_security_provider_at(
         security_socket,
         "btsp.negotiate",
         serde_json::json!({
-            "session_id": ctx.session_id,
-            "preferred_cipher": challenge_response.preferred_cipher,
-            "bond_type": "Covalent",
+            "session_token": ctx.session_token,
+            "cipher": challenge_response.preferred_cipher,
         }),
     )
     .await?;
@@ -275,10 +316,7 @@ where
         .unwrap_or("null")
         .to_owned();
 
-    let complete = HandshakeComplete {
-        cipher,
-        session_id: ctx.session_id.clone(),
-    };
+    let complete = HandshakeComplete { cipher, session_id };
     write_message(stream, &complete).await?;
 
     info!(
@@ -340,18 +378,19 @@ where
         "BTSP JSON-line: received ClientHello"
     );
 
+    let family_seed = resolve_family_seed()?;
+
     let session = call_security_provider_at(
         security_socket,
         "btsp.session.create",
         serde_json::json!({
-            "family_seed_ref": "env:FAMILY_SEED",
-            "client_ephemeral_pub": client_hello.client_ephemeral_pub,
+            "family_seed": family_seed,
         }),
     )
     .await?;
 
     let ctx = SessionContext {
-        session_id: extract_str(&session, "session_id")?,
+        session_token: extract_str(&session, "session_token")?,
         server_pub: extract_str(&session, "server_ephemeral_pub")?,
         challenge: extract_str(&session, "challenge")?,
     };
@@ -371,11 +410,10 @@ where
         security_socket,
         "btsp.session.verify",
         serde_json::json!({
-            "session_id": ctx.session_id,
-            "client_response": challenge_response.response,
+            "session_token": ctx.session_token,
             "client_ephemeral_pub": client_hello.client_ephemeral_pub,
-            "server_ephemeral_pub": ctx.server_pub,
-            "challenge": ctx.challenge,
+            "response": challenge_response.response,
+            "preferred_cipher": challenge_response.preferred_cipher,
         }),
     )
     .await?;
@@ -395,13 +433,18 @@ where
         return Err(BtspError::HandshakeFailed { reason: err.reason });
     }
 
+    let session_id = verify_result
+        .get("session_id")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or(&ctx.session_token)
+        .to_owned();
+
     let negotiate_result = call_security_provider_at(
         security_socket,
         "btsp.negotiate",
         serde_json::json!({
-            "session_id": ctx.session_id,
-            "preferred_cipher": challenge_response.preferred_cipher,
-            "bond_type": "Covalent",
+            "session_token": ctx.session_token,
+            "cipher": challenge_response.preferred_cipher,
         }),
     )
     .await?;
@@ -412,10 +455,7 @@ where
         .unwrap_or("null")
         .to_owned();
 
-    let complete = HandshakeComplete {
-        cipher,
-        session_id: ctx.session_id.clone(),
-    };
+    let complete = HandshakeComplete { cipher, session_id };
     write_jsonline(stream, &complete).await?;
 
     info!(
@@ -535,6 +575,96 @@ mod tests {
                 assert_eq!(
                     resolve_security_socket(),
                     std::path::PathBuf::from("/run/user/1000/biomeos/security.sock")
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn resolve_family_seed_from_primary() {
+        temp_env::with_vars(
+            [
+                ("FAMILY_SEED", Some("deadbeef01234567")),
+                ("BEARDOG_FAMILY_SEED", None::<&str>),
+            ],
+            || {
+                let b64 = resolve_family_seed().expect("should resolve");
+                let decoded = base64::engine::general_purpose::STANDARD
+                    .decode(&b64)
+                    .expect("valid base64");
+                assert_eq!(decoded, b"deadbeef01234567");
+            },
+        );
+    }
+
+    #[test]
+    fn resolve_family_seed_fallback_to_beardog() {
+        temp_env::with_vars(
+            [
+                ("FAMILY_SEED", None::<&str>),
+                ("BEARDOG_FAMILY_SEED", Some("fallback_seed_hex")),
+            ],
+            || {
+                let b64 = resolve_family_seed().expect("should resolve");
+                let decoded = base64::engine::general_purpose::STANDARD
+                    .decode(&b64)
+                    .expect("valid base64");
+                assert_eq!(decoded, b"fallback_seed_hex");
+            },
+        );
+    }
+
+    #[test]
+    fn resolve_family_seed_primary_takes_precedence() {
+        temp_env::with_vars(
+            [
+                ("FAMILY_SEED", Some("primary")),
+                ("BEARDOG_FAMILY_SEED", Some("secondary")),
+            ],
+            || {
+                let b64 = resolve_family_seed().expect("should resolve");
+                let decoded = base64::engine::general_purpose::STANDARD
+                    .decode(&b64)
+                    .expect("valid base64");
+                assert_eq!(decoded, b"primary");
+            },
+        );
+    }
+
+    #[test]
+    fn resolve_family_seed_missing_both() {
+        temp_env::with_vars(
+            [
+                ("FAMILY_SEED", None::<&str>),
+                ("BEARDOG_FAMILY_SEED", None::<&str>),
+            ],
+            || {
+                let err = resolve_family_seed().unwrap_err();
+                assert!(
+                    err.to_string().contains("FAMILY_SEED"),
+                    "error should mention variable: {err}"
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn resolve_family_seed_hex_roundtrip() {
+        let hex_seed = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2";
+        temp_env::with_vars(
+            [
+                ("FAMILY_SEED", Some(hex_seed)),
+                ("BEARDOG_FAMILY_SEED", None::<&str>),
+            ],
+            || {
+                let b64 = resolve_family_seed().expect("should resolve");
+                let decoded = base64::engine::general_purpose::STANDARD
+                    .decode(&b64)
+                    .expect("valid base64");
+                assert_eq!(
+                    std::str::from_utf8(&decoded).expect("utf8"),
+                    hex_seed,
+                    "BearDog receives the raw hex string bytes"
                 );
             },
         );

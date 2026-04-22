@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### BTSP Crypto Relay — `family_seed` + RPC Param Alignment (April 22, 2026)
+
+Resolved primalSpring Phase 45b BTSP escalation: `btsp.session.create` sent
+`family_seed_ref: "env:FAMILY_SEED"` but `BearDog` expects the actual seed
+as `family_seed` (base64-encoded).  Also fixed `session_id` → `session_token`
+extraction drift and aligned all three RPC calls (`create`, `verify`,
+`negotiate`) with `BearDog`'s `beardog_types::btsp` structs.
+
+#### Added
+- `env_vars::FAMILY_SEED` — canonical family seed env var constant
+- `env_vars::BEARDOG_FAMILY_SEED` — `BearDog`-scoped seed alias constant
+- `resolve_family_seed()` — reads `FAMILY_SEED` / `BEARDOG_FAMILY_SEED` from
+  env, base64-encodes for `BearDog` `btsp.session.create`
+- 5 new tests: seed resolution (primary, fallback, precedence, missing, hex roundtrip)
+
+#### Changed
+- `btsp.session.create` params: `family_seed` (base64) replaces `family_seed_ref`
+- `btsp.session.verify` params: `session_token`, `response`, `preferred_cipher`
+  replaces `session_id`, `client_response`, `server_ephemeral_pub`, `challenge`
+- `btsp.negotiate` params: `session_token`, `cipher` replaces `session_id`,
+  `preferred_cipher`, `bond_type`
+- `SessionContext::session_token` replaces `session_id` (extract from
+  `BearDog` create response; `session_id` now from verify response)
+- Mock `BearDog` integration tests aligned with `beardog_types` response shapes
+
+#### Metrics
+- Tests: 1,448 (was 1,443 — +5 new)
+- .rs files: 194 (53,148 LOC)
+- Clippy: 0 warnings, fmt: clean
+
 ### Env Var Centralization — Capability-Domain Constants (April 21, 2026)
 
 Moved remaining hardcoded env var string literals into `primal_names::env_vars`

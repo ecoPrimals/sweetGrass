@@ -47,14 +47,17 @@ mod btsp_tests {
 
                         let result = match method {
                             "btsp.session.create" => serde_json::json!({
-                                "session_id": "mock-session-001",
+                                "session_token": "mock-token-001",
                                 "server_ephemeral_pub": "c2VydmVyLXB1Yg==",
                                 "challenge": "Y2hhbGxlbmdlLWRhdGE=",
                             }),
                             "btsp.session.verify" => serde_json::json!({
                                 "verified": true,
+                                "session_id": "mock-session-001",
+                                "cipher": "AES-256-GCM",
                             }),
                             "btsp.negotiate" => serde_json::json!({
+                                "accepted": true,
                                 "cipher": "AES-256-GCM",
                             }),
                             _ => serde_json::json!(null),
@@ -101,12 +104,13 @@ mod btsp_tests {
 
                         let result = match method {
                             "btsp.session.create" => serde_json::json!({
-                                "session_id": "reject-session",
+                                "session_token": "reject-token",
                                 "server_ephemeral_pub": "c2VydmVyLXB1Yg==",
                                 "challenge": "Y2hhbGxlbmdlLWRhdGE=",
                             }),
                             "btsp.session.verify" => serde_json::json!({
                                 "verified": false,
+                                "error": "bad HMAC",
                             }),
                             _ => serde_json::json!(null),
                         };
@@ -131,133 +135,185 @@ mod btsp_tests {
     /// Server side runs `perform_server_handshake_with` on one end;
     /// client side drives the protocol (send `ClientHello`, read
     /// `ServerHello`, send `ChallengeResponse`, read `HandshakeComplete`).
-    #[tokio::test]
-    async fn handshake_with_mock_beardog() {
+    #[test]
+    fn handshake_with_mock_beardog() {
         let dir = tempfile::tempdir().expect("tempdir");
         let security_sock = dir.path().join("security.sock");
 
-        let mock_handle = start_mock_beardog(&security_sock);
-        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        temp_env::with_vars(
+            [
+                (
+                    "FAMILY_SEED",
+                    Some("deadbeef01234567deadbeef01234567deadbeef01234567deadbeef01234567"),
+                ),
+                ("BEARDOG_FAMILY_SEED", None::<&str>),
+            ],
+            || {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .expect("runtime");
+                rt.block_on(async {
+                    let mock_handle = start_mock_beardog(&security_sock);
+                    tokio::time::sleep(std::time::Duration::from_millis(30)).await;
 
-        let (mut client, mut server) = tokio::io::duplex(8192);
+                    let (mut client, mut server) = tokio::io::duplex(8192);
 
-        let sec_path = security_sock.clone();
-        let server_handle =
-            tokio::spawn(
-                async move { perform_server_handshake_with(&mut server, &sec_path).await },
-            );
+                    let sec_path = security_sock.clone();
+                    let server_handle = tokio::spawn(async move {
+                        perform_server_handshake_with(&mut server, &sec_path).await
+                    });
 
-        let client_hello = ClientHello {
-            version: 1,
-            client_ephemeral_pub: "Y2xpZW50LXB1Yg==".to_string(),
-        };
-        write_message(&mut client, &client_hello)
-            .await
-            .expect("write ClientHello");
+                    let client_hello = ClientHello {
+                        version: 1,
+                        client_ephemeral_pub: "Y2xpZW50LXB1Yg==".to_string(),
+                    };
+                    write_message(&mut client, &client_hello)
+                        .await
+                        .expect("write ClientHello");
 
-        let _server_hello: ServerHello = read_message(&mut client).await.expect("read ServerHello");
+                    let _server_hello: ServerHello =
+                        read_message(&mut client).await.expect("read ServerHello");
 
-        let challenge_resp = ChallengeResponse {
-            response: "aG1hYy1yZXNwb25zZQ==".to_string(),
-            preferred_cipher: "AES-256-GCM".to_string(),
-        };
-        write_message(&mut client, &challenge_resp)
-            .await
-            .expect("write ChallengeResponse");
+                    let challenge_resp = ChallengeResponse {
+                        response: "aG1hYy1yZXNwb25zZQ==".to_string(),
+                        preferred_cipher: "AES-256-GCM".to_string(),
+                    };
+                    write_message(&mut client, &challenge_resp)
+                        .await
+                        .expect("write ChallengeResponse");
 
-        let complete: HandshakeComplete = read_message(&mut client)
-            .await
-            .expect("read HandshakeComplete");
+                    let complete: HandshakeComplete = read_message(&mut client)
+                        .await
+                        .expect("read HandshakeComplete");
 
-        assert_eq!(complete.cipher, "AES-256-GCM");
-        assert_eq!(complete.session_id, "mock-session-001");
+                    assert_eq!(complete.cipher, "AES-256-GCM");
+                    assert_eq!(complete.session_id, "mock-session-001");
 
-        let server_result = server_handle.await.expect("server task");
-        let server_complete = server_result.expect("server handshake");
-        assert_eq!(server_complete.cipher, "AES-256-GCM");
-        assert_eq!(server_complete.session_id, "mock-session-001");
+                    let server_result = server_handle.await.expect("server task");
+                    let server_complete = server_result.expect("server handshake");
+                    assert_eq!(server_complete.cipher, "AES-256-GCM");
+                    assert_eq!(server_complete.session_id, "mock-session-001");
 
-        mock_handle.abort();
+                    mock_handle.abort();
+                });
+            },
+        );
     }
 
     /// Handshake fails when `BearDog` rejects the challenge response.
-    #[tokio::test]
-    async fn handshake_fails_when_beardog_rejects_verify() {
+    #[test]
+    fn handshake_fails_when_beardog_rejects_verify() {
         let dir = tempfile::tempdir().expect("tempdir");
         let security_sock = dir.path().join("security-reject.sock");
 
-        let mock_handle = start_rejecting_beardog(&security_sock);
-        tokio::time::sleep(std::time::Duration::from_millis(30)).await;
+        temp_env::with_vars(
+            [
+                (
+                    "FAMILY_SEED",
+                    Some("deadbeef01234567deadbeef01234567deadbeef01234567deadbeef01234567"),
+                ),
+                ("BEARDOG_FAMILY_SEED", None::<&str>),
+            ],
+            || {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .expect("runtime");
+                rt.block_on(async {
+                    let mock_handle = start_rejecting_beardog(&security_sock);
+                    tokio::time::sleep(std::time::Duration::from_millis(30)).await;
 
-        let (mut client, mut server) = tokio::io::duplex(8192);
+                    let (mut client, mut server) = tokio::io::duplex(8192);
 
-        let sec_path = security_sock.clone();
-        let server_handle =
-            tokio::spawn(
-                async move { perform_server_handshake_with(&mut server, &sec_path).await },
-            );
+                    let sec_path = security_sock.clone();
+                    let server_handle = tokio::spawn(async move {
+                        perform_server_handshake_with(&mut server, &sec_path).await
+                    });
 
-        let client_hello = ClientHello {
-            version: 1,
-            client_ephemeral_pub: "Y2xpZW50LXB1Yg==".to_string(),
-        };
-        write_message(&mut client, &client_hello)
-            .await
-            .expect("write ClientHello");
+                    let client_hello = ClientHello {
+                        version: 1,
+                        client_ephemeral_pub: "Y2xpZW50LXB1Yg==".to_string(),
+                    };
+                    write_message(&mut client, &client_hello)
+                        .await
+                        .expect("write ClientHello");
 
-        let _server_hello: ServerHello = read_message(&mut client).await.expect("read ServerHello");
+                    let _server_hello: ServerHello =
+                        read_message(&mut client).await.expect("read ServerHello");
 
-        let challenge_resp = ChallengeResponse {
-            response: "YmFkLXJlc3BvbnNl".to_string(),
-            preferred_cipher: "AES-256-GCM".to_string(),
-        };
-        write_message(&mut client, &challenge_resp)
-            .await
-            .expect("write ChallengeResponse");
+                    let challenge_resp = ChallengeResponse {
+                        response: "YmFkLXJlc3BvbnNl".to_string(),
+                        preferred_cipher: "AES-256-GCM".to_string(),
+                    };
+                    write_message(&mut client, &challenge_resp)
+                        .await
+                        .expect("write ChallengeResponse");
 
-        let server_result = server_handle.await.expect("server task");
-        assert!(
-            server_result.is_err(),
-            "should fail when verify returns false"
+                    let server_result = server_handle.await.expect("server task");
+                    assert!(
+                        server_result.is_err(),
+                        "should fail when verify returns false"
+                    );
+                    let err = server_result.unwrap_err().to_string();
+                    assert!(
+                        err.contains("family_verification"),
+                        "expected verification error, got: {err}"
+                    );
+
+                    mock_handle.abort();
+                });
+            },
         );
-        let err = server_result.unwrap_err().to_string();
-        assert!(
-            err.contains("family_verification"),
-            "expected verification error, got: {err}"
-        );
-
-        mock_handle.abort();
     }
 
     /// Handshake fails immediately when `BearDog` socket doesn't exist.
-    #[tokio::test]
-    async fn handshake_fails_when_beardog_unreachable() {
+    #[test]
+    fn handshake_fails_when_beardog_unreachable() {
         let dir = tempfile::tempdir().expect("tempdir");
         let nonexistent = dir.path().join("does-not-exist.sock");
 
-        let (mut client, mut server) = tokio::io::duplex(8192);
+        temp_env::with_vars(
+            [
+                (
+                    "FAMILY_SEED",
+                    Some("deadbeef01234567deadbeef01234567deadbeef01234567deadbeef01234567"),
+                ),
+                ("BEARDOG_FAMILY_SEED", None::<&str>),
+            ],
+            || {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .expect("runtime");
+                rt.block_on(async {
+                    let (mut client, mut server) = tokio::io::duplex(8192);
 
-        let path = nonexistent.clone();
-        let server_handle =
-            tokio::spawn(async move { perform_server_handshake_with(&mut server, &path).await });
+                    let path = nonexistent.clone();
+                    let server_handle = tokio::spawn(async move {
+                        perform_server_handshake_with(&mut server, &path).await
+                    });
 
-        let client_hello = ClientHello {
-            version: 1,
-            client_ephemeral_pub: "Y2xpZW50LXB1Yg==".to_string(),
-        };
-        write_message(&mut client, &client_hello)
-            .await
-            .expect("write ClientHello");
+                    let client_hello = ClientHello {
+                        version: 1,
+                        client_ephemeral_pub: "Y2xpZW50LXB1Yg==".to_string(),
+                    };
+                    write_message(&mut client, &client_hello)
+                        .await
+                        .expect("write ClientHello");
 
-        let server_result = server_handle.await.expect("server task");
-        assert!(
-            server_result.is_err(),
-            "should fail when BearDog is unreachable"
-        );
-        let err = server_result.unwrap_err().to_string();
-        assert!(
-            err.contains("unreachable") || err.contains("Unavailable"),
-            "expected unreachable error, got: {err}"
+                    let server_result = server_handle.await.expect("server task");
+                    assert!(
+                        server_result.is_err(),
+                        "should fail when BearDog is unreachable"
+                    );
+                    let err = server_result.unwrap_err().to_string();
+                    assert!(
+                        err.contains("unreachable") || err.contains("Unavailable"),
+                        "expected unreachable error, got: {err}"
+                    );
+                });
+            },
         );
     }
 
@@ -302,6 +358,10 @@ mod btsp_tests {
                 (env_vars::SWEETGRASS_FAMILY_ID, None::<&str>),
                 (env_vars::BIOMEOS_FAMILY_ID, None::<&str>),
                 (env_vars::FAMILY_ID, Some("test-family")),
+                (
+                    env_vars::FAMILY_SEED,
+                    Some("deadbeef01234567deadbeef01234567deadbeef01234567deadbeef01234567"),
+                ),
                 ("SECURITY_PROVIDER_SOCKET", Some(security_sock_str.as_str())),
                 (env_vars::BIOMEOS_INSECURE, None::<&str>),
             ],
@@ -412,6 +472,10 @@ mod btsp_tests {
                 (env_vars::SWEETGRASS_FAMILY_ID, None::<&str>),
                 (env_vars::BIOMEOS_FAMILY_ID, None::<&str>),
                 (env_vars::FAMILY_ID, Some("test-family")),
+                (
+                    env_vars::FAMILY_SEED,
+                    Some("deadbeef01234567deadbeef01234567deadbeef01234567deadbeef01234567"),
+                ),
                 ("SECURITY_PROVIDER_SOCKET", Some(security_sock_str.as_str())),
                 (env_vars::BIOMEOS_INSECURE, None::<&str>),
             ],
