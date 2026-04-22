@@ -204,7 +204,7 @@ impl BraidStoreFactory {
         let ng_config = NestGateConfig {
             socket_path: config.nestgate_socket.clone(),
             family_id: config.nestgate_family_id.clone(),
-            key_prefix: "sweetgrass".to_string(),
+            key_prefix: sweet_grass_core::identity::PRIMAL_NAME.to_string(),
         };
 
         tracing::info!("Configuring NestGate storage backend");
