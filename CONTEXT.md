@@ -29,14 +29,17 @@ attribution before distributing rewards.
 - **License:** scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0)
 - **Tests:** 1,446 local + 56 Docker CI
 - **Coverage:** 90%+ line (91.7% with Postgres Docker, llvm-cov)
-- **BTSP:** Phase 2 — `detect_protocol` three-way multiplexer (JSON-RPC, JSON-line BTSP, length-prefixed BTSP) when `FAMILY_SEED` set
+- **BTSP:** Phase 2 — `detect_protocol` three-way multiplexer (JSON-RPC, JSON-line BTSP, length-prefixed BTSP) when `FAMILY_ID` set; `family_seed` forwarded to BearDog for crypto
 - **Source files:** 194 `.rs` files (53,062 LOC), max 768 lines
 - **Property testing:** 25 proptest strategies across 7 crates
 - **Chaos/fault:** 11 attribution chaos + 17 service chaos + 9 fault injection
-- **MSRV:** 1.87 (Edition 2024)
+- **Edition:** 2024 (`resolver = "3"`), MSRV 1.87
 - **Crate count:** 10 workspace crates
 - **Unsafe code:** 0 blocks (`#![forbid(unsafe_code)]` on all crates)
+- **Lint policy:** `#[expect(...)]` only — zero `#[allow(...)]` in source
 - **Clippy:** pedantic + nursery, zero warnings
+- **Dependency audit:** `cargo-deny` clean (3 RUSTSEC dev-dep ignores); `ring` dev-only via testcontainers; `sled` eliminated
+- **Wire Standard:** L3 compliant, ecoBin static binary, Stadial parity
 
 ## Key Capabilities (JSON-RPC methods)
 
@@ -50,7 +53,7 @@ attribution before distributing rewards.
 - `anchoring.anchor`, `anchoring.verify` — LoamSpine anchoring
 - `health.check`, `health.liveness`, `health.readiness` — health probes
 - `identity.get` — Wire Standard L2 primal identity
-- `capabilities.list`, `tools.list`, `tools.call` — self-knowledge and MCP tool exposure
+- `capabilities.list`, `capability.list`, `tools.list`, `tools.call` — self-knowledge and MCP tool exposure
 - `pipeline.attribute` — provenance trio pipeline coordination
 - `composition.tower_health`, `composition.node_health`, `composition.nest_health`, `composition.nucleus_health` — ecosystem composition health probes
 

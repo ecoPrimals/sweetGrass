@@ -47,8 +47,8 @@ by `dehydration::Witness` / `WireWitnessRef`), and removes the deprecated
 - `composition.rs` `resolve_socket_dir()` uses `env_vars::TMPDIR`
 
 #### Removed
-- `BraidSignature` struct, impl, re-exports (deprecated since v0.7.28,
-  superseded by `dehydration::Witness` / `WireWitnessRef`)
+- `BraidSignature` struct, impl, re-exports (superseded by
+  `dehydration::Witness` / `WireWitnessRef`)
 - `EntityReference::by_loam_entry` deprecated method (use `by_ledger_entry`)
 - 4 associated constants (`SIG_TYPE_ED25519`, `SIG_TYPE_UNSIGNED`,
   `PROOF_PURPOSE_ASSERTION`, `PROOF_PURPOSE_PENDING`)

@@ -70,8 +70,10 @@ cargo test --workspace -- --nocapture
 # Single test
 cargo test test_name
 
-# Chaos tests (17 scenarios)
+# Chaos tests (11 attribution + 17 service + 9 fault injection)
 cargo test --test chaos
+cargo test --package sweet-grass-factory -- chaos
+cargo test --test fault_injection
 
 # PostgreSQL tests (requires Docker)
 cargo test --package sweet-grass-store-postgres --test integration -- --ignored

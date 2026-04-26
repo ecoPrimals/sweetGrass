@@ -24,4 +24,9 @@ lcov.info
 
 *.swp
 *.swo
+*.bak
+*.old
+*.orig
+*~
+*.tmp
 .DS_Store
