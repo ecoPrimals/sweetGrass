@@ -9,6 +9,8 @@
 
 #[path = "tests/autodetect.rs"]
 mod autodetect;
+#[path = "tests/domain.rs"]
+mod domain;
 #[path = "tests/env.rs"]
 mod env;
 #[path = "tests/guard.rs"]
