@@ -92,9 +92,9 @@ cd 01-primal-coordination/
 # Squirrel - AI attribution (EXCELLENT)
 ./06-sweetgrass-squirrel/demo-ai-attribution-live.sh
 
-# ⚠️ Needs Live Verification:
+# ✅ Requires Live BearDog Binary:
 
-# BearDog - Cryptographic signing
+# BearDog - Cryptographic witnessing (requires running BearDog)
 ./01-sweetgrass-beardog/demo-signed-braid-live.sh
 
 # ⏳ Future Primals (Not Yet Built):
@@ -141,7 +141,7 @@ cd 02-full-ecosystem/
 | Storage Backends | `06-storage-backends/demo-backends.sh` | ✅ Live | Memory/redb/PG |
 | Real Verification | `07-real-verification/demo-no-mocks.sh` | ✅ Live | 10-pt checklist |
 | **Primal Coordination** |
-| BearDog Signing | `demo-signed-braid-live.sh` | ✅ Live | Real binary |
+| BearDog Witnessing | `demo-signed-braid-live.sh` | ✅ Live | Real binary |
 | NestGate Storage | `demo-storage-integration-test.sh` | ✅ Tested | 3/5 (60%) |
 | Songbird Discovery | `demo-discovery-integration-test.sh` | ✅ Tested | 5/6 (83%) |
 | ToadStool Compute | `demo-compute-integration-test.sh` | ✅ Tested | 4/5 (80%) |

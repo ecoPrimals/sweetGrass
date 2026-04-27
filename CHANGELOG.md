@@ -33,7 +33,7 @@ warning and drop the connection with zero bytes returned.
 - UDS contract documented in `CONTEXT.md` (>=10s timeout guidance)
 
 #### Metrics
-- Tests: 1,455 pass, 0 failures
+- Tests: 1,454 pass, 0 failures
 - Clippy: 0 warnings, fmt: clean
 
 ---
