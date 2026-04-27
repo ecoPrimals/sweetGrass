@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### PG-52: UDS Domain Method Verification + EOF Resilience (April 27, 2026)
+
+Addresses the cross-spring PG-52 audit (Gap 23): `braid.create`,
+`braid.query`, and `provenance.graph` returning empty responses to
+shell compositions over UDS.
+
+#### Root Cause
+Shell callers (`echo ... | nc -U sock`) may send requests without a
+trailing `\n` and then close the connection. The `detect_protocol`
+first-line reader used `read_exact` in a byte-by-byte loop that
+treated EOF as an I/O error, causing the auto-detect path to log a
+warning and drop the connection with zero bytes returned.
+
+#### Fixed
+- `detect_protocol` now treats EOF as a valid line terminator (peek.rs)
+- Auto-detect error paths now return a JSON-RPC error response instead
+  of silently closing the connection (uds.rs `write_jsonrpc_error`)
+- `Unknown` protocol detection also returns a JSON-RPC error
+
+#### Added
+- 7 new UDS tests: `braid.create`, `braid.query`, `provenance.graph`
+  roundtrip; auto-detect `braid.create`; composition single-shot
+  pattern; EOF-terminated first-line detection (2 peek + 1 UDS)
+- UDS contract documented in `CONTEXT.md` (>=10s timeout guidance)
+
+#### Metrics
+- Tests: 1,455 pass, 0 failures
+- Clippy: 0 warnings, fmt: clean
+
+---
+
 ### BTSP Step 3→4 Verification Relay Fix (April 2026)
 
 Fixes the BTSP handshake relay that prevented `HandshakeComplete` from

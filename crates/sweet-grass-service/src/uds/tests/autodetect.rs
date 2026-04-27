@@ -195,3 +195,121 @@ async fn test_uds_autodetect_concurrent_clients() {
 
     listener_handle.abort();
 }
+
+// ==================== PG-52 Auto-Detect Domain Methods ====================
+
+/// `braid.create` succeeds via auto-detect (BTSP-required path).
+#[tokio::test]
+async fn test_uds_autodetect_braid_create() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let sock_path = dir.path().join("autodetect-braid-create.sock");
+
+    let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkAutoDetBraid"));
+
+    let listener = tokio::net::UnixListener::bind(&sock_path).expect("bind");
+    let state_clone = state.clone();
+
+    let listener_handle = tokio::spawn(async move {
+        if let Ok((stream, _)) = listener.accept().await {
+            crate::uds::handle_uds_with_autodetect(stream, state_clone).await;
+        }
+    });
+
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+    let stream = tokio::net::UnixStream::connect(&sock_path)
+        .await
+        .expect("connect");
+    let (reader, mut writer) = stream.into_split();
+
+    let request = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "braid.create",
+        "params": {
+            "data_hash": "sha256:autodetect0102030405060708091011121314151617181920212223242526",
+            "mime_type": "application/json",
+            "size": 256
+        },
+        "id": 1
+    });
+    let mut req_str = serde_json::to_string(&request).unwrap();
+    req_str.push('\n');
+    writer.write_all(req_str.as_bytes()).await.unwrap();
+    writer.flush().await.expect("flush");
+
+    let mut lines = BufReader::new(reader).lines();
+    let response_line = tokio::time::timeout(std::time::Duration::from_secs(5), lines.next_line())
+        .await
+        .expect("braid.create via auto-detect should respond within 5s")
+        .unwrap()
+        .expect("response");
+
+    let response: serde_json::Value = serde_json::from_str(&response_line).expect("parse");
+
+    assert_eq!(response["jsonrpc"], "2.0");
+    assert_eq!(response["id"], 1);
+    assert!(
+        response["result"].is_object(),
+        "braid.create via auto-detect should return result: {response}"
+    );
+    assert!(
+        response["result"]["@id"].is_string(),
+        "braid.create result should contain @id (JSON-LD): {response}"
+    );
+
+    listener_handle.abort();
+}
+
+/// EOF-terminated first line (no trailing `\n`) should still route correctly.
+///
+/// Shell callers like `echo -n '...' | nc -U sock` may not send a trailing
+/// newline. With the EOF-resilience fix, `detect_protocol` treats EOF as a
+/// line terminator and the request is processed normally.
+#[tokio::test]
+async fn test_uds_autodetect_eof_terminated_line() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let sock_path = dir.path().join("autodetect-eof.sock");
+
+    let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkEofTerm"));
+
+    let listener = tokio::net::UnixListener::bind(&sock_path).expect("bind");
+    let state_clone = state.clone();
+
+    let listener_handle = tokio::spawn(async move {
+        if let Ok((stream, _)) = listener.accept().await {
+            crate::uds::handle_uds_with_autodetect(stream, state_clone).await;
+        }
+    });
+
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+    let stream = tokio::net::UnixStream::connect(&sock_path)
+        .await
+        .expect("connect");
+    let (reader, mut writer) = stream.into_split();
+
+    let request = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "health.liveness",
+        "params": {},
+        "id": 42
+    });
+    let req_str = serde_json::to_string(&request).unwrap();
+    writer.write_all(req_str.as_bytes()).await.unwrap();
+    writer.shutdown().await.expect("shutdown write side");
+
+    let mut lines = BufReader::new(reader).lines();
+    let response_line = tokio::time::timeout(std::time::Duration::from_secs(5), lines.next_line())
+        .await
+        .expect("should respond even without trailing newline")
+        .unwrap()
+        .expect("response");
+
+    let response: serde_json::Value = serde_json::from_str(&response_line).expect("parse");
+
+    assert_eq!(response["jsonrpc"], "2.0");
+    assert_eq!(response["id"], 42);
+    assert_eq!(response["result"]["alive"], true);
+
+    listener_handle.abort();
+}

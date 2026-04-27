@@ -68,7 +68,13 @@ pub async fn detect_protocol<S: AsyncRead + Unpin>(
     let mut line_buf = vec![b'{'];
     loop {
         let mut byte = [0u8; 1];
-        stream.read_exact(&mut byte).await?;
+        match stream.read_exact(&mut byte).await {
+            Ok(_) => {},
+            Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                break;
+            },
+            Err(e) => return Err(e),
+        }
         if byte[0] == b'\n' {
             break;
         }
@@ -236,6 +242,31 @@ mod tests {
         assert!(
             matches!(result, DetectedProtocol::Unknown(_)),
             "JSON without protocol or jsonrpc should be Unknown"
+        );
+    }
+
+    #[tokio::test]
+    async fn detect_jsonrpc_eof_terminated() {
+        let line = b"{\"jsonrpc\":\"2.0\",\"method\":\"braid.create\",\"params\":{},\"id\":1}";
+        let mut cursor = std::io::Cursor::new(line.to_vec());
+        let result = detect_protocol(&mut cursor).await.unwrap();
+        match result {
+            DetectedProtocol::JsonRpc(val) => {
+                assert_eq!(val["method"], "braid.create");
+                assert_eq!(val["id"], 1);
+            },
+            other => panic!("expected JsonRpc for EOF-terminated line, got {}", variant_name(&other)),
+        }
+    }
+
+    #[tokio::test]
+    async fn detect_btsp_eof_terminated() {
+        let line = b"{\"protocol\":\"btsp\",\"version\":1,\"client_ephemeral_pub\":\"dGVzdA==\"}";
+        let mut cursor = std::io::Cursor::new(line.to_vec());
+        let result = detect_protocol(&mut cursor).await.unwrap();
+        assert!(
+            matches!(result, DetectedProtocol::JsonLineBtsp(_)),
+            "EOF-terminated BTSP line should still be detected"
         );
     }
 

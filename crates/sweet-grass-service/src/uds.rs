@@ -287,6 +287,13 @@ pub(crate) async fn handle_uds_with_autodetect(
         Ok(p) => p,
         Err(e) => {
             warn!("UDS: protocol detection failed: {e}");
+            let _ = write_jsonrpc_error(
+                &mut stream,
+                serde_json::Value::Null,
+                crate::handlers::jsonrpc::error_code::PARSE_ERROR,
+                format!("Protocol detection failed: {e}"),
+            )
+            .await;
             return;
         },
     };
@@ -311,6 +318,13 @@ pub(crate) async fn handle_uds_with_autodetect(
         },
         DetectedProtocol::Unknown(obj) => {
             warn!("UDS: unrecognized first-line protocol (no 'protocol' or 'jsonrpc' key): {obj}");
+            let _ = write_jsonrpc_error(
+                &mut stream,
+                serde_json::Value::Null,
+                crate::handlers::jsonrpc::error_code::INVALID_REQUEST,
+                "Unrecognized protocol: first line must contain \"jsonrpc\" or \"protocol\" key",
+            )
+            .await;
         },
     }
 }
@@ -519,6 +533,31 @@ async fn handle_uds_connection_raw(
     }
 
     Ok(())
+}
+
+/// Write a JSON-RPC error response directly to a stream.
+///
+/// Used by the auto-detect path when protocol detection fails or the
+/// first line is unrecognized — ensures shell callers always receive
+/// a well-formed error instead of an empty/closed connection.
+async fn write_jsonrpc_error(
+    stream: &mut (impl tokio::io::AsyncWrite + Unpin),
+    id: serde_json::Value,
+    code: i64,
+    message: impl Into<String>,
+) -> std::io::Result<()> {
+    use tokio::io::AsyncWriteExt;
+
+    let response = serde_json::json!({
+        "jsonrpc": "2.0",
+        "error": { "code": code, "message": message.into() },
+        "id": id,
+    });
+    let mut resp = serde_json::to_string(&response)
+        .map_err(std::io::Error::other)?;
+    resp.push('\n');
+    stream.write_all(resp.as_bytes()).await?;
+    stream.flush().await
 }
 
 /// Create a capability-domain symlink alongside the primal socket.
