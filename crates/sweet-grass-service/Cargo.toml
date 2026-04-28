@@ -62,8 +62,6 @@ chrono = { workspace = true }
 # CLI
 clap = { workspace = true }
 
-# Hostname resolution for discovery announcements (uses libc gethostname)
-hostname = "0.4"
 
 [features]
 default = []

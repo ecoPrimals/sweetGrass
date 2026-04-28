@@ -132,31 +132,22 @@ cd 05-sweetgrass-squirrel
 
 ---
 
-### ⏳ 5. SweetGrass + BearDog (Signing)
+### ✅ 5. SweetGrass + BearDog (Signing)
 **Directory**: `01-sweetgrass-beardog/`  
 **Binary**: `../../../bins/beardog` (4.5MB, real ELF)  
 **Time**: 15 minutes  
-**Status**: ❌ **BLOCKED** - BearDog needs server mode
+**Status**: ✅ **RESOLVED** (v0.7.28 — UDS JSON-RPC `crypto.sign` delegation)
 
-**What it should demonstrate**:
-- Braid signing with Ed25519
-- DID resolution
-- Cryptographic integrity
-- Digital signatures
+**What it demonstrates**:
+- Braid signing with Ed25519 (Tower-delegated via `CryptoDelegate`)
+- DID resolution (`Did::from_public_key_bytes`)
+- Cryptographic integrity (Tower-tier witnesses)
+- Digital signatures via BearDog `crypto.sign` over UDS
 
-**Current Issue**:
-```bash
-$ ../../../bins/beardog --help
-# Shows CLI commands only (key, encrypt, decrypt, etc.)
-# NO server or service subcommand
-```
-
-**Gap Discovered**:
-BearDog is currently CLI-only. To integrate with SweetGrass service, BearDog needs:
-- `beardog server --port 8091` subcommand
-- RPC/REST API for signing operations
-- Service discovery integration
-- Tracked in `wateringHole/handoffs/` (BTSP Phase 2 now resolves server-side handshake)
+**Integration path**: BearDog provides `crypto.sign` over UDS JSON-RPC.
+`CryptoDelegate::resolve()` discovers the socket at startup. Braids carry
+Tower-tier Ed25519 witnesses when BearDog is reachable, with graceful
+fallback to unsigned when unavailable.
 
 **Workaround**:
 Current demos use BearDog CLI directly (shell commands), not as a service.
@@ -199,13 +190,13 @@ tail -f logs/songbird.log
 | **NestGate** | nestgate | 3.4MB | ✅ Working | storage-live | ✅ Verified |
 | **ToadStool** | toadstool-cli | 21MB | 🟡 Partial | ml-provenance | 🟡 Can enhance |
 | **Squirrel** | squirrel | 12MB | 📋 Planned | - | - |
-| **BearDog** | beardog | 4.5MB | ❌ Blocked | - | Gap documented |
+| **BearDog** | beardog | 4.5MB | ✅ Working | signed-braid | ✅ UDS crypto.sign |
 
 **Legend**:
 - ✅ Working - Fully functional with real binary
 - 🟡 Partial - Works but could be enhanced
 - 📋 Planned - Binary available, demo not created
-- ❌ Blocked - External dependency (BearDog server mode)
+- ✅ Resolved - Previously blocked, resolved in v0.7.28
 
 ---
 
@@ -296,7 +287,7 @@ This showcase **intentionally** uses real binaries to find integration issues:
 **Gaps Discovered So Far**:
 1. ✅ **SweetGrass service binary missing** (FIXED in Phase 2)
 2. ✅ **API mismatch for provenance creation** (FIXED in Phase 2)
-3. ❌ **BearDog server mode missing** (EXTERNAL - needs BearDog team)
+3. ✅ **BearDog server mode missing** (RESOLVED v0.7.28 — UDS JSON-RPC `crypto.sign` delegation)
 
 **Each gap makes us better!**
 

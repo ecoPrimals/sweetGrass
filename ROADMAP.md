@@ -15,7 +15,7 @@
 - [x] **`AppState.crypto`** — `Option<Arc<CryptoDelegate>>` with `with_crypto()` builder; Phase 4b bootstrap resolution
 - [x] **`braid.create` signing** — computes `compute_signing_hash()`, calls `crypto.sign(base64(hash))`, stores Ed25519 witness; graceful fallback to unsigned on BearDog unavailability
 - [x] **`Agent::person()`** — signature evolved to `Option<impl Into<String>>` for consistency with `software()` / `organization()`
-- [x] 7 new tests (6 crypto delegate + 1 UDS integration with mock BearDog), 1,461 total
+- [x] 8 new tests (6 crypto delegate + 1 UDS braid signing + 1 UDS anchor signing), 1,462 total
 
 ### v0.7.27 — Deep Debt: Stadial Parity, Zero-Copy Phase 3, Type Safety (March–April 2026)
 
@@ -437,7 +437,7 @@
 - [ ] Evolved `MemoryStore` indexes (collision-preserving)
 - [ ] `convergence.query` JSON-RPC method
 - [ ] PostgreSQL `content_convergence` table and migrations
-- [x] Coverage target: 90%+ with llvm-cov *(91.7% line coverage, 1,461 tests)*
+- [x] Coverage target: 90%+ with llvm-cov *(91.7% line coverage, 1,462 tests)*
 
 ### v0.9.0 — sunCloud Integration (Q3 2026)
 

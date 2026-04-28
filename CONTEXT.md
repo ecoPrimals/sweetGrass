@@ -31,7 +31,7 @@ attribution before distributing rewards.
 - **Coverage:** 90%+ line (91.7% with Postgres Docker, llvm-cov)
 - **BTSP:** Phase 2 — `detect_protocol` three-way multiplexer (JSON-RPC, JSON-line BTSP, length-prefixed BTSP) when `FAMILY_ID` set; `family_seed` forwarded to `BearDog` for crypto; EOF-resilient first-line detection for shell callers
 - **UDS contract:** Newline-delimited JSON-RPC 2.0; compositions should use `\n`-terminated requests and >=10s read timeout (`braid.create`/`provenance.graph` may touch storage)
-- **Source files:** 190 `.rs` files (52,118 LOC), max 768 lines
+- **Source files:** 187 `.rs` files (52,166 LOC), max 769 lines
 - **Property testing:** 25 proptest strategies across 7 crates
 - **Chaos/fault:** 11 attribution chaos + 17 service chaos + 9 fault injection
 - **Edition:** 2024 (`resolver = "3"`), MSRV 1.87
@@ -39,7 +39,7 @@ attribution before distributing rewards.
 - **Unsafe code:** 0 blocks (`#![forbid(unsafe_code)]` on all crates)
 - **Lint policy:** `#[expect(...)]` only — zero `#[allow(...)]` in source
 - **Clippy:** pedantic + nursery, zero warnings
-- **Dependency audit:** `cargo-deny` clean (3 RUSTSEC dev-dep ignores); `ring` dev-only via testcontainers; `sled` eliminated
+- **Dependency audit:** `cargo-deny` clean (3 RUSTSEC dev-dep ignores); `ring` dev-only via testcontainers; `sled` eliminated; `hostname` eliminated (pure Rust `/etc/hostname` read)
 - **Wire Standard:** L3 compliant, ecoBin static binary, Stadial parity
 
 ## Key Capabilities (JSON-RPC methods)

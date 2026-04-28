@@ -368,28 +368,23 @@ This is honest about current limitations while showing the architecture.
 
 | Aspect | Status | Impact |
 |--------|--------|--------|
-| Signing Integration | ❌ Missing | High |
-| DID Resolution | ❌ Missing | Medium |
-| Verification | ❌ Missing | High |
-| W3C PROV-O Proof | ❌ Missing | Medium |
-| Infant Discovery | ✅ Ready | N/A |
+| Signing Integration | ✅ Shipped (v0.7.28) | Resolved |
+| DID Resolution | ✅ `Did::from_public_key_bytes` | Resolved |
+| Verification | ✅ Tower-tier witnesses | Resolved |
+| W3C PROV-O Proof | ✅ `Witness::from_tower_ed25519` | Resolved |
+| Infant Discovery | ✅ `CryptoDelegate::resolve()` | Resolved |
 | BearDog Binary | ✅ Available | N/A |
 
-**Next Steps:**
-1. Implement Phase 1 (core integration)
-2. Test with real BearDog binary
-3. Update showcase with signing demo
-4. Document signature verification process
+> All phases complete as of v0.7.28. See `CHANGELOG.md` for implementation details.
 
 ---
 
 ## Conclusion
 
-BearDog integration is a **known gap** with a **clear path forward**. The architecture is sound, the binary exists, and the implementation is straightforward.
-
-**Estimated Timeline:** 1 week for full integration + testing.
-
-**Priority:** High for production, Medium for demos.
+> **RESOLVED** — As of v0.7.28 (April 2026), BearDog integration is complete.
+> `braid.create` and `anchoring.anchor` delegate signing to BearDog `crypto.sign`
+> over UDS JSON-RPC. Braids carry Tower-tier Ed25519 witnesses. The gap analysis
+> above is retained as a fossil record of the original design intent.
 
 🌾🐻🐕 **Signed Provenance = Trusted Provenance** 🐻🐕🌾
 

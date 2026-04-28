@@ -272,15 +272,18 @@ fn resolve_crypto_delegate(app_state: AppState) -> AppState {
 /// Resolve the advertise host for discovery announcements (DI-friendly).
 ///
 /// Uses `PRIMAL_ADVERTISE_ADDRESS` if set via the reader, otherwise falls
-/// back to the system hostname. `0.0.0.0` is never announced — it's a
-/// listen wildcard, not a routable address.
+/// back to the system hostname via `/etc/hostname`. `0.0.0.0` is never
+/// announced — it's a listen wildcard, not a routable address.
 fn resolve_advertise_host(reader: &impl Fn(&str) -> Option<String>) -> String {
     reader(sweet_grass_core::primal_names::env_vars::PRIMAL_ADVERTISE_ADDRESS).unwrap_or_else(
         || {
-            hostname::get()
+            std::fs::read_to_string("/etc/hostname")
                 .ok()
-                .and_then(|h| h.into_string().ok())
-                .unwrap_or_else(|| sweet_grass_core::identity::FALLBACK_ADVERTISE_HOST.to_string())
+                .map(|s| s.trim().to_owned())
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| {
+                    sweet_grass_core::identity::FALLBACK_ADVERTISE_HOST.to_string()
+                })
         },
     )
 }

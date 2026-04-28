@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Dependency Evolution: `hostname` Crate Removed (April 28, 2026)
+
+Replaced `hostname` crate (libc `gethostname` wrapper) with pure Rust
+`/etc/hostname` file read in `resolve_advertise_host`. Fallback chain:
+`PRIMAL_ADVERTISE_ADDRESS` env var → `/etc/hostname` → `"localhost"`.
+Eliminates one direct C-wrapper dependency from production.
+
+#### Removed
+- `hostname` crate from `sweet-grass-service/Cargo.toml`
+
+#### Metrics
+- Tests: 1,462 pass, 0 failures
+- Clippy: 0 warnings, fmt: clean
+- `cargo deny check`: advisories ok, bans ok, licenses ok, sources ok
+
+---
+
 ### Anchor Signing via Tower (April 28, 2026)
 
 Extends BearDog crypto delegation to `anchoring.anchor`. When Tower is

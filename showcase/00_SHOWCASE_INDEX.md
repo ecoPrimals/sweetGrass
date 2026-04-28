@@ -90,16 +90,14 @@ Demonstrate SweetGrass integrating with individual primals using **real binaries
 **Directory**: `01-sweetgrass-beardog/`  
 **Binary**: `../../../bins/beardog`  
 **Time**: 15 minutes  
-**Status**: ⏳ **Blocked** - BearDog needs server mode (CLI-only)
+**Status**: ✅ **RESOLVED** (v0.7.28 — UDS JSON-RPC `crypto.sign` delegation)
 
-- Braid signing with Ed25519
-- DID resolution
-- Cryptographic integrity
-- **Gap discovered**: BearDog server mode (resolved — BTSP Phase 2 handshake implemented)
+- Braid signing with Ed25519 (Tower-delegated via `CryptoDelegate`)
+- DID resolution (`Did::from_public_key_bytes`)
+- Cryptographic integrity (Tower-tier witnesses)
+- **Gap resolved**: BearDog server mode + BTSP Phase 2 + `crypto.sign` delegation
 
-**Status**: 🟡 Partial (3/4 working)  
-**Gaps**: BearDog server mode needed  
-**Start**: `cd 01-primal-coordination/04-sweetgrass-songbird && ./demo-discovery-live.sh`
+**Start**: `cd 01-primal-coordination/01-sweetgrass-beardog && ./demo-signed-braid-live.sh`
 
 ---
 

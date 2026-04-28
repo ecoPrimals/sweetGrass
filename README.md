@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.28 | 1,461 tests | 91.7% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 2 | Wire L3 | BearDog crypto.sign delegation | Stadial parity (zero async-trait, zero dyn dispatch, sled eliminated, libsqlite3-sys eliminated, BTSP first-line auto-detect, PG-52 EOF-resilient UDS)
+v0.7.28 | 1,462 tests | 91.7% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 2 | Wire L3 | BearDog crypto.sign delegation | Stadial parity (zero async-trait, zero dyn dispatch, sled eliminated, libsqlite3-sys eliminated, hostname eliminated, BTSP first-line auto-detect, PG-52 EOF-resilient UDS)
 
 ---
 
@@ -123,7 +123,7 @@ Single binary with subcommands (`sweetgrass server`, `sweetgrass status`, `sweet
 - **`ServiceError::Transport` and `ServiceError::Discovery`** — IPC error variants for trio partner communication
 
 ### Cryptographic Provenance
-- **Tower-delegated Ed25519 signing** — `braid.create` delegates to BearDog `crypto.sign` over UDS JSON-RPC
+- **Tower-delegated Ed25519 signing** — `braid.create` and `anchoring.anchor` delegate to BearDog `crypto.sign` over UDS JSON-RPC
 - **`Witness::from_tower_ed25519`** — Tower-tier witnesses (`tier: "tower"`) distinguish BearDog-signed from local
 - **Graceful degradation** — unsigned witnesses when BearDog is unavailable
 
@@ -204,14 +204,14 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Metric | Value |
 |--------|-------|
 | Version | v0.7.28 |
-| Tests | 1,461 local + 56 Docker CI |
+| Tests | 1,462 local + 56 Docker CI |
 | Coverage | 90%+ line (91.7% with Postgres Docker) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
 | Max file size | 768 lines (limit: 1000) |
-| .rs files | 190 (52,118 LOC) |
+| .rs files | 187 (52,166 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |
