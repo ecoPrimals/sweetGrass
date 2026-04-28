@@ -33,6 +33,17 @@ impl Did {
         self.0.starts_with("did:")
     }
 
+    /// Create a `did:key:` DID from raw Ed25519 public key bytes.
+    ///
+    /// Encodes the public key as base64 and constructs a `did:key:z6Mk...`
+    /// identifier suitable for witness attribution.
+    #[must_use]
+    pub fn from_public_key_bytes(public_key: &[u8]) -> Self {
+        use base64::Engine;
+        let encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(public_key);
+        Self::new(format!("did:key:z6Mk{encoded}"))
+    }
+
     /// Get the DID method (e.g., "key" from "did:key:...").
     #[must_use]
     pub fn method(&self) -> Option<&str> {

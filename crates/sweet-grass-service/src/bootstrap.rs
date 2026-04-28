@@ -144,12 +144,18 @@ pub async fn infant_bootstrap() -> Result<BootstrapResult, BootstrapError> {
 
     // Phase 4: Create application state with self-knowledge
     debug!("Phase 4: Creating application state");
-    let app_state = AppState::with_self_knowledge(
+    let mut app_state = AppState::with_self_knowledge(
         Arc::new(store),
         default_agent.clone(),
         self_knowledge.clone(),
         backend_type,
     );
+
+    // Phase 4b: Resolve crypto delegate for Tower-delegated braid signing
+    #[cfg(unix)]
+    {
+        app_state = resolve_crypto_delegate(app_state);
+    }
 
     // Phase 5: Announce capabilities to discovery service (IPC v3.1)
     announce_capabilities(&self_knowledge, &app_state).await;
@@ -216,12 +222,17 @@ pub async fn infant_bootstrap_with_config_and_reader(
     let default_agent = Did::new(format!("did:primal:{}", self_knowledge.instance_id));
 
     debug!("Phase 4: Creating application state");
-    let app_state = AppState::with_self_knowledge(
+    let mut app_state = AppState::with_self_knowledge(
         Arc::new(store),
         default_agent.clone(),
         self_knowledge.clone(),
         backend_type,
     );
+
+    #[cfg(unix)]
+    {
+        app_state = resolve_crypto_delegate(app_state);
+    }
 
     // Phase 5: Announce capabilities to discovery service (IPC v3.1)
     announce_capabilities(&self_knowledge, &app_state).await;
@@ -237,6 +248,25 @@ pub async fn infant_bootstrap_with_config_and_reader(
         app_state,
         default_agent,
     })
+}
+
+/// Resolve the `BearDog` crypto delegate and attach to `AppState`.
+///
+/// Attempts to find a `BearDog` socket via environment variables. When
+/// found, Tower-delegated Ed25519 signing is enabled on `braid.create`.
+/// Falls back gracefully to unsigned braids when unavailable.
+#[cfg(unix)]
+fn resolve_crypto_delegate(app_state: AppState) -> AppState {
+    if let Some(crypto) = crate::crypto_delegate::CryptoDelegate::resolve() {
+        tracing::info!(
+            socket = %crypto.socket_path().display(),
+            "crypto delegate: Tower signing enabled via BearDog"
+        );
+        app_state.with_crypto(crypto)
+    } else {
+        tracing::info!("crypto delegate: no BearDog socket found, braids will be unsigned");
+        app_state
+    }
 }
 
 /// Resolve the advertise host for discovery announcements (DI-friendly).

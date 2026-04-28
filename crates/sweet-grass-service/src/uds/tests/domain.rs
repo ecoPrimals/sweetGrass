@@ -328,3 +328,119 @@ async fn test_uds_composition_pattern_single_shot() {
 
     listener_handle.abort();
 }
+
+#[tokio::test]
+async fn test_uds_braid_create_tower_signed() {
+    use std::os::unix::net::UnixListener as StdUnixListener;
+
+    let dir = tempfile::tempdir().expect("tempdir");
+    let sock_path = dir.path().join("braid-signed-test.sock");
+    let beardog_sock = dir.path().join("beardog-mock.sock");
+
+    let std_listener = StdUnixListener::bind(&beardog_sock).expect("bind mock beardog");
+    std_listener.set_nonblocking(true).unwrap();
+    let mock_listener = tokio::net::UnixListener::from_std(std_listener).unwrap();
+
+    let mock_handle = tokio::spawn(async move {
+        loop {
+            let Ok((stream, _)) = mock_listener.accept().await else {
+                break;
+            };
+            let (reader, mut writer) = stream.into_split();
+            let mut lines = tokio::io::BufReader::new(reader).lines();
+
+            if let Ok(Some(line)) = lines.next_line().await {
+                if let Ok(req) = serde_json::from_str::<serde_json::Value>(&line) {
+                    let response = serde_json::json!({
+                        "jsonrpc": "2.0",
+                        "id": req["id"],
+                        "result": {
+                            "signature": "dG93ZXItc2lnLWJ5dGVz",
+                            "algorithm": "ed25519",
+                            "public_key": "dG93ZXItcHViLWtleQ=="
+                        }
+                    });
+                    let mut resp = serde_json::to_string(&response).unwrap();
+                    resp.push('\n');
+                    let _ = writer.write_all(resp.as_bytes()).await;
+                }
+            }
+        }
+    });
+
+    let crypto = crate::crypto_delegate::CryptoDelegate::with_socket(beardog_sock);
+    let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkSignedBraid"))
+        .with_crypto(crypto);
+
+    let path_clone = sock_path.clone();
+    let state_clone = state.clone();
+    let (_shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+    let listener_handle = tokio::spawn(async move {
+        let _ = start_uds_listener_at(state_clone, &path_clone, shutdown_rx).await;
+    });
+
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+    let stream = tokio::net::UnixStream::connect(&sock_path)
+        .await
+        .expect("connect");
+    let (reader, mut writer) = stream.into_split();
+
+    let request = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "braid.create",
+        "params": {
+            "data_hash": "sha256:aabbccdd01020304050607080910111213141516171819202122232425262728",
+            "mime_type": "application/json",
+            "size": 512
+        },
+        "id": 42
+    });
+    let mut req_str = serde_json::to_string(&request).unwrap();
+    req_str.push('\n');
+    writer.write_all(req_str.as_bytes()).await.unwrap();
+    writer.flush().await.expect("flush");
+
+    let mut lines = BufReader::new(reader).lines();
+    let response_line = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        lines.next_line(),
+    )
+    .await
+    .expect("braid.create signed should respond within 10s")
+    .unwrap()
+    .expect("response");
+    let response: serde_json::Value =
+        serde_json::from_str(&response_line).expect("parse response");
+
+    assert_eq!(response["jsonrpc"], "2.0");
+    assert_eq!(response["id"], 42);
+    assert!(response["result"].is_object(), "should return result");
+
+    let witness = &response["result"]["witness"];
+    assert_eq!(
+        witness["kind"], "signature",
+        "witness should be a signature: {witness}"
+    );
+    assert_eq!(
+        witness["algorithm"], "ed25519",
+        "algorithm should be ed25519: {witness}"
+    );
+    assert_eq!(
+        witness["tier"], "tower",
+        "tier should be tower (delegated): {witness}"
+    );
+    assert!(
+        witness["evidence"].is_string() && !witness["evidence"].as_str().unwrap().is_empty(),
+        "evidence should be non-empty base64: {witness}"
+    );
+    assert!(
+        witness["agent"]
+            .as_str()
+            .is_some_and(|a| a.starts_with("did:key:z6Mk")),
+        "agent should be a did:key from BearDog public key: {witness}"
+    );
+
+    mock_handle.abort();
+    listener_handle.abort();
+}

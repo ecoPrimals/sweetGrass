@@ -53,10 +53,31 @@ pub(super) async fn handle_braid_create(
     params: serde_json::Value,
 ) -> DispatchResult {
     let p: CreateBraidParams = parse_params(params)?;
-    let braid = state
+    let mut braid = state
         .factory
         .from_hash(p.data_hash, p.mime_type, p.size, p.metadata)
         .map_err(internal)?;
+
+    #[cfg(unix)]
+    if let Some(crypto) = &state.crypto {
+        match crypto
+            .sign(braid.compute_signing_hash().as_str().as_bytes())
+            .await
+        {
+            Ok(result) => {
+                let agent_did =
+                    sweet_grass_core::agent::Did::from_public_key_bytes(&result.public_key);
+                braid.witness = sweet_grass_core::dehydration::Witness::from_tower_ed25519(
+                    &agent_did,
+                    &result.signature,
+                );
+            }
+            Err(e) => {
+                tracing::warn!("crypto.sign unavailable, braid unsigned: {e}");
+            }
+        }
+    }
+
     state.store.put(&braid).await.map_err(internal)?;
     to_value(&braid)
 }

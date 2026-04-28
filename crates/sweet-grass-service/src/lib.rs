@@ -58,6 +58,8 @@ pub mod bootstrap;
 #[cfg(unix)]
 pub mod btsp;
 pub mod cli;
+#[cfg(unix)]
+pub mod crypto_delegate;
 pub mod error;
 pub mod exit;
 pub mod factory;

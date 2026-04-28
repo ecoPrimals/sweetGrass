@@ -137,6 +137,18 @@ pub mod env_vars {
     ///
     /// Configures max in-flight requests for the tarpc server.
     pub const TARPC_MAX_CONCURRENT_REQUESTS: &str = "TARPC_MAX_CONCURRENT_REQUESTS";
+
+    /// `BEARDOG_SOCKET` — path to the `BearDog` Tower crypto provider socket.
+    ///
+    /// Per `NUCLEUS_TWO_TIER_CRYPTO_MODEL`, all primals delegate signing and
+    /// encryption to `BearDog` through this socket.
+    pub const BEARDOG_SOCKET: &str = "BEARDOG_SOCKET";
+
+    /// `DISCOVERY_SOCKET` — path to the Songbird discovery service socket.
+    ///
+    /// Used for capability-based resolution (e.g. resolve `"crypto"` to
+    /// `BearDog`'s socket path at runtime).
+    pub const DISCOVERY_SOCKET: &str = "DISCOVERY_SOCKET";
 }
 
 #[cfg(test)]
@@ -177,6 +189,8 @@ mod tests {
             env_vars::TMPDIR,
             env_vars::DATABASE_URL,
             env_vars::TARPC_MAX_CONCURRENT_REQUESTS,
+            env_vars::BEARDOG_SOCKET,
+            env_vars::DISCOVERY_SOCKET,
         ];
         for var in &all {
             assert_eq!(

@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### BearDog Crypto Signing Delegation (April 28, 2026)
+
+Delegates braid signing to BearDog's `crypto.sign` Ed25519 over UDS JSON-RPC,
+per primalSpring Phase 55 `NUCLEUS_TWO_TIER_CRYPTO_MODEL`. Braids created via
+`braid.create` carry Tower-level provenance witnesses (`tier: "tower"`) when
+BearDog is reachable, falling back to unsigned braids when unavailable.
+
+#### Added
+- `crypto_delegate.rs` — UDS JSON-RPC client for BearDog `crypto.sign`
+- `Witness::from_tower_ed25519()` — Tower-tier witness constructor
+- `Did::from_public_key_bytes()` — `did:key:z6Mk...` from raw Ed25519 key
+- `BEARDOG_SOCKET`, `DISCOVERY_SOCKET` env var constants
+- `AppState.crypto` field with `with_crypto()` builder
+- Bootstrap Phase 4b: `CryptoDelegate::resolve()` at startup
+- 7 new tests (6 crypto delegate unit + 1 UDS integration with mock BearDog)
+
+#### Metrics
+- Tests: 1,461 pass, 0 failures (was 1,454)
+- Clippy: 0 warnings, fmt: clean
+
+---
+
 ### Environment Variable Centralization (April 27, 2026)
 
 Final pass: centralized all remaining hardcoded env var strings into

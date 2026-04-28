@@ -143,6 +143,8 @@ pub const WITNESS_ALGORITHM_ED25519: &str = "ed25519";
 pub const WITNESS_TIER_LOCAL: &str = "local";
 /// Provenance tier: unsigned / no cryptographic backing.
 pub const WITNESS_TIER_OPEN: &str = "open";
+/// Provenance tier: Tower-delegated (signed by `BearDog` crypto authority).
+pub const WITNESS_TIER_TOWER: &str = "tower";
 
 impl Witness {
     /// Create an unsigned placeholder witness (open tier, no evidence).
@@ -172,6 +174,25 @@ impl Witness {
             encoding: WITNESS_ENCODING_BASE64.to_owned(),
             algorithm: Some(WITNESS_ALGORITHM_ED25519.to_owned()),
             tier: Some(WITNESS_TIER_LOCAL.to_owned()),
+            context: None,
+        }
+    }
+
+    /// Create a Tower-delegated Ed25519 signature witness.
+    ///
+    /// Used when signing is delegated to `BearDog` via `crypto.sign`.
+    /// Sets `tier: "tower"` to distinguish from local signatures.
+    #[must_use]
+    pub fn from_tower_ed25519(agent: &Did, signature_bytes: &[u8]) -> Self {
+        use base64::Engine;
+        Self {
+            agent: agent.clone(),
+            kind: WITNESS_KIND_SIGNATURE.to_owned(),
+            evidence: base64::engine::general_purpose::STANDARD.encode(signature_bytes),
+            witnessed_at: super::braid::types::current_timestamp_nanos(),
+            encoding: WITNESS_ENCODING_BASE64.to_owned(),
+            algorithm: Some(WITNESS_ALGORITHM_ED25519.to_owned()),
+            tier: Some(WITNESS_TIER_TOWER.to_owned()),
             context: None,
         }
     }

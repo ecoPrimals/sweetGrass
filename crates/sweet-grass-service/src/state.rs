@@ -12,6 +12,8 @@ use sweet_grass_query::QueryEngine;
 use sweet_grass_store::MemoryStore;
 
 use crate::backend::BraidBackend;
+#[cfg(unix)]
+use crate::crypto_delegate::CryptoDelegate;
 
 /// Application state shared across handlers.
 #[derive(Clone)]
@@ -33,6 +35,10 @@ pub struct AppState {
 
     /// Store backend type (for health reporting).
     pub store_backend: &'static str,
+
+    /// Crypto delegation to `BearDog` Tower for braid signing.
+    #[cfg(unix)]
+    pub crypto: Option<Arc<CryptoDelegate>>,
 }
 
 impl AppState {
@@ -51,6 +57,8 @@ impl AppState {
             compression,
             self_knowledge: None,
             store_backend: "memory",
+            #[cfg(unix)]
+            crypto: None,
         }
     }
 
@@ -68,6 +76,8 @@ impl AppState {
             compression,
             self_knowledge: None,
             store_backend: "unknown",
+            #[cfg(unix)]
+            crypto: None,
         }
     }
 
@@ -98,7 +108,17 @@ impl AppState {
             compression,
             self_knowledge: Some(Arc::new(self_knowledge)),
             store_backend,
+            #[cfg(unix)]
+            crypto: None,
         }
+    }
+
+    /// Attach a crypto delegate for Tower-delegated braid signing.
+    #[cfg(unix)]
+    #[must_use]
+    pub fn with_crypto(mut self, crypto: CryptoDelegate) -> Self {
+        self.crypto = Some(Arc::new(crypto));
+        self
     }
 }
 

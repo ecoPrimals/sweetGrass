@@ -27,7 +27,7 @@ attribution before distributing rewards.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 (required) + tarpc (optional high-perf) + REST + UDS
 - **License:** scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0)
-- **Tests:** 1,454 local + 56 Docker CI
+- **Tests:** 1,461 local + 56 Docker CI
 - **Coverage:** 90%+ line (91.7% with Postgres Docker, llvm-cov)
 - **BTSP:** Phase 2 — `detect_protocol` three-way multiplexer (JSON-RPC, JSON-line BTSP, length-prefixed BTSP) when `FAMILY_ID` set; `family_seed` forwarded to `BearDog` for crypto; EOF-resilient first-line detection for shell callers
 - **UDS contract:** Newline-delimited JSON-RPC 2.0; compositions should use `\n`-terminated requests and >=10s read timeout (`braid.create`/`provenance.graph` may touch storage)
@@ -60,7 +60,7 @@ attribution before distributing rewards.
 
 ## What This Does NOT Do
 
-- Does not manage cryptographic keys or signing (that is BearDog / Songbird)
+- Does not manage cryptographic keys (that is BearDog / Songbird); signing is delegated to BearDog `crypto.sign` over UDS
 - Does not store content itself (that is NestGate for content-addressed storage)
 - Does not manage the permanent ledger (that is LoamSpine)
 - Does not manage the ephemeral network (that is rhizoCrypt)
