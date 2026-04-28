@@ -1,10 +1,10 @@
 # 🌾🐻🐕 SweetGrass + BearDog: Signing Gap Analysis
 
-> **HISTORICAL** — December 2025 gap analysis. Signing integration has since
-> evolved to capability-based `Capability::Signing` discovery with tarpc
-> clients. Retained as fossil record.
+> **HISTORICAL** — December 2025 gap analysis. As of v0.7.28 (April 2026),
+> `braid.create` delegates signing to BearDog `crypto.sign` over UDS JSON-RPC.
+> Braids carry Tower-tier Ed25519 witnesses. Retained as fossil record.
 
-**Status:** ⚠️ **INTEGRATION GAP IDENTIFIED** (since resolved)
+**Status:** RESOLVED (v0.7.28 — BearDog `crypto.sign` delegation)
 
 ---
 

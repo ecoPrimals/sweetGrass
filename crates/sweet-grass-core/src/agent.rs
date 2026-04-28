@@ -443,10 +443,12 @@ pub struct Agent {
 impl Agent {
     /// Create a new person agent.
     #[must_use]
-    pub fn person(did: Did, name: Option<String>) -> Self {
+    pub fn person(did: Did, name: Option<impl Into<String>>) -> Self {
+        let name = name.map(Into::into);
+        let agent_type = AgentType::Person { name: name.clone() };
         Self {
             id: did,
-            agent_type: AgentType::Person { name: name.clone() },
+            agent_type,
             name,
         }
     }
