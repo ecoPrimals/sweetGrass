@@ -127,6 +127,16 @@ pub mod env_vars {
     /// Standard POSIX variable; used in socket directory resolution
     /// as a fallback before `DEFAULT_SOCKET_DIR`.
     pub const TMPDIR: &str = "TMPDIR";
+
+    /// `DATABASE_URL` — Postgres connection string.
+    ///
+    /// Used by `sweet-grass-store-postgres` for database connectivity.
+    pub const DATABASE_URL: &str = "DATABASE_URL";
+
+    /// `TARPC_MAX_CONCURRENT_REQUESTS` — tarpc server concurrency limit.
+    ///
+    /// Configures max in-flight requests for the tarpc server.
+    pub const TARPC_MAX_CONCURRENT_REQUESTS: &str = "TARPC_MAX_CONCURRENT_REQUESTS";
 }
 
 #[cfg(test)]
@@ -165,6 +175,8 @@ mod tests {
             env_vars::SWEETGRASS_SOCKET,
             env_vars::PRIMAL_NAME,
             env_vars::TMPDIR,
+            env_vars::DATABASE_URL,
+            env_vars::TARPC_MAX_CONCURRENT_REQUESTS,
         ];
         for var in &all {
             assert_eq!(

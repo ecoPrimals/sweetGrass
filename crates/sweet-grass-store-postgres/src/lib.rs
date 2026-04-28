@@ -85,7 +85,7 @@ impl Default for PostgresConfig {
     fn default() -> Self {
         Self {
             // No hardcoded fallback — require explicit configuration.
-            database_url: std::env::var("DATABASE_URL")
+            database_url: std::env::var(sweet_grass_core::primal_names::env_vars::DATABASE_URL)
                 .unwrap_or_else(|_| Self::UNCONFIGURED.to_string()),
             max_connections: DEFAULT_MAX_CONNECTIONS,
             min_connections: 1,
@@ -119,7 +119,7 @@ impl PostgresConfig {
     /// Tests inject a closure instead of mutating process-global env vars.
     #[must_use]
     pub fn from_reader(reader: impl Fn(&str) -> Option<String>) -> Option<Self> {
-        reader("DATABASE_URL").map(Self::new)
+        reader(sweet_grass_core::primal_names::env_vars::DATABASE_URL).map(Self::new)
     }
 
     /// Set max connections.

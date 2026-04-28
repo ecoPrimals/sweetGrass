@@ -57,7 +57,7 @@ impl Default for NestGateConfig {
         Self {
             socket_path: None,
             family_id: None,
-            key_prefix: "sweetgrass".to_string(),
+            key_prefix: sweet_grass_core::identity::PRIMAL_NAME.to_string(),
         }
     }
 }

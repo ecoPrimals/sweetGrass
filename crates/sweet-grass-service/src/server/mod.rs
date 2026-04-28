@@ -68,10 +68,12 @@ impl SweetGrassServer {
         compression: Arc<CompressionEngine>,
         attribution: Arc<AttributionCalculator>,
     ) -> Self {
-        let max_concurrent_requests = std::env::var("TARPC_MAX_CONCURRENT_REQUESTS")
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(DEFAULT_MAX_CONCURRENT_REQUESTS);
+        let max_concurrent_requests = std::env::var(
+            sweet_grass_core::primal_names::env_vars::TARPC_MAX_CONCURRENT_REQUESTS,
+        )
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_MAX_CONCURRENT_REQUESTS);
         Self {
             store,
             factory,
@@ -87,10 +89,12 @@ impl SweetGrassServer {
     /// Create from `AppState` — shares the same store as the HTTP/JSON-RPC stack.
     #[must_use]
     pub fn from_app_state(state: &crate::state::AppState) -> Self {
-        let max_concurrent_requests = std::env::var("TARPC_MAX_CONCURRENT_REQUESTS")
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(DEFAULT_MAX_CONCURRENT_REQUESTS);
+        let max_concurrent_requests = std::env::var(
+            sweet_grass_core::primal_names::env_vars::TARPC_MAX_CONCURRENT_REQUESTS,
+        )
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_MAX_CONCURRENT_REQUESTS);
         Self {
             store: Arc::clone(&state.store),
             factory: Arc::clone(&state.factory),
