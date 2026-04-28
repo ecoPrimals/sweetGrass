@@ -134,4 +134,21 @@ impl Braid {
         let result = hasher.finalize();
         ContentHash::new(format!("sha256:{}", crate::hash::hex_encode(result)))
     }
+
+    /// Compute a signing preimage for an anchor operation.
+    ///
+    /// Includes the spine context so anchor witnesses are bound to a
+    /// specific `(braid, spine)` pair rather than just the braid itself.
+    #[must_use]
+    pub fn compute_anchor_preimage(&self, spine_id: &str) -> ContentHash {
+        use sha2::{Digest, Sha256};
+
+        let mut hasher = Sha256::new();
+        hasher.update(self.id.as_str().as_bytes());
+        hasher.update(spine_id.as_bytes());
+        hasher.update(self.data_hash.as_str().as_bytes());
+
+        let result = hasher.finalize();
+        ContentHash::new(format!("sha256:{}", crate::hash::hex_encode(result)))
+    }
 }

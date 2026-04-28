@@ -444,3 +444,154 @@ async fn test_uds_braid_create_tower_signed() {
     mock_handle.abort();
     listener_handle.abort();
 }
+
+#[tokio::test]
+async fn test_uds_anchoring_anchor_tower_signed() {
+    use std::os::unix::net::UnixListener as StdUnixListener;
+
+    let dir = tempfile::tempdir().expect("tempdir");
+    let sock_path = dir.path().join("anchor-signed-test.sock");
+    let beardog_sock = dir.path().join("beardog-anchor.sock");
+
+    let std_listener = StdUnixListener::bind(&beardog_sock).expect("bind mock beardog");
+    std_listener.set_nonblocking(true).unwrap();
+    let mock_listener = tokio::net::UnixListener::from_std(std_listener).unwrap();
+
+    let mock_handle = tokio::spawn(async move {
+        loop {
+            let Ok((stream, _)) = mock_listener.accept().await else {
+                break;
+            };
+            let (reader, mut writer) = stream.into_split();
+            let mut lines = tokio::io::BufReader::new(reader).lines();
+
+            if let Ok(Some(line)) = lines.next_line().await {
+                if let Ok(req) = serde_json::from_str::<serde_json::Value>(&line) {
+                    let response = serde_json::json!({
+                        "jsonrpc": "2.0",
+                        "id": req["id"],
+                        "result": {
+                            "signature": "YW5jaG9yLXNpZy1ieXRlcw==",
+                            "algorithm": "ed25519",
+                            "public_key": "YW5jaG9yLXB1Yi1rZXk="
+                        }
+                    });
+                    let mut resp = serde_json::to_string(&response).unwrap();
+                    resp.push('\n');
+                    let _ = writer.write_all(resp.as_bytes()).await;
+                }
+            }
+        }
+    });
+
+    let crypto = crate::crypto_delegate::CryptoDelegate::with_socket(beardog_sock);
+    let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkAnchorTest"))
+        .with_crypto(crypto);
+
+    let path_clone = sock_path.clone();
+    let state_clone = state.clone();
+    let (_shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+    let listener_handle = tokio::spawn(async move {
+        let _ = start_uds_listener_at(state_clone, &path_clone, shutdown_rx).await;
+    });
+
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+    // Step 1: Create a braid to anchor
+    let stream = tokio::net::UnixStream::connect(&sock_path)
+        .await
+        .expect("connect for create");
+    let (reader, mut writer) = stream.into_split();
+
+    let create_req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "braid.create",
+        "params": {
+            "data_hash": "sha256:1122334455667788990011223344556677889900112233445566778899001122",
+            "mime_type": "application/octet-stream",
+            "size": 256
+        },
+        "id": 1
+    });
+    let mut req_str = serde_json::to_string(&create_req).unwrap();
+    req_str.push('\n');
+    writer.write_all(req_str.as_bytes()).await.unwrap();
+    writer.flush().await.expect("flush");
+
+    let mut lines = BufReader::new(reader).lines();
+    let create_line = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        lines.next_line(),
+    )
+    .await
+    .expect("braid.create should respond")
+    .unwrap()
+    .expect("create response");
+    let created: serde_json::Value = serde_json::from_str(&create_line).expect("parse create");
+    let braid_id = created["result"]["@id"].as_str().expect("braid @id");
+
+    // Step 2: Anchor the braid
+    let stream2 = tokio::net::UnixStream::connect(&sock_path)
+        .await
+        .expect("connect for anchor");
+    let (reader2, mut writer2) = stream2.into_split();
+
+    let anchor_req = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "anchoring.anchor",
+        "params": {
+            "braid_id": braid_id,
+            "spine_id": "test-spine"
+        },
+        "id": 2
+    });
+    let mut req_str = serde_json::to_string(&anchor_req).unwrap();
+    req_str.push('\n');
+    writer2.write_all(req_str.as_bytes()).await.unwrap();
+    writer2.flush().await.expect("flush anchor");
+
+    let mut lines2 = BufReader::new(reader2).lines();
+    let anchor_line = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        lines2.next_line(),
+    )
+    .await
+    .expect("anchoring.anchor should respond within 10s")
+    .unwrap()
+    .expect("anchor response");
+    let response: serde_json::Value =
+        serde_json::from_str(&anchor_line).expect("parse anchor response");
+
+    assert_eq!(response["jsonrpc"], "2.0");
+    assert_eq!(response["id"], 2);
+    assert!(response["result"].is_object(), "should return result");
+    assert_eq!(response["result"]["spine_id"], "test-spine");
+    assert_eq!(response["result"]["status"], "prepared");
+
+    let witness = &response["result"]["witness"];
+    assert_eq!(
+        witness["kind"], "signature",
+        "anchor witness should be a signature: {witness}"
+    );
+    assert_eq!(
+        witness["algorithm"], "ed25519",
+        "algorithm should be ed25519: {witness}"
+    );
+    assert_eq!(
+        witness["tier"], "tower",
+        "tier should be tower (delegated): {witness}"
+    );
+    assert!(
+        witness["evidence"].is_string() && !witness["evidence"].as_str().unwrap().is_empty(),
+        "evidence should be non-empty base64: {witness}"
+    );
+    assert!(
+        witness["agent"]
+            .as_str()
+            .is_some_and(|a| a.starts_with("did:key:z6Mk")),
+        "agent should be a did:key from BearDog public key: {witness}"
+    );
+
+    mock_handle.abort();
+    listener_handle.abort();
+}

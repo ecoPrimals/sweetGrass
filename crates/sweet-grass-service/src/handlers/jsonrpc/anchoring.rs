@@ -63,13 +63,36 @@ pub(super) async fn handle_anchor_braid(
         .strip_prefix("urn:braid:")
         .unwrap_or(p.braid_id.as_str());
 
-    to_value(&serde_json::json!({
+    let mut response = serde_json::json!({
         "braid_id": uuid_str,
         "spine_id": p.spine_id,
         "content_hash": hash_bytes,
         "anchored": false,
         "status": "prepared",
-    }))
+    });
+
+    #[cfg(unix)]
+    if let Some(crypto) = &state.crypto {
+        let preimage = braid.compute_anchor_preimage(&p.spine_id);
+        match crypto.sign(preimage.as_str().as_bytes()).await {
+            Ok(result) => {
+                let agent_did =
+                    sweet_grass_core::agent::Did::from_public_key_bytes(&result.public_key);
+                let witness = sweet_grass_core::dehydration::Witness::from_tower_ed25519(
+                    &agent_did,
+                    &result.signature,
+                );
+                if let Ok(w) = serde_json::to_value(&witness) {
+                    response["witness"] = w;
+                }
+            }
+            Err(e) => {
+                tracing::warn!("crypto.sign unavailable, anchor unsigned: {e}");
+            }
+        }
+    }
+
+    to_value(&response)
 }
 
 pub(super) async fn handle_verify_anchor(

@@ -53,6 +53,9 @@ pub struct SweetGrassServer {
     /// Maximum concurrent requests for parallel operations (e.g. `agent_contributions`).
     /// Configurable via `TARPC_MAX_CONCURRENT_REQUESTS` env var or struct field.
     max_concurrent_requests: usize,
+    /// Crypto delegation to `BearDog` Tower for signing.
+    #[cfg(unix)]
+    crypto: Option<Arc<crate::crypto_delegate::CryptoDelegate>>,
 }
 
 impl SweetGrassServer {
@@ -83,6 +86,8 @@ impl SweetGrassServer {
             store_backend: "unknown",
             start_time: Instant::now(),
             max_concurrent_requests,
+            #[cfg(unix)]
+            crypto: None,
         }
     }
 
@@ -104,6 +109,8 @@ impl SweetGrassServer {
             store_backend: state.store_backend,
             start_time: Instant::now(),
             max_concurrent_requests,
+            #[cfg(unix)]
+            crypto: state.crypto.clone(),
         }
     }
 
@@ -456,13 +463,36 @@ impl SweetGrassRpc for SweetGrassServer {
             .strip_prefix("urn:braid:")
             .unwrap_or(braid_id.as_str());
 
-        Ok(serde_json::json!({
+        let mut response = serde_json::json!({
             "braid_id": uuid_str,
             "spine_id": spine_id,
             "content_hash": hash_bytes,
             "anchored": false,
             "status": "prepared",
-        }))
+        });
+
+        #[cfg(unix)]
+        if let Some(crypto) = &self.crypto {
+            let preimage = braid.compute_anchor_preimage(&spine_id);
+            match crypto.sign(preimage.as_str().as_bytes()).await {
+                Ok(result) => {
+                    let agent_did =
+                        sweet_grass_core::agent::Did::from_public_key_bytes(&result.public_key);
+                    let witness = sweet_grass_core::dehydration::Witness::from_tower_ed25519(
+                        &agent_did,
+                        &result.signature,
+                    );
+                    if let Ok(w) = serde_json::to_value(&witness) {
+                        response["witness"] = w;
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!("crypto.sign unavailable, anchor unsigned: {e}");
+                }
+            }
+        }
+
+        Ok(response)
     }
 
     #[instrument(skip(self, _ctx))]

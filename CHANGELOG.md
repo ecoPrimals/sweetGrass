@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Anchor Signing via Tower (April 28, 2026)
+
+Extends BearDog crypto delegation to `anchoring.anchor`. When Tower is
+available, anchor preparation responses carry a Tower-signed Ed25519 witness
+bound to the `(braid, spine)` pair. Same graceful degradation as `braid.create`.
+Per primalSpring Phase 55b.
+
+#### Added
+- `Braid::compute_anchor_preimage(spine_id)` — SHA-256 preimage over
+  `braid_id || spine_id || data_hash` for anchor-specific signing
+- Tower signing wired into `handle_anchor_braid` (JSON-RPC) and
+  `anchor_braid` (tarpc) with `Witness::from_tower_ed25519`
+- `SweetGrassServer.crypto` field threaded from `AppState` via `from_app_state`
+- 1 new UDS integration test (`test_uds_anchoring_anchor_tower_signed`)
+
+#### Deferred
+- Hash delegation (`crypto.sha256.hash`): deferred — BearDog wire standard
+  uses BLAKE3, not SHA-256; no security benefit for deterministic preimage
+  computation; signature IS the audit trail
+
+#### Metrics
+- Tests: 1,462 pass, 0 failures (was 1,461)
+- Clippy: 0 warnings, fmt: clean
+
+---
+
 ### BearDog Crypto Signing Delegation (April 28, 2026)
 
 Delegates braid signing to BearDog's `crypto.sign` Ed25519 over UDS JSON-RPC,
