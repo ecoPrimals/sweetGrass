@@ -1,10 +1,11 @@
 # 🐻 BearDog Integration Gap — Honest Assessment
 
-> **HISTORICAL** — December 2025 gap analysis. Architecture has since evolved
-> to capability-based discovery with DI patterns. Retained as fossil record.
+> **HISTORICAL** — December 2025 gap analysis. As of v0.7.28 (April 2026),
+> sweetGrass delegates signing to BearDog `crypto.sign` over UDS JSON-RPC.
+> Architecture mismatch fully resolved. Retained as fossil record.
 
 **Date**: December 28, 2025  
-**Status**: ⚠️ **ARCHITECTURE MISMATCH DISCOVERED** (since resolved)
+**Status**: RESOLVED (v0.7.28 — UDS JSON-RPC `crypto.sign` delegation)
 
 ---
 

@@ -2954,7 +2954,7 @@ checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
 
 [[package]]
 name = "sweet-grass-compression"
-version = "0.7.27"
+version = "0.7.28"
 dependencies = [
  "proptest",
  "serde",
@@ -2967,7 +2967,7 @@ dependencies = [
 
 [[package]]
 name = "sweet-grass-core"
-version = "0.7.27"
+version = "0.7.28"
 dependencies = [
  "base64 0.22.1",
  "bincode",
@@ -2987,7 +2987,7 @@ dependencies = [
 
 [[package]]
 name = "sweet-grass-factory"
-version = "0.7.27"
+version = "0.7.28"
 dependencies = [
  "futures",
  "proptest",
@@ -3001,7 +3001,7 @@ dependencies = [
 
 [[package]]
 name = "sweet-grass-integration"
-version = "0.7.27"
+version = "0.7.28"
 dependencies = [
  "bincode",
  "bytes",
@@ -3023,7 +3023,7 @@ dependencies = [
 
 [[package]]
 name = "sweet-grass-query"
-version = "0.7.27"
+version = "0.7.28"
 dependencies = [
  "chrono",
  "futures",
@@ -3040,7 +3040,7 @@ dependencies = [
 
 [[package]]
 name = "sweet-grass-service"
-version = "0.7.27"
+version = "0.7.28"
 dependencies = [
  "axum",
  "axum-test",
@@ -3074,7 +3074,7 @@ dependencies = [
 
 [[package]]
 name = "sweet-grass-store"
-version = "0.7.27"
+version = "0.7.28"
 dependencies = [
  "futures",
  "indexmap 2.14.0",
@@ -3089,7 +3089,7 @@ dependencies = [
 
 [[package]]
 name = "sweet-grass-store-nestgate"
-version = "0.7.27"
+version = "0.7.28"
 dependencies = [
  "serde",
  "serde_json",
@@ -3104,7 +3104,7 @@ dependencies = [
 
 [[package]]
 name = "sweet-grass-store-postgres"
-version = "0.7.27"
+version = "0.7.28"
 dependencies = [
  "proptest",
  "serde_json",
@@ -3121,7 +3121,7 @@ dependencies = [
 
 [[package]]
 name = "sweet-grass-store-redb"
-version = "0.7.27"
+version = "0.7.28"
 dependencies = [
  "redb",
  "serde_json",

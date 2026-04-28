@@ -1,10 +1,21 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.27 (April 2026)
+**Current Version**: v0.7.28 (April 2026)
 
 ---
 
 ## Completed
+
+### v0.7.28 — BearDog Crypto Signing Delegation (April 2026)
+
+- [x] **`crypto_delegate.rs`** — UDS JSON-RPC client for BearDog `crypto.sign`; socket resolution chain: `BEARDOG_SOCKET` → `SECURITY_PROVIDER_SOCKET` → `BIOMEOS_SOCKET_DIR/security.sock` → `XDG_RUNTIME_DIR/biomeos/security.sock`
+- [x] **`Witness::from_tower_ed25519`** — Tower-tier witness constructor (`tier: "tower"`); distinguishes BearDog-delegated from local signatures
+- [x] **`Did::from_public_key_bytes`** — constructs `did:key:z6Mk{base64url}` from raw Ed25519 public key
+- [x] **`BEARDOG_SOCKET` + `DISCOVERY_SOCKET`** environment variable constants in `primal_names::env_vars`
+- [x] **`AppState.crypto`** — `Option<Arc<CryptoDelegate>>` with `with_crypto()` builder; Phase 4b bootstrap resolution
+- [x] **`braid.create` signing** — computes `compute_signing_hash()`, calls `crypto.sign(base64(hash))`, stores Ed25519 witness; graceful fallback to unsigned on BearDog unavailability
+- [x] **`Agent::person()`** — signature evolved to `Option<impl Into<String>>` for consistency with `software()` / `organization()`
+- [x] 7 new tests (6 crypto delegate + 1 UDS integration with mock BearDog), 1,461 total
 
 ### v0.7.27 — Deep Debt: Stadial Parity, Zero-Copy Phase 3, Type Safety (March–April 2026)
 
@@ -501,7 +512,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.27 | **March–April 2026** | Deep Debt: Coordinated Shutdown, Zero-Copy Phase 3, Type Safety (DONE) |
+| v0.7.28 | **April 2026** | BearDog Crypto Signing Delegation, Tower-Tier Witnesses (DONE) |
+| v0.7.27 | March–April 2026 | Deep Debt: Coordinated Shutdown, Zero-Copy Phase 3, Type Safety (DONE) |
 | v0.7.26 | March 2026 | Ecosystem Absorption: scyBorg License, Sled Deprecation, Lint Evolution (DONE) |
 | v0.7.25 | March 2026 | Coverage Push, Test Hygiene, PUBLIC_SURFACE_STANDARD Compliance (DONE) |
 | v0.7.24 | March 2026 | Deep Debt: Zero-Copy Phase 2, Public Surface, Audit (DONE) |

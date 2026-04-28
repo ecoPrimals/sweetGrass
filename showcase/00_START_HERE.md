@@ -465,6 +465,6 @@ cat README.md
 
 ---
 
-*SweetGrass v0.7.27 - ecoPrimals Phase 2*  
-*April 7, 2026*
+*SweetGrass v0.7.28 - ecoPrimals Phase 2*  
+*April 28, 2026*
 

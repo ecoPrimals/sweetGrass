@@ -31,7 +31,7 @@ attribution before distributing rewards.
 - **Coverage:** 90%+ line (91.7% with Postgres Docker, llvm-cov)
 - **BTSP:** Phase 2 — `detect_protocol` three-way multiplexer (JSON-RPC, JSON-line BTSP, length-prefixed BTSP) when `FAMILY_ID` set; `family_seed` forwarded to `BearDog` for crypto; EOF-resilient first-line detection for shell callers
 - **UDS contract:** Newline-delimited JSON-RPC 2.0; compositions should use `\n`-terminated requests and >=10s read timeout (`braid.create`/`provenance.graph` may touch storage)
-- **Source files:** 186 `.rs` files (51,330 LOC), max 768 lines
+- **Source files:** 190 `.rs` files (52,118 LOC), max 768 lines
 - **Property testing:** 25 proptest strategies across 7 crates
 - **Chaos/fault:** 11 attribution chaos + 17 service chaos + 9 fault injection
 - **Edition:** 2024 (`resolver = "3"`), MSRV 1.87
