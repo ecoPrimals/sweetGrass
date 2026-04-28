@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Environment Variable Centralization (April 27, 2026)
+
+Final pass: centralized all remaining hardcoded env var strings into
+`primal_names::env_vars`. Added `DATABASE_URL` and
+`TARPC_MAX_CONCURRENT_REQUESTS` constants. Fixed `NestGateConfig::default()`
+key prefix to use `identity::PRIMAL_NAME`. Only `"USER"` (standard POSIX)
+remains as a raw string literal.
+
+---
+
 ### PG-52: UDS Domain Method Verification + EOF Resilience (April 27, 2026)
 
 Addresses the cross-spring PG-52 audit (Gap 23): `braid.create`,
