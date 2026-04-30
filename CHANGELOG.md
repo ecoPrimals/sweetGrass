@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### CI: Node 24 Compatibility + cargo deny (April 30, 2026)
+
+Per primalSpring Phase 56c — GitHub Actions Node.js 20 deprecation deadline
+(June 2, 2026). Updated `actions/cache` v3→v4 and `codecov/codecov-action`
+v3→v4 across all CI jobs. Added `cargo deny check` to the security job so
+`deny.toml` policy (tonic/prost/openssl/ring/reqwest bans) is enforced in CI,
+not just locally.
+
+#### Changed
+- `actions/cache@v3` → `@v4` (4 instances: registry, index, target, musl)
+- `codecov/codecov-action@v3` → `@v4`
+- Added `cargo deny check` step to security job via `taiki-e/install-action`
+
+---
+
 ### Dependency Evolution: `hostname` Crate Removed (April 28, 2026)
 
 Replaced `hostname` crate (libc `gethostname` wrapper) with pure Rust
