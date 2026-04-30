@@ -66,7 +66,7 @@ fi
 
 echo -e "${GREEN}   ✅ LoamSpine binary verified${NC}"
 echo -e "${BLUE}      Size: $(du -h "$LOAMSPINE_BIN" | cut -f1)${NC}"
-echo -e "${BLUE}      Version: 0.7.27 (1,560 tests, 91.7% coverage)${NC}"
+echo -e "${BLUE}      LoamSpine (permanent ledger primal)${NC}"
 echo ""
 
 # Step 2: Architecture Overview

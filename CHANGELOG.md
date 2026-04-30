@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Idiomatic Rust: Clone Elimination + API Ergonomics (April 30, 2026)
+
+Eliminates unnecessary `.clone().into()` patterns and evolves API return types.
+
+#### Changed
+- `braids/mod.rs` — move owned `data_hash` and `was_derived_from` instead of
+  cloning (`.clone().into()` → `.into()`, `.iter()` → `.into_iter()`)
+- `contribution.rs`, `object_memory.rs` — `Arc::from(s.as_str())` instead of
+  `.clone().into()` to avoid intermediate `String` allocation
+- `traversal/mod.rs` — `entity_hashes()` and `activity_ids()` return
+  `Vec<&str>` instead of `Vec<&String>` (more idiomatic Rust API)
+
+---
+
 ### CI: Lean Workflow + cargo deny (April 30, 2026)
 
 Per primalSpring Phase 56c — plasmidBin now handles binary distribution.
