@@ -188,7 +188,7 @@ async fn test_entity_and_activity_accessors() {
 
     let hashes = graph.entity_hashes();
     assert_eq!(hashes.len(), 1);
-    assert!(hashes.contains(&&"sha256:test".to_string()));
+    assert!(hashes.contains(&"sha256:test"));
 
     let activity_ids = graph.activity_ids();
     let _ = activity_ids;

@@ -11,6 +11,7 @@
 //! change is a braid in the object's memory.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use crate::activity::{Activity, ActivityMetadata};
 use crate::agent::{AgentAssociation, AgentRole, Did};
@@ -108,7 +109,7 @@ impl ObjectMemory {
 
         let mut builder = BraidBuilder::default();
         builder = builder
-            .data_hash(&data_hash)
+            .data_hash(data_hash.as_str())
             .mime_type("application/x-object-event")
             .size(event.description.len() as u64)
             .attributed_to(event.actor.clone())
@@ -120,7 +121,7 @@ impl ObjectMemory {
         }
 
         let mut braid = builder.build()?;
-        braid.metadata.description = Some(event.description.clone().into());
+        braid.metadata.description = Some(Arc::from(event.description.as_str()));
 
         let braid_id = braid.id.clone();
         self.object_heads.insert(object_id.into(), braid_id.clone());

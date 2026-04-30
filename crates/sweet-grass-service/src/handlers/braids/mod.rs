@@ -207,7 +207,7 @@ pub async fn create_provenance_braid(
     // Create derivation references
     let was_derived_from: Vec<EntityReference> = request
         .was_derived_from
-        .iter()
+        .into_iter()
         .map(EntityReference::by_hash)
         .collect();
 
@@ -219,7 +219,7 @@ pub async fn create_provenance_braid(
 
     // Create the Braid from hash
     let mut braid = state.factory.from_hash(
-        request.data_hash.clone().into(),
+        request.data_hash.into(),
         request.mime_type,
         request.size,
         Some(metadata),

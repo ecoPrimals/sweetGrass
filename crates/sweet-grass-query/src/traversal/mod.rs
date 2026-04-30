@@ -54,14 +54,14 @@ impl ProvenanceGraph {
 
     /// Get all entity hashes.
     #[must_use]
-    pub fn entity_hashes(&self) -> Vec<&String> {
-        self.entities.keys().collect()
+    pub fn entity_hashes(&self) -> Vec<&str> {
+        self.entities.keys().map(String::as_str).collect()
     }
 
     /// Get all activity IDs.
     #[must_use]
-    pub fn activity_ids(&self) -> Vec<&String> {
-        self.activities.keys().collect()
+    pub fn activity_ids(&self) -> Vec<&str> {
+        self.activities.keys().map(String::as_str).collect()
     }
 
     /// Get the number of entities.
