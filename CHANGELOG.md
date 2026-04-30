@@ -7,18 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### CI: Node 24 Compatibility + cargo deny (April 30, 2026)
+### CI: Lean Workflow + cargo deny (April 30, 2026)
 
-Per primalSpring Phase 56c — GitHub Actions Node.js 20 deprecation deadline
-(June 2, 2026). Updated `actions/cache` v3→v4 and `codecov/codecov-action`
-v3→v4 across all CI jobs. Added `cargo deny check` to the security job so
-`deny.toml` policy (tonic/prost/openssl/ring/reqwest bans) is enforced in CI,
-not just locally.
+Per primalSpring Phase 56c — plasmidBin now handles binary distribution.
+Adopted lean single-job `ci.yml` (upstream), added `--all-features` to
+clippy/test and `cargo deny check` so `deny.toml` policy is CI-enforced.
+Old multi-job `test.yml` removed (coverage, musl-static, cross-compile,
+docs jobs all handled by plasmidBin auto-harvest).
 
 #### Changed
-- `actions/cache@v3` → `@v4` (4 instances: registry, index, target, musl)
-- `codecov/codecov-action@v3` → `@v4`
-- Added `cargo deny check` step to security job via `taiki-e/install-action`
+- `ci.yml` — `--all-features` on clippy and test, `cargo deny check` step
+- `notify-plasmidbin.yml` — auto-dispatch to plasmidBin on push to main
+- Old `test.yml` (208 lines, 6 jobs) → lean `ci.yml` (50 lines, 1 job)
 
 ---
 
