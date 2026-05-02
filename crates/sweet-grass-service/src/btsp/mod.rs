@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
-//! `BearDog` Secure Tunnel Protocol (BTSP) — Phase 2 server handshake.
+//! `BearDog` Secure Tunnel Protocol (BTSP) — Phase 2 handshake + Phase 3 encryption.
 //!
 //! Implements the server side of the BTSP handshake per
-//! `BTSP_PROTOCOL_STANDARD.md` v1.0.  All cryptographic operations are
+//! `BTSP_PROTOCOL_STANDARD.md` v1.0.  Phase 1–2 cryptographic operations are
 //! delegated to a primal offering `Capability::Signing` (`BearDog`) via
-//! JSON-RPC over UDS — sweetGrass never touches key material directly.
+//! JSON-RPC over UDS.  Phase 3 adds in-process ChaCha20-Poly1305 AEAD
+//! framing using session keys derived from `BearDog`'s handshake material.
 //!
 //! ## Activation
 //!
@@ -23,15 +24,17 @@
 //! JSON-RPC. This first-line auto-detect aligns with Phase 45b wire-format
 //! guidance and matches `BearDog` (PG-35) / `Squirrel` (PG-30) patterns.
 
+pub mod phase3;
 pub mod protocol;
 pub mod server;
+pub mod transport;
 
 pub use protocol::{
     BtspError, ChallengeResponse, ClientHello, HandshakeComplete, HandshakeError, ServerHello,
     read_frame, read_jsonline, write_frame, write_jsonline,
 };
 pub use server::{
-    perform_server_handshake, perform_server_handshake_jsonline,
+    HandshakeOutcome, perform_server_handshake, perform_server_handshake_jsonline,
     perform_server_handshake_jsonline_with, perform_server_handshake_with,
 };
 

@@ -331,10 +331,11 @@ pub(crate) async fn handle_uds_with_autodetect(
 
 /// Handle a UDS connection with BTSP handshake then length-prefixed JSON-RPC.
 ///
-/// Per `BTSP_PROTOCOL_STANDARD` §Phase 2: when `FAMILY_ID` is set, every
-/// incoming connection runs the 4-step handshake before any JSON-RPC
-/// method is exposed.  Post-handshake, frames use 4-byte big-endian
-/// length-prefixed framing instead of newline delimiters.
+/// Per `BTSP_PROTOCOL_STANDARD` §Phase 2–3: when `FAMILY_ID` is set, every
+/// incoming connection runs the 4-step handshake.  After the handshake, the
+/// first frame is inspected for a Phase 3 `btsp.negotiate` request.  If the
+/// client negotiates ChaCha20-Poly1305, subsequent frames use encrypted
+/// AEAD framing; otherwise plaintext length-prefixed JSON-RPC continues.
 ///
 /// Generic over stream type to support [`PeekedStream`](crate::peek::PeekedStream)
 /// wrapping for first-byte auto-detection.
@@ -345,90 +346,179 @@ async fn handle_uds_connection_btsp(
     use crate::btsp;
     use tokio::io::AsyncWriteExt;
 
-    match btsp::perform_server_handshake(&mut stream).await {
-        Ok(complete) => {
-            debug!(
-                session = %complete.session_id,
-                cipher = %complete.cipher,
-                "UDS BTSP handshake succeeded — entering length-prefixed mode"
-            );
-        },
+    let outcome = match btsp::perform_server_handshake(&mut stream).await {
+        Ok(o) => o,
         Err(e) => {
             warn!("UDS BTSP handshake failed: {e}");
             return Ok(());
         },
-    }
+    };
+
+    debug!(
+        session = %outcome.complete.session_id,
+        cipher = %outcome.complete.cipher,
+        has_phase3_key = outcome.handshake_key.is_some(),
+        "UDS BTSP handshake succeeded — entering length-prefixed mode"
+    );
 
     let (mut reader, mut writer) = tokio::io::split(stream);
 
-    loop {
-        let frame = match btsp::read_frame(&mut reader).await {
-            Ok(f) => f,
-            Err(btsp::BtspError::Io(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
-                break;
-            },
-            Err(e) => {
-                warn!("UDS BTSP frame read error: {e}");
-                break;
-            },
-        };
+    let first_frame = match btsp::read_frame(&mut reader).await {
+        Ok(f) => f,
+        Err(btsp::BtspError::Io(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+            return Ok(());
+        },
+        Err(e) => {
+            warn!("UDS BTSP frame read error: {e}");
+            return Ok(());
+        },
+    };
 
-        let request: serde_json::Value = match serde_json::from_slice(&frame) {
-            Ok(v) => v,
-            Err(e) => {
-                let err_response = serde_json::json!({
-                    "jsonrpc": "2.0",
-                    "error": {"code": crate::handlers::jsonrpc::error_code::PARSE_ERROR, "message": format!("Parse error: {e}")},
-                    "id": null
-                });
-                let payload = serde_json::to_vec(&err_response)?;
-                btsp::write_frame(&mut writer, &payload)
-                    .await
-                    .map_err(|e| crate::ServiceError::Internal(e.to_string()))?;
-                continue;
-            },
-        };
-
-        if let Some(response) = crate::handlers::jsonrpc::process_single(&state, request).await {
-            let payload = serde_json::to_vec(&response)?;
+    let first_request: serde_json::Value = match serde_json::from_slice(&first_frame) {
+        Ok(v) => v,
+        Err(e) => {
+            let err_response = serde_json::json!({
+                "jsonrpc": "2.0",
+                "error": {"code": crate::handlers::jsonrpc::error_code::PARSE_ERROR, "message": format!("Parse error: {e}")},
+                "id": null
+            });
+            let payload = serde_json::to_vec(&err_response)?;
             btsp::write_frame(&mut writer, &payload)
                 .await
                 .map_err(|e| crate::ServiceError::Internal(e.to_string()))?;
-            writer.flush().await?;
-        }
+            return Ok(());
+        },
+    };
+
+    if let Some(session_keys) = crate::btsp::transport::try_phase3_negotiate(
+        &first_request,
+        outcome.handshake_key.as_ref(),
+        &mut writer,
+        false,
+    )
+    .await?
+    {
+        crate::btsp::transport::run_encrypted_frame_loop(
+            &mut reader, &mut writer, &state, &session_keys,
+        )
+        .await?;
+        return Ok(());
     }
 
-    Ok(())
+    if let Some(response) =
+        crate::handlers::jsonrpc::process_single(&state, first_request).await
+    {
+        let payload = serde_json::to_vec(&response)?;
+        btsp::write_frame(&mut writer, &payload)
+            .await
+            .map_err(|e| crate::ServiceError::Internal(e.to_string()))?;
+        writer.flush().await?;
+    }
+
+    crate::btsp::transport::run_plaintext_frame_loop(&mut reader, &mut writer, &state).await
 }
 
-/// Handle a UDS connection with JSON-line BTSP handshake then newline JSON-RPC.
+/// Handle a UDS connection with JSON-line BTSP handshake.
 ///
-/// The `ClientHello` has already been parsed from the first line by the
-/// auto-detect layer (`{"protocol":"btsp",...}`). After the 4-step JSON-line
-/// handshake, the stream enters newline-delimited JSON-RPC mode.
+/// After the 4-step JSON-line handshake, reads one newline-delimited JSON-RPC
+/// line.  If it is a Phase 3 `btsp.negotiate`, responds and switches to
+/// encrypted length-prefixed framing.  Otherwise processes it as a regular
+/// JSON-RPC request and enters the plaintext newline-delimited loop.
 async fn handle_uds_connection_btsp_jsonline(
     mut stream: tokio::net::UnixStream,
     state: crate::state::AppState,
     client_hello: crate::btsp::ClientHello,
 ) {
-    match crate::btsp::perform_server_handshake_jsonline(&mut stream, client_hello).await {
-        Ok(complete) => {
-            debug!(
-                session = %complete.session_id,
-                cipher = %complete.cipher,
-                "UDS BTSP JSON-line handshake succeeded — entering newline JSON-RPC mode"
-            );
-        },
-        Err(e) => {
-            warn!("UDS BTSP JSON-line handshake failed: {e}");
-            return;
-        },
-    }
+    let outcome =
+        match crate::btsp::perform_server_handshake_jsonline(&mut stream, client_hello).await {
+            Ok(o) => o,
+            Err(e) => {
+                warn!("UDS BTSP JSON-line handshake failed: {e}");
+                return;
+            },
+        };
 
-    if let Err(e) = handle_uds_connection_raw(stream, state).await {
+    debug!(
+        session = %outcome.complete.session_id,
+        cipher = %outcome.complete.cipher,
+        has_phase3_key = outcome.handshake_key.is_some(),
+        "UDS BTSP JSON-line handshake succeeded"
+    );
+
+    if let Err(e) =
+        handle_post_jsonline_handshake(stream, state, outcome.handshake_key).await
+    {
         warn!("UDS JSON-RPC error (post BTSP JSON-line handshake): {e}");
     }
 }
+
+/// Post-JSON-line handshake: read first line, check for Phase 3, route.
+async fn handle_post_jsonline_handshake(
+    stream: tokio::net::UnixStream,
+    state: crate::state::AppState,
+    handshake_key: Option<[u8; 32]>,
+) -> std::result::Result<(), crate::ServiceError> {
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+
+    let (reader, mut writer) = stream.into_split();
+    let mut buf_reader = BufReader::new(reader);
+
+    let mut first_line = String::new();
+    match buf_reader.read_line(&mut first_line).await {
+        Ok(0) => return Ok(()),
+        Ok(_) => {},
+        Err(e) => {
+            warn!("UDS BTSP JSON-line: failed to read first post-handshake line: {e}");
+            return Ok(());
+        },
+    }
+
+    let first_request: serde_json::Value = match serde_json::from_str(first_line.trim()) {
+        Ok(v) => v,
+        Err(e) => {
+            let _ = write_jsonrpc_error(
+                &mut writer,
+                serde_json::Value::Null,
+                crate::handlers::jsonrpc::error_code::PARSE_ERROR,
+                format!("Parse error: {e}"),
+            )
+            .await;
+            return Ok(());
+        },
+    };
+
+    if let Some(session_keys) = crate::btsp::transport::try_phase3_negotiate(
+        &first_request,
+        handshake_key.as_ref(),
+        &mut writer,
+        true,
+    )
+    .await?
+    {
+        let mut combined = buf_reader.into_inner().reunite(writer)
+            .map_err(|e| crate::ServiceError::Internal(format!("reunite: {e}")))?;
+        let (mut enc_reader, mut enc_writer) = tokio::io::split(&mut combined);
+        crate::btsp::transport::run_encrypted_frame_loop(
+            &mut enc_reader, &mut enc_writer, &state, &session_keys,
+        )
+        .await?;
+        return Ok(());
+    }
+
+    if let Some(response) =
+        crate::handlers::jsonrpc::process_single(&state, first_request).await
+    {
+        let mut resp_str = serde_json::to_string(&response)?;
+        resp_str.push('\n');
+        writer.write_all(resp_str.as_bytes()).await?;
+        writer.flush().await?;
+    }
+
+    let stream = buf_reader.into_inner().reunite(writer)
+        .map_err(|e| crate::ServiceError::Internal(format!("reunite: {e}")))?;
+    handle_uds_connection_raw(stream, state).await
+}
+
 
 /// Handle a UDS connection where the first JSON-RPC request has already been
 /// consumed by the auto-detect layer.

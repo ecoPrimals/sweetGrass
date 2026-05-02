@@ -191,9 +191,9 @@ mod btsp_tests {
                     assert_eq!(complete.session_id, "mock-session-001");
 
                     let server_result = server_handle.await.expect("server task");
-                    let server_complete = server_result.expect("server handshake");
-                    assert_eq!(server_complete.cipher, "AES-256-GCM");
-                    assert_eq!(server_complete.session_id, "mock-session-001");
+                    let server_outcome = server_result.expect("server handshake");
+                    assert_eq!(server_outcome.complete.cipher, "AES-256-GCM");
+                    assert_eq!(server_outcome.complete.session_id, "mock-session-001");
 
                     mock_handle.abort();
                 });

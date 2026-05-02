@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
-//! BTSP server-side handshake.
+//! BTSP server-side handshake (Phase 1–2) and Phase 3 key extraction.
 //!
 //! Delegates all crypto to `BearDog` via JSON-RPC (`btsp.session.create`,
 //! `btsp.session.verify`, `btsp.session.negotiate`) per the
-//! `BTSP_PROTOCOL_STANDARD.md` §Phase 2 pattern.
+//! `BTSP_PROTOCOL_STANDARD.md` §Phase 2 pattern.  Phase 3: extracts
+//! `session_key` from verify for downstream HKDF key derivation.
 
 use base64::Engine;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -147,6 +148,22 @@ struct SessionContext {
     challenge: String,
 }
 
+/// Result of a successful BTSP handshake, carrying both the wire-level
+/// completion and the optional handshake key for Phase 3 negotiation.
+///
+/// If `BearDog`'s `btsp.session.verify` returns a `session_key`, it is
+/// base64-decoded into a 32-byte key suitable for HKDF derivation.
+/// When absent (older `BearDog` versions), Phase 3 encrypted framing is
+/// not available and the connection stays plaintext.
+#[derive(Debug)]
+pub struct HandshakeOutcome {
+    /// Wire-level handshake completion (cipher + `session_id`).
+    pub complete: HandshakeComplete,
+    /// 32-byte handshake key from `BearDog` for Phase 3 HKDF derivation.
+    /// `None` if `BearDog` did not return `session_key`.
+    pub handshake_key: Option<[u8; 32]>,
+}
+
 /// Extract a required string field from a JSON-RPC result.
 fn extract_str(value: &serde_json::Value, field: &str) -> Result<String, BtspError> {
     value
@@ -202,14 +219,16 @@ where
 
 /// Steps 3–5: Exchange challenge, verify response via `BearDog`.
 ///
-/// Returns `(ChallengeResponse, session_id)` — the `session_id` comes from
-/// `BearDog`'s verify response (falling back to `session_token` if absent).
+/// Returns `(ChallengeResponse, session_id, handshake_key)` — the
+/// `session_id` comes from `BearDog`'s verify response (falling back to
+/// `session_token` if absent).  `handshake_key` is the 32-byte key from
+/// `BearDog`'s `session_key` field for Phase 3 HKDF derivation.
 async fn exchange_challenge<S>(
     stream: &mut S,
     client_hello: &ClientHello,
     ctx: &SessionContext,
     security_socket: &std::path::Path,
-) -> Result<(ChallengeResponse, String), BtspError>
+) -> Result<(ChallengeResponse, String, Option<[u8; 32]>), BtspError>
 where
     S: AsyncReadExt + AsyncWriteExt + Unpin + Send,
 {
@@ -258,7 +277,27 @@ where
         .unwrap_or(&ctx.session_token)
         .to_owned();
 
-    Ok((challenge_response, session_id))
+    let handshake_key = extract_handshake_key(&verify_result);
+
+    Ok((challenge_response, session_id, handshake_key))
+}
+
+/// Try to extract a 32-byte handshake key from `BearDog`'s verify response.
+///
+/// Returns `None` if the field is absent or cannot be decoded to exactly
+/// 32 bytes — Phase 3 will gracefully fall back to NULL cipher.
+fn extract_handshake_key(verify_result: &serde_json::Value) -> Option<[u8; 32]> {
+    let b64 = verify_result
+        .get("session_key")
+        .and_then(serde_json::Value::as_str)?;
+
+    let decoded = base64::engine::general_purpose::STANDARD
+        .decode(b64)
+        .ok()?;
+
+    let key: [u8; 32] = decoded.try_into().ok()?;
+    debug!("BTSP: extracted 32-byte handshake key for Phase 3");
+    Some(key)
 }
 
 /// Run the server-side BTSP handshake on an accepted connection.
@@ -272,12 +311,13 @@ where
 /// 6. Send `HandshakeComplete` or `HandshakeError`
 ///
 /// On success, the stream is ready for length-prefixed JSON-RPC frames.
-/// On failure, `HandshakeError` is sent and the connection is dropped.
+/// The returned [`HandshakeOutcome`] includes the optional handshake key
+/// for Phase 3 encrypted framing.
 ///
 /// # Errors
 ///
 /// Returns [`BtspError`] on I/O, protocol, or verification failure.
-pub async fn perform_server_handshake<S>(stream: &mut S) -> Result<HandshakeComplete, BtspError>
+pub async fn perform_server_handshake<S>(stream: &mut S) -> Result<HandshakeOutcome, BtspError>
 where
     S: AsyncReadExt + AsyncWriteExt + Unpin + Send,
 {
@@ -293,12 +333,12 @@ where
 pub async fn perform_server_handshake_with<S>(
     stream: &mut S,
     security_socket: &std::path::Path,
-) -> Result<HandshakeComplete, BtspError>
+) -> Result<HandshakeOutcome, BtspError>
 where
     S: AsyncReadExt + AsyncWriteExt + Unpin + Send,
 {
     let (client_hello, ctx) = receive_hello_and_create_session(stream, security_socket).await?;
-    let (challenge_response, session_id) =
+    let (challenge_response, session_id, handshake_key) =
         exchange_challenge(stream, &client_hello, &ctx, security_socket).await?;
 
     let negotiate_result = call_security_provider_at(
@@ -323,10 +363,14 @@ where
     info!(
         cipher = %complete.cipher,
         session = %complete.session_id,
+        has_phase3_key = handshake_key.is_some(),
         "BTSP: handshake complete"
     );
 
-    Ok(complete)
+    Ok(HandshakeOutcome {
+        complete,
+        handshake_key,
+    })
 }
 
 /// Run the server-side BTSP handshake using **JSON-line** framing.
@@ -336,8 +380,9 @@ where
 /// has already been parsed from the first line by the auto-detect layer
 /// (it starts with `{"protocol":"btsp",...}`).
 ///
-/// After a successful handshake the stream is in **newline-delimited
-/// JSON-RPC** mode (same as `handle_*_connection_raw`).
+/// After a successful handshake the stream may receive a Phase 3
+/// `btsp.negotiate` request (newline JSON-RPC) before switching to
+/// encrypted length-prefixed framing.
 ///
 /// # Errors
 ///
@@ -345,7 +390,7 @@ where
 pub async fn perform_server_handshake_jsonline<S>(
     stream: &mut S,
     client_hello: ClientHello,
-) -> Result<HandshakeComplete, BtspError>
+) -> Result<HandshakeOutcome, BtspError>
 where
     S: AsyncReadExt + AsyncWriteExt + Unpin + Send,
 {
@@ -361,7 +406,7 @@ pub async fn perform_server_handshake_jsonline_with<S>(
     stream: &mut S,
     client_hello: ClientHello,
     security_socket: &std::path::Path,
-) -> Result<HandshakeComplete, BtspError>
+) -> Result<HandshakeOutcome, BtspError>
 where
     S: AsyncReadExt + AsyncWriteExt + Unpin + Send,
 {
@@ -441,6 +486,8 @@ where
         .unwrap_or(&ctx.session_token)
         .to_owned();
 
+    let handshake_key = extract_handshake_key(&verify_result);
+
     let negotiate_result = call_security_provider_at(
         security_socket,
         "btsp.session.negotiate",
@@ -463,10 +510,14 @@ where
     info!(
         cipher = %complete.cipher,
         session = %complete.session_id,
+        has_phase3_key = handshake_key.is_some(),
         "BTSP JSON-line: handshake complete"
     );
 
-    Ok(complete)
+    Ok(HandshakeOutcome {
+        complete,
+        handshake_key,
+    })
 }
 
 #[cfg(test)]
@@ -670,5 +721,37 @@ mod tests {
                 );
             },
         );
+    }
+
+    #[test]
+    fn extract_handshake_key_valid() {
+        let key_bytes = [0xABu8; 32];
+        let b64 = base64::engine::general_purpose::STANDARD.encode(key_bytes);
+        let verify_result = serde_json::json!({"verified": true, "session_key": b64});
+        let key = extract_handshake_key(&verify_result).expect("should extract key");
+        assert_eq!(key, key_bytes);
+    }
+
+    #[test]
+    fn extract_handshake_key_missing_field() {
+        let verify_result = serde_json::json!({"verified": true});
+        assert!(extract_handshake_key(&verify_result).is_none());
+    }
+
+    #[test]
+    fn extract_handshake_key_wrong_length() {
+        let short = base64::engine::general_purpose::STANDARD.encode([1u8; 16]);
+        let verify_result = serde_json::json!({"verified": true, "session_key": short});
+        assert!(
+            extract_handshake_key(&verify_result).is_none(),
+            "16 bytes should be rejected (need 32)"
+        );
+    }
+
+    #[test]
+    fn extract_handshake_key_invalid_base64() {
+        let verify_result =
+            serde_json::json!({"verified": true, "session_key": "not-valid-b64!!!"});
+        assert!(extract_handshake_key(&verify_result).is_none());
     }
 }

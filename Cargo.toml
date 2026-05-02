@@ -17,7 +17,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.7.28"
+version = "0.7.29"
 edition = "2024"
 rust-version = "1.87"
 license = "AGPL-3.0-or-later"
@@ -47,6 +47,9 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # Cryptography
 sha2 = "0.10"
 base64 = "0.22"
+chacha20poly1305 = "0.10"
+hkdf = "0.12"
+zeroize = { version = "1", features = ["derive"] }
 
 # UUID
 uuid = { version = "1.11", features = ["v4", "serde"] }

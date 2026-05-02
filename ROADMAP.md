@@ -1,10 +1,22 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.28 (April 2026)
+**Current Version**: v0.7.29 (May 2026)
 
 ---
 
 ## Completed
+
+### v0.7.29 — BTSP Phase 3 Encrypted Framing + Transport Refactor (May 2026)
+
+- [x] **`btsp/phase3.rs`** — `SessionKeys` (HKDF-SHA256 directional key derivation, ChaCha20-Poly1305 AEAD encrypt/decrypt), `NegotiateParams`/`NegotiateResult`, `Phase3Cipher` enum, `generate_server_nonce()`, `select_cipher()`
+- [x] **`btsp/transport.rs`** — transport-agnostic Phase 3 helpers extracted from `uds.rs`: `try_phase3_negotiate()`, `write_negotiate_response()`, `run_encrypted_frame_loop()`, `run_plaintext_frame_loop()`
+- [x] **`HandshakeOutcome`** — carries `HandshakeComplete` + optional 32-byte handshake key from BearDog `btsp.session.verify`
+- [x] **`anchoring.anchor` Tower signing** — delegates to BearDog `crypto.sign_ed25519` when Tower is available; same `CryptoDelegate` pattern as `braid.create`
+- [x] **Hash delegation** — `crypto.sha256` / `crypto.blake3_hash` when Tower available, local fallback
+- [x] **UDS + TCP Phase 3** — both transports negotiate encrypted framing after successful Phase 1–2 handshake; NULL cipher graceful fallback
+- [x] **Transport refactor** — `uds.rs` 968→734 lines, `tcp_jsonrpc.rs` 849→411+441 lines (tests extracted to submodule)
+- [x] **Dependencies** — `chacha20poly1305 = "0.10"`, `hkdf = "0.12"`, `zeroize = "1"` (pure Rust AEAD, no `ring`)
+- [x] 20 new Phase 3 tests, 1,482 total
 
 ### v0.7.28 — BearDog Crypto Signing Delegation (April 2026)
 
@@ -512,7 +524,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.28 | **April 2026** | BearDog Crypto Signing Delegation, Tower-Tier Witnesses (DONE) |
+| v0.7.29 | **May 2026** | BTSP Phase 3 Encrypted Framing, Transport Refactor, Anchor/Hash Delegation (DONE) |
+| v0.7.28 | April 2026 | BearDog Crypto Signing Delegation, Tower-Tier Witnesses (DONE) |
 | v0.7.27 | March–April 2026 | Deep Debt: Coordinated Shutdown, Zero-Copy Phase 3, Type Safety (DONE) |
 | v0.7.26 | March 2026 | Ecosystem Absorption: scyBorg License, Sled Deprecation, Lint Evolution (DONE) |
 | v0.7.25 | March 2026 | Coverage Push, Test Hygiene, PUBLIC_SURFACE_STANDARD Compliance (DONE) |

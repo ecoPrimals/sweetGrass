@@ -49,6 +49,12 @@ serde_json = { workspace = true }
 # Encoding
 base64 = { workspace = true }
 
+# BTSP Phase 3 — in-process AEAD for encrypted framing
+chacha20poly1305 = { workspace = true }
+hkdf = { workspace = true }
+sha2 = { workspace = true }
+zeroize = { workspace = true }
+
 # Error handling
 thiserror = { workspace = true }
 

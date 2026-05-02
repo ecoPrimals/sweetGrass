@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.29] - 2026-05-02
+
+### BTSP Phase 3: Server-Side `btsp.negotiate` + Encrypted Framing (May 2, 2026)
+
+Implements BTSP Phase 3 server-side encrypted channel support per
+`BTSP_PROTOCOL_STANDARD.md`. After a successful Phase 1–2 handshake,
+primalSpring (or any Phase 3-capable client) can send a `btsp.negotiate`
+JSON-RPC request to upgrade the connection to ChaCha20-Poly1305 AEAD
+framing. NULL cipher fallback ensures zero breakage for clients without
+Phase 3 support.
+
+#### Added
+- `btsp/phase3.rs` — `SessionKeys` (HKDF-SHA256 directional key derivation,
+  ChaCha20-Poly1305 encrypt/decrypt), `NegotiateParams`/`NegotiateResult`,
+  `Phase3Cipher` enum, `generate_server_nonce()`, `select_cipher()`
+- `HandshakeOutcome` struct — carries `HandshakeComplete` + optional
+  32-byte handshake key extracted from BearDog's `btsp.session.verify`
+  `session_key` field
+- `try_phase3_negotiate()` — shared handler for both UDS and TCP paths
+- `run_encrypted_frame_loop()` / `run_plaintext_frame_loop()` — post-negotiate
+  transport loops
+- TCP `handle_tcp_post_jsonline()` — Phase 3-aware JSON-line post-handshake
+
+#### Changed
+- `perform_server_handshake` / `perform_server_handshake_jsonline` now return
+  `HandshakeOutcome` instead of `HandshakeComplete`
+- `exchange_challenge` extracts `session_key` from BearDog verify response
+- UDS/TCP connection handlers check first post-handshake message for
+  `btsp.negotiate` before entering the frame loop
+
+#### Dependencies
+- `chacha20poly1305 = "0.10"` (pure Rust AEAD, no `ring`)
+- `hkdf = "0.12"` (HKDF-SHA256, digest 0.10-compatible with existing `sha2`)
+- `zeroize = "1"` (secure key erasure with derive)
+
+#### Metrics
+- Tests: 1,482 pass, 0 failures (20 new Phase 3 tests)
+- Source files: 193 `.rs` (53,299 LOC), max 757 lines
+- `btsp/transport.rs` extracted — shared Phase 3 transport helpers properly located
+- `tcp_jsonrpc/tests.rs` extracted — tests in submodule per `uds/tests.rs` pattern
+- Clippy: 0 warnings, `cargo deny check`: clean
+
+---
+
 ### Idiomatic Rust: Clone Elimination + API Ergonomics (April 30, 2026)
 
 Eliminates unnecessary `.clone().into()` patterns and evolves API return types.
