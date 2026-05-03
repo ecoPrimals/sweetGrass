@@ -203,7 +203,7 @@ cd ../01-primal-coordination
 ✅ Cross-primal storage (NestGate)
 ✅ Compute provenance (ToadStool)
 ✅ AI attribution (Squirrel)
-⚠️ Signing integration (BearDog - needs test)
+✅ Signing integration (BearDog — `crypto.sign` Ed25519 delegation shipped v0.7.28+)
 ```
 
 ---
@@ -465,6 +465,6 @@ cat README.md
 
 ---
 
-*SweetGrass v0.7.28 - ecoPrimals Phase 2*  
-*April 28, 2026*
+*SweetGrass v0.7.29 - ecoPrimals Phase 3 (BTSP AEAD Framing)*  
+*May 2026*
 

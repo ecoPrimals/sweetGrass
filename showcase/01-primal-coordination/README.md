@@ -136,7 +136,7 @@ cd 05-sweetgrass-squirrel
 **Directory**: `01-sweetgrass-beardog/`  
 **Binary**: `../../../bins/beardog` (4.5MB, real ELF)  
 **Time**: 15 minutes  
-**Status**: ✅ **RESOLVED** (v0.7.28 — UDS JSON-RPC `crypto.sign` delegation)
+**Status**: ✅ **RESOLVED** (v0.7.28+ — `crypto.sign` delegation, BTSP Phase 3 in v0.7.29)
 
 **What it demonstrates**:
 - Braid signing with Ed25519 (Tower-delegated via `CryptoDelegate`)
@@ -287,7 +287,7 @@ This showcase **intentionally** uses real binaries to find integration issues:
 **Gaps Discovered So Far**:
 1. ✅ **SweetGrass service binary missing** (FIXED in Phase 2)
 2. ✅ **API mismatch for provenance creation** (FIXED in Phase 2)
-3. ✅ **BearDog server mode missing** (RESOLVED v0.7.28 — UDS JSON-RPC `crypto.sign` delegation)
+3. ✅ **BearDog server mode missing** (RESOLVED v0.7.28 — `crypto.sign` delegation; BTSP Phase 3 AEAD in v0.7.29)
 
 **Each gap makes us better!**
 

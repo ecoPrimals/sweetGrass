@@ -1,6 +1,6 @@
 # 🌾 SweetGrass Showcase Index
 
-**Last Updated**: April 28, 2026  
+**Last Updated**: May 2026  
 **Philosophy**: "Interactions show us gaps in our evolution" - Real binaries, no mocks  
 **Inspiration**: Following NestGate (local-first), Songbird (federation), ToadStool (compute)
 
@@ -90,12 +90,13 @@ Demonstrate SweetGrass integrating with individual primals using **real binaries
 **Directory**: `01-sweetgrass-beardog/`  
 **Binary**: `../../../bins/beardog`  
 **Time**: 15 minutes  
-**Status**: ✅ **RESOLVED** (v0.7.28 — UDS JSON-RPC `crypto.sign` delegation)
+**Status**: ✅ **RESOLVED** (v0.7.29 — `crypto.sign` delegation + BTSP Phase 3 AEAD)
 
 - Braid signing with Ed25519 (Tower-delegated via `CryptoDelegate`)
 - DID resolution (`Did::from_public_key_bytes`)
 - Cryptographic integrity (Tower-tier witnesses)
-- **Gap resolved**: BearDog server mode + BTSP Phase 2 + `crypto.sign` delegation
+- BTSP Phase 3: ChaCha20-Poly1305 encrypted framing after negotiate
+- **Gap resolved**: BearDog server mode + BTSP Phase 3 + `crypto.sign` delegation
 
 **Start**: `cd 01-primal-coordination/01-sweetgrass-beardog && ./demo-signed-braid-live.sh`
 
@@ -226,7 +227,7 @@ For stakeholders wanting to see value quickly:
 | Level | Directory | Demos | Status | Real Binaries | Gaps |
 |-------|-----------|-------|--------|---------------|------|
 | **0** | `00-local-primal/` | 6 | ✅ Complete | N/A (local) | None |
-| **1** | `01-primal-coordination/` | 4 | 🟡 3/4 working | Yes (../bins) | BearDog server mode |
+| **1** | `01-primal-coordination/` | 4 | ✅ Complete | Yes (../bins) | None |
 | **2** | `02-federation/` | 3 | 📋 Planned | Yes (planned) | Not started |
 | **3** | `02-full-ecosystem/` | 3 | 🟡 Partial | Partial | Needs real binaries |
 | **4** | `03-real-world/` | 5 | ✅ Complete | N/A (narrative) | None |
@@ -384,11 +385,10 @@ Following phase1 primal patterns:
 
 ### Completed ✅
 - Level 0: Local Primal (6 demos)
+- Level 1: Inter-Primal (4/4 integrations — BearDog signing resolved v0.7.29)
 - Level 4: Real-World (5 demos)
-- Level 1: Partial (3/4 integrations)
 
 ### In Progress 🟡
-- Level 1: Complete all 4 integrations (waiting on BearDog server mode)
 - Level 3: Real binary integration
 - Gap discovery and documentation
 
@@ -400,7 +400,7 @@ Following phase1 primal patterns:
 
 ---
 
-**Last Updated**: March 16, 2026  
+**Last Updated**: May 2026  
 **Maintainer**: SweetGrass Team  
 **Philosophy**: "Interactions show us gaps in our evolution"
 
