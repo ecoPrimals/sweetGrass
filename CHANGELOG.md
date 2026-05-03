@@ -29,6 +29,7 @@ Phase 3 support.
 - `run_encrypted_frame_loop()` / `run_plaintext_frame_loop()` — post-negotiate
   transport loops
 - TCP `handle_tcp_post_jsonline()` — Phase 3-aware JSON-line post-handshake
+- Phase 3 transport switch verification: 10 integration tests proving negotiate → encrypted frame loop roundtrip (single, sequential, tamper rejection, full negotiate-then-encrypt flow)
 
 #### Changed
 - `perform_server_handshake` / `perform_server_handshake_jsonline` now return
@@ -43,8 +44,8 @@ Phase 3 support.
 - `zeroize = "1"` (secure key erasure with derive)
 
 #### Metrics
-- Tests: 1,482 pass, 0 failures (20 new Phase 3 tests)
-- Source files: 193 `.rs` (53,299 LOC), max 757 lines
+- Tests: 1,492 pass, 0 failures (20 new Phase 3 tests)
+- Source files: 199 `.rs` (55,829 LOC), max 757 lines
 - `btsp/transport.rs` extracted — shared Phase 3 transport helpers properly located
 - `tcp_jsonrpc/tests.rs` extracted — tests in submodule per `uds/tests.rs` pattern
 - Clippy: 0 warnings, `cargo deny check`: clean

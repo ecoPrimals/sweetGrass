@@ -52,7 +52,7 @@ cargo clean
 ## ✅ TEST COMMANDS
 
 ```bash
-# All tests (1,482 local + 56 Docker CI)
+# All tests (1,492 local + 56 Docker CI)
 cargo test --all-features
 
 # Unit tests only

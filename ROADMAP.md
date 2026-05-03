@@ -16,7 +16,7 @@
 - [x] **UDS + TCP Phase 3** — both transports negotiate encrypted framing after successful Phase 1–2 handshake; NULL cipher graceful fallback
 - [x] **Transport refactor** — `uds.rs` 968→734 lines, `tcp_jsonrpc.rs` 849→411+441 lines (tests extracted to submodule)
 - [x] **Dependencies** — `chacha20poly1305 = "0.10"`, `hkdf = "0.12"`, `zeroize = "1"` (pure Rust AEAD, no `ring`)
-- [x] 20 new Phase 3 tests, 1,482 total
+- [x] 20 new Phase 3 tests, 1,492 total
 
 ### v0.7.28 — BearDog Crypto Signing Delegation (April 2026)
 

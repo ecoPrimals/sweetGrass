@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.29 | 1,482 tests | 91.7% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 3 | Wire L3 | BearDog crypto.sign delegation | ChaCha20-Poly1305 AEAD framing | HKDF-SHA256 session keys | Stadial parity (zero async-trait, zero dyn dispatch, sled eliminated, libsqlite3-sys eliminated, hostname eliminated, BTSP first-line auto-detect, PG-52 EOF-resilient UDS)
+v0.7.29 | 1,492 tests | 91.7% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 3 | Wire L3 | BearDog crypto.sign delegation | ChaCha20-Poly1305 AEAD framing | HKDF-SHA256 session keys | Stadial parity (zero async-trait, zero dyn dispatch, sled eliminated, libsqlite3-sys eliminated, hostname eliminated, BTSP first-line auto-detect, PG-52 EOF-resilient UDS)
 
 ---
 
@@ -204,14 +204,14 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Metric | Value |
 |--------|-------|
 | Version | v0.7.29 |
-| Tests | 1,482 local + 56 Docker CI |
+| Tests | 1,492 local + 56 Docker CI |
 | Coverage | 90%+ line (91.7% with Postgres Docker) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
 | Max file size | 757 lines (limit: 1000) |
-| .rs files | 193 (53,299 LOC) |
+| .rs files | 199 (55,829 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |

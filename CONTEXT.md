@@ -27,12 +27,12 @@ attribution before distributing rewards.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 (required) + tarpc (optional high-perf) + REST + UDS
 - **License:** scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0)
-- **Tests:** 1,482 local + 56 Docker CI
+- **Tests:** 1,492 local + 56 Docker CI
 - **Coverage:** 90%+ line (91.7% with Postgres Docker, llvm-cov)
 - **BTSP:** Phase 3 — server-side `btsp.negotiate` handler with ChaCha20-Poly1305 AEAD encrypted framing; `detect_protocol` three-way multiplexer (JSON-RPC, JSON-line BTSP, length-prefixed BTSP) when `FAMILY_ID` set; HKDF-SHA256 directional session keys from BearDog's `session_key`; NULL cipher graceful fallback; `family_seed` forwarded to BearDog for crypto; EOF-resilient first-line detection for shell callers
 - **UDS contract:** Newline-delimited JSON-RPC 2.0; compositions should use `\n`-terminated requests and >=10s read timeout (`braid.create`/`provenance.graph` may touch storage)
 - **Version:** 0.7.29
-- **Source files:** 193 `.rs` files (53,299 LOC), max 757 lines
+- **Source files:** 199 `.rs` files (55,829 LOC), max 757 lines
 - **Property testing:** 25 proptest strategies across 7 crates
 - **Chaos/fault:** 11 attribution chaos + 17 service chaos + 9 fault injection
 - **Edition:** 2024 (`resolver = "3"`), MSRV 1.87
