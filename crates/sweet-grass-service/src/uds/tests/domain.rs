@@ -349,21 +349,21 @@ async fn test_uds_braid_create_tower_signed() {
             let (reader, mut writer) = stream.into_split();
             let mut lines = tokio::io::BufReader::new(reader).lines();
 
-            if let Ok(Some(line)) = lines.next_line().await {
-                if let Ok(req) = serde_json::from_str::<serde_json::Value>(&line) {
-                    let response = serde_json::json!({
-                        "jsonrpc": "2.0",
-                        "id": req["id"],
-                        "result": {
-                            "signature": "dG93ZXItc2lnLWJ5dGVz",
-                            "algorithm": "ed25519",
-                            "public_key": "dG93ZXItcHViLWtleQ=="
-                        }
-                    });
-                    let mut resp = serde_json::to_string(&response).unwrap();
-                    resp.push('\n');
-                    let _ = writer.write_all(resp.as_bytes()).await;
-                }
+            if let Ok(Some(line)) = lines.next_line().await
+                && let Ok(req) = serde_json::from_str::<serde_json::Value>(&line)
+            {
+                let response = serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "id": req["id"],
+                    "result": {
+                        "signature": "dG93ZXItc2lnLWJ5dGVz",
+                        "algorithm": "ed25519",
+                        "public_key": "dG93ZXItcHViLWtleQ=="
+                    }
+                });
+                let mut resp = serde_json::to_string(&response).unwrap();
+                resp.push('\n');
+                let _ = writer.write_all(resp.as_bytes()).await;
             }
         }
     });
@@ -446,6 +446,7 @@ async fn test_uds_braid_create_tower_signed() {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines, reason = "integration test with mock BearDog + UDS listener setup")]
 async fn test_uds_anchoring_anchor_tower_signed() {
     use std::os::unix::net::UnixListener as StdUnixListener;
 
@@ -465,21 +466,21 @@ async fn test_uds_anchoring_anchor_tower_signed() {
             let (reader, mut writer) = stream.into_split();
             let mut lines = tokio::io::BufReader::new(reader).lines();
 
-            if let Ok(Some(line)) = lines.next_line().await {
-                if let Ok(req) = serde_json::from_str::<serde_json::Value>(&line) {
-                    let response = serde_json::json!({
-                        "jsonrpc": "2.0",
-                        "id": req["id"],
-                        "result": {
-                            "signature": "YW5jaG9yLXNpZy1ieXRlcw==",
-                            "algorithm": "ed25519",
-                            "public_key": "YW5jaG9yLXB1Yi1rZXk="
-                        }
-                    });
-                    let mut resp = serde_json::to_string(&response).unwrap();
-                    resp.push('\n');
-                    let _ = writer.write_all(resp.as_bytes()).await;
-                }
+            if let Ok(Some(line)) = lines.next_line().await
+                && let Ok(req) = serde_json::from_str::<serde_json::Value>(&line)
+            {
+                let response = serde_json::json!({
+                    "jsonrpc": "2.0",
+                    "id": req["id"],
+                    "result": {
+                        "signature": "YW5jaG9yLXNpZy1ieXRlcw==",
+                        "algorithm": "ed25519",
+                        "public_key": "YW5jaG9yLXB1Yi1rZXk="
+                    }
+                });
+                let mut resp = serde_json::to_string(&response).unwrap();
+                resp.push('\n');
+                let _ = writer.write_all(resp.as_bytes()).await;
             }
         }
     });

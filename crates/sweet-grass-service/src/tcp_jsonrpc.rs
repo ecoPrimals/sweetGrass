@@ -207,7 +207,7 @@ async fn handle_tcp_connection_btsp(
         },
     };
 
-    if let Some(session_keys) = crate::btsp::transport::try_phase3_negotiate(
+    match crate::btsp::transport::try_phase3_negotiate(
         &first_request,
         outcome.handshake_key.as_ref(),
         &mut writer,
@@ -215,19 +215,23 @@ async fn handle_tcp_connection_btsp(
     )
     .await?
     {
-        crate::btsp::transport::run_encrypted_frame_loop(&mut reader, &mut writer, &state, &session_keys)
-            .await?;
-        return Ok(());
-    }
-
-    if let Some(response) =
-        crate::handlers::jsonrpc::process_single(&state, first_request).await
-    {
-        let payload = serde_json::to_vec(&response)?;
-        btsp::write_frame(&mut writer, &payload)
-            .await
-            .map_err(|e| crate::ServiceError::Internal(e.to_string()))?;
-        writer.flush().await?;
+        crate::btsp::transport::NegotiateOutcome::Encrypted(session_keys) => {
+            crate::btsp::transport::run_encrypted_frame_loop(&mut reader, &mut writer, &state, &session_keys)
+                .await?;
+            return Ok(());
+        }
+        crate::btsp::transport::NegotiateOutcome::NullCipher => {}
+        crate::btsp::transport::NegotiateOutcome::NotNegotiate => {
+            if let Some(response) =
+                crate::handlers::jsonrpc::process_single(&state, first_request).await
+            {
+                let payload = serde_json::to_vec(&response)?;
+                btsp::write_frame(&mut writer, &payload)
+                    .await
+                    .map_err(|e| crate::ServiceError::Internal(e.to_string()))?;
+                writer.flush().await?;
+            }
+        }
     }
 
     crate::btsp::transport::run_plaintext_frame_loop(&mut reader, &mut writer, &state).await
@@ -260,7 +264,7 @@ async fn handle_tcp_post_jsonline(
         Err(_) => return Ok(()),
     };
 
-    if let Some(session_keys) = crate::btsp::transport::try_phase3_negotiate(
+    match crate::btsp::transport::try_phase3_negotiate(
         &first_request,
         handshake_key.as_ref(),
         &mut writer,
@@ -268,28 +272,32 @@ async fn handle_tcp_post_jsonline(
     )
     .await?
     {
-        let mut combined = buf_reader
-            .into_inner()
-            .reunite(writer)
-            .map_err(|e| crate::ServiceError::Internal(format!("reunite: {e}")))?;
-        let (mut enc_reader, mut enc_writer) = tokio::io::split(&mut combined);
-        crate::btsp::transport::run_encrypted_frame_loop(
-            &mut enc_reader,
-            &mut enc_writer,
-            &state,
-            &session_keys,
-        )
-        .await?;
-        return Ok(());
-    }
-
-    if let Some(response) =
-        crate::handlers::jsonrpc::process_single(&state, first_request).await
-    {
-        let mut resp_str = serde_json::to_string(&response)?;
-        resp_str.push('\n');
-        writer.write_all(resp_str.as_bytes()).await?;
-        writer.flush().await?;
+        crate::btsp::transport::NegotiateOutcome::Encrypted(session_keys) => {
+            let mut combined = buf_reader
+                .into_inner()
+                .reunite(writer)
+                .map_err(|e| crate::ServiceError::Internal(format!("reunite: {e}")))?;
+            let (mut enc_reader, mut enc_writer) = tokio::io::split(&mut combined);
+            crate::btsp::transport::run_encrypted_frame_loop(
+                &mut enc_reader,
+                &mut enc_writer,
+                &state,
+                &session_keys,
+            )
+            .await?;
+            return Ok(());
+        }
+        crate::btsp::transport::NegotiateOutcome::NullCipher => {}
+        crate::btsp::transport::NegotiateOutcome::NotNegotiate => {
+            if let Some(response) =
+                crate::handlers::jsonrpc::process_single(&state, first_request).await
+            {
+                let mut resp_str = serde_json::to_string(&response)?;
+                resp_str.push('\n');
+                writer.write_all(resp_str.as_bytes()).await?;
+                writer.flush().await?;
+            }
+        }
     }
 
     let stream = buf_reader

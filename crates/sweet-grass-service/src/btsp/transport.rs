@@ -7,14 +7,26 @@
 
 use tracing::{debug, info, warn};
 
+/// Result of attempting Phase 3 cipher negotiation.
+pub enum NegotiateOutcome {
+    /// Not a `btsp.negotiate` request — caller should dispatch the request normally.
+    NotNegotiate,
+    /// Negotiate completed with null cipher (or error) — response already sent,
+    /// caller should skip dispatching and continue in plaintext mode.
+    NullCipher,
+    /// Negotiate completed with encrypted cipher — switch to encrypted framing.
+    Encrypted(super::phase3::SessionKeys),
+}
+
 /// Attempt Phase 3 `btsp.negotiate` on the first post-handshake request.
 ///
 /// Shared by UDS and TCP handlers.
 ///
-/// If the request is `btsp.negotiate` and the handshake key is available,
-/// derives `SessionKeys`, responds, and returns `Some(keys)`.  If it's not
-/// a negotiate request or if encrypted framing cannot be established, returns
-/// `None` so the caller falls through to plaintext mode.
+/// Returns [`NegotiateOutcome::Encrypted`] with session keys when encrypted
+/// framing is established, [`NegotiateOutcome::NullCipher`] when the request
+/// was a negotiate but fell back to null cipher (response already sent), or
+/// [`NegotiateOutcome::NotNegotiate`] when the request is not a negotiate
+/// (caller should dispatch normally).
 ///
 /// When `use_jsonline` is true, the response is written as newline-delimited
 /// JSON; otherwise as a length-prefixed frame.
@@ -27,7 +39,7 @@ pub async fn try_phase3_negotiate<W: tokio::io::AsyncWrite + Unpin + Send>(
     handshake_key: Option<&[u8; 32]>,
     writer: &mut W,
     use_jsonline: bool,
-) -> std::result::Result<Option<super::phase3::SessionKeys>, crate::ServiceError> {
+) -> std::result::Result<NegotiateOutcome, crate::ServiceError> {
     use base64::Engine;
     use super::phase3::{
         NegotiateParams, NegotiateResult, Phase3Cipher, SessionKeys, generate_server_nonce,
@@ -40,7 +52,7 @@ pub async fn try_phase3_negotiate<W: tokio::io::AsyncWrite + Unpin + Send>(
         .unwrap_or("");
 
     if method != "btsp.negotiate" {
-        return Ok(None);
+        return Ok(NegotiateOutcome::NotNegotiate);
     }
 
     let request_id = request
@@ -59,7 +71,7 @@ pub async fn try_phase3_negotiate<W: tokio::io::AsyncWrite + Unpin + Send>(
             "id": request_id
         });
         write_negotiate_response(writer, &err, use_jsonline).await?;
-        return Ok(None);
+        return Ok(NegotiateOutcome::NullCipher);
     };
 
     let selected = select_cipher(&params.ciphers);
@@ -72,7 +84,7 @@ pub async fn try_phase3_negotiate<W: tokio::io::AsyncWrite + Unpin + Send>(
         };
         let resp = serde_json::json!({"jsonrpc": "2.0", "result": result, "id": request_id});
         write_negotiate_response(writer, &resp, use_jsonline).await?;
-        return Ok(None);
+        return Ok(NegotiateOutcome::NullCipher);
     };
 
     if selected == Phase3Cipher::Null {
@@ -83,7 +95,7 @@ pub async fn try_phase3_negotiate<W: tokio::io::AsyncWrite + Unpin + Send>(
         };
         let resp = serde_json::json!({"jsonrpc": "2.0", "result": result, "id": request_id});
         write_negotiate_response(writer, &resp, use_jsonline).await?;
-        return Ok(None);
+        return Ok(NegotiateOutcome::NullCipher);
     }
 
     let server_nonce = generate_server_nonce()
@@ -110,7 +122,7 @@ pub async fn try_phase3_negotiate<W: tokio::io::AsyncWrite + Unpin + Send>(
         "BTSP Phase 3: encrypted channel established"
     );
 
-    Ok(Some(keys))
+    Ok(NegotiateOutcome::Encrypted(keys))
 }
 
 /// Write a Phase 3 negotiate JSON-RPC response in the appropriate framing.
@@ -352,7 +364,7 @@ mod tests {
         assert_eq!(resp.id, serde_json::json!(1));
     }
 
-    /// Proves encrypt → write_frame → read_frame → decrypt roundtrip
+    /// Proves encrypt → `write_frame` → `read_frame` → decrypt roundtrip
     /// works for the BTSP Phase 3 wire format.
     #[tokio::test]
     async fn encrypted_frame_wire_roundtrip() {
@@ -520,7 +532,10 @@ mod tests {
         .await
         .expect("negotiate should not error");
 
-        assert!(result.is_some(), "should return session keys");
+        assert!(
+            matches!(result, NegotiateOutcome::Encrypted(_)),
+            "should return session keys"
+        );
 
         let mut resp_line = String::new();
         tokio::io::AsyncBufReadExt::read_line(
@@ -535,9 +550,9 @@ mod tests {
         assert!(!resp["result"]["server_nonce"].as_str().unwrap().is_empty());
     }
 
-    /// Non-negotiate request returns `None` (pass-through to caller).
+    /// Non-negotiate request returns `NotNegotiate` (pass-through to caller).
     #[tokio::test]
-    async fn negotiate_returns_none_for_non_negotiate_method() {
+    async fn negotiate_returns_not_negotiate_for_non_negotiate_method() {
         let request = serde_json::json!({
             "jsonrpc": "2.0",
             "method": "health.check",
@@ -556,10 +571,10 @@ mod tests {
         .await
         .expect("should not error");
 
-        assert!(result.is_none());
+        assert!(matches!(result, NegotiateOutcome::NotNegotiate));
     }
 
-    /// Missing handshake key returns null cipher and `None`.
+    /// Missing handshake key returns null cipher and `NullCipher`.
     #[tokio::test]
     async fn negotiate_null_cipher_without_handshake_key() {
         use base64::Engine;
@@ -586,7 +601,7 @@ mod tests {
         .await
         .expect("should not error");
 
-        assert!(result.is_none());
+        assert!(matches!(result, NegotiateOutcome::NullCipher));
 
         let mut resp_line = String::new();
         tokio::io::AsyncBufReadExt::read_line(
@@ -598,6 +613,58 @@ mod tests {
 
         let resp: serde_json::Value = serde_json::from_str(resp_line.trim()).unwrap();
         assert_eq!(resp["result"]["cipher"], "null");
+    }
+
+    /// Null-cipher negotiate writes exactly one response — callers must
+    /// not dispatch a second `METHOD_NOT_FOUND` for the same request.
+    #[tokio::test]
+    async fn null_cipher_negotiate_sends_single_response() {
+        use base64::Engine;
+        use tokio::io::AsyncBufReadExt;
+
+        let request = serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "btsp.negotiate",
+            "params": {
+                "session_id": "test",
+                "ciphers": ["chacha20-poly1305"],
+                "client_nonce": base64::engine::general_purpose::STANDARD.encode([7u8; 32]),
+            },
+            "id": 99
+        });
+
+        let (mut client_read, mut server_write) = tokio::io::duplex(4096);
+
+        let outcome = try_phase3_negotiate(
+            &request,
+            None,
+            &mut server_write,
+            true,
+        )
+        .await
+        .expect("should not error");
+
+        assert!(matches!(outcome, NegotiateOutcome::NullCipher));
+
+        drop(server_write);
+
+        let mut all_lines = Vec::new();
+        let mut buf_reader = tokio::io::BufReader::new(&mut client_read);
+        let mut line = String::new();
+        while buf_reader.read_line(&mut line).await.unwrap() > 0 {
+            all_lines.push(line.clone());
+            line.clear();
+        }
+
+        assert_eq!(
+            all_lines.len(),
+            1,
+            "null-cipher negotiate must produce exactly one response, got {all_lines:?}"
+        );
+        let resp: serde_json::Value = serde_json::from_str(all_lines[0].trim()).unwrap();
+        assert_eq!(resp["result"]["cipher"], "null");
+        assert_eq!(resp["id"], 99);
+        assert!(resp.get("error").is_none(), "should not contain error");
     }
 
     /// Full negotiate → encrypted roundtrip simulating the exact
@@ -632,15 +699,17 @@ mod tests {
             let neg_req: serde_json::Value =
                 serde_json::from_slice(&neg_frame).expect("parse negotiate");
 
-            let session_keys = try_phase3_negotiate(
+            let outcome = try_phase3_negotiate(
                 &neg_req,
                 Some(&handshake_key),
                 &mut sw,
                 false,
             )
             .await
-            .expect("negotiate")
-            .expect("should produce keys");
+            .expect("negotiate");
+            let NegotiateOutcome::Encrypted(session_keys) = outcome else {
+                panic!("expected Encrypted, got NotNegotiate or NullCipher");
+            };
 
             run_encrypted_frame_loop(&mut sr, &mut sw, &state, &session_keys)
                 .await

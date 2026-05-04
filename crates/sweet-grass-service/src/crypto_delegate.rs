@@ -220,7 +220,7 @@ mod tests {
     use std::os::unix::net::UnixListener as StdUnixListener;
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
-    async fn start_mock_beardog(
+    fn start_mock_beardog(
         listener: StdUnixListener,
     ) -> tokio::task::JoinHandle<()> {
         listener.set_nonblocking(true).unwrap();
@@ -266,7 +266,7 @@ mod tests {
         let sock = dir.path().join("beardog-test.sock");
 
         let std_listener = StdUnixListener::bind(&sock).unwrap();
-        let handle = start_mock_beardog(std_listener).await;
+        let handle = start_mock_beardog(std_listener);
 
         let delegate = CryptoDelegate::with_socket(sock);
         let result = delegate.sign(b"hello provenance").await.unwrap();

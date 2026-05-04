@@ -43,11 +43,23 @@ Phase 3 support.
 - `hkdf = "0.12"` (HKDF-SHA256, digest 0.10-compatible with existing `sha2`)
 - `zeroize = "1"` (secure key erasure with derive)
 
+#### Fixed
+- **Double-response on null-cipher negotiate**: `try_phase3_negotiate` returned
+  `None` for both "not a negotiate" and "negotiate answered with null cipher",
+  causing callers to re-dispatch `btsp.negotiate` as a regular JSON-RPC method
+  and emit a second `METHOD_NOT_FOUND` response. Replaced `Option<SessionKeys>`
+  with `NegotiateOutcome` enum (`NotNegotiate | NullCipher | Encrypted(keys)`)
+  so callers only dispatch non-negotiate requests. Affects all 4 connection
+  paths (UDS/TCP × length-prefixed/JSON-line).
+
+#### Clippy
+- Resolved 10 pre-existing clippy::pedantic/nursery warnings: `similar_names`,
+  `single_char_pattern`, doc backticks, collapsible `if`, `unused_async`,
+  unfulfilled lint expectation, `too_many_lines`
+
 #### Metrics
-- Tests: 1,492 pass, 0 failures (20 new Phase 3 tests)
-- Source files: 199 `.rs` (55,829 LOC), max 757 lines
-- `btsp/transport.rs` extracted — shared Phase 3 transport helpers properly located
-- `tcp_jsonrpc/tests.rs` extracted — tests in submodule per `uds/tests.rs` pattern
+- Tests: 1,493 pass, 0 failures (1 new null-cipher regression test)
+- Source files: 199 `.rs` (55,915 LOC), max 763 lines
 - Clippy: 0 warnings, `cargo deny check`: clean
 
 ---

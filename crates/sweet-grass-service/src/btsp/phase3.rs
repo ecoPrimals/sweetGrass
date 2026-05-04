@@ -252,7 +252,7 @@ pub fn select_cipher(offered: &[String]) -> Phase3Cipher {
 }
 
 #[cfg(test)]
-#[expect(clippy::unwrap_used, clippy::expect_used, reason = "test module")]
+#[expect(clippy::unwrap_used, reason = "test module")]
 mod tests {
     use super::*;
 
@@ -322,16 +322,16 @@ mod tests {
 
     #[test]
     fn encrypt_decrypt_wrong_key_fails() {
-        let key_a = [0x01u8; 32];
-        let key_b = [0x02u8; 32];
+        let hk_alpha = [0x01u8; 32];
+        let hk_beta = [0x02u8; 32];
         let nonce_c = [3u8; 32];
         let nonce_s = [4u8; 32];
 
-        let keys_a = SessionKeys::derive(&key_a, &nonce_c, &nonce_s, true).unwrap();
-        let keys_b = SessionKeys::derive(&key_b, &nonce_c, &nonce_s, false).unwrap();
+        let keys_alpha = SessionKeys::derive(&hk_alpha, &nonce_c, &nonce_s, true).unwrap();
+        let keys_beta = SessionKeys::derive(&hk_beta, &nonce_c, &nonce_s, false).unwrap();
 
-        let encrypted = keys_a.encrypt(b"secret").unwrap();
-        assert!(keys_b.decrypt(&encrypted).is_err());
+        let encrypted = keys_alpha.encrypt(b"secret").unwrap();
+        assert!(keys_beta.decrypt(&encrypted).is_err());
     }
 
     #[test]
@@ -397,7 +397,7 @@ mod tests {
         let keys = SessionKeys::derive(&[0u8; 32], &[1u8; 32], &[2u8; 32], true).unwrap();
         let debug = format!("{keys:?}");
         assert!(debug.contains("REDACTED"));
-        assert!(!debug.contains("0"));
+        assert!(!debug.contains('0'));
     }
 
     #[test]

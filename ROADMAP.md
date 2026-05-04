@@ -16,7 +16,7 @@
 - [x] **UDS + TCP Phase 3** — both transports negotiate encrypted framing after successful Phase 1–2 handshake; NULL cipher graceful fallback
 - [x] **Transport refactor** — `uds.rs` 968→734 lines, `tcp_jsonrpc.rs` 849→411+441 lines (tests extracted to submodule)
 - [x] **Dependencies** — `chacha20poly1305 = "0.10"`, `hkdf = "0.12"`, `zeroize = "1"` (pure Rust AEAD, no `ring`)
-- [x] 20 new Phase 3 tests, 1,492 total
+- [x] 20 new Phase 3 tests, 1,493 total
 
 ### v0.7.28 — BearDog Crypto Signing Delegation (April 2026)
 
@@ -27,7 +27,7 @@
 - [x] **`AppState.crypto`** — `Option<Arc<CryptoDelegate>>` with `with_crypto()` builder; Phase 4b bootstrap resolution
 - [x] **`braid.create` signing** — computes `compute_signing_hash()`, calls `crypto.sign(base64(hash))`, stores Ed25519 witness; graceful fallback to unsigned on BearDog unavailability
 - [x] **`Agent::person()`** — signature evolved to `Option<impl Into<String>>` for consistency with `software()` / `organization()`
-- [x] 8 new tests (6 crypto delegate + 1 UDS braid signing + 1 UDS anchor signing), 1,492 total
+- [x] 8 new tests (6 crypto delegate + 1 UDS braid signing + 1 UDS anchor signing), 1,493 total
 
 ### v0.7.27 — Deep Debt: Stadial Parity, Zero-Copy Phase 3, Type Safety (March–April 2026)
 
@@ -449,7 +449,7 @@
 - [ ] Evolved `MemoryStore` indexes (collision-preserving)
 - [ ] `convergence.query` JSON-RPC method
 - [ ] PostgreSQL `content_convergence` table and migrations
-- [x] Coverage target: 90%+ with llvm-cov *(91.7% line coverage, 1,492 tests)*
+- [x] Coverage target: 90%+ with llvm-cov *(91.7% line coverage, 1,493 tests)*
 
 ### v0.9.0 — sunCloud Integration (Q3 2026)
 
