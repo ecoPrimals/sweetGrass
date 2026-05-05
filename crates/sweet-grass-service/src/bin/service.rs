@@ -50,6 +50,14 @@ enum Commands {
         #[arg(long, env = "SWEETGRASS_PORT")]
         port: Option<u16>,
 
+        /// HTTP port shorthand (sets HTTP bind to `0.0.0.0:<PORT>`).
+        ///
+        /// Convenience alternative to `--http-address`. If both are given,
+        /// `--http-port` takes precedence. HTTP is the primary integration
+        /// surface for health probes and JSON-RPC.
+        #[arg(long, env = "SWEETGRASS_HTTP_PORT")]
+        http_port: Option<u16>,
+
         /// REST/JSON-RPC bind address (HTTP-wrapped).
         #[arg(long, env = "SWEETGRASS_HTTP_ADDRESS", default_value = "0.0.0.0:0")]
         http_address: String,
@@ -108,6 +116,7 @@ async fn main() {
     let code = match cli.command {
         Commands::Server {
             port,
+            http_port,
             http_address,
             tarpc_address,
             storage,
@@ -117,9 +126,11 @@ async fn main() {
             no_tarpc,
             socket,
         } => {
+            let effective_http_address =
+                http_port.map_or(http_address, |p| format!("0.0.0.0:{p}"));
             run_server(ServerConfig {
                 port,
-                http_address,
+                http_address: effective_http_address,
                 tarpc_address,
                 storage,
                 database_url,

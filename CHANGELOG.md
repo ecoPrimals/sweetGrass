@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.30] - 2026-05-05
+
+### TCP Integration Hardening + HTTP Port UX (May 5, 2026)
+
+Resolves Gap 10 from primalSpring Phase 58b audit: TCP with BTSP enabled
+now tolerates leading whitespace from clients, and HTTP port is directly
+configurable via `--http-port` convenience flag.
+
+#### Fixed
+- **Whitespace-tolerant `detect_protocol`**: `peek.rs` now skips leading
+  ASCII whitespace (`\n`, `\r`, `\t`, ` `) before classifying the first
+  decisive byte. Clients sending `\n{"jsonrpc":"2.0",...}` or similar
+  patterns are now correctly routed to JSON-RPC instead of being
+  misclassified as length-prefixed BTSP (which produced "BTSP frame too
+  large" errors). Real BTSP length-prefixed framing is unaffected since
+  valid BTSP length bytes are never ASCII whitespace.
+
+#### Added
+- `--http-port` / `SWEETGRASS_HTTP_PORT` CLI flag — convenience shorthand
+  that sets HTTP bind address to `0.0.0.0:<PORT>`. Takes precedence over
+  `--http-address` when both are provided. HTTP is documented as the
+  primary integration surface for health probes and JSON-RPC.
+- 2 new `peek` tests: `detect_jsonrpc_with_leading_whitespace`,
+  `detect_btsp_with_leading_newline`
+
+#### Documentation
+- `CONTEXT.md`: added transport port guide (`--port` vs `--http-port` vs
+  `--http-address`), recommended TCP allocation (9850), and discovery tier
+  support summary (tiers 3+4 supported, tiers 1/2/5 noted as gaps)
+
+#### Metrics
+- Tests: 1,495 pass, 0 failures
+- Source files: 199 `.rs` (55,960 LOC), max 763 lines
+- Clippy: 0 warnings, `cargo deny check`: clean
+
+---
+
 ## [0.7.29] - 2026-05-02
 
 ### BTSP Phase 3: Server-Side `btsp.negotiate` + Encrypted Framing (May 2, 2026)
@@ -58,8 +95,8 @@ Phase 3 support.
   unfulfilled lint expectation, `too_many_lines`
 
 #### Metrics
-- Tests: 1,493 pass, 0 failures (1 new null-cipher regression test)
-- Source files: 199 `.rs` (55,915 LOC), max 763 lines
+- Tests: 1,495 pass, 0 failures (1 new null-cipher regression test)
+- Source files: 199 `.rs` (55,960 LOC), max 763 lines
 - Clippy: 0 warnings, `cargo deny check`: clean
 
 ---

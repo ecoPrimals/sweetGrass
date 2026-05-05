@@ -7,10 +7,11 @@
 //! - JSON-line BTSP (`{"protocol":"btsp",...}\n`) — primalSpring-compatible handshake
 //! - Raw JSON-RPC (`{"jsonrpc":"2.0",...}\n`) — health probes, biomeOS, springs
 //!
-//! Detection reads the first byte: if not `{`, it's length-prefixed BTSP. If `{`,
-//! the rest of the first line is read and the JSON is inspected for `"protocol"`
-//! vs `"jsonrpc"` keys. [`PeekedStream`] re-presents the first byte for the
-//! length-prefixed path. [`detect_protocol`] performs the full first-line routing.
+//! Detection skips leading ASCII whitespace, then reads the first decisive byte:
+//! if not `{`, it's length-prefixed BTSP. If `{`, the rest of the first line is
+//! read and the JSON is inspected for `"protocol"` vs `"jsonrpc"` keys.
+//! [`PeekedStream`] re-presents the first byte for the length-prefixed path.
+//! [`detect_protocol`] performs the full first-line routing.
 //!
 //! This aligns with Phase 45b wire-format guidance and `BearDog` (PG-35) /
 //! `Squirrel` (PG-30) ecosystem patterns.
@@ -60,6 +61,12 @@ pub async fn detect_protocol<S: AsyncRead + Unpin>(
 ) -> std::io::Result<DetectedProtocol> {
     let mut first = [0u8; 1];
     stream.read_exact(&mut first).await?;
+
+    // Skip leading ASCII whitespace so that clients sending `\n{...}` or
+    // ` {...}` are correctly routed to JSON instead of length-prefixed BTSP.
+    while first[0].is_ascii_whitespace() {
+        stream.read_exact(&mut first).await?;
+    }
 
     if first[0] != JSON_FIRST_BYTE {
         return Ok(DetectedProtocol::LengthPrefixedBtsp(first[0]));
@@ -267,6 +274,33 @@ mod tests {
         assert!(
             matches!(result, DetectedProtocol::JsonLineBtsp(_)),
             "EOF-terminated BTSP line should still be detected"
+        );
+    }
+
+    #[tokio::test]
+    async fn detect_jsonrpc_with_leading_whitespace() {
+        let line = b"\n \t{\"jsonrpc\":\"2.0\",\"method\":\"health.check\",\"params\":{},\"id\":1}\n";
+        let mut cursor = std::io::Cursor::new(line.to_vec());
+        let result = detect_protocol(&mut cursor).await.unwrap();
+        match result {
+            DetectedProtocol::JsonRpc(val) => {
+                assert_eq!(val["method"], "health.check");
+            },
+            other => panic!(
+                "leading whitespace should not misroute to BTSP, got {}",
+                variant_name(&other)
+            ),
+        }
+    }
+
+    #[tokio::test]
+    async fn detect_btsp_with_leading_newline() {
+        let line = b"\r\n{\"protocol\":\"btsp\",\"version\":1,\"client_ephemeral_pub\":\"dGVzdA==\"}\n";
+        let mut cursor = std::io::Cursor::new(line.to_vec());
+        let result = detect_protocol(&mut cursor).await.unwrap();
+        assert!(
+            matches!(result, DetectedProtocol::JsonLineBtsp(_)),
+            "leading CRLF should still detect BTSP handshake"
         );
     }
 
