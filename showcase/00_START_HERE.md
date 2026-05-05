@@ -2,7 +2,7 @@
 
 **The Attribution Layer for ecoPrimals**
 
-**Version**: 0.7.29 | **Status**: Production Ready | **Tests**: 1,495 passing | **Edition**: 2024
+**Version**: 0.7.30 | **Status**: Production Ready | **Tests**: 1,495 passing | **Edition**: 2024
 
 ---
 
@@ -465,6 +465,6 @@ cat README.md
 
 ---
 
-*SweetGrass v0.7.29 - ecoPrimals Phase 3 (BTSP AEAD Framing)*  
+*SweetGrass v0.7.30 - ecoPrimals Phase 3 (BTSP AEAD Framing + TCP Hardening)*  
 *May 2026*
 

@@ -1,10 +1,18 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.29 (May 2026)
+**Current Version**: v0.7.30 (May 2026)
 
 ---
 
 ## Completed
+
+### v0.7.30 — TCP Integration Hardening + HTTP Port UX (May 2026)
+
+- [x] **Whitespace-tolerant `detect_protocol`** — `peek.rs` skips leading ASCII whitespace (`\n`, `\r`, `\t`, ` `) before classifying; fixes Gap 10 "BTSP frame too large" for clients with leading whitespace
+- [x] **`--http-port` CLI flag** — convenience shorthand for `--http-address 0.0.0.0:<PORT>`; HTTP documented as primary integration surface
+- [x] **Port allocation documented** — recommended TCP 9850 (avoids biomeOS 9800 conflict); transport port guide in CONTEXT.md
+- [x] **Discovery tiers documented** — Tier 3 (UDS filesystem) and Tier 4 (registry) supported; gaps noted for Tiers 1/2/5
+- [x] 2 new tests, 1,495 total
 
 ### v0.7.29 — BTSP Phase 3 Encrypted Framing + Transport Refactor (May 2026)
 
@@ -524,7 +532,8 @@
 
 | Version | Target | Focus |
 |---------|--------|-------|
-| v0.7.29 | **May 2026** | BTSP Phase 3 Encrypted Framing, Transport Refactor, Anchor/Hash Delegation (DONE) |
+| v0.7.30 | **May 2026** | TCP Integration Hardening, --http-port, Whitespace-Tolerant Autodetect (DONE) |
+| v0.7.29 | May 2026 | BTSP Phase 3 Encrypted Framing, Transport Refactor, Anchor/Hash Delegation (DONE) |
 | v0.7.28 | April 2026 | BearDog Crypto Signing Delegation, Tower-Tier Witnesses (DONE) |
 | v0.7.27 | March–April 2026 | Deep Debt: Coordinated Shutdown, Zero-Copy Phase 3, Type Safety (DONE) |
 | v0.7.26 | March 2026 | Ecosystem Absorption: scyBorg License, Sled Deprecation, Lint Evolution (DONE) |

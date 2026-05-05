@@ -7,7 +7,7 @@
 
 [graph]
 name = "sweetgrass-attribution"
-version = "0.7.28"
+version = "0.7.30"
 description = "Semantic provenance and attribution layer"
 owner = "ecoPrimals"
 composition_model = "provenance-trio"
@@ -15,7 +15,7 @@ composition_model = "provenance-trio"
 [graph.metadata]
 domain = "attribution"
 wire_standard = "L3"
-btsp_phase = 2
+btsp_phase = 3
 primal = "sweetgrass"
 binary = "sweetgrass"
 subcommand = "server"
