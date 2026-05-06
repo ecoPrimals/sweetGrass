@@ -5,8 +5,8 @@
 //! Required by `UNIBIN_ARCHITECTURE_STANDARD` v1.1: every primal MUST accept
 //! `server --port <host:port>` to bind a TCP JSON-RPC listener using
 //! newline-delimited framing (one JSON object per line, terminated by `\n`).
-//! A bare port number (e.g. `9850`) binds `0.0.0.0:9850`; use
-//! `127.0.0.1:9850` to restrict to localhost (PG-55 bind control).
+//! A bare port number (e.g. `9850`) binds `127.0.0.1:9850` (localhost-only
+//! per PG-55 security hardening); use `0.0.0.0:9850` for all-interfaces.
 //!
 //! This is the composition interface that springs, deploy graphs, and
 //! launchers use to orchestrate primals. HTTP-wrapped JSON-RPC

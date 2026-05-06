@@ -13,13 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Resolves PG-55 (HIGH) and PG-59 (LOW) from projectNUCLEUS Phase 2a
 security audit: TCP listener now supports full `host:port` bind address
-control, and `--http-address` format is documented.
+control with localhost-secure default, and `--http-address` format is
+documented.
 
 #### Changed
 - **`--port` accepts `host:port`**: The TCP JSON-RPC `--port` flag now
-  accepts `host:port` format (e.g. `127.0.0.1:9850`) in addition to bare
-  port numbers. Bare port numbers continue to bind `0.0.0.0` for backward
-  compatibility. IPv6 supported (e.g. `[::1]:9850`).
+  accepts `host:port` format (e.g. `0.0.0.0:9850`) in addition to bare
+  port numbers. IPv6 supported (e.g. `[::1]:9850`).
+- **Bare port defaults to `127.0.0.1` (localhost-only)**: `--port 9850`
+  now binds `127.0.0.1:9850` instead of `0.0.0.0:9850`. Use
+  `--port 0.0.0.0:9850` for all-interfaces binding in Docker/production.
+  Matches Squirrel/barraCuda/coralReef security-hardened default pattern.
 - **`start_tcp_jsonrpc_listener` takes `SocketAddr`**: Internal API
   evolved from `u16` port to full `std::net::SocketAddr` for bind control.
 
@@ -30,11 +34,11 @@ control, and `--http-address` format is documented.
   address semantics.
 
 #### Added
-- 5 new `parse_tcp_port_arg` tests: bare port, zero, host:port, IPv6,
-  invalid input.
+- 6 new `parse_tcp_port_arg` tests: bare port (localhost assert), zero
+  (loopback assert), all-interfaces explicit, host:port, IPv6, invalid.
 
 #### Metrics
-- Tests: 1,500 pass, 0 failures
+- Tests: 1,501 pass, 0 failures
 - Source files: 199 `.rs` (53,732 LOC), max 763 lines
 - Clippy: 0 warnings, `cargo deny check`: clean
 

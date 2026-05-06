@@ -8,10 +8,11 @@
 
 ### v0.7.31 — PG-55 TCP Bind Address Control + PG-59 HTTP Address Docs (May 2026)
 
-- [x] **`--port` accepts `host:port`** — TCP JSON-RPC `--port` flag now accepts `host:port` format (e.g. `127.0.0.1:9850`) for bind address control; bare port numbers bind `0.0.0.0` for backward compatibility; IPv6 supported
+- [x] **`--port` accepts `host:port`** — TCP JSON-RPC `--port` flag now accepts `host:port` format (e.g. `0.0.0.0:9850`) for bind address control; IPv6 supported
+- [x] **Bare port defaults to `127.0.0.1`** — `--port 9850` binds localhost-only per PG-55 security hardening; use `0.0.0.0:PORT` for Docker/production; matches Squirrel/barraCuda/coralReef pattern
 - [x] **`start_tcp_jsonrpc_listener` takes `SocketAddr`** — internal API evolved from `u16` to full `SocketAddr`
 - [x] **`--http-address` documented** — help text now includes `host:port` format requirement with examples
-- [x] 5 new tests, 1,500 total
+- [x] 6 new tests, 1,501 total
 
 ### v0.7.30 — TCP Integration Hardening + HTTP Port UX (May 2026)
 

@@ -46,10 +46,10 @@ enum Commands {
         ///
         /// Per Tower Atomic portability standard: TCP is opt-in only.
         /// UDS is the default transport. Accepts `host:port` (e.g.
-        /// `127.0.0.1:9850`) or just a port number (e.g. `9850`, binds
-        /// `0.0.0.0`). Pass `0` for OS-assigned. Omit to run UDS-only.
-        /// Default bind host is `0.0.0.0`; use `127.0.0.1:PORT` to
-        /// restrict to localhost.
+        /// `0.0.0.0:9850`) or just a port number (e.g. `9850`, binds
+        /// `127.0.0.1` — localhost-only). Pass `0` for OS-assigned on
+        /// localhost. Omit to run UDS-only. Use `0.0.0.0:PORT` for
+        /// all-interfaces binding in Docker/production.
         #[arg(long, env = "SWEETGRASS_PORT")]
         port: Option<String>,
 
@@ -116,11 +116,13 @@ enum Commands {
     Socket,
 }
 
-/// Parse `--port` argument: accepts `host:port` (e.g. `127.0.0.1:9850`)
-/// or a bare port number (e.g. `9850`, binds `0.0.0.0`).
+/// Parse `--port` argument: accepts `host:port` (e.g. `0.0.0.0:9850`)
+/// or a bare port number (e.g. `9850`, binds `127.0.0.1` — localhost-only
+/// by default per PG-55 security hardening). Use `0.0.0.0:PORT` for
+/// all-interfaces binding in Docker/production.
 fn parse_tcp_port_arg(arg: &str) -> Result<std::net::SocketAddr, String> {
     if let Ok(port) = arg.parse::<u16>() {
-        return Ok(std::net::SocketAddr::from(([0, 0, 0, 0], port)));
+        return Ok(std::net::SocketAddr::from(([127, 0, 0, 1], port)));
     }
     cli::parse_socket_addr(arg)
 }
@@ -444,15 +446,22 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_tcp_port_bare_number() {
+    fn parse_tcp_port_bare_number_binds_localhost() {
         let addr = parse_tcp_port_arg("9850").expect("bare port");
-        assert_eq!(addr, "0.0.0.0:9850".parse().unwrap());
+        assert_eq!(addr, "127.0.0.1:9850".parse().unwrap());
     }
 
     #[test]
     fn parse_tcp_port_zero() {
         let addr = parse_tcp_port_arg("0").expect("ephemeral");
         assert_eq!(addr.port(), 0);
+        assert!(addr.ip().is_loopback(), "bare port 0 should bind localhost");
+    }
+
+    #[test]
+    fn parse_tcp_port_all_interfaces_explicit() {
+        let addr = parse_tcp_port_arg("0.0.0.0:9850").expect("all-interfaces");
+        assert_eq!(addr, "0.0.0.0:9850".parse().unwrap());
     }
 
     #[test]
