@@ -493,19 +493,16 @@ mod btsp_tests {
                     let probe = tokio::net::TcpListener::bind("127.0.0.1:0")
                         .await
                         .expect("bind probe");
-                    let port = probe.local_addr().expect("local_addr").port();
+                    let addr = probe.local_addr().expect("local_addr");
                     drop(probe);
 
                     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
                     let state_clone = state.clone();
                     let listener_handle = tokio::spawn(async move {
-                        let _ = start_tcp_jsonrpc_listener(state_clone, port, shutdown_rx).await;
+                        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
                     });
 
                     tokio::time::sleep(Duration::from_millis(80)).await;
-
-                    let addr: std::net::SocketAddr =
-                        format!("127.0.0.1:{port}").parse().expect("parse addr");
                     let mut stream = tokio::net::TcpStream::connect(addr)
                         .await
                         .expect("connect TCP");

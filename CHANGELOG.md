@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.31] - 2026-05-06
+
+### PG-55 TCP Bind Address Control + PG-59 HTTP Address Docs (May 6, 2026)
+
+Resolves PG-55 (HIGH) and PG-59 (LOW) from projectNUCLEUS Phase 2a
+security audit: TCP listener now supports full `host:port` bind address
+control, and `--http-address` format is documented.
+
+#### Changed
+- **`--port` accepts `host:port`**: The TCP JSON-RPC `--port` flag now
+  accepts `host:port` format (e.g. `127.0.0.1:9850`) in addition to bare
+  port numbers. Bare port numbers continue to bind `0.0.0.0` for backward
+  compatibility. IPv6 supported (e.g. `[::1]:9850`).
+- **`start_tcp_jsonrpc_listener` takes `SocketAddr`**: Internal API
+  evolved from `u16` port to full `std::net::SocketAddr` for bind control.
+
+#### Documentation
+- `--http-address` help text now documents the required `host:port` format
+  with examples (`0.0.0.0:8080`, `127.0.0.1:0`, `[::1]:9090`).
+- `CONTEXT.md`: transport ports section updated to reflect PG-55 bind
+  address semantics.
+
+#### Added
+- 5 new `parse_tcp_port_arg` tests: bare port, zero, host:port, IPv6,
+  invalid input.
+
+#### Metrics
+- Tests: 1,500 pass, 0 failures
+- Source files: 199 `.rs` (53,732 LOC), max 763 lines
+- Clippy: 0 warnings, `cargo deny check`: clean
+
+---
+
 ## [0.7.30] - 2026-05-05
 
 ### TCP Integration Hardening + HTTP Port UX (May 5, 2026)

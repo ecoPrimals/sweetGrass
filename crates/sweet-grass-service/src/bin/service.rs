@@ -42,13 +42,16 @@ struct Cli {
 enum Commands {
     /// Start the `SweetGrass` service (REST + JSON-RPC + tarpc).
     Server {
-        /// TCP JSON-RPC port (newline-delimited framing, opt-in).
+        /// TCP JSON-RPC bind address (newline-delimited framing, opt-in).
         ///
         /// Per Tower Atomic portability standard: TCP is opt-in only.
-        /// UDS is the default transport. Pass `--port 0` for OS-assigned,
-        /// or `--port <N>` for a specific port. Omit to run UDS-only.
+        /// UDS is the default transport. Accepts `host:port` (e.g.
+        /// `127.0.0.1:9850`) or just a port number (e.g. `9850`, binds
+        /// `0.0.0.0`). Pass `0` for OS-assigned. Omit to run UDS-only.
+        /// Default bind host is `0.0.0.0`; use `127.0.0.1:PORT` to
+        /// restrict to localhost.
         #[arg(long, env = "SWEETGRASS_PORT")]
-        port: Option<u16>,
+        port: Option<String>,
 
         /// HTTP port shorthand (sets HTTP bind to `0.0.0.0:<PORT>`).
         ///
@@ -58,7 +61,11 @@ enum Commands {
         #[arg(long, env = "SWEETGRASS_HTTP_PORT")]
         http_port: Option<u16>,
 
-        /// REST/JSON-RPC bind address (HTTP-wrapped).
+        /// REST/JSON-RPC bind address in `host:port` format (HTTP-wrapped).
+        ///
+        /// Examples: `0.0.0.0:8080`, `127.0.0.1:0`, `[::1]:9090`.
+        /// Port `0` = OS-assigned ephemeral port. The resolved address
+        /// is logged at startup.
         #[arg(long, env = "SWEETGRASS_HTTP_ADDRESS", default_value = "0.0.0.0:0")]
         http_address: String,
 
@@ -109,6 +116,15 @@ enum Commands {
     Socket,
 }
 
+/// Parse `--port` argument: accepts `host:port` (e.g. `127.0.0.1:9850`)
+/// or a bare port number (e.g. `9850`, binds `0.0.0.0`).
+fn parse_tcp_port_arg(arg: &str) -> Result<std::net::SocketAddr, String> {
+    if let Ok(port) = arg.parse::<u16>() {
+        return Ok(std::net::SocketAddr::from(([0, 0, 0, 0], port)));
+    }
+    cli::parse_socket_addr(arg)
+}
+
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
@@ -128,8 +144,16 @@ async fn main() {
         } => {
             let effective_http_address =
                 http_port.map_or(http_address, |p| format!("0.0.0.0:{p}"));
+            let tcp_address = port.map(|p| parse_tcp_port_arg(&p)).transpose();
+            let tcp_address = match tcp_address {
+                Ok(a) => a,
+                Err(msg) => {
+                    eprintln!("Error: --port {msg}");
+                    std::process::exit(exit_code::CONFIG_ERROR);
+                },
+            };
             run_server(ServerConfig {
-                port,
+                tcp_address,
                 http_address: effective_http_address,
                 tarpc_address,
                 storage,
@@ -150,7 +174,7 @@ async fn main() {
 }
 
 struct ServerConfig {
-    port: Option<u16>,
+    tcp_address: Option<std::net::SocketAddr>,
     http_address: String,
     tarpc_address: String,
     storage: String,
@@ -255,17 +279,17 @@ async fn serve_all(
         Some(spawn_tarpc_server(tarpc_addr, &state, shutdown_rx))
     };
 
-    let tcp_jsonrpc_handle = config.port.map(|port| {
+    let tcp_jsonrpc_handle = config.tcp_address.map(|addr| {
         let tcp_state = state.clone();
         let shutdown_rx = shutdown_tx.subscribe();
-        tracing::info!(port, "TCP JSON-RPC opt-in enabled");
+        tracing::info!(%addr, "TCP JSON-RPC opt-in enabled");
         tokio::spawn(async move {
-            if let Err(e) = start_tcp_jsonrpc_listener(tcp_state, port, shutdown_rx).await {
+            if let Err(e) = start_tcp_jsonrpc_listener(tcp_state, addr, shutdown_rx).await {
                 tracing::warn!("TCP JSON-RPC listener error: {e}");
             }
         })
     });
-    if config.port.is_none() {
+    if config.tcp_address.is_none() {
         tracing::info!("TCP JSON-RPC disabled (UDS-only mode — pass --port to enable)");
     }
 
@@ -407,5 +431,45 @@ async fn run_status(address: &str) -> i32 {
             tracing::error!("Cannot reach SweetGrass at {address}: {e}");
             exit_code::NETWORK_ERROR
         },
+    }
+}
+
+#[cfg(test)]
+#[expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "test module: expect/unwrap are standard in tests"
+)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_tcp_port_bare_number() {
+        let addr = parse_tcp_port_arg("9850").expect("bare port");
+        assert_eq!(addr, "0.0.0.0:9850".parse().unwrap());
+    }
+
+    #[test]
+    fn parse_tcp_port_zero() {
+        let addr = parse_tcp_port_arg("0").expect("ephemeral");
+        assert_eq!(addr.port(), 0);
+    }
+
+    #[test]
+    fn parse_tcp_port_host_port() {
+        let addr = parse_tcp_port_arg("127.0.0.1:9850").expect("host:port");
+        assert_eq!(addr, "127.0.0.1:9850".parse().unwrap());
+    }
+
+    #[test]
+    fn parse_tcp_port_ipv6() {
+        let addr = parse_tcp_port_arg("[::1]:9850").expect("ipv6");
+        assert_eq!(addr.port(), 9850);
+    }
+
+    #[test]
+    fn parse_tcp_port_invalid() {
+        let err = parse_tcp_port_arg("not-valid");
+        assert!(err.is_err());
     }
 }

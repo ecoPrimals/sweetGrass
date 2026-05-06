@@ -21,9 +21,8 @@ async fn tcp_jsonrpc_roundtrip() {
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let state_clone = state.clone();
-    let port = addr.port();
     let listener_handle = tokio::spawn(async move {
-        let _ = start_tcp_jsonrpc_listener(state_clone, port, shutdown_rx).await;
+        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
     });
 
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
@@ -53,9 +52,8 @@ async fn tcp_jsonrpc_health_check() {
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let state_clone = state.clone();
-    let port = addr.port();
     let listener_handle = tokio::spawn(async move {
-        let _ = start_tcp_jsonrpc_listener(state_clone, port, shutdown_rx).await;
+        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
     });
 
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
@@ -100,9 +98,8 @@ async fn tcp_jsonrpc_parse_error() {
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let state_clone = state.clone();
-    let port = addr.port();
     let listener_handle = tokio::spawn(async move {
-        let _ = start_tcp_jsonrpc_listener(state_clone, port, shutdown_rx).await;
+        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
     });
 
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
@@ -146,9 +143,8 @@ async fn tcp_jsonrpc_notification_no_response_then_roundtrip() {
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let state_clone = state.clone();
-    let port = addr.port();
     let listener_handle = tokio::spawn(async move {
-        let _ = start_tcp_jsonrpc_listener(state_clone, port, shutdown_rx).await;
+        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
     });
 
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
@@ -202,9 +198,8 @@ async fn tcp_jsonrpc_sequential_requests_same_connection() {
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let state_clone = state.clone();
-    let port = addr.port();
     let listener_handle = tokio::spawn(async move {
-        let _ = start_tcp_jsonrpc_listener(state_clone, port, shutdown_rx).await;
+        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
     });
 
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
@@ -274,9 +269,8 @@ async fn tcp_jsonrpc_skips_empty_lines() {
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let state_clone = state.clone();
-    let port = addr.port();
     let listener_handle = tokio::spawn(async move {
-        let _ = start_tcp_jsonrpc_listener(state_clone, port, shutdown_rx).await;
+        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
     });
 
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
@@ -322,9 +316,8 @@ async fn tcp_jsonrpc_method_not_found() {
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let state_clone = state.clone();
-    let port = addr.port();
     let listener_handle = tokio::spawn(async move {
-        let _ = start_tcp_jsonrpc_listener(state_clone, port, shutdown_rx).await;
+        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
     });
 
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
@@ -370,9 +363,8 @@ async fn tcp_jsonrpc_listener_shutdown_exits_gracefully() {
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let state_clone = state.clone();
-    let port = addr.port();
     let listener_handle = tokio::spawn(async move {
-        start_tcp_jsonrpc_listener(state_clone, port, shutdown_rx).await
+        start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await
     });
 
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
@@ -404,9 +396,8 @@ async fn tcp_jsonrpc_invalid_jsonrpc_version() {
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
     let state_clone = state.clone();
-    let port = addr.port();
     let listener_handle = tokio::spawn(async move {
-        let _ = start_tcp_jsonrpc_listener(state_clone, port, shutdown_rx).await;
+        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
     });
 
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;

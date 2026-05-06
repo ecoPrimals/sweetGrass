@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.30 | 1,495 tests | 91.7% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 3 | Wire L3 | BearDog crypto.sign delegation | ChaCha20-Poly1305 AEAD framing | HKDF-SHA256 session keys | Stadial parity (zero async-trait, zero dyn dispatch, sled eliminated, libsqlite3-sys eliminated, hostname eliminated, BTSP first-line auto-detect, PG-52 EOF-resilient UDS, whitespace-tolerant TCP autodetect, --http-port)
+v0.7.31 | 1,500 tests | 91.7% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 3 | Wire L3 | BearDog crypto.sign delegation | ChaCha20-Poly1305 AEAD framing | HKDF-SHA256 session keys | Stadial parity (zero async-trait, zero dyn dispatch, sled eliminated, libsqlite3-sys eliminated, hostname eliminated, BTSP first-line auto-detect, PG-52 EOF-resilient UDS, whitespace-tolerant TCP autodetect, --http-port, PG-55 TCP bind control, PG-59 --http-address docs)
 
 ---
 

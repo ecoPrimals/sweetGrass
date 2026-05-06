@@ -1,10 +1,17 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.30 (May 2026)
+**Current Version**: v0.7.31 (May 2026)
 
 ---
 
 ## Completed
+
+### v0.7.31 — PG-55 TCP Bind Address Control + PG-59 HTTP Address Docs (May 2026)
+
+- [x] **`--port` accepts `host:port`** — TCP JSON-RPC `--port` flag now accepts `host:port` format (e.g. `127.0.0.1:9850`) for bind address control; bare port numbers bind `0.0.0.0` for backward compatibility; IPv6 supported
+- [x] **`start_tcp_jsonrpc_listener` takes `SocketAddr`** — internal API evolved from `u16` to full `SocketAddr`
+- [x] **`--http-address` documented** — help text now includes `host:port` format requirement with examples
+- [x] 5 new tests, 1,500 total
 
 ### v0.7.30 — TCP Integration Hardening + HTTP Port UX (May 2026)
 

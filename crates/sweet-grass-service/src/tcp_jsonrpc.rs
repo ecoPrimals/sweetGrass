@@ -3,8 +3,10 @@
 //! TCP newline-delimited JSON-RPC 2.0 listener.
 //!
 //! Required by `UNIBIN_ARCHITECTURE_STANDARD` v1.1: every primal MUST accept
-//! `server --port <PORT>` to bind a TCP JSON-RPC listener using
+//! `server --port <host:port>` to bind a TCP JSON-RPC listener using
 //! newline-delimited framing (one JSON object per line, terminated by `\n`).
+//! A bare port number (e.g. `9850`) binds `0.0.0.0:9850`; use
+//! `127.0.0.1:9850` to restrict to localhost (PG-55 bind control).
 //!
 //! This is the composition interface that springs, deploy graphs, and
 //! launchers use to orchestrate primals. HTTP-wrapped JSON-RPC
@@ -18,7 +20,7 @@ use tracing::{debug, info, warn};
 
 /// Start a TCP newline-delimited JSON-RPC 2.0 listener.
 ///
-/// Binds to `0.0.0.0:{port}` and accepts connections until `shutdown`
+/// Binds to the given `addr` and accepts connections until `shutdown`
 /// signals. Each connection receives newline-delimited JSON-RPC framing
 /// identical to the UDS transport.
 ///
@@ -27,10 +29,9 @@ use tracing::{debug, info, warn};
 /// Returns an error if TCP binding fails.
 pub async fn start_tcp_jsonrpc_listener(
     state: crate::state::AppState,
-    port: u16,
+    addr: SocketAddr,
     mut shutdown: tokio::sync::watch::Receiver<bool>,
 ) -> crate::Result<()> {
-    let addr = SocketAddr::from(([0, 0, 0, 0], port));
     let listener = tokio::net::TcpListener::bind(addr).await.map_err(|e| {
         crate::ServiceError::Internal(format!("TCP JSON-RPC bind on {addr} failed: {e}"))
     })?;
