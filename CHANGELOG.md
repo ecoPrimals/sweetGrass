@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.32] - 2026-05-08
+
+### JH-0 Method Gate Adoption (May 8, 2026)
+
+Adopts the JH-0 pre-dispatch capability gate per `wateringHole/METHOD_GATE_STANDARD.md`
+and primalSpring's reference implementation. sweetGrass is now part of the 8/13
+primals with JH-0 adoption.
+
+#### Added
+- **`method_gate.rs`** — `MethodGate` with `EnforcementMode` (permissive/enforced),
+  `CallerContext` (loopback/unix/remote), `PeerCredentials`, `MethodAccessLevel`
+  (public/protected), and `classify_method()`. 21 unit tests.
+- **`auth.mode`** — returns current enforcement mode (`permissive` or `enforced`).
+- **`auth.check`** — returns authentication status and mode.
+- **`auth.peer_info`** — returns connection origin and peer credentials.
+- **`SWEETGRASS_AUTH_MODE`** env var — `permissive` (default) or `enforced`/`enforce`/`strict`.
+- `MethodGate` field on `AppState` — shared across all transports (HTTP, TCP, UDS).
+- Pre-dispatch gate wired into `dispatch_classified()` — runs before handler lookup
+  on every JSON-RPC call across all transports.
+- Public method whitelist: `health.*`, `auth.*`, `identity.get`, `capabilities.list`,
+  `capability.list`, `lifecycle.status`, `tools.list`.
+- Protected methods: `braid.*`, `anchoring.*`, `provenance.*`, `attribution.*`,
+  `compression.*`, `contribution.*`, `pipeline.*`, `composition.*`, `tools.call`.
+- Error code `-32001` (`PERMISSION_DENIED`) for enforced-mode rejections.
+- Error code `-32000` (`UNAUTHORIZED`) reserved for future identity verification.
+
+#### Changed
+- **`NOT_FOUND` error code**: moved from `-32001` to `-32004` to free `-32001`
+  for `PERMISSION_DENIED` per JH-0 standard alignment with primalSpring.
+- Dispatch table: 32 → 35 methods (3 new `auth.*` methods).
+- `dispatch_classified()` now normalizes method name once and passes to both
+  gate check and handler lookup via `find_handler_normalized()`.
+
+#### Metrics
+- Tests: 1,522 pass, 0 failures (+21 method gate tests)
+- Source files: 200 `.rs` (54,255 LOC), max 763 lines
+- Clippy: 0 warnings, `cargo deny check`: clean
+
+---
+
 ## [0.7.31] - 2026-05-06
 
 ### PG-55 TCP Bind Address Control + PG-59 HTTP Address Docs (May 6, 2026)

@@ -290,7 +290,7 @@ async fn e2e_jsonrpc_delete_braid() {
         .json(&jsonrpc("braid.get", json!({"id": braid_id}), 3))
         .await
         .json();
-    assert_eq!(get_body["error"]["code"], -32001);
+    assert_eq!(get_body["error"]["code"], -32004);
 }
 
 // ==================== Contribution Recording ====================

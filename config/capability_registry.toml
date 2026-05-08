@@ -7,7 +7,7 @@
 
 [primal]
 name = "sweetgrass"
-version = "0.7.31"
+version = "0.7.32"
 description = "Semantic provenance and attribution layer"
 license = "AGPL-3.0-or-later"
 protocol = "jsonrpc-2.0"

@@ -154,7 +154,9 @@ fn test_all_error_codes() {
     assert_eq!(error_code::METHOD_NOT_FOUND, -32601);
     assert_eq!(error_code::INVALID_PARAMS, -32602);
     assert_eq!(error_code::INTERNAL_ERROR, -32603);
-    assert_eq!(error_code::NOT_FOUND, -32001);
+    assert_eq!(error_code::NOT_FOUND, -32004);
+    assert_eq!(error_code::PERMISSION_DENIED, -32001);
+    assert_eq!(error_code::UNAUTHORIZED, -32000);
 }
 
 #[tokio::test]
@@ -212,8 +214,8 @@ async fn test_record_session_dispatch() {
 fn test_dispatch_table_completeness() {
     assert_eq!(
         METHODS.len(),
-        32,
-        "dispatch table should have all 32 methods"
+        35,
+        "dispatch table should have all 35 methods (32 domain + 3 auth)"
     );
 
     let expected = [

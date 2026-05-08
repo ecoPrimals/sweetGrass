@@ -1,10 +1,19 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.31 (May 2026)
+**Current Version**: v0.7.32 (May 2026)
 
 ---
 
 ## Completed
+
+### v0.7.32 — JH-0 Method Gate Adoption (May 2026)
+
+- [x] **`method_gate.rs`** — `MethodGate`, `EnforcementMode`, `CallerContext`, `MethodAccessLevel`, `classify_method()` with 21 unit tests
+- [x] **`auth.mode` / `auth.check` / `auth.peer_info`** — JH-0 introspection methods in dispatch table
+- [x] **`SWEETGRASS_AUTH_MODE`** env var — `permissive` (default) or `enforced`
+- [x] **Pre-dispatch gate in `dispatch_classified()`** — runs before handler lookup on all transports
+- [x] **Error code migration** — `NOT_FOUND` moved from `-32001` to `-32004`; `-32001` now `PERMISSION_DENIED`
+- [x] 35 methods (32 domain + 3 auth), 1,522 tests total
 
 ### v0.7.31 — PG-55 TCP Bind Address Control + PG-59 HTTP Address Docs (May 2026)
 

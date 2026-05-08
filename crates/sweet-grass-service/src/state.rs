@@ -14,6 +14,7 @@ use sweet_grass_store::MemoryStore;
 use crate::backend::BraidBackend;
 #[cfg(unix)]
 use crate::crypto_delegate::CryptoDelegate;
+use crate::method_gate::MethodGate;
 
 /// Application state shared across handlers.
 #[derive(Clone)]
@@ -39,6 +40,9 @@ pub struct AppState {
     /// Crypto delegation to `BearDog` Tower for braid signing.
     #[cfg(unix)]
     pub crypto: Option<Arc<CryptoDelegate>>,
+
+    /// Pre-dispatch method gate (JH-0).
+    pub method_gate: Arc<MethodGate>,
 }
 
 impl AppState {
@@ -59,6 +63,7 @@ impl AppState {
             store_backend: "memory",
             #[cfg(unix)]
             crypto: None,
+            method_gate: Arc::new(MethodGate::from_env()),
         }
     }
 
@@ -78,6 +83,7 @@ impl AppState {
             store_backend: "unknown",
             #[cfg(unix)]
             crypto: None,
+            method_gate: Arc::new(MethodGate::from_env()),
         }
     }
 
@@ -110,6 +116,7 @@ impl AppState {
             store_backend,
             #[cfg(unix)]
             crypto: None,
+            method_gate: Arc::new(MethodGate::from_env()),
         }
     }
 

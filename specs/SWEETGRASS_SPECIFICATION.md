@@ -1,6 +1,6 @@
 # SweetGrass — Semantic Provenance & Attribution Layer Specification
 
-**Version:** 0.7.31  
+**Version:** 0.7.32  
 **Status:** Architectural Specification  
 **Author:** ecoPrimals Project  
 **Date:** May 2026  
@@ -1283,7 +1283,7 @@ pub struct RewardDistribution {
 - [x] PROV-O JSON-LD export
 - [ ] Full-text search (planned v0.9.0+)
 
-### Phase 4: Economic Integration — PARTIAL (v0.7.0–v0.7.31)
+### Phase 4: Economic Integration — PARTIAL (v0.7.0–v0.7.32)
 - [x] Contribution calculation
 - [x] Attribution normalization and radiating attribution
 - [ ] sunCloud interface (planned v0.9.0)
@@ -1298,7 +1298,7 @@ pub struct RewardDistribution {
 - [x] ecoBin compliance (pure Rust, no C deps)
 - [x] TOML config with XDG hierarchy
 
-### Phase 6: Hardening — IN PROGRESS (v0.7.9–v0.7.31)
+### Phase 6: Hardening — IN PROGRESS (v0.7.9–v0.7.32)
 - [x] `#![forbid(unsafe_code)]` on all crates
 - [x] Zero `unwrap`/`expect`/`panic!` in production
 - [x] SPDX headers and AGPL-3.0-or-later licensing

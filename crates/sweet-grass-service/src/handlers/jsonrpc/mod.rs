@@ -23,6 +23,7 @@
 //! | `capabilities`| list (canonical per wateringHole v2.1)                            |
 //! | `capability`  | list (alias)                                                     |
 //! | `tools`       | list, call (MCP exposure for Squirrel AI coordination)            |
+//! | `auth`        | mode, check, peer_info (JH-0 method gate introspection)          |
 
 mod anchoring;
 mod attribution;
@@ -53,7 +54,15 @@ pub(crate) mod error_code {
     pub const METHOD_NOT_FOUND: i64 = -32601;
     pub const INVALID_PARAMS: i64 = -32602;
     pub const INTERNAL_ERROR: i64 = -32603;
-    pub const NOT_FOUND: i64 = -32001;
+    /// Resource not found (braid, anchor, etc.).
+    pub const NOT_FOUND: i64 = -32004;
+    /// Caller lacks required capability token (JH-0 method gate).
+    /// Issued by `method_gate::MethodGate`; re-exported here for test assertions.
+    #[cfg(test)]
+    pub const PERMISSION_DENIED: i64 = -32001;
+    /// Caller identity could not be established.
+    #[cfg(test)]
+    pub const UNAUTHORIZED: i64 = -32000;
 }
 
 /// JSON-RPC 2.0 request envelope.
@@ -328,6 +337,19 @@ static METHODS: &[MethodEntry] = &[
         name: "composition.nucleus_health",
         handler: |s, p| Box::pin(composition::handle_nucleus_health(s, p)),
     },
+    // Auth introspection (JH-0 method gate)
+    MethodEntry {
+        name: "auth.mode",
+        handler: |s, _p| Box::pin(async move { handle_auth_mode(s) }),
+    },
+    MethodEntry {
+        name: "auth.check",
+        handler: |_s, _p| Box::pin(async move { handle_auth_check() }),
+    },
+    MethodEntry {
+        name: "auth.peer_info",
+        handler: |_s, _p| Box::pin(async move { handle_auth_peer_info() }),
+    },
 ];
 
 /// Normalize a JSON-RPC method name for case-insensitive lookup.
@@ -340,7 +362,10 @@ fn normalize_method(raw: &str) -> String {
 }
 
 pub(super) fn find_handler(method: &str) -> Option<DispatchFn> {
-    let normalized = normalize_method(method);
+    find_handler_normalized(&normalize_method(method))
+}
+
+fn find_handler_normalized(normalized: &str) -> Option<DispatchFn> {
     METHODS
         .iter()
         .find(|m| m.name == normalized)
@@ -445,12 +470,26 @@ async fn dispatch(state: &AppState, method: &str, params: serde_json::Value) -> 
 }
 
 /// Dispatch with protocol/application error classification.
+///
+/// Runs the JH-0 method gate before handler lookup. The gate uses
+/// `CallerContext::loopback()` as the default context; transport-layer
+/// callers can evolve this to pass real peer credentials later.
 async fn dispatch_classified(
     state: &AppState,
     method: &str,
     params: serde_json::Value,
 ) -> DispatchOutcome {
-    let Some(handler) = find_handler(method) else {
+    let normalized = normalize_method(method);
+
+    if let Err((code, message)) =
+        state
+            .method_gate
+            .check(&normalized, &crate::method_gate::CallerContext::loopback())
+    {
+        return DispatchOutcome::ProtocolError { code, message };
+    }
+
+    let Some(handler) = find_handler_normalized(&normalized) else {
         return DispatchOutcome::ProtocolError {
             code: error_code::METHOD_NOT_FOUND,
             message: format!("Method not found: {method}"),
@@ -461,6 +500,44 @@ async fn dispatch_classified(
         Ok(value) => DispatchOutcome::Success(value),
         Err((code, message)) => DispatchOutcome::ApplicationError { code, message },
     }
+}
+
+// ==================== Auth Introspection (JH-0) ====================
+
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "must match DispatchFn signature"
+)]
+fn handle_auth_mode(state: &AppState) -> DispatchResult {
+    Ok(serde_json::json!({
+        "mode": state.method_gate.mode().as_str(),
+    }))
+}
+
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "must match DispatchFn signature"
+)]
+fn handle_auth_check() -> DispatchResult {
+    Ok(serde_json::json!({
+        "authenticated": false,
+        "mode": crate::method_gate::EnforcementMode::from_env().as_str(),
+    }))
+}
+
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "must match DispatchFn signature"
+)]
+fn handle_auth_peer_info() -> DispatchResult {
+    let ctx = crate::method_gate::CallerContext::loopback();
+    Ok(serde_json::json!({
+        "origin": format!("{:?}", ctx.origin),
+        "peer": ctx.peer.as_ref().map(|p| serde_json::json!({
+            "uid": p.uid,
+            "pid": p.pid,
+        })),
+    }))
 }
 
 // ==================== Helpers (used by domain modules) ====================
