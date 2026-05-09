@@ -306,7 +306,7 @@ async fn test_capability_list_method_count() {
     .unwrap();
     let result = resp.result.unwrap();
     let methods = result["methods"].as_array().unwrap();
-    assert_eq!(methods.len(), 35);
+    assert_eq!(methods.len(), 36);
 }
 
 // ==================== capabilities.list (canonical per wateringHole v2.1) ========
@@ -578,5 +578,127 @@ async fn test_dispatch_outcome_protocol_error_for_unknown_method() {
 async fn test_dispatch_outcome_success_for_health_check() {
     let state = test_state();
     let outcome = super::dispatch_classified(&state, "health.check", serde_json::json!({})).await;
+    assert!(matches!(outcome, super::DispatchOutcome::Success(_)));
+}
+
+// ==================== Token extraction ====================
+
+#[test]
+fn test_extract_bearer_token_present() {
+    let params = serde_json::json!({"_bearer_token": "ionic-token-abc", "foo": "bar"});
+    let token = super::extract_bearer_token(&params);
+    assert_eq!(token.as_deref(), Some("ionic-token-abc"));
+}
+
+#[test]
+fn test_extract_bearer_token_absent() {
+    let params = serde_json::json!({"foo": "bar"});
+    let token = super::extract_bearer_token(&params);
+    assert!(token.is_none());
+}
+
+#[test]
+fn test_extract_bearer_token_non_string() {
+    let params = serde_json::json!({"_bearer_token": 42});
+    let token = super::extract_bearer_token(&params);
+    assert!(token.is_none());
+}
+
+#[test]
+fn test_extract_bearer_token_null_params() {
+    let params = serde_json::Value::Null;
+    let token = super::extract_bearer_token(&params);
+    assert!(token.is_none());
+}
+
+#[test]
+fn test_caller_context_from_params_with_token() {
+    let params = serde_json::json!({"_bearer_token": "test-token"});
+    let ctx = super::caller_context_from_params(&params);
+    assert_eq!(ctx.bearer_token.as_deref(), Some("test-token"));
+    assert_eq!(ctx.origin, crate::method_gate::ConnectionOrigin::Loopback);
+}
+
+#[test]
+fn test_caller_context_from_params_without_token() {
+    let params = serde_json::json!({});
+    let ctx = super::caller_context_from_params(&params);
+    assert!(ctx.bearer_token.is_none());
+}
+
+// ==================== Enriched auth.check ====================
+
+#[tokio::test]
+async fn test_auth_check_enriched_response_no_token() {
+    let state = test_state();
+    let resp = process_single(
+        &state,
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "auth.check",
+            "params": {},
+            "id": 1
+        }),
+    )
+    .await
+    .unwrap();
+    let result = resp.result.unwrap();
+    assert_eq!(result["authenticated"], false);
+    assert_eq!(result["verified"], false);
+    assert!(result["enforcement"].is_string());
+    assert!(result.get("scopes").is_some());
+    assert!(result.get("subject").is_some());
+    assert!(result.get("expires_in").is_some());
+}
+
+#[tokio::test]
+async fn test_auth_check_enriched_response_with_token() {
+    let state = test_state();
+    let resp = process_single(
+        &state,
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "auth.check",
+            "params": {"_bearer_token": "ionic-test-123"},
+            "id": 2
+        }),
+    )
+    .await
+    .unwrap();
+    let result = resp.result.unwrap();
+    assert_eq!(result["authenticated"], true);
+    assert_eq!(result["verified"], false);
+}
+
+#[tokio::test]
+async fn test_auth_peer_info_shows_authenticated() {
+    let state = test_state();
+    let resp = process_single(
+        &state,
+        serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "auth.peer_info",
+            "params": {"_bearer_token": "peer-token-xyz"},
+            "id": 3
+        }),
+    )
+    .await
+    .unwrap();
+    let result = resp.result.unwrap();
+    assert_eq!(result["authenticated"], true);
+    assert_eq!(result["origin"], "Loopback");
+}
+
+// ==================== Token passes method gate ====================
+
+#[tokio::test]
+async fn test_token_passes_enforced_gate() {
+    let state = test_state();
+    let outcome = super::dispatch_classified(
+        &state,
+        "braid.query",
+        serde_json::json!({"_bearer_token": "valid", "filter": {}}),
+    )
+    .await;
     assert!(matches!(outcome, super::DispatchOutcome::Success(_)));
 }

@@ -1,10 +1,18 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.32 (May 2026)
+**Current Version**: v0.7.33 (May 2026)
 
 ---
 
 ## Completed
+
+### v0.7.33 — Later-Term Evolution: Token Extraction, Enriched Auth, Audit Pipeline (May 2026)
+
+- [x] **`_bearer_token` extraction** — `dispatch_classified()` extracts token from JSON-RPC params, threads through method gate
+- [x] **Enriched `auth.check`** — returns `{ authenticated, verified, enforcement, scopes, subject, expires_in }` per primalSpring later-term pattern
+- [x] **`attribution.witness`** — JH-5 Phase 3 audit pipeline endpoint (skunkBat -> rhizoCrypt -> sweetGrass)
+- [x] **Niche `CAPABILITIES`** — includes `attribution.witness` and `auth.*` methods
+- [x] 1,536 tests, 54,565 LOC, 191 files, 0 clippy warnings
 
 ### v0.7.32 — JH-0 Method Gate Adoption (May 2026)
 

@@ -1,7 +1,7 @@
 # 🌾 SweetGrass — Development Guide
 
-**Last Updated**: May 8, 2026  
-**Version**: v0.7.32
+**Last Updated**: May 9, 2026  
+**Version**: v0.7.33
 
 ---
 

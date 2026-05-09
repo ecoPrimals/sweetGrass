@@ -13,7 +13,7 @@
 //! | `braid`       | create, get, get_by_hash, query, delete, commit                  |
 //! | `anchoring`   | anchor, verify                                                   |
 //! | `provenance`  | graph, export_provo, export_graph_provo                           |
-//! | `attribution` | chain, calculate_rewards, top_contributors                       |
+//! | `attribution` | chain, calculate_rewards, top_contributors, witness              |
 //! | `compression` | compress_session, create_meta_braid                              |
 //! | `contribution`| record, record_session, record_dehydration                       |
 //! | `pipeline`    | attribute (provenance trio coordination)                          |
@@ -257,6 +257,10 @@ static METHODS: &[MethodEntry] = &[
         name: "attribution.top_contributors",
         handler: |s, p| Box::pin(attribution::handle_top_contributors(s, p)),
     },
+    MethodEntry {
+        name: "attribution.witness",
+        handler: |s, p| Box::pin(attribution::handle_attribution_witness(s, p)),
+    },
     // Compression
     MethodEntry {
         name: "compression.compress_session",
@@ -344,11 +348,11 @@ static METHODS: &[MethodEntry] = &[
     },
     MethodEntry {
         name: "auth.check",
-        handler: |_s, _p| Box::pin(async move { handle_auth_check() }),
+        handler: |s, p| Box::pin(async move { handle_auth_check(s, p) }),
     },
     MethodEntry {
         name: "auth.peer_info",
-        handler: |_s, _p| Box::pin(async move { handle_auth_peer_info() }),
+        handler: |_s, p| Box::pin(async move { handle_auth_peer_info(p) }),
     },
 ];
 
@@ -469,23 +473,44 @@ async fn dispatch(state: &AppState, method: &str, params: serde_json::Value) -> 
     }
 }
 
+/// Extract `_bearer_token` from JSON-RPC params (if present).
+///
+/// Per the ecosystem convention, callers attach an ionic token as
+/// `"_bearer_token": "<token>"` inside the `params` object. This is
+/// a non-destructive read — the token field is *not* stripped from
+/// `params` before forwarding to the handler.
+fn extract_bearer_token(params: &serde_json::Value) -> Option<String> {
+    params
+        .get("_bearer_token")
+        .and_then(serde_json::Value::as_str)
+        .map(ToOwned::to_owned)
+}
+
+/// Build a [`CallerContext`] from the request params.
+///
+/// Currently extracts only `_bearer_token`; connection origin defaults
+/// to `Loopback` until transport-layer callers thread real peer info.
+fn caller_context_from_params(params: &serde_json::Value) -> crate::method_gate::CallerContext {
+    crate::method_gate::CallerContext {
+        bearer_token: extract_bearer_token(params),
+        peer: None,
+        origin: crate::method_gate::ConnectionOrigin::Loopback,
+    }
+}
+
 /// Dispatch with protocol/application error classification.
 ///
-/// Runs the JH-0 method gate before handler lookup. The gate uses
-/// `CallerContext::loopback()` as the default context; transport-layer
-/// callers can evolve this to pass real peer credentials later.
+/// Runs the JH-0 method gate before handler lookup. Extracts
+/// `_bearer_token` from params and threads it through the gate.
 async fn dispatch_classified(
     state: &AppState,
     method: &str,
     params: serde_json::Value,
 ) -> DispatchOutcome {
     let normalized = normalize_method(method);
+    let caller = caller_context_from_params(&params);
 
-    if let Err((code, message)) =
-        state
-            .method_gate
-            .check(&normalized, &crate::method_gate::CallerContext::loopback())
-    {
+    if let Err((code, message)) = state.method_gate.check(&normalized, &caller) {
         return DispatchOutcome::ProtocolError { code, message };
     }
 
@@ -514,25 +539,39 @@ fn handle_auth_mode(state: &AppState) -> DispatchResult {
     }))
 }
 
+/// Enriched auth check per primalSpring later-term pattern.
+///
+/// Returns `{ authenticated, verified, enforcement, scopes, subject, expires_in }`.
+/// Fields that require live `BearDog` token verification return `null` until
+/// `auth.verify_ionic` is wired (JH-11).
 #[expect(
     clippy::unnecessary_wraps,
+    clippy::needless_pass_by_value,
     reason = "must match DispatchFn signature"
 )]
-fn handle_auth_check() -> DispatchResult {
+fn handle_auth_check(state: &AppState, params: serde_json::Value) -> DispatchResult {
+    let caller = caller_context_from_params(&params);
+    let has_token = caller.bearer_token.is_some();
     Ok(serde_json::json!({
-        "authenticated": false,
-        "mode": crate::method_gate::EnforcementMode::from_env().as_str(),
+        "authenticated": has_token,
+        "verified": false,
+        "enforcement": state.method_gate.mode().as_str(),
+        "scopes": serde_json::Value::Null,
+        "subject": serde_json::Value::Null,
+        "expires_in": serde_json::Value::Null,
     }))
 }
 
 #[expect(
     clippy::unnecessary_wraps,
+    clippy::needless_pass_by_value,
     reason = "must match DispatchFn signature"
 )]
-fn handle_auth_peer_info() -> DispatchResult {
-    let ctx = crate::method_gate::CallerContext::loopback();
+fn handle_auth_peer_info(params: serde_json::Value) -> DispatchResult {
+    let ctx = caller_context_from_params(&params);
     Ok(serde_json::json!({
         "origin": format!("{:?}", ctx.origin),
+        "authenticated": ctx.bearer_token.is_some(),
         "peer": ctx.peer.as_ref().map(|p| serde_json::json!({
             "uid": p.uid,
             "pid": p.pid,

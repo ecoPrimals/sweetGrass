@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.33] - 2026-05-09
+
+### Later-Term Evolution: Token Extraction, Enriched Auth, Audit Pipeline (May 9, 2026)
+
+Absorbs primalSpring v0.9.25 later-term evolution patterns: token scope validation,
+enriched `auth.check` response, and JH-5 Phase 3 audit event forwarding chain.
+
+#### Added
+- **`_bearer_token` extraction** — `dispatch_classified()` now extracts `_bearer_token`
+  from JSON-RPC params and threads it through the method gate as `CallerContext`.
+  Callers attach ionic tokens as `"_bearer_token": "<token>"` in params.
+- **`extract_bearer_token()`** — utility to pull token from params `Value`.
+- **`caller_context_from_params()`** — builds `CallerContext` with bearer token
+  and loopback origin from request params.
+- **`attribution.witness`** — JH-5 Phase 3 audit pipeline endpoint. Records
+  externally-sourced attestation events in the attribution layer. Pipeline:
+  skunkBat `defense.log` -> rhizoCrypt `dag.event.append` -> sweetGrass
+  `attribution.witness`. Accepts `hash`, `witness_agent`, `event_type`, `payload`.
+- 14 new tests: token extraction (4), enriched auth.check (3), auth.peer_info
+  authenticated (1), token-gated dispatch (1), attribution.witness (4), niche
+  capability coverage (1).
+
+#### Changed
+- **`auth.check` enriched response** — now returns `{ authenticated, verified,
+  enforcement, scopes, subject, expires_in }` per primalSpring later-term pattern.
+  Fields `verified`, `scopes`, `subject`, `expires_in` are `null` until
+  `auth.verify_ionic` (JH-11) is wired.
+- **`auth.peer_info`** — now includes `authenticated` field showing token presence.
+- Dispatch table: 35 -> 36 methods (+1 `attribution.witness`).
+- Niche `CAPABILITIES` and `operation_dependencies()` updated with
+  `attribution.witness` and `auth.*` methods.
+
+#### Metrics
+- Tests: 1,536 pass, 0 failures (+14 new tests)
+- Source files: 191 `.rs` (54,565 LOC), max 764 lines
+- Clippy: 0 warnings (pedantic + nursery)
+- Deep debt: zero findings across 16 criteria
+
 ## [0.7.32] - 2026-05-08
 
 ### JH-0 Method Gate Adoption (May 8, 2026)

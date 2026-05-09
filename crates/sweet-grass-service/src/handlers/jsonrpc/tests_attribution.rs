@@ -209,3 +209,79 @@ async fn test_attribution_chain_invalid_params() {
     let (code, _) = result.unwrap_err();
     assert_eq!(code, error_code::INVALID_PARAMS);
 }
+
+// ==================== attribution.witness (JH-5 Phase 3) ====================
+
+#[tokio::test]
+async fn test_attribution_witness_success() {
+    let state = test_state();
+    create_braid_for_attribution(&state, "sha256:witnesstest").await;
+    let result = dispatch(
+        &state,
+        "attribution.witness",
+        serde_json::json!({
+            "hash": "sha256:witnesstest",
+            "witness_agent": "did:key:z6MkSkunkBat",
+            "event_type": "security",
+            "payload": {"severity": "high", "source": "defense.log"},
+        }),
+    )
+    .await;
+    assert!(result.is_ok(), "attribution.witness should succeed: {result:?}");
+    let v = result.unwrap();
+    assert_eq!(v["hash"], "sha256:witnesstest");
+    assert_eq!(v["witness_agent"], "did:key:z6MkSkunkBat");
+    assert_eq!(v["event_type"], "security");
+    assert!(v["witnessed_at"].is_string());
+    assert!(v["chain_depth"].is_number());
+}
+
+#[tokio::test]
+async fn test_attribution_witness_default_event_type() {
+    let state = test_state();
+    create_braid_for_attribution(&state, "sha256:witnessdefault").await;
+    let result = dispatch(
+        &state,
+        "attribution.witness",
+        serde_json::json!({
+            "hash": "sha256:witnessdefault",
+            "witness_agent": "did:key:z6MkRhizo",
+        }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(result["event_type"], "attestation");
+}
+
+#[tokio::test]
+async fn test_attribution_witness_invalid_params() {
+    let state = test_state();
+    let result = dispatch(
+        &state,
+        "attribution.witness",
+        serde_json::json!({"wrong": "params"}),
+    )
+    .await;
+    assert!(result.is_err());
+    let (code, _) = result.unwrap_err();
+    assert_eq!(code, error_code::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn test_attribution_witness_with_empty_payload() {
+    let state = test_state();
+    create_braid_for_attribution(&state, "sha256:witnessempty").await;
+    let result = dispatch(
+        &state,
+        "attribution.witness",
+        serde_json::json!({
+            "hash": "sha256:witnessempty",
+            "witness_agent": "did:key:z6MkTest",
+            "event_type": "integrity",
+        }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(result["event_type"], "integrity");
+    assert!(result["payload"].is_null());
+}

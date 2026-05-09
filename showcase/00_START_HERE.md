@@ -2,7 +2,7 @@
 
 **The Attribution Layer for ecoPrimals**
 
-**Version**: 0.7.32 | **Status**: Production Ready | **Tests**: 1,522 passing | **Edition**: 2024
+**Version**: 0.7.33 | **Status**: Production Ready | **Tests**: 1,536 passing | **Edition**: 2024
 
 ---
 
@@ -465,6 +465,6 @@ cat README.md
 
 ---
 
-*SweetGrass v0.7.32 - ecoPrimals Phase 3 (JH-0 Method Gate Adoption)*  
+*SweetGrass v0.7.33 - ecoPrimals Phase 3 (Later-Term Evolution)*  
 *May 2026*
 

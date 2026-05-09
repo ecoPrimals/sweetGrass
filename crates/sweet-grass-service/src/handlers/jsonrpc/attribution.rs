@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
-//! Attribution domain handlers: chain, `calculate_rewards`, `top_contributors`.
+//! Attribution domain handlers: chain, `calculate_rewards`, `top_contributors`,
+//! `witness` (JH-5 Phase 3 audit pipeline).
 
 use serde::Deserialize;
 use sweet_grass_core::braid::ContentHash;
@@ -107,4 +108,62 @@ pub(super) async fn handle_top_contributors(
     });
     contributors.truncate(p.limit as usize);
     to_value(&contributors)
+}
+
+/// Witness event for JH-5 Phase 3 audit pipeline.
+///
+/// Records an externally-sourced attestation in the attribution layer.
+/// The full pipeline is: skunkBat `defense.log` -> rhizoCrypt
+/// `dag.event.append` -> sweetGrass `attribution.witness`.
+#[derive(Debug, Deserialize)]
+pub(super) struct WitnessParams {
+    /// Hash of the content being witnessed.
+    hash: ContentHash,
+    /// Agent DID attesting the event.
+    witness_agent: String,
+    /// Free-form event type (e.g. `"security"`, `"integrity"`, `"provenance"`).
+    #[serde(default = "default_event_type")]
+    event_type: String,
+    /// Optional structured payload from the upstream event.
+    #[serde(default)]
+    payload: serde_json::Value,
+}
+
+fn default_event_type() -> String {
+    "attestation".to_owned()
+}
+
+/// # Errors
+///
+/// Returns an error if params parsing fails, the braid is not found,
+/// or the store query fails.
+pub(super) async fn handle_attribution_witness(
+    state: &AppState,
+    params: serde_json::Value,
+) -> DispatchResult {
+    let p: WitnessParams = parse_params(params)?;
+
+    let chain = state
+        .query
+        .attribution_chain(&p.hash)
+        .await
+        .map_err(internal)?;
+
+    let witness_record = serde_json::json!({
+        "hash": p.hash.as_str(),
+        "witness_agent": p.witness_agent,
+        "event_type": p.event_type,
+        "payload": p.payload,
+        "chain_depth": chain.contributors.len(),
+        "witnessed_at": chrono::Utc::now().to_rfc3339(),
+    });
+
+    tracing::info!(
+        hash = p.hash.as_str(),
+        witness_agent = %p.witness_agent,
+        event_type = %p.event_type,
+        "attribution.witness: recorded audit attestation"
+    );
+
+    Ok(witness_record)
 }

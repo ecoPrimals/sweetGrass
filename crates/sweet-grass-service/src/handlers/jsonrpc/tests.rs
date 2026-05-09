@@ -214,8 +214,8 @@ async fn test_record_session_dispatch() {
 fn test_dispatch_table_completeness() {
     assert_eq!(
         METHODS.len(),
-        35,
-        "dispatch table should have all 35 methods (32 domain + 3 auth)"
+        36,
+        "dispatch table should have all 36 methods (33 domain + 3 auth)"
     );
 
     let expected = [
@@ -233,6 +233,7 @@ fn test_dispatch_table_completeness() {
         "attribution.chain",
         "attribution.calculate_rewards",
         "attribution.top_contributors",
+        "attribution.witness",
         "compression.compress_session",
         "compression.create_meta_braid",
         "contribution.record",

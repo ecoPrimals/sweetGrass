@@ -34,6 +34,7 @@ pub const CAPABILITIES: &[&str] = &[
     "attribution.chain",
     "attribution.calculate_rewards",
     "attribution.top_contributors",
+    "attribution.witness",
     "compression.compress_session",
     "compression.create_meta_braid",
     "contribution.record",
@@ -52,6 +53,9 @@ pub const CAPABILITIES: &[&str] = &[
     "capability.list",
     "tools.list",
     "tools.call",
+    "auth.mode",
+    "auth.check",
+    "auth.peer_info",
 ];
 
 /// Capabilities this primal consumes from other primals at runtime.
@@ -144,6 +148,12 @@ pub fn operation_dependencies() -> Vec<OperationMeta> {
             20,
         ),
         OperationMeta::new(
+            "attribution.witness",
+            &["braid.create"],
+            "low",
+            5,
+        ),
+        OperationMeta::new(
             "compression.compress_session",
             &["braid.create"],
             "high",
@@ -176,6 +186,9 @@ pub fn operation_dependencies() -> Vec<OperationMeta> {
         OperationMeta::new("composition.nucleus_health", &[], "low", 10),
         OperationMeta::new("tools.list", &[], "low", 0),
         OperationMeta::new("tools.call", &[], "low", 5),
+        OperationMeta::new("auth.mode", &[], "low", 0),
+        OperationMeta::new("auth.check", &[], "low", 0),
+        OperationMeta::new("auth.peer_info", &[], "low", 0),
     ]
 }
 
