@@ -7,7 +7,7 @@
 
 [graph]
 name = "sweetgrass-attribution"
-version = "0.7.33"
+version = "0.7.34"
 description = "Semantic provenance and attribution layer"
 owner = "ecoPrimals"
 composition_model = "provenance-trio"

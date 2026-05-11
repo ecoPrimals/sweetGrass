@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.33 | 1,536 tests | 91.7% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 3 | Wire L3 | JH-0 method gate + token extraction | BearDog crypto.sign delegation | JH-5 audit pipeline | ChaCha20-Poly1305 AEAD framing | HKDF-SHA256 session keys | Stadial parity
+v0.7.34 | 1,544 tests | 91.7% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 3 | Wire L3 | Composition ready | JH-0 method gate + token extraction | BearDog crypto.sign delegation | JH-5 audit pipeline | NFT seal verified | Stadial parity
 
 ---
 

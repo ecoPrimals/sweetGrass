@@ -1,10 +1,17 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.33 (May 2026)
+**Current Version**: v0.7.34 (May 2026)
 
 ---
 
 ## Completed
+
+### v0.7.34 — Composition Readiness: Provenance Trio Pipeline Validation (May 2026)
+
+- [x] **Flattened convenience fields on `braid.create`** — `name`, `description`, `tags`, `source_session`, `source_merkle_root` merged into `BraidMetadata`
+- [x] **8 composition contract tests** — exact payload shapes from operational handoff validated
+- [x] **NFT seal round-trip verified** — `braid.create` -> signed witness -> `braid.commit` -> loamSpine wire format
+- [x] 1,544 tests, 54,879 LOC, 191 files, 0 clippy warnings
 
 ### v0.7.33 — Later-Term Evolution: Token Extraction, Enriched Auth, Audit Pipeline (May 2026)
 

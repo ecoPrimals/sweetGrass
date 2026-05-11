@@ -11,6 +11,12 @@ use crate::state::AppState;
 
 use super::{DispatchResult, error_code, internal, parse_params, to_value};
 
+/// Accepts both structured `metadata` and flattened convenience fields.
+///
+/// Composition callers (provenance trio pipeline, skunkBat Phase 3) send
+/// `name`, `description` etc. as top-level params for ergonomics. These
+/// are merged into `BraidMetadata` — structured `metadata` takes precedence
+/// when both forms are present.
 #[derive(Debug, Deserialize)]
 pub(super) struct CreateBraidParams {
     data_hash: ContentHash,
@@ -18,6 +24,45 @@ pub(super) struct CreateBraidParams {
     size: u64,
     #[serde(default)]
     metadata: Option<BraidMetadata>,
+    #[serde(default)]
+    name: Option<String>,
+    #[serde(default)]
+    description: Option<String>,
+    #[serde(default)]
+    tags: Option<Vec<String>>,
+    #[serde(default)]
+    source_session: Option<String>,
+    #[serde(default)]
+    source_merkle_root: Option<String>,
+}
+
+impl CreateBraidParams {
+    /// Merge flattened convenience fields into `BraidMetadata`.
+    fn into_metadata(self) -> (ContentHash, String, u64, Option<BraidMetadata>) {
+        let mut meta = self.metadata.unwrap_or_default();
+
+        if meta.title.is_none() && let Some(name) = self.name {
+            meta.title = Some(name.into());
+        }
+        if meta.description.is_none() && let Some(desc) = self.description {
+            meta.description = Some(desc.into());
+        }
+        if meta.tags.is_empty() && let Some(tags) = self.tags {
+            meta.tags = tags.into_iter().map(Into::into).collect();
+        }
+        if let Some(session) = self.source_session {
+            meta.custom
+                .entry("source_session".to_owned())
+                .or_insert_with(|| serde_json::Value::String(session));
+        }
+        if let Some(root) = self.source_merkle_root {
+            meta.custom
+                .entry("source_merkle_root".to_owned())
+                .or_insert_with(|| serde_json::Value::String(root));
+        }
+
+        (self.data_hash, self.mime_type, self.size, Some(meta))
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -53,9 +98,10 @@ pub(super) async fn handle_braid_create(
     params: serde_json::Value,
 ) -> DispatchResult {
     let p: CreateBraidParams = parse_params(params)?;
+    let (data_hash, mime_type, size, metadata) = p.into_metadata();
     let mut braid = state
         .factory
-        .from_hash(p.data_hash, p.mime_type, p.size, p.metadata)
+        .from_hash(data_hash, mime_type, size, metadata)
         .map_err(internal)?;
 
     #[cfg(unix)]

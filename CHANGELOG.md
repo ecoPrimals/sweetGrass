@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.34] - 2026-05-11
+
+### Composition Readiness: Provenance Trio Pipeline Validation (May 11, 2026)
+
+Validates the full composition path for the provenance trio pipeline
+(rhizoCrypt -> loamSpine -> sweetGrass) and skunkBat JH-5 Phase 3 audit
+forwarding chain. Addresses primalSpring full stadial gate audit.
+
+#### Added
+- **Flattened convenience fields on `braid.create`** — `name`, `description`,
+  `tags`, `source_session`, `source_merkle_root` accepted as top-level params
+  and merged into `BraidMetadata`. Structured `metadata` takes precedence
+  when both are present. This fixes the composition gap where provenance trio
+  callers sent `name`/`description` as top-level fields (silently ignored).
+- 8 composition contract tests validating exact payload shapes from
+  `PROVENANCE_TRIO_OPERATIONAL_HANDOFF_MAY2026.md`:
+  - Flattened name/description mapping
+  - Structured metadata precedence
+  - Source session / Merkle root in custom metadata
+  - Bare hex hash (no `sha256:` prefix) acceptance
+  - Tags propagation
+  - NFT seal round-trip (`braid.create` -> `braid.commit`)
+  - skunkBat `attribution.witness` with security event payload
+  - Full provenance trio pipeline end-to-end
+
+#### Verified
+- `urn:braid:` identifier works with both bare hex and `sha256:`-prefixed hashes
+- `braid.commit` produces base64 `data_hash_bytes` for loamSpine wire format
+- `is_signed()` correctly reports Tower-delegated Ed25519 signature status
+- `CryptoDelegate` sign path produces valid `Witness::from_tower_ed25519`
+- `compute_signing_hash()` covers id, data_hash, mime, size, agent, timestamp
+
+#### Metrics
+- Tests: 1,544 pass, 0 failures (+8 composition contract tests)
+- Source files: 191 `.rs` (54,879 LOC), max 764 lines
+- Clippy: 0 warnings (pedantic + nursery)
+- Deep debt: zero findings across 16 criteria
+
 ## [0.7.33] - 2026-05-09
 
 ### Later-Term Evolution: Token Extraction, Enriched Auth, Audit Pipeline (May 9, 2026)
