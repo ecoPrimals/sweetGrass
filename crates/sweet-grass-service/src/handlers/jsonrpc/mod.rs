@@ -8,22 +8,29 @@
 //!
 //! ## Domain Mapping
 //!
-//! | Domain        | Operations                                                       |
-//! |---------------|------------------------------------------------------------------|
-//! | `braid`       | create, get, get_by_hash, query, delete, commit                  |
-//! | `anchoring`   | anchor, verify                                                   |
-//! | `provenance`  | graph, export_provo, export_graph_provo                           |
-//! | `attribution` | chain, calculate_rewards, top_contributors, witness              |
-//! | `compression` | compress_session, create_meta_braid                              |
-//! | `contribution`| record, record_session, record_dehydration                       |
-//! | `pipeline`    | attribute (provenance trio coordination)                          |
-//! | `health`      | check, liveness, readiness                                       |
-//! | `identity`    | get (biomeOS Neural API: primal name + version)                  |
-//! | `composition` | tower_health, node_health, nest_health, nucleus_health            |
-//! | `capabilities`| list (canonical per wateringHole v2.1)                            |
-//! | `capability`  | list (alias)                                                     |
-//! | `tools`       | list, call (MCP exposure for Squirrel AI coordination)            |
-//! | `auth`        | mode, check, peer_info (JH-0 method gate introspection)          |
+//! | Domain | Operations |
+//! |--------|------------|
+//! | `braid` | `create`, `get`, `get_by_hash`, `query`, `delete`, `commit` |
+//! | `anchoring` | `anchor`, `verify` |
+//! | `provenance` | `graph`, `export_provo`, `export_graph_provo` |
+//! | `attribution` | `chain`, `calculate_rewards`, `top_contributors`, `witness` |
+//! | `compression` | `compress_session`, `create_meta_braid` |
+//! | `contribution` | `record`, `record_session`, `record_dehydration` |
+//! | `pipeline` | `attribute` (provenance trio coordination) |
+//! | `health` | `check`, `liveness`, `readiness` |
+//! | `identity` | `get` (biomeOS Neural API: primal name + version) |
+//! | `composition` | `tower_health`, `node_health`, `nest_health`, `nucleus_health` |
+//! | `lifecycle` | `status` (public surface — running state, version, gate mode) |
+//! | `capabilities` | `list` (canonical per wateringHole v2.1) |
+//! | `capability` | `list` (alias) |
+//! | `tools` | `list`, `call` (MCP exposure for Squirrel AI coordination) |
+//! | `auth` | `mode`, `check`, `peer_info` (JH-0 method gate introspection) |
+//!
+//! ## Wire-Name Aliases (GAP-36 Reconciliation)
+//!
+//! Downstream springs and integration guides reference method names that
+//! diverge from the canonical wire. The dispatch table resolves these
+//! aliases transparently — see `ALIASES` table for the full mapping.
 
 mod anchoring;
 mod attribution;
@@ -341,6 +348,11 @@ static METHODS: &[MethodEntry] = &[
         name: "composition.nucleus_health",
         handler: |s, p| Box::pin(composition::handle_nucleus_health(s, p)),
     },
+    // Lifecycle (wateringHole public surface, classified public in method gate)
+    MethodEntry {
+        name: "lifecycle.status",
+        handler: |s, p| Box::pin(async move { handle_lifecycle_status(s, p) }),
+    },
     // Auth introspection (JH-0 method gate)
     MethodEntry {
         name: "auth.mode",
@@ -365,6 +377,36 @@ fn normalize_method(raw: &str) -> String {
     raw.to_ascii_lowercase()
 }
 
+/// Wire-name aliases for downstream compatibility (GAP-36 reconciliation).
+///
+/// Downstream springs and integration guides reference method names that
+/// diverge from the canonical wire names. This table maps every known
+/// variant to the canonical name so callers get a valid handler instead
+/// of `-32601 Method not found`.
+///
+/// Sources: `PROVENANCE_TRIO_INTEGRATION_GUIDE.md`, `CAPABILITY_DOMAIN_REGISTRY.md`,
+/// ludoSpring trio graph, primalSpring handoffs, biomeOS Neural API translation
+/// errors (GAP-MATRIX-09).
+static ALIASES: &[(&str, &str)] = &[
+    ("braid.attribution.create", "braid.create"),
+    ("attribution.create_braid", "braid.create"),
+    ("provenance.create_braid", "braid.create"),
+    ("attribution.braid", "braid.create"),
+    ("attribution.add_contribution", "contribution.record"),
+    ("attribution.calculate", "attribution.calculate_rewards"),
+    ("attribution.seal", "braid.commit"),
+    ("attribution.export_prov", "provenance.export_provo"),
+    ("provenance.lineage", "attribution.chain"),
+    ("attribution.anchor", "anchoring.anchor"),
+];
+
+fn resolve_alias(method: &str) -> Option<&'static str> {
+    ALIASES
+        .iter()
+        .find(|(alias, _)| *alias == method)
+        .map(|(_, canonical)| *canonical)
+}
+
 pub(super) fn find_handler(method: &str) -> Option<DispatchFn> {
     find_handler_normalized(&normalize_method(method))
 }
@@ -373,6 +415,10 @@ fn find_handler_normalized(normalized: &str) -> Option<DispatchFn> {
     METHODS
         .iter()
         .find(|m| m.name == normalized)
+        .or_else(|| {
+            let canonical = resolve_alias(normalized)?;
+            METHODS.iter().find(|m| m.name == canonical)
+        })
         .map(|m| m.handler)
 }
 
@@ -502,15 +548,18 @@ fn caller_context_from_params(params: &serde_json::Value) -> crate::method_gate:
 ///
 /// Runs the JH-0 method gate before handler lookup. Extracts
 /// `_bearer_token` from params and threads it through the gate.
+/// Alias resolution (GAP-36) maps downstream wire names to canonical
+/// names before the gate check.
 async fn dispatch_classified(
     state: &AppState,
     method: &str,
     params: serde_json::Value,
 ) -> DispatchOutcome {
     let normalized = normalize_method(method);
+    let effective = resolve_alias(&normalized).unwrap_or(normalized.as_str());
     let caller = caller_context_from_params(&params);
 
-    if let Err((code, message)) = state.method_gate.check(&normalized, &caller) {
+    if let Err((code, message)) = state.method_gate.check(effective, &caller) {
         return DispatchOutcome::ProtocolError { code, message };
     }
 
@@ -525,6 +574,26 @@ async fn dispatch_classified(
         Ok(value) => DispatchOutcome::Success(value),
         Err((code, message)) => DispatchOutcome::ApplicationError { code, message },
     }
+}
+
+// ==================== Lifecycle ====================
+
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "must match DispatchFn signature"
+)]
+fn handle_lifecycle_status(state: &AppState, _params: serde_json::Value) -> DispatchResult {
+    let version = env!("CARGO_PKG_VERSION");
+    let name = state
+        .self_knowledge
+        .as_ref()
+        .map_or("sweetgrass", |sk| sk.name.as_str());
+    Ok(serde_json::json!({
+        "status": "running",
+        "primal": name,
+        "version": version,
+        "gate_mode": state.method_gate.mode().as_str(),
+    }))
 }
 
 // ==================== Auth Introspection (JH-0) ====================

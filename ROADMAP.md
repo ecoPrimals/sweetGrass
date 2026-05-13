@@ -1,10 +1,16 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.34 (May 2026)
+**Current Version**: v0.7.35 (May 2026)
 
 ---
 
 ## Completed
+
+### v0.7.35 — Wire-Name Reconciliation: GAP-36 Alias Resolution (May 2026)
+
+- [x] **10 wire-name aliases** — downstream method names transparently resolved to canonical handlers
+- [x] **`lifecycle.status` handler** — returns running state, version, gate mode
+- [x] 1,549 tests, 55,062 LOC, 191 files, 0 clippy warnings
 
 ### v0.7.34 — Composition Readiness: Provenance Trio Pipeline Validation (May 2026)
 

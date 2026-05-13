@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.35] - 2026-05-13
+
+### Wire-Name Reconciliation: GAP-36 Alias Resolution (May 13, 2026)
+
+Resolves the GAP-36 composition gap from the primalSpring glacial debt
+escalation audit. Downstream springs and integration guides reference
+method names that diverge from canonical wire names — these were returning
+`-32601 Method not found`, reported as "empty socket" responses.
+
+#### Added
+- **Wire-name alias table** (10 aliases) — transparent resolution of
+  downstream method names to canonical handlers:
+  - `braid.attribution.create` → `braid.create`
+  - `attribution.create_braid` → `braid.create`
+  - `provenance.create_braid` → `braid.create`
+  - `attribution.braid` → `braid.create`
+  - `attribution.add_contribution` → `contribution.record`
+  - `attribution.calculate` → `attribution.calculate_rewards`
+  - `attribution.seal` → `braid.commit`
+  - `attribution.export_prov` → `provenance.export_provo`
+  - `provenance.lineage` → `attribution.chain`
+  - `attribution.anchor` → `anchoring.anchor`
+- **`lifecycle.status` handler** — returns running state, primal name,
+  version, and gate mode. Classified public in the JH-0 method gate.
+  Fixes missing handler for a method already in the public whitelist.
+- 6 new tests (alias resolution table, 3 alias dispatch, lifecycle)
+
+#### Metrics
+- Tests: 1,549 pass, 0 failures
+- Source files: 191 `.rs` (55,062 LOC)
+- Clippy: 0 warnings (pedantic + nursery)
+- Methods: 37 canonical + 10 aliases = 47 accessible wire names
+
 ## [0.7.34] - 2026-05-11
 
 ### Composition Readiness: Provenance Trio Pipeline Validation (May 11, 2026)
