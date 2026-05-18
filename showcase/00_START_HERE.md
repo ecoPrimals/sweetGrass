@@ -2,7 +2,7 @@
 
 **The Attribution Layer for ecoPrimals**
 
-**Version**: 0.7.35 | **Status**: Production Ready | **Tests**: 1,549 passing | **Edition**: 2024
+**Version**: 0.7.36 | **Status**: Stadial Ready | **Tests**: 1,549 passing | **Edition**: 2024
 
 ---
 
@@ -465,6 +465,6 @@ cat README.md
 
 ---
 
-*SweetGrass v0.7.35 - ecoPrimals Phase 3 (GAP-36 Wire Reconciliation)*  
+*SweetGrass v0.7.36 - ecoPrimals Phase 3 (Stadial Gate)*  
 *May 2026*
 

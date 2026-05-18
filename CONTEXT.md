@@ -28,18 +28,39 @@ attribution before distributing rewards.
 - **Communication:** JSON-RPC 2.0 (required) + tarpc (optional high-perf) + REST + UDS
 - **License:** scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0)
 - **Tests:** 1,549 local + 56 Docker CI
+
+## Degradation Behavior
+
+When sweetGrass is **unavailable** in a composition:
+- **Braids are not created** — downstream content lacks W3C PROV-O attribution records
+- **Attribution chains return empty** — `attribution.chain` unavailable, callers see `recorded: false`
+- **NFT seals incomplete** — `braid.commit` packaging for loamSpine unavailable
+- **Provenance graphs empty** — `provenance.graph` and `provenance.export_provo` unavailable
+- **Science is NOT gated** — all experiments, computations, and pipelines continue without provenance; attribution is enrichment, not a gate
+- **Graceful degradation pattern**: callers use `ProvenanceContext::is_available()` and return `Ok` with `recorded: false` when the trio is absent (per `PROVENANCE_TRIO_INTEGRATION_GUIDE.md`)
+
+## Downstream Dependents
+
+| Consumer | What They Use | Impact When Down |
+|----------|--------------|------------------|
+| lithoSpore | braid verification artifacts | Verification continues without attribution chain |
+| wetSpring | ferment transcript braids | Science runs, transcripts lack provenance |
+| projectFOUNDATION | attribution chain for thread evidence | Evidence stored, attribution deferred |
+| rhizoCrypt/loamSpine | trio pipeline (`braid.create`, `braid.commit`) | DAG/ledger operational, braids deferred |
+| skunkBat | `attribution.witness` (JH-5 audit pipeline) | Security events logged locally, forwarding deferred |
 - **Coverage:** 90%+ line (91.7% with Postgres Docker, llvm-cov)
 - **BTSP:** Phase 3 — server-side `btsp.negotiate` handler with ChaCha20-Poly1305 AEAD encrypted framing; `detect_protocol` three-way multiplexer (JSON-RPC, JSON-line BTSP, length-prefixed BTSP) when `FAMILY_ID` set; HKDF-SHA256 directional session keys from BearDog's `session_key`; NULL cipher graceful fallback; `family_seed` forwarded to BearDog for crypto; EOF-resilient first-line detection for shell callers; whitespace-tolerant autodetect (leading `\n`/`\r`/` `/`\t` skipped before classification)
 - **UDS contract:** Newline-delimited JSON-RPC 2.0; compositions should use `\n`-terminated requests and >=10s read timeout (`braid.create`/`provenance.graph` may touch storage)
 - **Transport ports:** `--port` = TCP JSON-RPC (opt-in, newline-delimited; accepts `host:port` or bare port number — bare port binds `127.0.0.1` localhost-only per PG-55; use `0.0.0.0:PORT` for all-interfaces in Docker/production), `--http-port` / `--http-address host:port` = HTTP REST+JSON-RPC (primary integration surface, default `0.0.0.0:0` = dynamic), `--tarpc-address` = tarpc (default dynamic). Recommended TCP allocation: **9850** (avoids biomeOS TCP fallback range at 9800)
 - **Discovery tiers supported:** Tier 3 (UDS filesystem convention: `sweetgrass.sock` / `sweetgrass-{family}.sock` + `provenance.sock` capability symlink) and Tier 4 (registry announce via `DISCOVERY_ADDRESS` / `DISCOVERY_BOOTSTRAP`). Tiers 1/2/5 (Songbird `ipc.resolve`, biomeOS Neural API, TCP probing) not yet implemented — sweetGrass is UDS-primary
-- **Version:** 0.7.35
+- **Version:** 0.7.36
 - **Method gate:** JH-0 pre-dispatch capability gate with token extraction — `auth.mode`, `auth.check` (enriched: `authenticated`, `verified`, `enforcement`, `scopes`, `subject`, `expires_in`), `auth.peer_info` methods; `_bearer_token` extracted from JSON-RPC params and threaded through gate; `SWEETGRASS_AUTH_MODE=permissive|enforced` env var; public whitelist (`health.*`, `auth.*`, `identity.get`, `capabilities.list`, `capability.list`, `lifecycle.status`, `tools.list`); all other methods protected; starts permissive
 - **Audit pipeline:** `attribution.witness` method for JH-5 Phase 3 (`defense.log` -> `dag.event.append` -> `attribution.witness`)
 - **Composition path:** `braid.create` accepts flattened convenience fields (`name`, `description`, `tags`, `source_session`, `source_merkle_root`) for provenance trio pipeline callers — merged into `BraidMetadata`; structured `metadata` takes precedence
 - **Wire-name aliases (GAP-36):** 10 downstream wire-name variants resolved transparently — `braid.attribution.create`, `attribution.create_braid`, `provenance.create_braid`, etc. all route to canonical handlers
 - **Lifecycle:** `lifecycle.status` returns running state, version, gate mode (classified public in method gate)
-- **Source files:** 191 `.rs` files (55,062 LOC), max 882 lines (test file)
+- **TCP BTSP enforcement:** Raw JSON-RPC rejected on TCP when `FAMILY_ID` is set — BTSP handshake mandatory. UDS permits unauthenticated access for health probes and local composition
+- **Source files:** 191 `.rs` files (55,049 LOC), max 882 lines (test file)
 - **Property testing:** 25 proptest strategies across 7 crates
 - **Chaos/fault:** 11 attribution chaos + 17 service chaos + 9 fault injection
 - **Edition:** 2024 (`resolver = "3"`), MSRV 1.87

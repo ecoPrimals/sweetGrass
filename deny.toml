@@ -51,6 +51,8 @@ deny = [
     { name = "native-tls", wrappers = [], use-instead = "Tower Atomic (Songbird + BearDog)" },
     # ring/rustls: wrappers allow the testcontainers dev-dep chain (bollard → rustls → ring).
     # Any NEW production dep pulling these will still be caught.
+    { name = "aws-lc-sys", wrappers = [], reason = "C/ASM crypto backend — Tower Atomic replaces this" },
+    { name = "aws-lc-rs", wrappers = [], reason = "C/ASM crypto backend — Tower Atomic replaces this" },
     { name = "ring", wrappers = ["rustls", "rustls-webpki"], reason = "C/ASM crypto backend — Tower Atomic replaces this" },
     { name = "rustls", wrappers = ["bollard", "hyper-rustls", "tokio-rustls"], reason = "depends on ring (C/ASM) — Tower Atomic replaces this" },
     

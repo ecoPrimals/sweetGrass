@@ -7,11 +7,11 @@
 
 [primal]
 name = "sweetgrass"
-version = "0.7.35"
+version = "0.7.36"
 description = "Semantic provenance and attribution layer"
 license = "AGPL-3.0-or-later"
 protocol = "jsonrpc-2.0"
-transport = ["http", "uds"]
+transport = ["http", "uds", "tcp"]
 
 [domains.braid]
 description = "Provenance record lifecycle"
@@ -27,7 +27,7 @@ methods = ["graph", "export_provo", "export_graph_provo"]
 
 [domains.attribution]
 description = "Fair credit attribution and reward calculation"
-methods = ["chain", "calculate_rewards", "top_contributors"]
+methods = ["chain", "calculate_rewards", "top_contributors", "witness"]
 
 [domains.compression]
 description = "Session compression and meta-braid creation"
@@ -53,116 +53,187 @@ methods = ["list"]
 description = "Capability discovery (alias)"
 methods = ["list"]
 
+[domains.identity]
+description = "Primal identity"
+methods = ["get"]
+
+[domains.auth]
+description = "Authorization and method gate status"
+methods = ["check", "mode", "peer_info"]
+
+[domains.lifecycle]
+description = "Runtime lifecycle"
+methods = ["status"]
+
 [domains.tools]
 description = "MCP tool exposure for Squirrel AI coordination"
 methods = ["list", "call"]
 
 # Per-operation metadata for biomeOS dispatch graph
+# Stability tiers: "stable" (Wire Standard locked), "beta" (API may evolve),
+#                  "experimental" (subject to change)
 
 [operations."braid.create"]
 depends_on = []
 cost = "low"
+stability = "stable"
 
 [operations."braid.get"]
 depends_on = []
 cost = "low"
+stability = "stable"
 
 [operations."braid.get_by_hash"]
 depends_on = []
 cost = "low"
+stability = "stable"
 
 [operations."braid.query"]
 depends_on = []
 cost = "medium"
+stability = "stable"
 
 [operations."braid.delete"]
 depends_on = []
 cost = "low"
+stability = "stable"
 
 [operations."braid.commit"]
 depends_on = ["braid.create"]
 cost = "medium"
+stability = "stable"
 
 [operations."anchoring.anchor"]
 depends_on = ["braid.create"]
 cost = "high"
+stability = "stable"
 
 [operations."anchoring.verify"]
 depends_on = []
 cost = "medium"
+stability = "stable"
 
 [operations."provenance.graph"]
 depends_on = ["braid.create"]
 cost = "medium"
+stability = "stable"
 
 [operations."provenance.export_provo"]
 depends_on = ["braid.create"]
 cost = "medium"
+stability = "stable"
 
 [operations."provenance.export_graph_provo"]
 depends_on = ["braid.create"]
 cost = "high"
+stability = "stable"
 
 [operations."attribution.chain"]
 depends_on = ["braid.create"]
 cost = "high"
+stability = "stable"
 
 [operations."attribution.calculate_rewards"]
 depends_on = ["attribution.chain"]
 cost = "high"
+stability = "stable"
 
 [operations."attribution.top_contributors"]
 depends_on = ["braid.create"]
 cost = "medium"
+stability = "stable"
+
+[operations."attribution.witness"]
+depends_on = ["braid.create"]
+cost = "low"
+stability = "beta"
 
 [operations."compression.compress_session"]
 depends_on = ["braid.create"]
 cost = "high"
+stability = "stable"
 
 [operations."compression.create_meta_braid"]
 depends_on = ["compression.compress_session"]
 cost = "medium"
+stability = "stable"
 
 [operations."contribution.record"]
 depends_on = ["braid.create"]
 cost = "low"
+stability = "stable"
 
 [operations."contribution.record_session"]
 depends_on = ["braid.create"]
 cost = "medium"
+stability = "stable"
 
 [operations."contribution.record_dehydration"]
 depends_on = []
 cost = "medium"
+stability = "stable"
 
 [operations."health.check"]
 depends_on = []
 cost = "low"
+stability = "stable"
 
 [operations."health.liveness"]
 depends_on = []
 cost = "low"
+stability = "stable"
 
 [operations."health.readiness"]
 depends_on = []
 cost = "low"
+stability = "stable"
+
+[operations."identity.get"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."auth.check"]
+depends_on = []
+cost = "low"
+stability = "beta"
+
+[operations."auth.mode"]
+depends_on = []
+cost = "low"
+stability = "beta"
+
+[operations."auth.peer_info"]
+depends_on = []
+cost = "low"
+stability = "beta"
+
+[operations."lifecycle.status"]
+depends_on = []
+cost = "low"
+stability = "stable"
 
 [operations."pipeline.attribute"]
 depends_on = ["braid.create"]
 cost = "medium"
+stability = "stable"
 
 [operations."capabilities.list"]
 depends_on = []
 cost = "low"
+stability = "stable"
 
 [operations."capability.list"]
 depends_on = []
 cost = "low"
+stability = "stable"
 
 [operations."tools.list"]
 depends_on = []
 cost = "low"
+stability = "stable"
 
 [operations."tools.call"]
 depends_on = []
 cost = "low"
+stability = "stable"

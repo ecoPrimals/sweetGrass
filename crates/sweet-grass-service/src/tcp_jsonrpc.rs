@@ -88,9 +88,12 @@ pub async fn start_tcp_jsonrpc_listener(
 /// Reads the first line to determine the protocol:
 /// - First byte not `{` → length-prefixed BTSP handshake
 /// - `{"protocol":"btsp",...}` → JSON-line BTSP (primalSpring-compatible)
-/// - `{"jsonrpc":"2.0",...}` → raw JSON-RPC (health probes, biomeOS, springs)
+/// - `{"jsonrpc":"2.0",...}` → **REJECTED** with `-32001` error (BTSP
+///   mandatory on TCP when `FAMILY_ID` is set per `DARK_FOREST_GLACIAL_GATE_STANDARD`)
 ///
-/// Aligns with Phase 45b wire-format guidance, `BearDog` (PG-35) / `Squirrel` (PG-30).
+/// Raw JSON-RPC without BTSP is permitted on **UDS only** (localhost transport).
+/// TCP is an untrusted transport — plaintext provenance data on the wire
+/// violates the 5-pillar security invariants.
 #[cfg(unix)]
 async fn handle_tcp_with_autodetect(
     mut stream: tokio::net::TcpStream,
@@ -135,11 +138,30 @@ async fn handle_tcp_with_autodetect(
                 },
             }
         },
-        DetectedProtocol::JsonRpc(first_request) => {
-            debug!("TCP from {peer}: first-line auto-detect → raw JSON-RPC");
-            if let Err(e) = handle_tcp_connection_raw_with_first(stream, state, first_request).await
-            {
-                warn!("TCP raw connection from {peer} (auto-detected): {e}");
+        DetectedProtocol::JsonRpc(rejected_request) => {
+            use tokio::io::AsyncWriteExt;
+            warn!(
+                "TCP from {peer}: raw JSON-RPC rejected — BTSP handshake required \
+                 (FAMILY_ID set). Use UDS for unauthenticated access or initiate \
+                 BTSP handshake on TCP."
+            );
+            let id = rejected_request
+                .get("id")
+                .cloned()
+                .unwrap_or(serde_json::Value::Null);
+            let err = serde_json::json!({
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": -32001,
+                    "message": "BTSP handshake required on TCP when FAMILY_ID is set. \
+                                Use UDS for unauthenticated access.",
+                },
+                "id": id,
+            });
+            if let Ok(mut resp) = serde_json::to_string(&err) {
+                resp.push('\n');
+                let _ = stream.write_all(resp.as_bytes()).await;
+                let _ = stream.flush().await;
             }
         },
         DetectedProtocol::Unknown(obj) => {
@@ -323,61 +345,6 @@ async fn handle_tcp_connection_raw(
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
     let (reader, mut writer) = tokio::io::split(stream);
-    let mut lines = BufReader::new(reader).lines();
-
-    while let Some(line) = lines.next_line().await? {
-        if line.trim().is_empty() {
-            continue;
-        }
-
-        let request: serde_json::Value = match serde_json::from_str(&line) {
-            Ok(v) => v,
-            Err(e) => {
-                let err_response = serde_json::json!({
-                    "jsonrpc": "2.0",
-                    "error": {
-                        "code": crate::handlers::jsonrpc::error_code::PARSE_ERROR,
-                        "message": format!("Parse error: {e}"),
-                    },
-                    "id": null
-                });
-                let mut resp = serde_json::to_string(&err_response)?;
-                resp.push('\n');
-                writer.write_all(resp.as_bytes()).await?;
-                writer.flush().await?;
-                continue;
-            },
-        };
-
-        if let Some(response) = crate::handlers::jsonrpc::process_single(&state, request).await {
-            let mut resp = serde_json::to_string(&response)?;
-            resp.push('\n');
-            writer.write_all(resp.as_bytes()).await?;
-            writer.flush().await?;
-        }
-    }
-
-    Ok(())
-}
-
-/// Handle a TCP connection where the first JSON-RPC request has already been
-/// consumed by the auto-detect layer.
-async fn handle_tcp_connection_raw_with_first(
-    stream: tokio::net::TcpStream,
-    state: crate::state::AppState,
-    first_request: serde_json::Value,
-) -> crate::Result<()> {
-    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-
-    let (reader, mut writer) = tokio::io::split(stream);
-
-    if let Some(response) = crate::handlers::jsonrpc::process_single(&state, first_request).await {
-        let mut resp = serde_json::to_string(&response)?;
-        resp.push('\n');
-        writer.write_all(resp.as_bytes()).await?;
-        writer.flush().await?;
-    }
-
     let mut lines = BufReader::new(reader).lines();
 
     while let Some(line) = lines.next_line().await? {

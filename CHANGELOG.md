@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.36] - 2026-05-17
+
+### Stadial Gate: Wave 22 Hardening (May 17, 2026)
+
+Resolves all sweetGrass items from the primalSpring Wave 22 stadial gate
+audit. Closes composition Gap 7 (HIGH), aligns manifest, hardens security.
+
+#### Security
+- **TCP BTSP enforcement (Gap 7 HIGH)** — raw JSON-RPC on TCP is now
+  rejected with `-32001` when `FAMILY_ID` is set. BTSP handshake is
+  mandatory on TCP. UDS remains open for unauthenticated local access.
+  Dead code (`handle_tcp_connection_raw_with_first`) removed.
+- **deny.toml** — added `aws-lc-sys` and `aws-lc-rs` bans per stadial
+  security standard.
+
+#### Discovery
+- **`capabilities.list`** — added `count` field, `btsp` capabilities
+  block (`supported`, `required`, `capabilities: ["chacha20-poly1305", "null"]`),
+  and dynamic `transport` (includes `tcp` when `SWEETGRASS_PORT` is set).
+
+#### Deployment
+- **Manifest aligned** — `genomeBin/manifest.toml` updated from `0.7.3`
+  to `0.7.36` with `seed_fingerprint` and expanded capabilities list.
+- **Degradation docs** — documented what happens when sweetGrass is down
+  and downstream dependents table in CONTEXT.md.
+
+#### Metrics
+- Tests: 1,549 pass, 0 failures
+- Source files: 191 `.rs` (55,049 LOC)
+- Clippy: 0 warnings (pedantic + nursery)
+- Methods: 37 canonical + 10 aliases = 47 accessible wire names
+
 ## [0.7.35] - 2026-05-13
 
 ### Wire-Name Reconciliation: GAP-36 Alias Resolution (May 13, 2026)

@@ -1,10 +1,19 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.35 (May 2026)
+**Current Version**: v0.7.36 (May 2026)
 
 ---
 
 ## Completed
+
+### v0.7.36 — Stadial Gate: Wave 22 Hardening (May 2026)
+
+- [x] **TCP BTSP enforcement (Gap 7 HIGH)** — raw JSON-RPC rejected on TCP when `FAMILY_ID` set
+- [x] **deny.toml** — `aws-lc-sys`/`aws-lc-rs` bans added
+- [x] **capabilities.list** — `count`, `btsp` block, dynamic transport
+- [x] **Manifest aligned** — `0.7.3` → `0.7.36` with `seed_fingerprint`
+- [x] **Degradation docs** — downstream dependents table, behavior when down
+- [x] 1,549 tests, 55,049 LOC, 0 clippy warnings
 
 ### v0.7.35 — Wire-Name Reconciliation: GAP-36 Alias Resolution (May 2026)
 

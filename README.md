@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.35 | 1,549 tests | 91.7% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin compliant | BTSP Phase 3 | Wire L3 | GAP-36 resolved | 37 methods + 10 aliases | JH-0 method gate | BearDog crypto delegation | JH-5 audit pipeline | NFT seal verified | Stadial parity
+v0.7.36 | 1,549 tests | 91.7% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin A++ | BTSP enforced on TCP | Wire L3 | Stadial ready | 37 methods + 10 aliases | JH-0 method gate | BearDog crypto delegation | JH-5 audit pipeline | NFT seal verified
 
 ---
 
@@ -203,8 +203,8 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.30 |
-| Tests | 1,495 local + 56 Docker CI |
+| Version | v0.7.36 |
+| Tests | 1,549 local + 56 Docker CI |
 | Coverage | 90%+ line (91.7% with Postgres Docker) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |

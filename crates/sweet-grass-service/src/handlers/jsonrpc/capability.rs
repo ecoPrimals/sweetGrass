@@ -86,12 +86,32 @@ pub(super) fn handle_capability_list(
         );
     }
 
+    let count = methods.len();
+
+    let mut transport = vec!["http", "uds"];
+    if std::env::var("SWEETGRASS_PORT").is_ok() {
+        transport.push("tcp");
+    }
+
+    let btsp_active = {
+        #[cfg(unix)]
+        { crate::btsp::is_btsp_required() }
+        #[cfg(not(unix))]
+        { false }
+    };
+
     to_value(&serde_json::json!({
         "primal": niche::NICHE_ID,
         "version": version,
+        "count": count,
         "description": niche::NICHE_DESCRIPTION,
         "protocol": "jsonrpc-2.0",
-        "transport": ["http", "uds"],
+        "transport": transport,
+        "btsp": {
+            "supported": true,
+            "required": btsp_active,
+            "capabilities": ["chacha20-poly1305", "null"],
+        },
         "methods": methods,
         "provided_capabilities": provided_capabilities,
         "consumed_capabilities": niche::CONSUMED_CAPABILITIES,
