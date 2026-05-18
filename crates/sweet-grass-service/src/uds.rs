@@ -228,11 +228,16 @@ pub async fn start_uds_listener_at(
         std::fs::remove_file(path)
             .map_err(|e| crate::ServiceError::Internal(format!("remove stale socket: {e}")))?;
     }
+    let stale_pid = pid_path(path);
+    if stale_pid.exists() {
+        let _ = std::fs::remove_file(&stale_pid);
+    }
 
     let listener = tokio::net::UnixListener::bind(path)
         .map_err(|e| crate::ServiceError::Internal(format!("UDS bind failed: {e}")))?;
     info!("JSON-RPC 2.0 UDS listening on {}", path.display());
 
+    write_pid_file(path);
     create_capability_symlink(path);
 
     let btsp_required = crate::btsp::is_btsp_required();
@@ -658,6 +663,37 @@ async fn write_jsonrpc_error(
     stream.flush().await
 }
 
+/// Derive the PID file path from a socket path: `sweetgrass.sock` → `sweetgrass.pid`.
+fn pid_path(socket_path: &std::path::Path) -> PathBuf {
+    socket_path.with_extension("pid")
+}
+
+/// Write a PID file alongside the socket for instant liveness checks.
+///
+/// Consumers can `kill(pid, 0)` instead of `connect()` to determine whether
+/// the socket has a listening process (50ms → 0ms per
+/// `CAPABILITY_BASED_DISCOVERY_STANDARD.md` v1.3.0 §5).
+fn write_pid_file(socket_path: &std::path::Path) {
+    let pid = std::process::id();
+    let path = pid_path(socket_path);
+    match std::fs::write(&path, pid.to_string()) {
+        Ok(()) => info!("PID file written: {} (pid {pid})", path.display()),
+        Err(e) => warn!("Failed to write PID file {}: {e} (non-fatal)", path.display()),
+    }
+}
+
+/// Remove the PID file alongside a socket on shutdown.
+fn cleanup_pid_file(socket_path: &std::path::Path) {
+    let path = pid_path(socket_path);
+    if path.exists() {
+        if let Err(e) = std::fs::remove_file(&path) {
+            warn!("Failed to clean up PID file {}: {e}", path.display());
+        } else {
+            debug!("Cleaned up PID file {}", path.display());
+        }
+    }
+}
+
 /// Create a capability-domain symlink alongside the primal socket.
 ///
 /// Per `CAPABILITY_BASED_DISCOVERY_STANDARD.md` v1.1, primals SHOULD create
@@ -725,8 +761,9 @@ pub fn cleanup_socket() {
     cleanup_socket_at(&path);
 }
 
-/// Remove a specific socket file and its capability symlink.
+/// Remove a specific socket file, its capability symlink, and PID file.
 pub fn cleanup_socket_at(path: &std::path::Path) {
+    cleanup_pid_file(path);
     cleanup_capability_symlink(path);
     if path.exists() {
         if let Err(e) = std::fs::remove_file(path) {

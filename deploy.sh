@@ -1,6 +1,6 @@
 #!/bin/bash
 # SweetGrass Production Deployment Script
-# Version: v0.7.36
+# Version: v0.7.37
 # Status: PRODUCTION READY
 
 set -e

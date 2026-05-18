@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
-//! Cleanup and capability symlink tests.
+//! Cleanup, capability symlink, and PID file tests.
 
 use super::super::*;
 
@@ -108,4 +108,63 @@ fn test_cleanup_capability_symlink_nonexistent() {
     let dir = tempfile::tempdir().expect("tempdir");
     let sock_path = dir.path().join("sweetgrass.sock");
     cleanup_capability_symlink(&sock_path);
+}
+
+// ==================== PID file tests ====================
+
+#[test]
+fn test_write_and_cleanup_pid_file() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let sock_path = dir.path().join("sweetgrass.sock");
+    let expected_pid_path = dir.path().join("sweetgrass.pid");
+
+    write_pid_file(&sock_path);
+    assert!(expected_pid_path.exists(), "PID file should be created");
+
+    let contents = std::fs::read_to_string(&expected_pid_path).expect("read pid");
+    let pid: u32 = contents.trim().parse().expect("parse pid");
+    assert_eq!(pid, std::process::id());
+
+    cleanup_pid_file(&sock_path);
+    assert!(!expected_pid_path.exists(), "PID file should be removed");
+}
+
+#[test]
+fn test_pid_path_derivation() {
+    let sock = std::path::PathBuf::from("/tmp/biomeos/sweetgrass.sock");
+    assert_eq!(pid_path(&sock), std::path::PathBuf::from("/tmp/biomeos/sweetgrass.pid"));
+
+    let family_sock = std::path::PathBuf::from("/run/user/1000/biomeos/sweetgrass-alpha.sock");
+    assert_eq!(
+        pid_path(&family_sock),
+        std::path::PathBuf::from("/run/user/1000/biomeos/sweetgrass-alpha.pid")
+    );
+}
+
+#[test]
+fn test_cleanup_socket_at_removes_pid_file_too() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let sock_path = dir.path().join("sweetgrass.sock");
+    std::fs::write(&sock_path, "").expect("create socket");
+
+    write_pid_file(&sock_path);
+    create_capability_symlink(&sock_path);
+
+    let pid_path = dir.path().join("sweetgrass.pid");
+    let symlink_path = dir.path().join("provenance.sock");
+    assert!(sock_path.exists());
+    assert!(pid_path.exists());
+    assert!(symlink_path.is_symlink());
+
+    cleanup_socket_at(&sock_path);
+    assert!(!sock_path.exists());
+    assert!(!pid_path.exists());
+    assert!(!symlink_path.exists());
+}
+
+#[test]
+fn test_cleanup_pid_file_nonexistent() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let sock_path = dir.path().join("nonexistent.sock");
+    cleanup_pid_file(&sock_path);
 }

@@ -1,10 +1,17 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.36 (May 2026)
+**Current Version**: v0.7.37 (May 2026)
 
 ---
 
 ## Completed
+
+### v0.7.37 — Stale Socket Hygiene: PID File Support (May 2026)
+
+- [x] **PID file** — `sweetgrass.pid` written alongside socket for 0ms `kill(pid, 0)` liveness
+- [x] **Stale PID cleanup** — removed on startup and shutdown alongside socket + symlink
+- [x] Confirmed: `unlink()` before `bind()`, graceful shutdown cleanup already present
+- [x] 1,553 tests, 55,164 LOC, 0 clippy warnings
 
 ### v0.7.36 — Stadial Gate: Wave 22 Hardening (May 2026)
 

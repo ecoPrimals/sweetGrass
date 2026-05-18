@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.37] - 2026-05-18
+
+### Stale Socket Hygiene (May 18, 2026)
+
+Resolves sweetGrass items from the primalSpring stale socket detection
+audit. All core hygiene was already present; this adds PID file support
+for instant liveness checks.
+
+#### Socket Lifecycle (already present, confirmed)
+- **`unlink()` before `bind()`** — stale socket removed before binding
+  (has been present since v0.5.x)
+- **Graceful shutdown cleanup** — socket + capability symlink removed on
+  SIGINT/SIGTERM via `cleanup_socket_at`
+- **Capability symlink** — `provenance.sock` → `sweetgrass.sock` with
+  stale replacement on startup
+
+#### New: PID File Support
+- **`sweetgrass.pid`** written alongside socket on startup, removed on
+  shutdown. Consumers can `kill(pid, 0)` for 0ms liveness checks
+  instead of 100ms connect-probe overhead.
+- Stale PID file removed on startup alongside stale socket.
+- 4 new tests for PID file write, cleanup, derivation, and full
+  lifecycle (socket + symlink + PID).
+
+#### Metrics
+- Tests: 1,553 pass, 0 failures (+4 PID file tests)
+- Source files: 192 `.rs` (55,164 LOC)
+- Clippy: 0 warnings (pedantic + nursery)
+
 ## [0.7.36] - 2026-05-17
 
 ### Stadial Gate: Wave 22 Hardening (May 17, 2026)
