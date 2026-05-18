@@ -60,7 +60,7 @@ When sweetGrass is **unavailable** in a composition:
 - **Wire-name aliases (GAP-36):** 10 downstream wire-name variants resolved transparently — `braid.attribution.create`, `attribution.create_braid`, `provenance.create_braid`, etc. all route to canonical handlers
 - **Lifecycle:** `lifecycle.status` returns running state, version, gate mode (classified public in method gate)
 - **TCP BTSP enforcement:** Raw JSON-RPC rejected on TCP when `FAMILY_ID` is set — BTSP handshake mandatory. UDS permits unauthenticated access for health probes and local composition
-- **Source files:** 191 `.rs` files (55,049 LOC), max 882 lines (test file)
+- **Source files:** 192 `.rs` files (55,068 LOC), max 615 lines (all files under 800-line threshold)
 - **Property testing:** 25 proptest strategies across 7 crates
 - **Chaos/fault:** 11 attribution chaos + 17 service chaos + 9 fault injection
 - **Edition:** 2024 (`resolver = "3"`), MSRV 1.87

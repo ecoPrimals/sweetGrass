@@ -683,6 +683,8 @@ mod tests_anchoring;
 #[cfg(test)]
 mod tests_attribution;
 #[cfg(test)]
+mod tests_composition;
+#[cfg(test)]
 mod tests_compression;
 #[cfg(test)]
 mod tests_contribution;
