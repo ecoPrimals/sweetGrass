@@ -48,9 +48,10 @@ pub use store::RedbStore;
 
 /// Default database file path for redb backend (self-config).
 ///
+/// Aligned with `sweet_grass_core::identity::DEFAULT_REDB_PATH`.
 /// Overridden by `RedbConfig.path`. This is a local-development fallback;
 /// production deployments configure paths via `SweetGrassConfig`.
-pub const DEFAULT_DB_PATH: &str = "./sweetgrass_redb";
+pub const DEFAULT_DB_PATH: &str = "./data/sweetgrass.redb";
 
 /// Configuration for redb store.
 #[derive(Clone, Debug)]

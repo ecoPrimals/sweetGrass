@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Deep Debt Cleanup (May 19, 2026)
+
+#### Structural
+- **`uds.rs` refactored**: Extracted socket lifecycle management (PID files,
+  capability symlinks, cleanup) to `uds/lifecycle.rs` (124 lines).
+  `uds.rs` reduced from 779 → 674 lines, well below 800L threshold.
+- **redb path inconsistency fixed**: `sweet-grass-store-redb::DEFAULT_DB_PATH`
+  aligned to `./data/sweetgrass.redb` (was `./sweetgrass_redb`), matching
+  `sweet-grass-core::identity::DEFAULT_REDB_PATH`.
+
+#### Deep Debt Audit Result (zero production findings)
+- 0 `unsafe` blocks, 0 `#[allow]`, 0 TODO/FIXME/HACK, 0 `println!`/`eprintln!`
+  in production, 0 production `unwrap()`/`expect()`, 0 `std::sync::Mutex`,
+  0 `Box<dyn Error>`, 0 `async_trait`, 0 missing SPDX, 0 `Rc<`,
+  0 hardcoded paths without env fallback.
+
+#### Metrics
+- Tests: 1,553 pass, 0 failures
+- Source files: 193 `.rs` (55,184 LOC), max 674 lines
+- Clippy: 0 warnings (pedantic + nursery)
+
 ## [0.7.37] - 2026-05-18
 
 ### Stale Socket Hygiene (May 18, 2026)

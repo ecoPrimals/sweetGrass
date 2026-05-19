@@ -61,7 +61,7 @@ When sweetGrass is **unavailable** in a composition:
 - **Lifecycle:** `lifecycle.status` returns running state, version, gate mode (classified public in method gate)
 - **TCP BTSP enforcement:** Raw JSON-RPC rejected on TCP when `FAMILY_ID` is set — BTSP handshake mandatory. UDS permits unauthenticated access for health probes and local composition
 - **PID file:** Written alongside UDS socket (`sweetgrass.pid`) for instant liveness checks (`kill(pid, 0)`) — eliminates 100ms connect-probe overhead for downstream discovery
-- **Source files:** 192 `.rs` files (55,164 LOC), max 615 lines (all files under 800-line threshold)
+- **Source files:** 193 `.rs` files (55,184 LOC), max 674 lines (all files under 800-line threshold)
 - **Property testing:** 25 proptest strategies across 7 crates
 - **Chaos/fault:** 11 attribution chaos + 17 service chaos + 9 fault injection
 - **Edition:** 2024 (`resolver = "3"`), MSRV 1.87
