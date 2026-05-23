@@ -315,6 +315,26 @@ async fn serve_all(
         }))
     };
 
+    #[cfg(unix)]
+    {
+        let announce_socket = uds_socket_path.as_ref().map_or_else(
+            || {
+                sweet_grass_service::uds::resolve_socket_path(None)
+                    .to_string_lossy()
+                    .to_string()
+            },
+            |path| path.to_string_lossy().to_string(),
+        );
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            sweet_grass_service::neural_announce::announce_to_neural_api(
+                &announce_socket,
+                env!("CARGO_PKG_VERSION"),
+            )
+            .await;
+        });
+    }
+
     let result = axum::serve(http_listener, app)
         .with_graceful_shutdown(async move {
             shutdown_signal().await;

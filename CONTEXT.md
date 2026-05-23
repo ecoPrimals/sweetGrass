@@ -27,7 +27,7 @@ attribution before distributing rewards.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 (required) + tarpc (optional high-perf) + REST + UDS
 - **License:** scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0)
-- **Tests:** 1,553 local + 56 Docker CI
+- **Tests:** 1,560 local + 56 Docker CI
 
 ## Degradation Behavior
 
@@ -53,7 +53,7 @@ When sweetGrass is **unavailable** in a composition:
 - **UDS contract:** Newline-delimited JSON-RPC 2.0; compositions should use `\n`-terminated requests and >=10s read timeout (`braid.create`/`provenance.graph` may touch storage)
 - **Transport ports:** `--port` = TCP JSON-RPC (opt-in, newline-delimited; accepts `host:port` or bare port number — bare port binds `127.0.0.1` localhost-only per PG-55; use `0.0.0.0:PORT` for all-interfaces in Docker/production), `--http-port` / `--http-address host:port` = HTTP REST+JSON-RPC (primary integration surface, default `0.0.0.0:0` = dynamic), `--tarpc-address` = tarpc (default dynamic). Recommended TCP allocation: **9850** (avoids biomeOS TCP fallback range at 9800)
 - **Discovery tiers supported:** Tier 3 (UDS filesystem convention: `sweetgrass.sock` / `sweetgrass-{family}.sock` + `provenance.sock` capability symlink) and Tier 4 (registry announce via `DISCOVERY_ADDRESS` / `DISCOVERY_BOOTSTRAP`). Tiers 1/2/5 (Songbird `ipc.resolve`, biomeOS Neural API, TCP probing) not yet implemented — sweetGrass is UDS-primary
-- **Version:** 0.7.37
+- **Version:** 0.7.38
 - **Method gate:** JH-0 pre-dispatch capability gate with token extraction — `auth.mode`, `auth.check` (enriched: `authenticated`, `verified`, `enforcement`, `scopes`, `subject`, `expires_in`), `auth.peer_info` methods; `_bearer_token` extracted from JSON-RPC params and threaded through gate; `SWEETGRASS_AUTH_MODE=permissive|enforced` env var; public whitelist (`health.*`, `auth.*`, `identity.get`, `capabilities.list`, `capability.list`, `lifecycle.status`, `tools.list`); all other methods protected; starts permissive
 - **Audit pipeline:** `attribution.witness` method for JH-5 Phase 3 (`defense.log` -> `dag.event.append` -> `attribution.witness`)
 - **Composition path:** `braid.create` accepts flattened convenience fields (`name`, `description`, `tags`, `source_session`, `source_merkle_root`) for provenance trio pipeline callers — merged into `BraidMetadata`; structured `metadata` takes precedence
@@ -61,7 +61,8 @@ When sweetGrass is **unavailable** in a composition:
 - **Lifecycle:** `lifecycle.status` returns running state, version, gate mode (classified public in method gate)
 - **TCP BTSP enforcement:** Raw JSON-RPC rejected on TCP when `FAMILY_ID` is set — BTSP handshake mandatory. UDS permits unauthenticated access for health probes and local composition
 - **PID file:** Written alongside UDS socket (`sweetgrass.pid`) for instant liveness checks (`kill(pid, 0)`) — eliminates 100ms connect-probe overhead for downstream discovery
-- **Source files:** 193 `.rs` files (55,184 LOC), max 674 lines (all files under 800-line threshold)
+- **Neural API `primal.announce`:** Self-registers with biomeOS on startup — capabilities, cost hints, latency estimates, signal tier (nest). Graceful degradation when biomeOS unavailable.
+- **Source files:** 194 `.rs` files (55,496 LOC), max 674 lines (all files under 800-line threshold)
 - **Property testing:** 25 proptest strategies across 7 crates
 - **Chaos/fault:** 11 attribution chaos + 17 service chaos + 9 fault injection
 - **Edition:** 2024 (`resolver = "3"`), MSRV 1.87

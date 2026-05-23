@@ -65,6 +65,7 @@ pub mod exit;
 pub mod factory;
 pub mod handlers;
 pub mod method_gate;
+pub mod neural_announce;
 pub mod peek;
 pub mod router;
 pub mod rpc;

@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.38] - 2026-05-23
+
+### Neural API `primal.announce` (Wave 43)
+
+Self-registration with biomeOS's Neural API routing layer on startup.
+Enables adaptive `capability.call` routing for provenance/attribution/braid
+operations with cost-aware scoring.
+
+#### Added
+- **`neural_announce.rs`** — `announce_to_neural_api()` sends `primal.announce`
+  JSON-RPC to biomeOS neural-api socket after UDS listener is ready.
+- **Neural-api socket resolution** — tiered lookup: `$NEURAL_API_SOCKET` →
+  `$XDG_RUNTIME_DIR/biomeos/neural-api-{family}.sock` →
+  `/tmp/biomeos/neural-api-{family}.sock`.
+- **Wire payload** per `WAVE42_NEURAL_API_DEPLOYMENT_GUIDE.md`:
+  - `capabilities`: `["provenance", "attribution", "braid"]`
+  - `methods`: all 37 registered IPC methods
+  - `signal_tiers`: `["nest"]`
+  - `cost_hints`: provenance 10.0, attribution 8.0, braid 12.0
+  - `latency_estimates`: provenance 15ms, attribution 10ms, braid 20ms
+  - `pid`, `socket`, `version` fields populated
+- **Graceful degradation** — standalone mode when biomeOS unavailable.
+- **7 tests** for payload structure, socket resolution, and degradation.
+
+#### Metrics
+- Tests: 1,560 pass (+7), 0 failures
+- Source files: 194 `.rs` (55,496 LOC)
+- Clippy: 0 warnings (pedantic + nursery)
+
 ### Deep Debt Cleanup (May 19, 2026)
 
 #### Structural

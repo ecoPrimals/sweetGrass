@@ -1,10 +1,18 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.37 (May 2026)
+**Current Version**: v0.7.38 (May 2026)
 
 ---
 
 ## Completed
+
+### v0.7.38 — Neural API `primal.announce` (Wave 43, May 2026)
+
+- [x] **`primal.announce`** — self-registers with biomeOS Neural API on startup
+- [x] **Neural-api socket discovery** — tiered lookup (`NEURAL_API_SOCKET` → XDG → `/tmp`)
+- [x] **Wire payload** — 37 methods, cost hints, latency estimates, nest tier
+- [x] **Graceful degradation** — standalone mode when biomeOS unavailable
+- [x] 1,560 tests, 55,496 LOC, 0 clippy warnings
 
 ### v0.7.37 — Stale Socket Hygiene: PID File Support (May 2026)
 
