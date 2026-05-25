@@ -22,14 +22,14 @@ Standards: W3C PROV-O | JSON-RPC 2.0 | tarpc binary RPC | REST | Pure Rust | No 
 ## Quick Start
 
 ```bash
-# Build the UniBin
-cargo build --release
+# Production: use plasmidBin binary (post-primordial standard)
+sweetgrass server
 
-# Start the server (UDS-only by default)
-./target/release/sweetgrass server
+# Development: build and run via cargo
+cargo run -p sweet-grass-service -- server
 
-# Or with explicit TCP port (opt-in) and socket path override
-./target/release/sweetgrass server --port 9100 --http-address 0.0.0.0:8080 --socket /tmp/sweetgrass.sock
+# With explicit TCP port (opt-in) and socket path override
+sweetgrass server --port 9100 --http-address 0.0.0.0:8080 --socket /tmp/sweetgrass.sock
 
 # Health check via REST
 curl http://localhost:8080/health
@@ -46,8 +46,8 @@ echo '{"jsonrpc":"2.0","method":"health.liveness","params":{},"id":1}' | nc loca
 curl http://localhost:8080/api/v1/braids
 
 # Offline commands
-./target/release/sweetgrass capabilities  # List all capabilities
-./target/release/sweetgrass socket        # Print UDS socket path
+sweetgrass capabilities  # List all capabilities
+sweetgrass socket        # Print UDS socket path
 ```
 
 ---

@@ -7,8 +7,11 @@
 ## 🚀 IMMEDIATE DEPLOYMENT
 
 ```bash
-# Build and run (zero configuration!)
-cargo build --release && ./target/release/sweetgrass server
+# Production: use plasmidBin binary
+sweetgrass server
+
+# Development: build and run
+cargo run -p sweet-grass-service -- server
 ```
 
 That's it! Service runs with zero config.
@@ -16,17 +19,10 @@ That's it! Service runs with zero config.
 ### UniBin Subcommands
 
 ```bash
-# Server (default)
-./target/release/sweetgrass server
-
-# Status (HTTP health check)
-./target/release/sweetgrass status
-
-# Capabilities (offline capability dump)
-./target/release/sweetgrass capabilities
-
-# Socket (print resolved UDS path)
-./target/release/sweetgrass socket
+sweetgrass server         # Start the service
+sweetgrass status         # HTTP health check
+sweetgrass capabilities   # Offline capability dump
+sweetgrass socket         # Print resolved UDS path
 ```
 
 ---
@@ -247,31 +243,31 @@ docker compose down -v
 
 ```bash
 # Memory storage (default)
-./target/release/sweetgrass server
+sweetgrass server
 
 # PostgreSQL
 DATABASE_URL=postgresql://user:pass@localhost:5432/sweetgrass \
-./target/release/sweetgrass server
+sweetgrass server
 
 # redb (recommended embedded)
 STORAGE_BACKEND=redb \
 STORAGE_PATH=/var/lib/sweetgrass/data.redb \
-./target/release/sweetgrass server
+sweetgrass server
 
 # With discovery
 DISCOVERY_ADDRESS=discovery.example.com:9090 \
 DATABASE_URL=postgresql://user:pass@localhost:5432/sweetgrass \
-./target/release/sweetgrass server
+sweetgrass server
 
 # Custom ports
 REST_PORT=8080 \
 TARPC_PORT=9090 \
-./target/release/sweetgrass server
+sweetgrass server
 
 # Debug logging
 RUST_LOG=debug \
 RUST_BACKTRACE=1 \
-./target/release/sweetgrass server
+sweetgrass server
 ```
 
 ---
@@ -352,7 +348,7 @@ cargo fmt --all
 cargo build --release
 
 # 8. Run
-./target/release/sweetgrass server
+sweetgrass server
 
 # Or all at once:
 cargo check && \
@@ -410,7 +406,7 @@ docker run -d \
 
 # Run service with PostgreSQL
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sweetgrass \
-./target/release/sweetgrass server
+sweetgrass server
 
 # Run integration tests
 cargo test --workspace --test '*' -- --ignored
@@ -500,11 +496,7 @@ cargo test --workspace && \
 cargo clippy --workspace --all-targets -- -D warnings && \
 cargo fmt --all -- --check && \
 cargo llvm-cov --workspace && \
-./target/release/sweetgrass &
-sleep 2 && \
-curl http://localhost:8080/health && \
-pkill sweetgrass && \
-echo "✅ All checks passed!"
+echo "All checks passed!"
 ```
 
 ---
@@ -536,17 +528,14 @@ ls specs/
 ## 🌟 ONE-LINERS
 
 ```bash
-# Build, test, and run
-cargo build --release && cargo test --workspace && ./target/release/sweetgrass server
+# Build and test
+cargo build --release && cargo test --workspace
 
 # Full quality check
 cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --all -- --check && cargo test --workspace
 
 # Coverage + benchmark
 cargo llvm-cov --workspace --html && cargo bench --workspace
-
-# Deploy check
-cargo build --release && cargo test --workspace && ./target/release/sweetgrass --help
 
 # Health check loop
 watch -n 5 'curl -s http://localhost:8080/health | jq'
@@ -564,22 +553,15 @@ echo "Linting..." && cargo clippy --workspace --all-targets -- -D warnings && \
 echo "Formatting..." && cargo fmt --all -- --check && \
 echo "Coverage..." && cargo llvm-cov --workspace && \
 echo "Benchmarking..." && cargo bench --workspace && \
-echo "Starting service..." && ./target/release/sweetgrass &
-sleep 2 && \
-echo "Health check..." && curl http://localhost:8080/health && \
-echo "" && \
-echo "✅ SweetGrass is PRODUCTION READY!" && \
-pkill sweetgrass
+echo "All checks passed — production ready!"
 ```
 
 ---
 
 🌾 **SweetGrass: One command away from production.** 🌾
 
-**Quick Deploy**: `cargo build --release && ./target/release/sweetgrass`  
-**Full Check**: `cargo test --workspace && cargo clippy --workspace -- -D warnings`  
-**Coverage**: `cargo llvm-cov --workspace --html`  
-**Benchmarks**: `cargo bench --workspace`
-
-**Status**: ✅ **READY TO DEPLOY**
+**Quick Deploy**: `sweetgrass server` (plasmidBin binary)
+**Dev Build**: `cargo run -p sweet-grass-service -- server`
+**Full Check**: `cargo test --workspace && cargo clippy --workspace -- -D warnings`
+**Coverage**: `cargo llvm-cov --workspace --html`
 
