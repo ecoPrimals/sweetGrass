@@ -48,7 +48,7 @@ cargo clean
 ## ✅ TEST COMMANDS
 
 ```bash
-# All tests (1,522 local + 56 Docker CI)
+# All tests (1,560 local + 56 Docker CI)
 cargo test --all-features
 
 # Unit tests only
@@ -260,8 +260,8 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/sweetgrass \
 sweetgrass server
 
 # Custom ports
-REST_PORT=8080 \
-TARPC_PORT=9090 \
+SWEETGRASS_HTTP_PORT=8080 \
+SWEETGRASS_TARPC_ADDRESS=0.0.0.0:9090 \
 sweetgrass server
 
 # Debug logging

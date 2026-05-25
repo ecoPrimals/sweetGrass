@@ -75,11 +75,11 @@ When sweetGrass is **unavailable** in a composition:
 
 ## Key Capabilities (JSON-RPC methods)
 
-35 semantic methods across 11 domains:
+37 semantic methods across 12 domains:
 
 - `braid.create`, `braid.get`, `braid.get_by_hash`, `braid.query`, `braid.delete`, `braid.commit` — provenance record CRUD
 - `contribution.record`, `contribution.record_session`, `contribution.record_dehydration` — inter-primal contribution tracking
-- `attribution.chain`, `attribution.calculate_rewards`, `attribution.top_contributors` — fair credit assignment
+- `attribution.chain`, `attribution.calculate_rewards`, `attribution.top_contributors`, `attribution.witness` — fair credit + audit attestation
 - `compression.compress_session`, `compression.create_meta_braid` — session compression (0/1/Many)
 - `provenance.graph`, `provenance.export_provo`, `provenance.export_graph_provo` — W3C PROV-O export
 - `anchoring.anchor`, `anchoring.verify` — LoamSpine anchoring
@@ -88,6 +88,7 @@ When sweetGrass is **unavailable** in a composition:
 - `capabilities.list`, `capability.list`, `tools.list`, `tools.call` — self-knowledge and MCP tool exposure
 - `pipeline.attribute` — provenance trio pipeline coordination
 - `auth.mode`, `auth.check`, `auth.peer_info` — JH-0 method gate introspection
+- `lifecycle.status` — running state, version, gate mode
 - `composition.tower_health`, `composition.node_health`, `composition.nest_health`, `composition.nucleus_health` — ecosystem composition health probes
 
 ## What This Does NOT Do

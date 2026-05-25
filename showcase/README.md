@@ -4,7 +4,7 @@ Contents archived to `ecoPrimals/fossilRecord/primals/sweetGrass/showcase_wave49
 as part of Wave 49 ecosystem tightening (May 2026).
 
 These demos powered the prokaryotic to post-primordial evolution and are
-preserved as fossil record. Active patterns live in `infra/wateringHole/`.
+preserved as fossil record. Active patterns live in the central [wateringHole](https://github.com/ecoPrimals/wateringHole) hub.
 
 ## What Was Here
 
@@ -26,4 +26,4 @@ preserved as fossil record. Active patterns live in `infra/wateringHole/`.
 For live integration examples, see:
 - `sporeprint/validation-summary.md` — current capability surface
 - `specs/SWEETGRASS_SPECIFICATION.md` — architectural specification
-- `infra/wateringHole/PROVENANCE_TRIO_INTEGRATION_GUIDE.md` — trio integration
+- [Provenance Trio Integration Guide](https://github.com/ecoPrimals/wateringHole/blob/main/PROVENANCE_TRIO_INTEGRATION_GUIDE.md) — trio integration

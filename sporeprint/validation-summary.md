@@ -1,6 +1,6 @@
 +++
 title = "sweetGrass Validation Summary"
-description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,553 tests, 37 methods, zero production debt."
+description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,560 tests, 37 methods, zero production debt."
 date = 2026-05-20
 
 [taxonomies]
@@ -31,14 +31,15 @@ springs = []
 | braid | 6 | Stable |
 | anchoring | 2 | Stable |
 | provenance | 3 | Stable |
-| attribution | 3 | Stable |
+| attribution | 4 | Stable |
 | compression | 2 | Beta |
 | contribution | 3 | Stable |
 | health | 3 | Stable |
 | identity | 1 | Stable |
+| pipeline | 1 | Stable |
 | composition | 4 | Beta |
 | lifecycle | 1 | Stable |
-| capabilities | 2 | Stable |
+| capabilities + tools | 4 | Stable |
 | auth | 3 | Stable |
 
 ## Key Binaries
