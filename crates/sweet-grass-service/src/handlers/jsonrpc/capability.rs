@@ -17,6 +17,7 @@
 
 use super::{DispatchResult, METHODS, error_code, parse_params, to_value};
 use crate::state::AppState;
+use sweet_grass_core::primal_names::env_vars;
 
 /// `capabilities.list` / `capability.list` — Wire Standard L3 (Composable).
 ///
@@ -89,7 +90,7 @@ pub(super) fn handle_capability_list(
     let count = methods.len();
 
     let mut transport = vec!["http", "uds"];
-    if std::env::var("SWEETGRASS_PORT").is_ok() {
+    if std::env::var(env_vars::SWEETGRASS_PORT).is_ok() {
         transport.push("tcp");
     }
 

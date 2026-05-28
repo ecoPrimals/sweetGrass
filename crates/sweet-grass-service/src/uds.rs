@@ -142,7 +142,7 @@ pub fn resolve_socket_path(primal_name: Option<&str>) -> PathBuf {
         biomeos_socket_dir: std::env::var(env_vars::BIOMEOS_SOCKET_DIR).ok(),
         family_id: resolve_family_id_from_env(),
         xdg_runtime_dir: std::env::var(env_vars::XDG_RUNTIME_DIR).ok(),
-        user: std::env::var("USER").ok(),
+        user: std::env::var(env_vars::USER).ok(),
         primal_name: primal_name
             .map(String::from)
             .or_else(|| std::env::var(env_vars::PRIMAL_NAME).ok()),

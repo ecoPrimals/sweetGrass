@@ -16,6 +16,8 @@
 //!
 //! Adopted from primalSpring's `ipc/method_gate.rs` reference implementation.
 
+use sweet_grass_core::primal_names::env_vars;
+
 /// Access level for a JSON-RPC method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MethodAccessLevel {
@@ -135,7 +137,7 @@ impl EnforcementMode {
     /// Defaults to `Permissive` if unset or unrecognized.
     #[must_use]
     pub fn from_env() -> Self {
-        match std::env::var("SWEETGRASS_AUTH_MODE")
+        match std::env::var(env_vars::SWEETGRASS_AUTH_MODE)
             .unwrap_or_default()
             .to_lowercase()
             .as_str()

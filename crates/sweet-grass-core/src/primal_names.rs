@@ -149,6 +149,24 @@ pub mod env_vars {
     /// Used for capability-based resolution (e.g. resolve `"crypto"` to
     /// `BearDog`'s socket path at runtime).
     pub const DISCOVERY_SOCKET: &str = "DISCOVERY_SOCKET";
+
+    /// POSIX login name for the current user.
+    ///
+    /// Used in UDS socket path resolution when `$TMPDIR/biomeos-{user}/` is
+    /// the fallback directory.
+    pub const USER: &str = "USER";
+
+    /// TCP listen port override for sweetGrass JSON-RPC.
+    ///
+    /// When set, `capabilities.list` advertises `"tcp"` as an available
+    /// transport alongside HTTP and UDS.
+    pub const SWEETGRASS_PORT: &str = "SWEETGRASS_PORT";
+
+    /// JSON-RPC method gate enforcement mode.
+    ///
+    /// Values: `enforced` / `enforce` / `strict` enable token checks;
+    /// unset or any other value defaults to permissive mode.
+    pub const SWEETGRASS_AUTH_MODE: &str = "SWEETGRASS_AUTH_MODE";
 }
 
 #[cfg(test)]
@@ -191,6 +209,9 @@ mod tests {
             env_vars::TARPC_MAX_CONCURRENT_REQUESTS,
             env_vars::BEARDOG_SOCKET,
             env_vars::DISCOVERY_SOCKET,
+            env_vars::USER,
+            env_vars::SWEETGRASS_PORT,
+            env_vars::SWEETGRASS_AUTH_MODE,
         ];
         for var in &all {
             assert_eq!(
