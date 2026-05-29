@@ -31,14 +31,21 @@ binary = "sweetgrass"
 subcommand = "server"
 domain = "attribution"
 capabilities_provided = [
-    "braid.create", "braid.get", "braid.query", "braid.delete",
+    "braid.create", "braid.get", "braid.get_by_hash", "braid.query",
+    "braid.delete", "braid.commit", "braid.anchor",
     "attribution.chain", "attribution.calculate_rewards",
-    "provenance.graph", "provenance.export_provo",
+    "attribution.top_contributors", "attribution.witness",
+    "provenance.graph", "provenance.export_provo", "provenance.export_graph_provo",
     "compression.compress_session", "compression.create_meta_braid",
-    "composition.tower_health", "composition.node_health",
-    "composition.nest_health", "composition.nucleus_health",
+    "composition.tower_health",
+    "contribution.record", "contribution.record_session", "contribution.record_dehydration",
     "health.check", "health.liveness", "health.readiness",
-    "identity.get", "capabilities.list",
+    "anchoring.anchor", "anchoring.verify",
+    "pipeline.attribute",
+    "identity.get", "capability.list", "capabilities.list",
+    "auth.check", "auth.mode", "auth.peer_info",
+    "lifecycle.status",
+    "tools.list", "tools.call",
 ]
 capabilities_consumed = [
     "crypto.sign", "crypto.verify",

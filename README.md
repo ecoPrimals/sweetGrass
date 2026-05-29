@@ -91,7 +91,7 @@ sweetgrass socket        # Print UDS socket path
 | HTTP JSON-RPC | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | 38 methods, batch, MCP tools |
 | REST | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | Debug, admin (`/api/v1/braids`) |
 
-- **JSON-RPC 2.0**: 37 semantic methods (`braid.create`, `braid.commit`, `contribution.record`, `identity.get`, `capabilities.list`, `tools.list`, `tools.call`, `health.check`, `auth.check`, `lifecycle.status`, `attribution.witness`, `composition.tower_health`, etc.) with batch requests and notification support
+- **JSON-RPC 2.0**: 38 semantic methods (`braid.create`, `braid.commit`, `braid.anchor`, `contribution.record`, `identity.get`, `capabilities.list`, `tools.list`, `tools.call`, `health.check`, `auth.check`, `lifecycle.status`, `attribution.witness`, `composition.tower_health`, etc.) with batch requests and notification support
 - **MCP tool exposure**: `tools.list` + `tools.call` for Squirrel AI coordination
 - **Capability-domain symlink**: `provenance.sock -> sweetgrass.sock` for Tier 3 filesystem discovery
 
@@ -203,15 +203,15 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.38 |
-| Tests | 1,560 local + 56 Docker CI |
+| Version | v0.7.39 |
+| Tests | 1,565 local + 56 Docker CI |
 | Coverage | 90%+ line (91.7% with Postgres Docker) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
-| Max file size | 674 lines (limit: 1000) |
-| .rs files | 194 (55,496 LOC) |
+| Max file size | 763 lines (limit: 1000) |
+| .rs files | 194 (55,742 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |

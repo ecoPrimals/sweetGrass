@@ -1,6 +1,6 @@
 # SweetGrass — Semantic Provenance & Attribution Layer Specification
 
-**Version:** 0.7.38  
+**Version:** 0.7.39  
 **Status:** Architectural Specification  
 **Author:** ecoPrimals Project  
 **Date:** May 2026  
@@ -1042,15 +1042,20 @@ is the required baseline protocol. Method names follow `{domain}.{operation}` pe
 
 | Domain         | Operations                                                        |
 |----------------|-------------------------------------------------------------------|
-| `braid`        | create, get, get\_by\_hash, query, delete, commit                 |
+| `braid`        | create, get, get\_by\_hash, query, delete, commit, anchor         |
 | `anchoring`    | anchor, verify                                                    |
 | `provenance`   | graph, export\_provo, export\_graph\_provo                        |
-| `attribution`  | chain, calculate\_rewards, top\_contributors                      |
+| `attribution`  | chain, calculate\_rewards, top\_contributors, witness             |
 | `compression`  | compress\_session, create\_meta\_braid                            |
 | `contribution` | record, record\_session, record\_dehydration                      |
 | `health`       | check, liveness, readiness                                        |
 | `pipeline`     | attribute                                                         |
 | `capability`   | list                                                              |
+| `capabilities` | list                                                              |
+| `auth`         | check, mode, peer\_info                                           |
+| `lifecycle`    | status                                                            |
+| `tools`        | list, call                                                        |
+| `composition`  | tower\_health                                                     |
 
 ### 8.2 REST API
 
@@ -1283,7 +1288,7 @@ pub struct RewardDistribution {
 - [x] PROV-O JSON-LD export
 - [ ] Full-text search (planned v0.9.0+)
 
-### Phase 4: Economic Integration — PARTIAL (v0.7.0–v0.7.38)
+### Phase 4: Economic Integration — PARTIAL (v0.7.0–v0.7.39)
 - [x] Contribution calculation
 - [x] Attribution normalization and radiating attribution
 - [ ] sunCloud interface (planned v0.9.0)
@@ -1298,7 +1303,7 @@ pub struct RewardDistribution {
 - [x] ecoBin compliance (pure Rust, no C deps)
 - [x] TOML config with XDG hierarchy
 
-### Phase 6: Hardening — IN PROGRESS (v0.7.9–v0.7.38)
+### Phase 6: Hardening — IN PROGRESS (v0.7.9–v0.7.39)
 - [x] `#![forbid(unsafe_code)]` on all crates
 - [x] Zero `unwrap`/`expect`/`panic!` in production
 - [x] SPDX headers and AGPL-3.0-or-later licensing

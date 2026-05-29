@@ -2,7 +2,7 @@
 
 **Version**: 1.0.0  
 **Status**: Canonical  
-**Last Updated**: April 2026
+**Last Updated**: May 2026
 
 ---
 
@@ -404,17 +404,34 @@ Content-Type: application/json
 | `braid.query` | { filter, order } | QueryResult |
 | `braid.delete` | { id: string } | bool |
 | `braid.commit` | { id: string } | CommitResult |
+| `braid.anchor` | { braid_id, branch_id } | AnchorResult |
 | `provenance.graph` | { entity, depth } | ProvenanceGraph |
-| `attribution.chain` | { hash, config } | AttributionChain |
-| `attribution.top_contributors` | { hash, limit } | ContributorShare[] |
-| `compression.compress_session` | Session | CompressionResult |
 | `provenance.export_provo` | { hash } | JsonLdDocument |
+| `provenance.export_graph_provo` | { hash } | JsonLdDocument |
+| `attribution.chain` | { hash, config } | AttributionChain |
+| `attribution.calculate_rewards` | { hash } | RewardDistribution |
+| `attribution.top_contributors` | { hash, limit } | ContributorShare[] |
+| `attribution.witness` | WitnessRequest | WitnessResult |
+| `compression.compress_session` | Session | CompressionResult |
+| `compression.create_meta_braid` | MetaBraidRequest | Braid |
 | `contribution.record` | ContributionRecord | Braid |
+| `contribution.record_session` | SessionRecord | Braid |
 | `contribution.record_dehydration` | DehydrationSummary | Braid |
 | `anchoring.anchor` | { id: string } | AnchorResult |
 | `anchoring.verify` | { id: string } | VerifyResult |
-| `anchoring.get_anchors` | { id: string } | Anchor[] |
 | `health.check` | {} | HealthStatus |
+| `health.liveness` | {} | LivenessStatus |
+| `health.readiness` | {} | ReadinessStatus |
+| `pipeline.attribute` | PipelineRequest | PipelineResult |
+| `capability.list` | {} | Capability[] |
+| `capabilities.list` | {} | Capability[] |
+| `auth.check` | {} | AuthStatus |
+| `auth.mode` | {} | AuthMode |
+| `auth.peer_info` | {} | PeerInfo |
+| `lifecycle.status` | {} | LifecycleStatus |
+| `tools.list` | {} | Tool[] |
+| `tools.call` | { name, arguments } | ToolResult |
+| `composition.tower_health` | {} | TowerHealth |
 
 ### 3.3 Request Examples
 
@@ -562,8 +579,8 @@ curl -X POST "http://localhost:8080/api/v1/attribution/sha256:abc123/rewards" \
 
 | Protocol | Default Port | Environment Variable |
 |----------|--------------|---------------------|
-| tarpc | 8091 | `SWEETGRASS_TARPC_PORT` |
-| HTTP (REST + JSON-RPC) | 8080 | `SWEETGRASS_HTTP_PORT` |
+| tarpc | dynamic | `SWEETGRASS_TARPC_ADDRESS` |
+| HTTP (REST + JSON-RPC) | dynamic | `SWEETGRASS_HTTP_ADDRESS` / `SWEETGRASS_HTTP_PORT` |
 
 ---
 

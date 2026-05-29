@@ -528,7 +528,7 @@
 - [ ] Evolved `MemoryStore` indexes (collision-preserving)
 - [ ] `convergence.query` JSON-RPC method
 - [ ] PostgreSQL `content_convergence` table and migrations
-- [x] Coverage target: 90%+ with llvm-cov *(91.7% line coverage, 1,495 tests)*
+- [x] Coverage target: 90%+ with llvm-cov *(91.7% line coverage, 1,565 tests)*
 
 ### v0.9.0 — sunCloud Integration (Q3 2026)
 
