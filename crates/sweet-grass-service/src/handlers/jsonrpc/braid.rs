@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
-//! Braid domain handlers: create, get, `get_by_hash`, query, delete, commit.
+//! Braid domain handlers: create, get, `get_by_hash`, query, delete, commit, anchor.
 
 use base64::Engine;
 use serde::Deserialize;
@@ -230,4 +230,80 @@ pub(super) async fn handle_braid_commit(
         "generated_at": braid.generated_at_time,
         "is_signed": braid.is_signed(),
     }))
+}
+
+#[derive(Debug, Deserialize)]
+pub(super) struct BraidAnchorParams {
+    braid_id: BraidId,
+    branch_id: String,
+}
+
+/// Anchor a braid to a DAG branch point.
+///
+/// Establishes provenance at branch creation time rather than only at
+/// commit time. Called by `rootpulse.branch` signal graphs when a DAG
+/// branch is created so the attribution record is bound to the branch
+/// context.
+///
+/// Signs the anchor via Tower/BearDog `crypto.sign` when available.
+pub(super) async fn handle_braid_anchor(
+    state: &AppState,
+    params: serde_json::Value,
+) -> DispatchResult {
+    let p: BraidAnchorParams = parse_params(params)?;
+
+    let braid = state
+        .store
+        .get(&p.braid_id)
+        .await
+        .map_err(internal)?
+        .ok_or_else(|| {
+            (
+                error_code::NOT_FOUND,
+                format!("Braid not found: {}", p.braid_id),
+            )
+        })?;
+
+    let hash_bytes = braid
+        .data_hash
+        .to_bytes32()
+        .map(|b| base64::engine::general_purpose::STANDARD.encode(b))
+        .ok_or_else(|| {
+            (
+                error_code::INVALID_PARAMS,
+                "Content hash must be sha256 (32 bytes)".to_string(),
+            )
+        })?;
+
+    let preimage = braid.compute_anchor_preimage(&p.branch_id);
+
+    let mut response = serde_json::json!({
+        "braid_id": braid.id.as_str(),
+        "branch_id": p.branch_id,
+        "content_hash": hash_bytes,
+        "anchored_at_branch": true,
+        "status": "anchored",
+    });
+
+    #[cfg(unix)]
+    if let Some(crypto) = &state.crypto {
+        match crypto.sign(preimage.as_str().as_bytes()).await {
+            Ok(result) => {
+                let agent_did =
+                    sweet_grass_core::agent::Did::from_public_key_bytes(&result.public_key);
+                let witness = sweet_grass_core::dehydration::Witness::from_tower_ed25519(
+                    &agent_did,
+                    &result.signature,
+                );
+                if let Ok(w) = serde_json::to_value(&witness) {
+                    response["witness"] = w;
+                }
+            }
+            Err(e) => {
+                tracing::warn!("crypto.sign unavailable, branch anchor unsigned: {e}");
+            }
+        }
+    }
+
+    to_value(&response)
 }

@@ -96,8 +96,8 @@ enum Commands {
         /// Unix domain socket path override.
         ///
         /// When omitted, the socket path is resolved via the standard
-        /// 4-tier fallback: `SWEETGRASS_SOCKET` env → `BIOMEOS_SOCKET_DIR` →
-        /// `XDG_RUNTIME_DIR/biomeos/` → `$TMPDIR/sweetgrass.sock`.
+        /// 5-tier fallback: `SWEETGRASS_SOCKET` → `BIOMEOS_SOCKET_DIR` →
+        /// `XDG_RUNTIME_DIR/biomeos/` → `biomeos-{USER}/` → `{temp_dir}/biomeos/`.
         #[arg(long, env = "SWEETGRASS_SOCKET")]
         socket: Option<String>,
     },

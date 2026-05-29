@@ -31,7 +31,7 @@ const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
 /// 1. `BIOMEOS_SOCKET_DIR`
 /// 2. `{XDG_RUNTIME_DIR}/biomeos`
 /// 3. `{TMPDIR}/biomeos`  (platform-agnostic temp fallback)
-/// 4. `/tmp/biomeos`      (last resort — POSIX only)
+/// 4. `{temp_dir}/biomeos` (respects `$TMPDIR`, no hardcoded `/tmp` — DH-1)
 fn resolve_socket_dir(reader: &impl Fn(&str) -> Option<String>) -> PathBuf {
     if let Some(dir) = reader(env_vars::BIOMEOS_SOCKET_DIR) {
         return PathBuf::from(dir);
@@ -42,7 +42,7 @@ fn resolve_socket_dir(reader: &impl Fn(&str) -> Option<String>) -> PathBuf {
     if let Some(tmpdir) = reader(env_vars::TMPDIR) {
         return PathBuf::from(tmpdir).join(paths::BIOMEOS_DIR);
     }
-    PathBuf::from(paths::DEFAULT_SOCKET_DIR)
+    paths::default_socket_dir()
 }
 
 /// Probe a capability socket with `health.liveness`.
@@ -110,7 +110,7 @@ async fn try_liveness_probe(socket: &std::path::Path) -> std::io::Result<()> {
 /// Uses the provided reader for env var lookup (DI-friendly).
 ///
 /// Resolution: `{BIOMEOS_SOCKET_DIR}/{domain}.sock` → `{XDG_RUNTIME_DIR}/biomeos/{domain}.sock`
-/// → `{TMPDIR}/biomeos/{domain}.sock` → `/tmp/biomeos/{domain}.sock`.
+/// → `{TMPDIR}/biomeos/{domain}.sock` → `{temp_dir}/biomeos/{domain}.sock`.
 fn discover_capability_socket_with_reader(
     domain: &str,
     reader: &impl Fn(&str) -> Option<String>,
@@ -281,7 +281,7 @@ mod tests {
     #[test]
     fn resolve_socket_dir_fallback() {
         let dir = resolve_socket_dir(&|_| None);
-        assert_eq!(dir, PathBuf::from("/tmp/biomeos"));
+        assert_eq!(dir, std::env::temp_dir().join("biomeos"));
     }
 
     #[test]
@@ -310,7 +310,10 @@ mod tests {
     #[test]
     fn discover_capability_socket_fallback() {
         let socket = discover_capability_socket_with_reader("discovery", &|_| None);
-        assert_eq!(socket, PathBuf::from("/tmp/biomeos/discovery.sock"));
+        assert_eq!(
+            socket,
+            std::env::temp_dir().join("biomeos").join("discovery.sock"),
+        );
     }
 
     #[tokio::test]

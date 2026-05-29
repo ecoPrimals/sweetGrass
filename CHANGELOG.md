@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.39] - 2026-05-29
+
+### `braid.anchor` Method (Wave 60)
+
+New upstream target for `rootpulse.branch` signal graphs. Anchors a braid
+to a DAG branch point so provenance is established at branch creation
+time, not just at commit time.
+
+#### Added
+- **`braid.anchor`** — accepts `braid_id` + `branch_id`, computes
+  branch-scoped anchor preimage, signs via Tower/BearDog `crypto.sign`.
+  Returns `anchored_at_branch: true`, `content_hash`, and optional
+  `witness` (Ed25519).
+- Registered in dispatch table, `niche.rs` capabilities, operation
+  dependencies (cost: medium, depends on `braid.create`), semantic
+  mapping, and `capability_registry.toml`.
+
+### DH-1: `/tmp` Hardcoding Cleanup (Wave 60)
+
+Zero hardcoded `/tmp` writes in production code — all socket fallback
+paths now use `std::env::temp_dir()` (respects `$TMPDIR`) under a
+`biomeos/` namespace. Enables `ProtectSystem=strict` on VPS deployments.
+
+#### Changed
+- **`DEFAULT_SOCKET_DIR` removed** — replaced with `default_socket_dir()`
+  function that returns `{temp_dir}/biomeos`.
+- **UDS socket fallback** — final-tier path changed from bare
+  `{temp_dir}/sweetgrass.sock` to `{temp_dir}/biomeos/sweetgrass.sock`.
+- **NestGate discovery** — fallback uses `default_socket_dir()`.
+- **Composition health probes** — fallback uses `default_socket_dir()`.
+- **Doc comments** — all socket resolution docs updated to reflect
+  `$TMPDIR`-respecting paths.
+- **Test assertions** — updated from hardcoded `/tmp/biomeos` to
+  `std::env::temp_dir().join("biomeos")`.
+
+#### Metrics
+- Tests: 1,560 pass, 0 failures
+- Source files: 194 `.rs` (55,621 LOC), max 763 lines
+- Methods: 38 (12 domains + 10 wire aliases)
+- Clippy: 0 warnings (pedantic + nursery)
+
 ## [0.7.38] - 2026-05-23
 
 ### Neural API `primal.announce` (Wave 43)

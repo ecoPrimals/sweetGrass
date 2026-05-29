@@ -25,8 +25,9 @@ const DEFAULT_FAMILY: &str = "ecoPrimal";
 /// Resolve the biomeOS neural-api socket path via tiered lookup.
 ///
 /// 1. `$NEURAL_API_SOCKET` — explicit override
-/// 2. `$XDG_RUNTIME_DIR/biomeos/neural-api-{family}.sock`
-/// 3. `/tmp/biomeos/neural-api-{family}.sock`
+/// 2. `$BIOMEOS_SOCKET_DIR/neural-api-{family}.sock`
+/// 3. `$XDG_RUNTIME_DIR/biomeos/neural-api-{family}.sock`
+/// 4. `{temp_dir}/biomeos/neural-api-{family}.sock`
 fn resolve_neural_api_socket() -> Option<PathBuf> {
     resolve_neural_api_socket_with(&|key| std::env::var(key).ok())
 }
@@ -47,6 +48,13 @@ fn resolve_neural_api_socket_with(reader: &dyn Fn(&str) -> Option<String>) -> Op
 
     let socket_name = format!("neural-api-{family}.sock");
 
+    if let Some(dir) = reader("BIOMEOS_SOCKET_DIR") {
+        let path = PathBuf::from(dir).join(&socket_name);
+        if path.exists() {
+            return Some(path);
+        }
+    }
+
     if let Some(xdg) = reader("XDG_RUNTIME_DIR") {
         let path = PathBuf::from(xdg).join("biomeos").join(&socket_name);
         if path.exists() {
@@ -54,7 +62,7 @@ fn resolve_neural_api_socket_with(reader: &dyn Fn(&str) -> Option<String>) -> Op
         }
     }
 
-    let fallback = PathBuf::from("/tmp/biomeos").join(&socket_name);
+    let fallback = std::env::temp_dir().join("biomeos").join(&socket_name);
     if fallback.exists() {
         return Some(fallback);
     }
@@ -64,7 +72,7 @@ fn resolve_neural_api_socket_with(reader: &dyn Fn(&str) -> Option<String>) -> Op
 
 /// Build the `primal.announce` JSON-RPC payload.
 ///
-/// Includes all 37 registered methods, capability domains, signal tier,
+/// Includes all registered methods, capability domains, signal tier,
 /// cost hints, and latency estimates per Wave 43 blurb.
 fn build_announce_payload(socket_path: &str, version: &str) -> serde_json::Value {
     let methods: Vec<&str> = niche::CAPABILITIES.to_vec();
@@ -279,8 +287,8 @@ mod tests {
         let methods = payload["params"]["methods"].as_array().unwrap();
         assert_eq!(
             methods.len(),
-            37,
-            "should include all 37 registered capabilities"
+            niche::CAPABILITIES.len(),
+            "should include all registered capabilities"
         );
     }
 

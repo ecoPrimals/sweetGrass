@@ -43,6 +43,8 @@ pub fn address_env_var(primal_name: &str) -> String {
 
 /// Ecosystem-wide filesystem constants.
 pub mod paths {
+    use std::path::PathBuf;
+
     /// Directory name used by `biomeOS` under `$XDG_RUNTIME_DIR` and
     /// `$TMPDIR` for primal sockets. Not a primal reference — this is a
     /// filesystem namespace convention.
@@ -50,10 +52,12 @@ pub mod paths {
 
     /// Last-resort fallback socket directory when no env vars are set.
     ///
-    /// Used by `NestGate` discovery, composition health probes, and UDS
-    /// resolution when `BIOMEOS_SOCKET_DIR`, `XDG_RUNTIME_DIR`, and
-    /// `TMPDIR` are all absent.
-    pub const DEFAULT_SOCKET_DIR: &str = "/tmp/biomeos";
+    /// Returns `{temp_dir}/biomeos` — respects `$TMPDIR` on the platform
+    /// instead of hardcoding `/tmp` (DH-1 compliance for
+    /// `ProtectSystem=strict` on VPS).
+    pub fn default_socket_dir() -> PathBuf {
+        std::env::temp_dir().join(BIOMEOS_DIR)
+    }
 }
 
 /// Infrastructure environment variable names.
@@ -124,8 +128,8 @@ pub mod env_vars {
 
     /// POSIX temporary directory override.
     ///
-    /// Standard POSIX variable; used in socket directory resolution
-    /// as a fallback before `DEFAULT_SOCKET_DIR`.
+    /// Standard POSIX variable; `std::env::temp_dir()` respects this,
+    /// ensuring sockets never hardcode `/tmp` (DH-1).
     pub const TMPDIR: &str = "TMPDIR";
 
     /// `DATABASE_URL` — Postgres connection string.

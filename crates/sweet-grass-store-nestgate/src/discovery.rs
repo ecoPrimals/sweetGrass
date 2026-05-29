@@ -7,7 +7,7 @@
 //! 2. `STORAGE_PROVIDER_SOCKET` env var
 //! 3. `{BIOMEOS_SOCKET_DIR}/nestgate.sock`
 //! 4. `{XDG_RUNTIME_DIR}/biomeos/nestgate.sock`
-//! 5. `/tmp/biomeos/nestgate.sock`
+//! 5. `{temp_dir}/biomeos/nestgate.sock` (respects `$TMPDIR`)
 
 use std::path::PathBuf;
 
@@ -39,7 +39,7 @@ pub fn discover_socket(reader: &impl Fn(&str) -> Option<String>) -> PathBuf {
             .join(NESTGATE_SOCK);
     }
 
-    PathBuf::from(paths::DEFAULT_SOCKET_DIR).join(NESTGATE_SOCK)
+    paths::default_socket_dir().join(NESTGATE_SOCK)
 }
 
 /// Discover with family-scoped socket naming.
@@ -110,7 +110,8 @@ mod tests {
     #[test]
     fn test_discover_fallback() {
         let path = discover_socket(&|_| None);
-        assert_eq!(path.to_str(), Some("/tmp/biomeos/nestgate.sock"));
+        let expected = std::env::temp_dir().join("biomeos").join("nestgate.sock");
+        assert_eq!(path, expected);
     }
 
     #[test]
@@ -130,7 +131,8 @@ mod tests {
     #[test]
     fn test_discover_with_family_falls_back() {
         let path = discover_socket_with_family(&|_| None, Some("test-family"));
-        assert_eq!(path.to_str(), Some("/tmp/biomeos/nestgate.sock"));
+        let expected = std::env::temp_dir().join("biomeos").join("nestgate.sock");
+        assert_eq!(path, expected);
     }
 
     #[test]

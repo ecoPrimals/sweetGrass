@@ -231,6 +231,10 @@ static METHODS: &[MethodEntry] = &[
         handler: |s, p| Box::pin(braid::handle_braid_commit(s, p)),
     },
     MethodEntry {
+        name: "braid.anchor",
+        handler: |s, p| Box::pin(braid::handle_braid_anchor(s, p)),
+    },
+    MethodEntry {
         name: "anchoring.anchor",
         handler: |s, p| Box::pin(anchoring::handle_anchor_braid(s, p)),
     },

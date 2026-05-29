@@ -1,10 +1,17 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.38 (May 2026)
+**Current Version**: v0.7.39 (May 2026)
 
 ---
 
 ## Completed
+
+### v0.7.39 — `braid.anchor` + DH-1 `/tmp` Cleanup (Wave 60, May 2026)
+
+- [x] **`braid.anchor`** — anchors braid to DAG branch point for `rootpulse.branch` signal graphs
+- [x] **DH-1 compliant** — zero `/tmp` hardcodes; all socket fallbacks use `temp_dir()/biomeos/`
+- [x] Removed deprecated `DEFAULT_SOCKET_DIR` constant
+- [x] 1,560 tests, 55,621 LOC, 38 methods, 0 clippy warnings
 
 ### v0.7.38 — Neural API `primal.announce` (Wave 43, May 2026)
 

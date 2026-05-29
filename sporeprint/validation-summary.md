@@ -1,6 +1,6 @@
 +++
 title = "sweetGrass Validation Summary"
-description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,560 tests, 37 methods, zero production debt."
+description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,560 tests, 38 methods, zero production debt."
 date = 2026-05-20
 
 [taxonomies]
@@ -10,10 +10,10 @@ springs = []
 
 ## Status
 
-- **Version**: v0.7.38
+- **Version**: v0.7.39
 - **1,560 tests** (all passed, 0 failed, 56 Docker CI integration tests)
-- **37 registered capability methods** across 12 domains
-- **194 source files** (55,496 LOC Rust), max 674 lines per file
+- **38 registered capability methods** across 12 domains
+- **194 source files** (55,621 LOC Rust), max 763 lines per file
 - **Neural API `primal.announce`**: self-registers with biomeOS on startup (Wave 43)
 - **Zero production debt**: 0 unsafe, 0 `#[allow]`, 0 TODO/FIXME, 0 `println!`, 0 production `unwrap()`, 0 `std::sync::Mutex`, 0 `Box<dyn Error>`, 0 `async_trait`, 0 `Rc<`, 0 missing SPDX
 - **Clippy**: 0 warnings (pedantic + nursery)
@@ -28,7 +28,7 @@ springs = []
 
 | Domain | Methods | Stability |
 |--------|--------:|-----------|
-| braid | 6 | Stable |
+| braid | 7 | Stable |
 | anchoring | 2 | Stable |
 | provenance | 3 | Stable |
 | attribution | 4 | Stable |

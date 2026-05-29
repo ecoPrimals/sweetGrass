@@ -26,7 +26,7 @@
 //! 2. `STORAGE_PROVIDER_SOCKET` environment variable
 //! 3. `{BIOMEOS_SOCKET_DIR}/nestgate.sock`
 //! 4. `{XDG_RUNTIME_DIR}/biomeos/nestgate.sock`
-//! 5. `/tmp/biomeos/nestgate.sock`
+//! 5. `{temp_dir}/biomeos/nestgate.sock` (respects `$TMPDIR`)
 
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
