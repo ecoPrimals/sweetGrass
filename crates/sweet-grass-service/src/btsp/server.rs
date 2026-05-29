@@ -33,7 +33,7 @@ const DEFAULT_SECURITY_SOCKET: &str = "security.sock";
 /// 1. `SECURITY_PROVIDER_SOCKET` — explicit override for any crypto provider
 /// 2. `BIOMEOS_SOCKET_DIR/security.sock` — capability-domain symlink
 /// 3. `$XDG_RUNTIME_DIR/biomeos/security.sock`
-/// 4. `$TMPDIR/security.sock`
+/// 4. `$TMPDIR/biomeos/security.sock`
 fn resolve_security_socket() -> std::path::PathBuf {
     use sweet_grass_core::primal_names::{env_vars, paths};
 
@@ -51,7 +51,9 @@ fn resolve_security_socket() -> std::path::PathBuf {
             .join(DEFAULT_SECURITY_SOCKET);
     }
 
-    std::env::temp_dir().join(DEFAULT_SECURITY_SOCKET)
+    std::env::temp_dir()
+        .join(paths::BIOMEOS_DIR)
+        .join(DEFAULT_SECURITY_SOCKET)
 }
 
 /// Read the family seed from the environment and base64-encode it for

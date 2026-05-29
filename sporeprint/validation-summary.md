@@ -13,7 +13,7 @@ springs = []
 - **Version**: v0.7.39
 - **1,565 tests** (all passed, 0 failed, 56 Docker CI integration tests)
 - **38 registered capability methods** across 12 domains
-- **194 source files** (55,742 LOC Rust), max 763 lines per file
+- **194 source files** (55,718 LOC Rust), max 763 lines per file
 - **Neural API `primal.announce`**: self-registers with biomeOS on startup (Wave 43)
 - **Zero production debt**: 0 unsafe, 0 `#[allow]`, 0 TODO/FIXME, 0 `println!`, 0 production `unwrap()`, 0 `std::sync::Mutex`, 0 `Box<dyn Error>`, 0 `async_trait`, 0 `Rc<`, 0 missing SPDX
 - **Clippy**: 0 warnings (pedantic + nursery)

@@ -8,9 +8,9 @@ fuzz/coverage/
 # Environment files (may contain secrets)
 .env
 .env.*
-!env.example
 
 # Coverage artifacts (cargo-llvm-cov)
+coverage/
 *.profraw
 *.profdata
 lcov.info

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
+#![cfg(any(test, feature = "test"))]
 //! Test-only mock implementations for session events.
 
 use super::{

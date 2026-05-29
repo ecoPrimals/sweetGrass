@@ -569,13 +569,37 @@ impl SweetGrassRpc for SweetGrassServer {
 pub async fn start_tarpc_server(
     addr: SocketAddr,
     server: SweetGrassServer,
-    mut shutdown: tokio::sync::watch::Receiver<bool>,
+    shutdown: tokio::sync::watch::Receiver<bool>,
 ) -> std::result::Result<(), crate::ServiceError> {
-    let listener = tarpc::serde_transport::tcp::listen(&addr, Bincode::default)
+    let tcp_listener = tokio::net::TcpListener::bind(&addr)
         .await
         .map_err(|e| crate::ServiceError::Internal(format!("tarpc bind failed: {e}")))?;
 
-    info!("🌾 SweetGrass tarpc server listening on {}", addr);
+    run_tarpc_server(tcp_listener, server, shutdown).await
+}
+
+/// Run a tarpc server on a pre-bound [`TcpListener`].
+///
+/// Preferred over [`start_tarpc_server`] in tests to avoid port-rebind
+/// races. Accepts connections until `shutdown` signals.
+///
+/// # Errors
+///
+/// Returns an error if the tarpc transport layer fails.
+pub async fn run_tarpc_server(
+    tcp_listener: tokio::net::TcpListener,
+    server: SweetGrassServer,
+    mut shutdown: tokio::sync::watch::Receiver<bool>,
+) -> std::result::Result<(), crate::ServiceError> {
+    let addr = tcp_listener
+        .local_addr()
+        .map_or_else(|_| "unknown".to_string(), |a| a.to_string());
+
+    let listener = tarpc::serde_transport::tcp::listen_on(tcp_listener, Bincode::default)
+        .await
+        .map_err(|e| crate::ServiceError::Internal(format!("tarpc listen_on failed: {e}")))?;
+
+    info!("🌾 SweetGrass tarpc server listening on {addr}");
 
     tokio::pin!(listener);
 

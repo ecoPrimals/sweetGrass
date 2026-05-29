@@ -120,6 +120,6 @@ async fn test_compression_compress_session_invalid() {
     )
     .await;
     assert!(result.is_err());
-    let (code, _) = result.unwrap_err();
-    assert_eq!(code, error_code::INVALID_PARAMS);
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_code::INVALID_PARAMS);
 }

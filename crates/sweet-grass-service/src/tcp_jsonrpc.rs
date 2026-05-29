@@ -30,19 +30,41 @@ use tracing::{debug, info, warn};
 pub async fn start_tcp_jsonrpc_listener(
     state: crate::state::AppState,
     addr: SocketAddr,
-    mut shutdown: tokio::sync::watch::Receiver<bool>,
+    shutdown: tokio::sync::watch::Receiver<bool>,
 ) -> crate::Result<()> {
     let listener = tokio::net::TcpListener::bind(addr).await.map_err(|e| {
         crate::ServiceError::Internal(format!("TCP JSON-RPC bind on {addr} failed: {e}"))
     })?;
 
-    let actual_addr = listener.local_addr().unwrap_or(addr);
-    info!("JSON-RPC 2.0 TCP (newline-delimited) listening on {actual_addr}");
-
     #[cfg(unix)]
     let btsp_required = crate::btsp::is_btsp_required();
     #[cfg(not(unix))]
     let btsp_required = false;
+
+    run_tcp_jsonrpc_listener(state, listener, shutdown, btsp_required).await
+}
+
+/// Run a TCP JSON-RPC listener on a pre-bound [`TcpListener`].
+///
+/// Accepts connections until `shutdown` signals. The `btsp_required`
+/// flag controls whether incoming connections must perform a BTSP
+/// handshake before JSON-RPC framing. Preferred over
+/// [`start_tcp_jsonrpc_listener`] in tests to avoid port-rebind races
+/// and environment-variable sensitivity.
+///
+/// # Errors
+///
+/// Returns an error if accepting connections fails fatally.
+pub async fn run_tcp_jsonrpc_listener(
+    state: crate::state::AppState,
+    listener: tokio::net::TcpListener,
+    mut shutdown: tokio::sync::watch::Receiver<bool>,
+    btsp_required: bool,
+) -> crate::Result<()> {
+    let actual_addr = listener
+        .local_addr()
+        .map_or_else(|_| "unknown".to_string(), |a| a.to_string());
+    info!("JSON-RPC 2.0 TCP (newline-delimited) listening on {actual_addr}");
 
     if btsp_required {
         info!("BTSP handshake required on TCP (FAMILY_ID set)");

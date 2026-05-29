@@ -6,6 +6,18 @@
 
 ## Completed
 
+### v0.7.39 — Race Condition Elimination + DI Evolution (Wave 63, May 2026)
+
+- [x] **TCP test race conditions eliminated** — `run_tcp_jsonrpc_listener()` accepts pre-bound `TcpListener`; no port-rebind race
+- [x] **tarpc test race conditions eliminated** — `run_tarpc_server()` accepts pre-bound `TcpListener` via tarpc `listen_on()`
+- [x] **Environment variable pollution fixed** — `AppState` snapshots `tcp_transport_active` and `btsp_required` at construction; `capability.list` handler reads from state, not env
+- [x] **`DispatchError` struct** — evolved from `(i64, String)` tuple alias to named-field struct
+- [x] **Crypto delegation capability-based** — `crypto_delegate.rs` prioritizes generic `SECURITY_PROVIDER_SOCKET` over `BEARDOG_SOCKET`
+- [x] **DH-1 gap fixed** — `btsp/server.rs` fallback path uses `biomeos/` subdirectory
+- [x] **`deny.toml` hardened** — `libsqlite3-sys`, `sqlx-sqlite`, `sqlx-mysql` explicitly banned
+- [x] **Doc sync** — all root docs, env.example, deploy graph, specs aligned to v0.7.39
+- [x] 1,565 tests (0 failures, was 8 pre-existing), 55,718 LOC, 38 methods, 0 clippy warnings
+
 ### v0.7.39 — `braid.anchor` + DH-1 `/tmp` Cleanup (Wave 60, May 2026)
 
 - [x] **`braid.anchor`** — anchors braid to DAG branch point for `rootpulse.branch` signal graphs

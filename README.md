@@ -28,8 +28,8 @@ sweetgrass server
 # Development: build and run via cargo
 cargo run -p sweet-grass-service -- server
 
-# With explicit TCP port (opt-in) and socket path override
-sweetgrass server --port 9100 --http-address 0.0.0.0:8080 --socket /tmp/sweetgrass.sock
+# With explicit TCP port (opt-in) and HTTP address
+sweetgrass server --port 9100 --http-address 0.0.0.0:8080
 
 # Health check via REST
 curl http://localhost:8080/health
@@ -211,7 +211,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
 | Max file size | 763 lines (limit: 1000) |
-| .rs files | 194 (55,742 LOC) |
+| .rs files | 194 (55,718 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |

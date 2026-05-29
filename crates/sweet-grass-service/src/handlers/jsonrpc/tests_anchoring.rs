@@ -48,7 +48,7 @@ async fn test_anchor_braid_not_found() {
         serde_json::json!({"braid_id": "nonexistent"}),
     )
     .await;
-    assert_eq!(result.unwrap_err().0, error_code::NOT_FOUND);
+    assert_eq!(result.unwrap_err().code, error_code::NOT_FOUND);
 }
 
 #[tokio::test]
@@ -69,7 +69,7 @@ async fn test_anchor_braid_non_sha256() {
         serde_json::json!({"braid_id": braid_id}),
     )
     .await;
-    assert_eq!(result.unwrap_err().0, error_code::INVALID_PARAMS);
+    assert_eq!(result.unwrap_err().code, error_code::INVALID_PARAMS);
 }
 
 #[tokio::test]
@@ -104,7 +104,7 @@ async fn test_verify_anchor_not_found() {
         serde_json::json!({"braid_id": "nonexistent"}),
     )
     .await;
-    assert_eq!(result.unwrap_err().0, error_code::NOT_FOUND);
+    assert_eq!(result.unwrap_err().code, error_code::NOT_FOUND);
 }
 
 // ==================== Extended Coverage ====================
@@ -151,8 +151,8 @@ async fn test_anchoring_anchor_not_found() {
     )
     .await;
     assert!(result.is_err());
-    let (code, _) = result.unwrap_err();
-    assert_eq!(code, error_code::NOT_FOUND);
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_code::NOT_FOUND);
 }
 
 #[tokio::test]
@@ -209,9 +209,9 @@ async fn test_anchoring_anchor_invalid_hash() {
     )
     .await;
     assert!(result.is_err());
-    let (code, msg) = result.unwrap_err();
-    assert_eq!(code, error_code::INVALID_PARAMS);
-    assert!(msg.contains("sha256"));
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_code::INVALID_PARAMS);
+    assert!(err.message.contains("sha256"));
 }
 
 #[tokio::test]
@@ -252,8 +252,8 @@ async fn test_anchoring_verify_not_found() {
     )
     .await;
     assert!(result.is_err());
-    let (code, _) = result.unwrap_err();
-    assert_eq!(code, error_code::NOT_FOUND);
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_code::NOT_FOUND);
 }
 
 #[tokio::test]
@@ -266,6 +266,6 @@ async fn test_anchoring_anchor_invalid_params() {
     )
     .await;
     assert!(result.is_err());
-    let (code, _) = result.unwrap_err();
-    assert_eq!(code, error_code::INVALID_PARAMS);
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_code::INVALID_PARAMS);
 }

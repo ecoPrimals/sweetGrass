@@ -9,33 +9,47 @@
 use super::*;
 use sweet_grass_core::agent::Did;
 
+/// Bind `:0`, keep the listener, return (listener, addr).
+///
+/// The listener is **not dropped** — it is passed directly to
+/// `run_tcp_jsonrpc_listener` so no port-rebind race can occur.
+async fn bind_ephemeral() -> (tokio::net::TcpListener, SocketAddr) {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind ephemeral");
+    let addr = listener.local_addr().expect("local_addr");
+    (listener, addr)
+}
+
+/// Spawn the TCP listener on a pre-bound socket and return the handle +
+/// shutdown sender.  The listener is ready to accept immediately — no
+/// sleep needed.  BTSP is explicitly disabled so tests are independent
+/// of `FAMILY_ID` env state.
+fn spawn_listener(
+    state: crate::state::AppState,
+    listener: tokio::net::TcpListener,
+) -> (
+    tokio::task::JoinHandle<crate::Result<()>>,
+    tokio::sync::watch::Sender<bool>,
+) {
+    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+    let handle = tokio::spawn(async move {
+        run_tcp_jsonrpc_listener(state, listener, shutdown_rx, false).await
+    });
+    (handle, shutdown_tx)
+}
+
 #[tokio::test]
 async fn tcp_jsonrpc_roundtrip() {
     let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTcpTest"));
-
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("bind");
-    let addr = listener.local_addr().expect("local_addr");
-    drop(listener);
-
-    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let state_clone = state.clone();
-    let listener_handle = tokio::spawn(async move {
-        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
-    });
-
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let (listener, addr) = bind_ephemeral().await;
+    let (handle, shutdown_tx) = spawn_listener(state, listener);
 
     let stream = tokio::net::TcpStream::connect(addr).await;
-    if stream.is_err() {
-        let _ = shutdown_tx.send(true);
-        listener_handle.abort();
-        return;
-    }
+    assert!(stream.is_ok(), "should connect to pre-bound listener");
 
     let _ = shutdown_tx.send(true);
-    listener_handle.abort();
+    handle.abort();
 }
 
 #[tokio::test]
@@ -43,20 +57,8 @@ async fn tcp_jsonrpc_health_check() {
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
     let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTcpHealth"));
-
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("bind");
-    let addr = listener.local_addr().expect("local_addr");
-    drop(listener);
-
-    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let state_clone = state.clone();
-    let listener_handle = tokio::spawn(async move {
-        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
-    });
-
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let (listener, addr) = bind_ephemeral().await;
+    let (_handle, shutdown_tx) = spawn_listener(state, listener);
 
     let stream = tokio::net::TcpStream::connect(addr).await.expect("connect");
     let (reader, mut writer) = stream.into_split();
@@ -81,7 +83,6 @@ async fn tcp_jsonrpc_health_check() {
     assert_eq!(response["result"]["status"], "healthy");
 
     let _ = shutdown_tx.send(true);
-    listener_handle.abort();
 }
 
 #[tokio::test]
@@ -89,20 +90,8 @@ async fn tcp_jsonrpc_parse_error() {
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
     let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTcpParse"));
-
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("bind");
-    let addr = listener.local_addr().expect("local_addr");
-    drop(listener);
-
-    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let state_clone = state.clone();
-    let listener_handle = tokio::spawn(async move {
-        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
-    });
-
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let (listener, addr) = bind_ephemeral().await;
+    let (_handle, shutdown_tx) = spawn_listener(state, listener);
 
     let stream = tokio::net::TcpStream::connect(addr).await.expect("connect");
     let (reader, mut writer) = stream.into_split();
@@ -126,7 +115,6 @@ async fn tcp_jsonrpc_parse_error() {
     );
 
     let _ = shutdown_tx.send(true);
-    listener_handle.abort();
 }
 
 #[tokio::test]
@@ -134,20 +122,8 @@ async fn tcp_jsonrpc_notification_no_response_then_roundtrip() {
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
     let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTcpNotify"));
-
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("bind");
-    let addr = listener.local_addr().expect("local_addr");
-    drop(listener);
-
-    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let state_clone = state.clone();
-    let listener_handle = tokio::spawn(async move {
-        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
-    });
-
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let (listener, addr) = bind_ephemeral().await;
+    let (_handle, shutdown_tx) = spawn_listener(state, listener);
 
     let stream = tokio::net::TcpStream::connect(addr).await.expect("connect");
     let (reader, mut writer) = stream.into_split();
@@ -181,7 +157,6 @@ async fn tcp_jsonrpc_notification_no_response_then_roundtrip() {
     assert_eq!(response["result"]["status"], "healthy");
 
     let _ = shutdown_tx.send(true);
-    listener_handle.abort();
 }
 
 #[tokio::test]
@@ -189,20 +164,8 @@ async fn tcp_jsonrpc_sequential_requests_same_connection() {
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
     let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTcpSeq"));
-
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("bind");
-    let addr = listener.local_addr().expect("local_addr");
-    drop(listener);
-
-    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let state_clone = state.clone();
-    let listener_handle = tokio::spawn(async move {
-        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
-    });
-
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let (listener, addr) = bind_ephemeral().await;
+    let (_handle, shutdown_tx) = spawn_listener(state, listener);
 
     let stream = tokio::net::TcpStream::connect(addr).await.expect("connect");
     let (reader, mut writer) = stream.into_split();
@@ -252,7 +215,6 @@ async fn tcp_jsonrpc_sequential_requests_same_connection() {
     assert_eq!(r3["result"]["ready"], true);
 
     let _ = shutdown_tx.send(true);
-    listener_handle.abort();
 }
 
 #[tokio::test]
@@ -260,20 +222,8 @@ async fn tcp_jsonrpc_skips_empty_lines() {
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
     let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTcpEmpty"));
-
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("bind");
-    let addr = listener.local_addr().expect("local_addr");
-    drop(listener);
-
-    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let state_clone = state.clone();
-    let listener_handle = tokio::spawn(async move {
-        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
-    });
-
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let (listener, addr) = bind_ephemeral().await;
+    let (_handle, shutdown_tx) = spawn_listener(state, listener);
 
     let stream = tokio::net::TcpStream::connect(addr).await.expect("connect");
     let (reader, mut writer) = stream.into_split();
@@ -299,7 +249,6 @@ async fn tcp_jsonrpc_skips_empty_lines() {
     assert_eq!(response["result"]["status"], "healthy");
 
     let _ = shutdown_tx.send(true);
-    listener_handle.abort();
 }
 
 #[tokio::test]
@@ -307,20 +256,8 @@ async fn tcp_jsonrpc_method_not_found() {
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
     let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTcp404"));
-
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("bind");
-    let addr = listener.local_addr().expect("local_addr");
-    drop(listener);
-
-    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let state_clone = state.clone();
-    let listener_handle = tokio::spawn(async move {
-        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
-    });
-
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let (listener, addr) = bind_ephemeral().await;
+    let (_handle, shutdown_tx) = spawn_listener(state, listener);
 
     let stream = tokio::net::TcpStream::connect(addr).await.expect("connect");
     let (reader, mut writer) = stream.into_split();
@@ -348,30 +285,17 @@ async fn tcp_jsonrpc_method_not_found() {
     );
 
     let _ = shutdown_tx.send(true);
-    listener_handle.abort();
 }
 
 #[tokio::test]
 async fn tcp_jsonrpc_listener_shutdown_exits_gracefully() {
     let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTcpShutdown"));
-
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("bind");
-    let addr = listener.local_addr().expect("local_addr");
-    drop(listener);
-
-    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let state_clone = state.clone();
-    let listener_handle = tokio::spawn(async move {
-        start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await
-    });
-
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let (listener, _addr) = bind_ephemeral().await;
+    let (handle, shutdown_tx) = spawn_listener(state, listener);
 
     shutdown_tx.send(true).expect("shutdown signal");
 
-    let join_result = tokio::time::timeout(std::time::Duration::from_secs(2), listener_handle)
+    let join_result = tokio::time::timeout(std::time::Duration::from_secs(2), handle)
         .await
         .expect("listener should exit within timeout");
 
@@ -387,20 +311,8 @@ async fn tcp_jsonrpc_invalid_jsonrpc_version() {
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
     let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTcpVer"));
-
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("bind");
-    let addr = listener.local_addr().expect("local_addr");
-    drop(listener);
-
-    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let state_clone = state.clone();
-    let listener_handle = tokio::spawn(async move {
-        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
-    });
-
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let (listener, addr) = bind_ephemeral().await;
+    let (_handle, shutdown_tx) = spawn_listener(state, listener);
 
     let stream = tokio::net::TcpStream::connect(addr).await.expect("connect");
     let (reader, mut writer) = stream.into_split();
@@ -428,5 +340,4 @@ async fn tcp_jsonrpc_invalid_jsonrpc_version() {
     );
 
     let _ = shutdown_tx.send(true);
-    listener_handle.abort();
 }

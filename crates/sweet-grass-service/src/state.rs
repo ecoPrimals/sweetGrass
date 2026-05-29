@@ -15,6 +15,7 @@ use crate::backend::BraidBackend;
 #[cfg(unix)]
 use crate::crypto_delegate::CryptoDelegate;
 use crate::method_gate::MethodGate;
+use sweet_grass_core::primal_names::env_vars;
 
 /// Application state shared across handlers.
 #[derive(Clone)]
@@ -43,6 +44,16 @@ pub struct AppState {
 
     /// Pre-dispatch method gate (JH-0).
     pub method_gate: Arc<MethodGate>,
+
+    /// Whether TCP transport is active (snapshotted at startup from
+    /// `SWEETGRASS_PORT`). Used by `capability.list` to avoid env reads
+    /// at handler call time.
+    pub tcp_transport_active: bool,
+
+    /// Whether BTSP handshake is required (snapshotted at startup from
+    /// `FAMILY_ID`). Used by `capability.list` to avoid env reads at
+    /// handler call time.
+    pub btsp_required: bool,
 }
 
 impl AppState {
@@ -64,6 +75,8 @@ impl AppState {
             #[cfg(unix)]
             crypto: None,
             method_gate: Arc::new(MethodGate::from_env()),
+            tcp_transport_active: false,
+            btsp_required: false,
         }
     }
 
@@ -84,6 +97,8 @@ impl AppState {
             #[cfg(unix)]
             crypto: None,
             method_gate: Arc::new(MethodGate::from_env()),
+            tcp_transport_active: std::env::var(env_vars::SWEETGRASS_PORT).is_ok(),
+            btsp_required: Self::snapshot_btsp_required(),
         }
     }
 
@@ -117,7 +132,17 @@ impl AppState {
             #[cfg(unix)]
             crypto: None,
             method_gate: Arc::new(MethodGate::from_env()),
+            tcp_transport_active: std::env::var(env_vars::SWEETGRASS_PORT).is_ok(),
+            btsp_required: Self::snapshot_btsp_required(),
         }
+    }
+
+    /// Snapshot the BTSP requirement from the current env.
+    fn snapshot_btsp_required() -> bool {
+        #[cfg(unix)]
+        { crate::btsp::is_btsp_required() }
+        #[cfg(not(unix))]
+        { false }
     }
 
     /// Attach a crypto delegate for Tower-delegated braid signing.

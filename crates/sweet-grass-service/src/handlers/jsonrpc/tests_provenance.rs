@@ -170,8 +170,8 @@ async fn test_provenance_export_provo_invalid_params() {
     )
     .await;
     assert!(result.is_err());
-    let (code, _) = result.unwrap_err();
-    assert_eq!(code, error_code::INVALID_PARAMS);
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_code::INVALID_PARAMS);
 }
 
 #[tokio::test]
@@ -184,6 +184,6 @@ async fn test_provenance_graph_invalid_params() {
     )
     .await;
     assert!(result.is_err());
-    let (code, _) = result.unwrap_err();
-    assert_eq!(code, error_code::INVALID_PARAMS);
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_code::INVALID_PARAMS);
 }

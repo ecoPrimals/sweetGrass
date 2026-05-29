@@ -65,6 +65,10 @@ methods = ["check", "mode", "peer_info"]
 description = "Runtime lifecycle"
 methods = ["status"]
 
+[domains.composition]
+description = "Ecosystem composition health probes"
+methods = ["tower_health", "node_health", "nest_health", "nucleus_health"]
+
 [domains.tools]
 description = "MCP tool exposure for Squirrel AI coordination"
 methods = ["list", "call"]
@@ -237,6 +241,26 @@ stability = "stable"
 depends_on = []
 cost = "low"
 stability = "stable"
+
+[operations."composition.tower_health"]
+depends_on = []
+cost = "low"
+stability = "beta"
+
+[operations."composition.node_health"]
+depends_on = []
+cost = "low"
+stability = "beta"
+
+[operations."composition.nest_health"]
+depends_on = []
+cost = "low"
+stability = "beta"
+
+[operations."composition.nucleus_health"]
+depends_on = []
+cost = "low"
+stability = "beta"
 
 [operations."tools.call"]
 depends_on = []

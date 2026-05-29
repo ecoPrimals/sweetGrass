@@ -88,9 +88,9 @@ pub use error::ServiceError;
 pub use factory::{BraidStoreFactory, StorageConfig};
 pub use router::create_router;
 pub use rpc::{RpcError, SweetGrassRpc, SweetGrassRpcClient};
-pub use server::{SweetGrassServer, start_tarpc_server};
+pub use server::{SweetGrassServer, run_tarpc_server, start_tarpc_server};
 pub use state::AppState;
-pub use tcp_jsonrpc::start_tcp_jsonrpc_listener;
+pub use tcp_jsonrpc::{run_tcp_jsonrpc_listener, start_tcp_jsonrpc_listener};
 
 /// Result type for service operations.
 pub type Result<T> = std::result::Result<T, ServiceError>;

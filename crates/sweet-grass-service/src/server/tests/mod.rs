@@ -31,9 +31,6 @@ use sweet_grass_query::QueryEngine;
 use sweet_grass_store::{MemoryStore, QueryFilter, QueryOrder};
 use tarpc::context;
 
-/// Test bind address (OS-allocated port).
-const TEST_BIND_ADDR: &str = "127.0.0.1:0";
-
 static COUNTER: AtomicU64 = AtomicU64::new(0);
 
 fn make_server() -> SweetGrassServer {

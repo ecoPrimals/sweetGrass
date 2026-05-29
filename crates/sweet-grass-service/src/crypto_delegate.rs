@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
-//! Crypto delegation client for `BearDog` Tower signing via UDS JSON-RPC.
+//! Capability-based crypto delegation via UDS JSON-RPC.
 //!
 //! Implements `crypto.sign` delegation per `NUCLEUS_TWO_TIER_CRYPTO_MODEL`.
-//! `sweetGrass` never touches key material — all signing is delegated to
-//! `BearDog` over a Unix Domain Socket using newline-delimited JSON-RPC 2.0.
+//! sweetGrass never touches key material — all signing is delegated to
+//! whichever primal provides the `Capability::Signing` domain (currently
+//! `BearDog`) over a Unix Domain Socket using newline-delimited JSON-RPC 2.0.
 
 use std::path::{Path, PathBuf};
 
@@ -15,14 +16,14 @@ use tracing::debug;
 
 use sweet_grass_core::primal_names::{env_vars, paths};
 
-/// Errors from crypto delegation to `BearDog`.
+/// Errors from crypto delegation to the signing capability provider.
 #[derive(Debug, Error)]
 pub enum CryptoDelegateError {
-    /// `BearDog` socket is not reachable.
+    /// Signing provider socket is not reachable.
     #[error("crypto provider unavailable: {0}")]
     Unavailable(String),
 
-    /// `BearDog` returned a JSON-RPC error.
+    /// Signing provider returned a JSON-RPC error.
     #[error("crypto provider error: {0}")]
     ProviderError(String),
 
@@ -30,7 +31,7 @@ pub enum CryptoDelegateError {
     #[error("invalid response: {0}")]
     InvalidResponse(String),
 
-    /// I/O error communicating with `BearDog`.
+    /// I/O error communicating with signing provider.
     #[error("io: {0}")]
     Io(#[from] std::io::Error),
 }
@@ -42,22 +43,25 @@ pub struct CryptoSignResult {
     pub signature: Vec<u8>,
     /// Algorithm identifier (e.g. `"ed25519"`).
     pub algorithm: String,
-    /// `BearDog` Tower Ed25519 public key bytes.
+    /// Signing provider Ed25519 public key bytes.
     pub public_key: Vec<u8>,
 }
 
-/// UDS JSON-RPC client for `BearDog` `crypto.sign` / `crypto.verify`.
+/// Capability-based UDS JSON-RPC client for `crypto.sign` / `crypto.verify`.
+///
+/// Discovers the signing provider at runtime via environment tiers — the
+/// primal providing `Capability::Signing` is never hardcoded.
 #[derive(Debug, Clone)]
 pub struct CryptoDelegate {
     socket_path: PathBuf,
 }
 
 impl CryptoDelegate {
-    /// Resolve the `BearDog` crypto socket from environment variables.
+    /// Resolve the signing capability provider socket from environment.
     ///
-    /// Resolution order:
-    /// 1. `BEARDOG_SOCKET` — explicit socket path
-    /// 2. `SECURITY_PROVIDER_SOCKET` — generic crypto provider
+    /// Resolution order (first match wins):
+    /// 1. `SECURITY_PROVIDER_SOCKET` — explicit capability socket
+    /// 2. `BEARDOG_SOCKET` — primal-specific alias (deployment shortcut)
     /// 3. `BIOMEOS_SOCKET_DIR/security.sock` — ecosystem convention
     /// 4. `XDG_RUNTIME_DIR/biomeos/security.sock`
     ///
@@ -138,11 +142,11 @@ impl CryptoDelegate {
     }
 
     fn resolve_socket_path() -> Option<PathBuf> {
-        if let Ok(p) = std::env::var(env_vars::BEARDOG_SOCKET) {
+        if let Ok(p) = std::env::var(env_vars::SECURITY_PROVIDER_SOCKET) {
             return Some(PathBuf::from(p));
         }
 
-        if let Ok(p) = std::env::var(env_vars::SECURITY_PROVIDER_SOCKET) {
+        if let Ok(p) = std::env::var(env_vars::BEARDOG_SOCKET) {
             return Some(PathBuf::from(p));
         }
 
@@ -340,7 +344,7 @@ mod tests {
     }
 
     #[test]
-    fn test_resolve_beardog_socket_first() {
+    fn test_resolve_security_provider_first() {
         temp_env::with_vars(
             [
                 (env_vars::BEARDOG_SOCKET, Some("/run/beardog.sock")),
@@ -351,24 +355,21 @@ mod tests {
             ],
             || {
                 let d = CryptoDelegate::resolve().unwrap();
-                assert_eq!(d.socket_path(), Path::new("/run/beardog.sock"));
+                assert_eq!(d.socket_path(), Path::new("/run/security.sock"));
             },
         );
     }
 
     #[test]
-    fn test_resolve_falls_through_to_security_provider() {
+    fn test_resolve_falls_through_to_beardog_alias() {
         temp_env::with_vars(
             [
-                (env_vars::BEARDOG_SOCKET, None::<&str>),
-                (
-                    env_vars::SECURITY_PROVIDER_SOCKET,
-                    Some("/run/security.sock"),
-                ),
+                (env_vars::SECURITY_PROVIDER_SOCKET, None::<&str>),
+                (env_vars::BEARDOG_SOCKET, Some("/run/beardog.sock")),
             ],
             || {
                 let d = CryptoDelegate::resolve().unwrap();
-                assert_eq!(d.socket_path(), Path::new("/run/security.sock"));
+                assert_eq!(d.socket_path(), Path::new("/run/beardog.sock"));
             },
         );
     }

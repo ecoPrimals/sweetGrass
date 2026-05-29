@@ -10,21 +10,38 @@ use tarpc::serde_transport::tcp;
 use tarpc::tokio_serde::formats::Bincode;
 
 use crate::rpc::{CreateBraidRequest, SweetGrassRpcClient};
-use crate::server::start_tarpc_server;
-use crate::server::tests::{COUNTER, TEST_BIND_ADDR, make_server};
+use crate::server::run_tarpc_server;
+use crate::server::tests::{COUNTER, make_server};
+
+/// Bind `:0`, keep the listener, return (listener, addr).
+async fn bind_ephemeral() -> (tokio::net::TcpListener, std::net::SocketAddr) {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind ephemeral");
+    let addr = listener.local_addr().expect("local_addr");
+    (listener, addr)
+}
+
+/// Spawn tarpc server on a pre-bound listener — no port-rebind race.
+fn spawn_server(
+    listener: tokio::net::TcpListener,
+    server: crate::server::SweetGrassServer,
+) -> (
+    tokio::task::JoinHandle<std::result::Result<(), crate::ServiceError>>,
+    tokio::sync::watch::Sender<bool>,
+) {
+    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+    let handle = tokio::spawn(async move {
+        run_tarpc_server(listener, server, shutdown_rx).await
+    });
+    (handle, shutdown_tx)
+}
 
 #[tokio::test]
 async fn test_start_tarpc_server_binds_and_accepts() {
-    let listener = std::net::TcpListener::bind(TEST_BIND_ADDR).expect("bind");
-    let addr = listener.local_addr().expect("local_addr");
-    drop(listener);
-
+    let (listener, addr) = bind_ephemeral().await;
     let server = make_server();
-    let (_shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let server_handle =
-        tokio::spawn(async move { start_tarpc_server(addr, server, shutdown_rx).await });
-
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let (handle, _shutdown_tx) = spawn_server(listener, server);
 
     let transport = tcp::connect(addr, Bincode::default).await.expect("connect");
     let client = SweetGrassRpcClient::new(tarpc::client::Config::default(), transport).spawn();
@@ -36,21 +53,14 @@ async fn test_start_tarpc_server_binds_and_accepts() {
         .expect("rpc call");
     assert_eq!(status.status, "UP");
 
-    server_handle.abort();
+    handle.abort();
 }
 
 #[tokio::test]
 async fn test_tarpc_roundtrip_braid_crud() {
-    let listener = std::net::TcpListener::bind(TEST_BIND_ADDR).expect("bind");
-    let addr = listener.local_addr().expect("local_addr");
-    drop(listener);
-
+    let (listener, addr) = bind_ephemeral().await;
     let server = make_server();
-    let (_shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let server_handle =
-        tokio::spawn(async move { start_tarpc_server(addr, server, shutdown_rx).await });
-
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let (handle, _shutdown_tx) = spawn_server(listener, server);
 
     let transport = tcp::connect(addr, Bincode::default).await.expect("connect");
     let client = SweetGrassRpcClient::new(tarpc::client::Config::default(), transport).spawn();
@@ -103,21 +113,14 @@ async fn test_tarpc_roundtrip_braid_crud() {
         .expect("rpc call");
     assert!(after.is_none());
 
-    server_handle.abort();
+    handle.abort();
 }
 
 #[tokio::test]
 async fn test_tarpc_health_liveness_and_readiness() {
-    let listener = std::net::TcpListener::bind(TEST_BIND_ADDR).expect("bind");
-    let addr = listener.local_addr().expect("local_addr");
-    drop(listener);
-
+    let (listener, addr) = bind_ephemeral().await;
     let server = make_server();
-    let (_shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let server_handle =
-        tokio::spawn(async move { start_tarpc_server(addr, server, shutdown_rx).await });
-
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let (handle, _shutdown_tx) = spawn_server(listener, server);
 
     let transport = tcp::connect(addr, Bincode::default).await.expect("connect");
     let client = SweetGrassRpcClient::new(tarpc::client::Config::default(), transport).spawn();
@@ -134,21 +137,14 @@ async fn test_tarpc_health_liveness_and_readiness() {
         .expect("tarpc transport");
     assert!(ready);
 
-    server_handle.abort();
+    handle.abort();
 }
 
 #[tokio::test]
 async fn test_tarpc_status() {
-    let listener = std::net::TcpListener::bind(TEST_BIND_ADDR).expect("bind");
-    let addr = listener.local_addr().expect("local_addr");
-    drop(listener);
-
+    let (listener, addr) = bind_ephemeral().await;
     let server = make_server();
-    let (_shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let server_handle =
-        tokio::spawn(async move { start_tarpc_server(addr, server, shutdown_rx).await });
-
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let (handle, _shutdown_tx) = spawn_server(listener, server);
 
     let transport = tcp::connect(addr, Bincode::default).await.expect("connect");
     let client = SweetGrassRpcClient::new(tarpc::client::Config::default(), transport).spawn();
@@ -164,25 +160,18 @@ async fn test_tarpc_status() {
     assert_eq!(svc.braid_count, 0);
     assert_eq!(svc.version, env!("CARGO_PKG_VERSION"));
 
-    server_handle.abort();
+    handle.abort();
 }
 
 #[tokio::test]
 async fn test_start_tarpc_server_shutdown_exits() {
-    let listener = std::net::TcpListener::bind(TEST_BIND_ADDR).expect("bind");
-    let addr = listener.local_addr().expect("local_addr");
-    drop(listener);
-
+    let (listener, _addr) = bind_ephemeral().await;
     let server = make_server();
-    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let server_handle =
-        tokio::spawn(async move { start_tarpc_server(addr, server, shutdown_rx).await });
-
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    let (handle, shutdown_tx) = spawn_server(listener, server);
 
     shutdown_tx.send(true).expect("signal shutdown");
 
-    let join_result = tokio::time::timeout(std::time::Duration::from_secs(5), server_handle)
+    let join_result = tokio::time::timeout(std::time::Duration::from_secs(5), handle)
         .await
         .expect("server should exit within timeout");
 

@@ -62,6 +62,11 @@ deny = [
     
     # Shared cross-primal types — sovereignty violation (each primal owns its own types)
     { name = "provenance-trio-types", wrappers = [], reason = "Boundary violation — primals communicate via JSON-RPC, not shared crates" },
+
+    # SQLite/MySQL — sweetGrass is postgres-only + redb; no other SQL backends
+    { name = "libsqlite3-sys", wrappers = [], reason = "C library — use redb or postgres-only sqlx" },
+    { name = "sqlx-sqlite", wrappers = [], reason = "postgres-only — no SQLite backend" },
+    { name = "sqlx-mysql", wrappers = [], reason = "postgres-only — no MySQL backend" },
 ]
 
 skip = [

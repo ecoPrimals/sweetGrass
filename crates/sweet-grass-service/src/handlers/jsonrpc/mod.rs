@@ -146,7 +146,19 @@ impl JsonRpcResponse {
 
 // ==================== Dispatch Table ====================
 
-pub(crate) type DispatchError = (i64, String);
+/// A JSON-RPC dispatch error with structured code and message.
+#[derive(Debug)]
+pub(crate) struct DispatchError {
+    pub code: i64,
+    pub message: String,
+}
+
+impl From<(i64, String)> for DispatchError {
+    fn from((code, message): (i64, String)) -> Self {
+        Self { code, message }
+    }
+}
+
 pub(crate) type DispatchResult = Result<serde_json::Value, DispatchError>;
 type DispatchFn = for<'a> fn(
     &'a AppState,
@@ -516,10 +528,10 @@ pub async fn handle_jsonrpc(
 async fn dispatch(state: &AppState, method: &str, params: serde_json::Value) -> DispatchResult {
     match find_handler(method) {
         Some(handler) => handler(state, params).await,
-        None => Err((
-            error_code::METHOD_NOT_FOUND,
-            format!("Method not found: {method}"),
-        )),
+        None => Err(DispatchError {
+            code: error_code::METHOD_NOT_FOUND,
+            message: format!("Method not found: {method}"),
+        }),
     }
 }
 
@@ -563,8 +575,11 @@ async fn dispatch_classified(
     let effective = resolve_alias(&normalized).unwrap_or(normalized.as_str());
     let caller = caller_context_from_params(&params);
 
-    if let Err((code, message)) = state.method_gate.check(effective, &caller) {
-        return DispatchOutcome::ProtocolError { code, message };
+    if let Err(gate_err) = state.method_gate.check(effective, &caller) {
+        return DispatchOutcome::ProtocolError {
+            code: gate_err.0,
+            message: gate_err.1,
+        };
     }
 
     let Some(handler) = find_handler_normalized(&normalized) else {
@@ -576,7 +591,10 @@ async fn dispatch_classified(
 
     match handler(state, params).await {
         Ok(value) => DispatchOutcome::Success(value),
-        Err((code, message)) => DispatchOutcome::ApplicationError { code, message },
+        Err(e) => DispatchOutcome::ApplicationError {
+            code: e.code,
+            message: e.message,
+        },
     }
 }
 
@@ -655,7 +673,10 @@ fn handle_auth_peer_info(params: serde_json::Value) -> DispatchResult {
 // ==================== Helpers (used by domain modules) ====================
 
 pub(crate) fn internal(e: impl std::fmt::Display) -> DispatchError {
-    (error_code::INTERNAL_ERROR, e.to_string())
+    DispatchError {
+        code: error_code::INTERNAL_ERROR,
+        message: e.to_string(),
+    }
 }
 
 /// # Errors
@@ -664,19 +685,19 @@ pub(crate) fn internal(e: impl std::fmt::Display) -> DispatchError {
 pub(crate) fn parse_params<T: serde::de::DeserializeOwned>(
     params: serde_json::Value,
 ) -> Result<T, DispatchError> {
-    serde_json::from_value(params)
-        .map_err(|e| (error_code::INVALID_PARAMS, format!("Invalid params: {e}")))
+    serde_json::from_value(params).map_err(|e| DispatchError {
+        code: error_code::INVALID_PARAMS,
+        message: format!("Invalid params: {e}"),
+    })
 }
 
 /// # Errors
 ///
 /// Returns an error if JSON serialization fails.
 pub(crate) fn to_value<T: Serialize>(v: &T) -> DispatchResult {
-    serde_json::to_value(v).map_err(|e| {
-        (
-            error_code::INTERNAL_ERROR,
-            format!("Serialization error: {e}"),
-        )
+    serde_json::to_value(v).map_err(|e| DispatchError {
+        code: error_code::INTERNAL_ERROR,
+        message: format!("Serialization error: {e}"),
     })
 }
 

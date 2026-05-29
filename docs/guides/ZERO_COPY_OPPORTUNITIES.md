@@ -1,8 +1,20 @@
-# 🔄 Zero-Copy Optimization Opportunities
+# Zero-Copy Optimization — Historical Record
 
-**Status**: Phase 1+2+3 complete; remaining opportunities documented below  
-**Completed**: `BraidId`, `Did`, `ContentHash`, `ActivityId`, `mime_type`, `source_primal`, `niche`, `spine_id`, `BraidMetadata.title`, `BraidMetadata.description`, `BraidMetadata.tags`, `LoamCommitRef.spine_id`, `BraidFactory.source_primal`, `CompressionEngine.source_primal` → `Arc<str>`; `Witness` constructors use named `&'static str` constants; tag index → `HashMap<Arc<str>, HashSet<BraidId>>`; `ProvenanceGraphBuilder` cycle detection uses `HashSet<ContentHash>` (O(1) Arc clone); `QueryError::NotFound` carries `ContentHash` (O(1) clone)  
-**Priority**: Low (all hot-path clones eliminated)
+**Status**: COMPLETE — Phase 1+2+3 all implemented (v0.7.21–v0.7.27)
+**Priority**: None remaining — all hot-path clones eliminated
+
+All types below now use `Arc<str>`: `BraidId`, `Did`, `ContentHash`, `ActivityId`,
+`Braid.mime_type`, `BraidMetadata.title`, `BraidMetadata.description`,
+`BraidMetadata.tags`, `EcoPrimalsAttributes.source_primal`,
+`EcoPrimalsAttributes.niche`, `LoamCommitRef.spine_id`,
+`BraidFactory.source_primal`, `CompressionEngine.source_primal`.
+
+Tag and MIME indexes share `Arc<str>` instances. Witness constructors use named
+`&'static str` constants. `BraidContext.imports` uses `IndexMap` for deterministic
+serialization.
+
+The code samples below are **pre-optimization snapshots** retained as fossil record
+of the evolution path. They do NOT reflect current code.
 
 ---
 

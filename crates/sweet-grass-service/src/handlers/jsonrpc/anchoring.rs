@@ -10,7 +10,7 @@ use sweet_grass_store::BraidStore;
 
 use crate::state::AppState;
 
-use super::{DispatchResult, error_code, internal, parse_params, to_value};
+use super::{DispatchError, DispatchResult, error_code, internal, parse_params, to_value};
 
 #[derive(Debug, Deserialize)]
 pub(super) struct AnchorBraidParams {
@@ -39,22 +39,18 @@ pub(super) async fn handle_anchor_braid(
         .get(&p.braid_id)
         .await
         .map_err(internal)?
-        .ok_or_else(|| {
-            (
-                error_code::NOT_FOUND,
-                format!("Braid not found: {}", p.braid_id),
-            )
+        .ok_or_else(|| DispatchError {
+            code: error_code::NOT_FOUND,
+            message: format!("Braid not found: {}", p.braid_id),
         })?;
 
     let hash_bytes = braid
         .data_hash
         .to_bytes32()
         .map(|b| base64::engine::general_purpose::STANDARD.encode(b))
-        .ok_or_else(|| {
-            (
-                error_code::INVALID_PARAMS,
-                "Content hash must be sha256 (32 bytes)".to_string(),
-            )
+        .ok_or_else(|| DispatchError {
+            code: error_code::INVALID_PARAMS,
+            message: "Content hash must be sha256 (32 bytes)".to_string(),
         })?;
 
     let uuid_str = p
@@ -104,10 +100,10 @@ pub(super) async fn handle_verify_anchor(
     let exists = state.store.exists(&p.braid_id).await.map_err(internal)?;
 
     if !exists {
-        return Err((
-            error_code::NOT_FOUND,
-            format!("Braid not found: {}", p.braid_id),
-        ));
+        return Err(DispatchError {
+            code: error_code::NOT_FOUND,
+            message: format!("Braid not found: {}", p.braid_id),
+        });
     }
 
     to_value(&serde_json::json!({

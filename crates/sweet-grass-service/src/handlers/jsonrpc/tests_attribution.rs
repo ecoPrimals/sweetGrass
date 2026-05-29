@@ -206,8 +206,8 @@ async fn test_attribution_chain_invalid_params() {
     )
     .await;
     assert!(result.is_err());
-    let (code, _) = result.unwrap_err();
-    assert_eq!(code, error_code::INVALID_PARAMS);
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_code::INVALID_PARAMS);
 }
 
 // ==================== attribution.witness (JH-5 Phase 3) ====================
@@ -263,8 +263,8 @@ async fn test_attribution_witness_invalid_params() {
     )
     .await;
     assert!(result.is_err());
-    let (code, _) = result.unwrap_err();
-    assert_eq!(code, error_code::INVALID_PARAMS);
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_code::INVALID_PARAMS);
 }
 
 #[tokio::test]

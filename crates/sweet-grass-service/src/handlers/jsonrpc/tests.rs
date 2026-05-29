@@ -48,8 +48,8 @@ async fn test_method_not_found() {
     let state = test_state();
     let result = dispatch(&state, "nonexistent.method", serde_json::json!({})).await;
     assert!(result.is_err());
-    let (code, _msg) = result.unwrap_err();
-    assert_eq!(code, error_code::METHOD_NOT_FOUND);
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_code::METHOD_NOT_FOUND);
 }
 
 #[test]
@@ -102,8 +102,8 @@ async fn test_get_braid_not_found() {
     )
     .await;
     assert!(result.is_err());
-    let (code, _) = result.unwrap_err();
-    assert_eq!(code, error_code::NOT_FOUND);
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_code::NOT_FOUND);
 }
 
 #[tokio::test]
@@ -123,8 +123,8 @@ async fn test_invalid_params() {
     )
     .await;
     assert!(result.is_err());
-    let (code, _) = result.unwrap_err();
-    assert_eq!(code, error_code::INVALID_PARAMS);
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_code::INVALID_PARAMS);
 }
 
 #[tokio::test]
@@ -406,8 +406,8 @@ async fn test_braid_get_by_hash_not_found() {
     )
     .await;
     assert!(result.is_err());
-    let (code, _) = result.unwrap_err();
-    assert_eq!(code, error_code::NOT_FOUND);
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_code::NOT_FOUND);
 }
 
 #[tokio::test]
@@ -446,7 +446,7 @@ async fn test_braid_commit_not_found() {
     )
     .await;
     assert!(result.is_err());
-    assert_eq!(result.unwrap_err().0, error_code::NOT_FOUND);
+    assert_eq!(result.unwrap_err().code, error_code::NOT_FOUND);
 }
 
 #[tokio::test]
@@ -511,7 +511,7 @@ fn test_parse_params_invalid() {
     let val = serde_json::json!({"wrong_field": 123});
     let result: Result<super::braid::GetBraidParams, _> = parse_params(val);
     assert!(result.is_err());
-    assert_eq!(result.unwrap_err().0, error_code::INVALID_PARAMS);
+    assert_eq!(result.unwrap_err().code, error_code::INVALID_PARAMS);
 }
 
 #[test]
@@ -524,8 +524,8 @@ fn test_to_value_success() {
 #[test]
 fn test_internal_error() {
     let err = internal("something went wrong");
-    assert_eq!(err.0, error_code::INTERNAL_ERROR);
-    assert!(err.1.contains("something went wrong"));
+    assert_eq!(err.code, error_code::INTERNAL_ERROR);
+    assert!(err.message.contains("something went wrong"));
 }
 
 // ==================== DispatchOutcome ====================
@@ -590,8 +590,8 @@ async fn test_braid_commit_missing_braid() {
     )
     .await;
     assert!(result.is_err());
-    let (code, _) = result.unwrap_err();
-    assert_eq!(code, error_code::NOT_FOUND);
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_code::NOT_FOUND);
 }
 
 #[tokio::test]
@@ -654,8 +654,8 @@ async fn test_braid_anchor_not_found() {
     )
     .await;
     assert!(result.is_err());
-    let (code, _) = result.unwrap_err();
-    assert_eq!(code, error_code::NOT_FOUND);
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_code::NOT_FOUND);
 }
 
 #[tokio::test]
@@ -668,8 +668,8 @@ async fn test_braid_anchor_missing_branch_id() {
     )
     .await;
     assert!(result.is_err());
-    let (code, _) = result.unwrap_err();
-    assert_eq!(code, error_code::INVALID_PARAMS);
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_code::INVALID_PARAMS);
 }
 
 #[tokio::test]
@@ -691,9 +691,9 @@ async fn test_braid_anchor_invalid_hash() {
     )
     .await;
     assert!(result.is_err());
-    let (code, msg) = result.unwrap_err();
-    assert_eq!(code, error_code::INVALID_PARAMS);
-    assert!(msg.contains("sha256"));
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_code::INVALID_PARAMS);
+    assert!(err.message.contains("sha256"));
 }
 
 #[tokio::test]

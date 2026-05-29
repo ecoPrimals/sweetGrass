@@ -460,7 +460,7 @@ mod btsp_tests {
             write_message,
         };
         use sweet_grass_service::btsp::{read_frame, write_frame};
-        use sweet_grass_service::tcp_jsonrpc::start_tcp_jsonrpc_listener;
+        use sweet_grass_service::tcp_jsonrpc::run_tcp_jsonrpc_listener;
 
         let dir = tempfile::tempdir().expect("tempdir");
         let security_sock = dir.path().join("beardog-tcp-full.sock");
@@ -490,19 +490,17 @@ mod btsp_tests {
                     let mock_handle = start_mock_beardog(&security_sock);
                     tokio::time::sleep(Duration::from_millis(30)).await;
 
-                    let probe = tokio::net::TcpListener::bind("127.0.0.1:0")
+                    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
                         .await
-                        .expect("bind probe");
-                    let addr = probe.local_addr().expect("local_addr");
-                    drop(probe);
+                        .expect("bind listener");
+                    let addr = listener.local_addr().expect("local_addr");
 
                     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
                     let state_clone = state.clone();
                     let listener_handle = tokio::spawn(async move {
-                        let _ = start_tcp_jsonrpc_listener(state_clone, addr, shutdown_rx).await;
+                        let _ = run_tcp_jsonrpc_listener(state_clone, listener, shutdown_rx, true).await;
                     });
 
-                    tokio::time::sleep(Duration::from_millis(80)).await;
                     let mut stream = tokio::net::TcpStream::connect(addr)
                         .await
                         .expect("connect TCP");

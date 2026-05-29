@@ -9,7 +9,7 @@ use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder};
 
 use crate::state::AppState;
 
-use super::{DispatchResult, error_code, internal, parse_params, to_value};
+use super::{DispatchError, DispatchResult, error_code, internal, parse_params, to_value};
 
 /// Accepts both structured `metadata` and flattened convenience fields.
 ///
@@ -136,7 +136,10 @@ pub(super) async fn handle_braid_get(
     let braid = state.store.get(&p.id).await.map_err(internal)?;
     match braid {
         Some(b) => to_value(&b),
-        None => Err((error_code::NOT_FOUND, format!("Braid not found: {}", p.id))),
+        None => Err(DispatchError {
+            code: error_code::NOT_FOUND,
+            message: format!("Braid not found: {}", p.id),
+        }),
     }
 }
 
@@ -156,10 +159,10 @@ pub(super) async fn handle_braid_get_by_hash(
         .map_err(internal)?;
     match result.braids.into_iter().next() {
         Some(b) => to_value(&b),
-        None => Err((
-            error_code::NOT_FOUND,
-            format!("No braid with hash: {}", p.hash),
-        )),
+        None => Err(DispatchError {
+            code: error_code::NOT_FOUND,
+            message: format!("No braid with hash: {}", p.hash),
+        }),
     }
 }
 
@@ -201,11 +204,9 @@ pub(super) async fn handle_braid_commit(
         .get(&p.braid_id)
         .await
         .map_err(internal)?
-        .ok_or_else(|| {
-            (
-                error_code::NOT_FOUND,
-                format!("Braid not found: {}", p.braid_id),
-            )
+        .ok_or_else(|| DispatchError {
+            code: error_code::NOT_FOUND,
+            message: format!("Braid not found: {}", p.braid_id),
         })?;
 
     let uuid = braid
@@ -257,22 +258,18 @@ pub(super) async fn handle_braid_anchor(
         .get(&p.braid_id)
         .await
         .map_err(internal)?
-        .ok_or_else(|| {
-            (
-                error_code::NOT_FOUND,
-                format!("Braid not found: {}", p.braid_id),
-            )
+        .ok_or_else(|| DispatchError {
+            code: error_code::NOT_FOUND,
+            message: format!("Braid not found: {}", p.braid_id),
         })?;
 
     let hash_bytes = braid
         .data_hash
         .to_bytes32()
         .map(|b| base64::engine::general_purpose::STANDARD.encode(b))
-        .ok_or_else(|| {
-            (
-                error_code::INVALID_PARAMS,
-                "Content hash must be sha256 (32 bytes)".to_string(),
-            )
+        .ok_or_else(|| DispatchError {
+            code: error_code::INVALID_PARAMS,
+            message: "Content hash must be sha256 (32 bytes)".to_string(),
         })?;
 
     let preimage = braid.compute_anchor_preimage(&p.branch_id);
