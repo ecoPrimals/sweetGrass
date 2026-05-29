@@ -614,3 +614,121 @@ async fn test_braid_commit_custom_spine() {
     .unwrap();
     assert_eq!(result["spine_id"], "my-spine");
 }
+
+// ==================== braid.anchor Tests ====================
+
+#[tokio::test]
+async fn test_braid_anchor_success() {
+    let state = test_state();
+    let hex = "e".repeat(64);
+    let created = dispatch(
+        &state,
+        "braid.create",
+        serde_json::json!({"data_hash": format!("sha256:{hex}"), "mime_type": "application/octet-stream", "size": 42}),
+    ).await.unwrap();
+    let braid_id = created["@id"].as_str().unwrap();
+
+    let result = dispatch(
+        &state,
+        "braid.anchor",
+        serde_json::json!({"braid_id": braid_id, "branch_id": "feature/dag-v2"}),
+    )
+    .await
+    .unwrap();
+    assert_eq!(result["branch_id"], "feature/dag-v2");
+    assert_eq!(result["anchored_at_branch"], true);
+    assert_eq!(result["status"], "anchored");
+    assert!(result["content_hash"].is_string());
+    assert!(result["anchor_preimage"].is_string());
+    assert!(result["anchor_preimage"].as_str().unwrap().starts_with("sha256:"));
+    assert_eq!(result["braid_id"], braid_id);
+}
+
+#[tokio::test]
+async fn test_braid_anchor_not_found() {
+    let state = test_state();
+    let result = dispatch(
+        &state,
+        "braid.anchor",
+        serde_json::json!({"braid_id": "nonexistent", "branch_id": "main"}),
+    )
+    .await;
+    assert!(result.is_err());
+    let (code, _) = result.unwrap_err();
+    assert_eq!(code, error_code::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn test_braid_anchor_missing_branch_id() {
+    let state = test_state();
+    let result = dispatch(
+        &state,
+        "braid.anchor",
+        serde_json::json!({"braid_id": "some-id"}),
+    )
+    .await;
+    assert!(result.is_err());
+    let (code, _) = result.unwrap_err();
+    assert_eq!(code, error_code::INVALID_PARAMS);
+}
+
+#[tokio::test]
+async fn test_braid_anchor_invalid_hash() {
+    let state = test_state();
+    let created = dispatch(
+        &state,
+        "braid.create",
+        serde_json::json!({"data_hash": "sha256:tooshort", "mime_type": "text/plain", "size": 1}),
+    )
+    .await
+    .unwrap();
+    let braid_id = created["@id"].as_str().unwrap();
+
+    let result = dispatch(
+        &state,
+        "braid.anchor",
+        serde_json::json!({"braid_id": braid_id, "branch_id": "main"}),
+    )
+    .await;
+    assert!(result.is_err());
+    let (code, msg) = result.unwrap_err();
+    assert_eq!(code, error_code::INVALID_PARAMS);
+    assert!(msg.contains("sha256"));
+}
+
+#[tokio::test]
+async fn test_braid_anchor_different_branches_produce_different_hashes() {
+    let state = test_state();
+    let hex = "f".repeat(64);
+    let created = dispatch(
+        &state,
+        "braid.create",
+        serde_json::json!({"data_hash": format!("sha256:{hex}"), "mime_type": "text/plain", "size": 10}),
+    ).await.unwrap();
+    let braid_id = created["@id"].as_str().unwrap();
+
+    let result_a = dispatch(
+        &state,
+        "braid.anchor",
+        serde_json::json!({"braid_id": braid_id, "branch_id": "branch-a"}),
+    )
+    .await
+    .unwrap();
+
+    let result_b = dispatch(
+        &state,
+        "braid.anchor",
+        serde_json::json!({"braid_id": braid_id, "branch_id": "branch-b"}),
+    )
+    .await
+    .unwrap();
+
+    assert_ne!(
+        result_a["anchor_preimage"], result_b["anchor_preimage"],
+        "different branches should produce different anchor preimages"
+    );
+    assert_eq!(
+        result_a["content_hash"], result_b["content_hash"],
+        "same braid data hash regardless of branch"
+    );
+}

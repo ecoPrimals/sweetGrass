@@ -562,6 +562,10 @@ async fn test_capabilities_list_wire_standard_l3_operation_dependencies() {
     assert!(od.contains_key("anchoring.anchor"));
     let deps = od["anchoring.anchor"].as_array().unwrap();
     assert!(deps.contains(&serde_json::json!("braid.create")));
+
+    assert!(od.contains_key("braid.anchor"));
+    let deps = od["braid.anchor"].as_array().unwrap();
+    assert!(deps.contains(&serde_json::json!("braid.create")));
 }
 
 // ==================== DispatchOutcome classification ====================

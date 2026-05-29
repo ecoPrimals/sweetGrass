@@ -42,9 +42,28 @@ paths now use `std::env::temp_dir()` (respects `$TMPDIR`) under a
 - **Test assertions** — updated from hardcoded `/tmp/biomeos` to
   `std::env::temp_dir().join("biomeos")`.
 
+### Deep Debt Audit (May 29, 2026)
+
+#### Structural
+- **`braid.anchor` response enriched**: Added `anchor_preimage` field
+  (branch-scoped sha256 hash) so callers can verify branch binding
+  without requiring a crypto witness.
+- **Stale `async_trait` comments cleaned**: Removed references to
+  `#[async_trait]` in `backend.rs` and `store/traits/mod.rs` (RPITIT
+  has been native since v0.7.30).
+
+#### Deep Debt Audit Result (zero production findings)
+- 0 `unsafe` blocks, 0 `#[allow]`, 0 TODO/FIXME/HACK, 0 `println!`/`eprintln!`
+  in production (CLI pre-logger `eprintln!` is intentional), 0 production
+  `unwrap()`/`expect()`, 0 `std::sync::Mutex`, 0 `Box<dyn Error>`,
+  0 `async_trait`, 0 missing SPDX, 0 `Rc<`, 0 commented-out code,
+  0 hardcoded `/tmp` (DH-1 clean), 0 hardcoded primal addresses.
+- 1 production CLI `eprintln!` retained (pre-logger, correct UX).
+- 1 `/etc/hostname` fallback retained (pure-Rust, intentional).
+
 #### Metrics
-- Tests: 1,560 pass, 0 failures
-- Source files: 194 `.rs` (55,621 LOC), max 763 lines
+- Tests: 1,565 pass (+5), 0 failures
+- Source files: 194 `.rs` (55,742 LOC), max 763 lines
 - Methods: 38 (12 domains + 10 wire aliases)
 - Clippy: 0 warnings (pedantic + nursery)
 

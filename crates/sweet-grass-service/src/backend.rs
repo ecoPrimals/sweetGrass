@@ -3,8 +3,7 @@
 //! Concrete `BraidStore` backend — enum dispatch replacing `dyn` dispatch.
 //!
 //! `BraidBackend` enumerates all storage backends at compile time so the
-//! `BraidStore` trait can use native `impl Future + Send` (RPITIT) instead
-//! of `#[async_trait]` boxing.
+//! `BraidStore` trait can use native `impl Future + Send` (RPITIT).
 
 #[cfg(any(test, feature = "test"))]
 use std::sync::Arc;

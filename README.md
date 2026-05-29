@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.39 | 1,560 tests | 91.7% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin A++ | BTSP enforced on TCP | Wire L3 | Stadial ready | 38 methods + 10 aliases | JH-0 method gate | BearDog crypto delegation | JH-5 audit pipeline | DH-1 clean
+v0.7.39 | 1,565 tests | 91.7% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin A++ | BTSP enforced on TCP | Wire L3 | Stadial ready | 38 methods + 10 aliases | JH-0 method gate | BearDog crypto delegation | JH-5 audit pipeline | DH-1 clean
 
 ---
 

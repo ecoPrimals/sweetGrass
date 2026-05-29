@@ -11,7 +11,9 @@
 - [x] **`braid.anchor`** — anchors braid to DAG branch point for `rootpulse.branch` signal graphs
 - [x] **DH-1 compliant** — zero `/tmp` hardcodes; all socket fallbacks use `temp_dir()/biomeos/`
 - [x] Removed deprecated `DEFAULT_SOCKET_DIR` constant
-- [x] 1,560 tests, 55,621 LOC, 38 methods, 0 clippy warnings
+- [x] Deep debt audit: 0 production findings across 16 audit categories
+- [x] 5 new `braid.anchor` tests (success, not_found, missing_branch, invalid_hash, branch divergence)
+- [x] 1,565 tests, 55,742 LOC, 38 methods, 0 clippy warnings
 
 ### v0.7.38 — Neural API `primal.announce` (Wave 43, May 2026)
 

@@ -180,9 +180,8 @@ impl QueryResult {
 
 /// Core trait for storing and retrieving Braids.
 ///
-/// Uses native `impl Future + Send` (RPITIT, Rust 2024) instead of
-/// `#[async_trait]`. Runtime backend selection uses enum dispatch via
-/// `BraidBackend` in the service crate rather than `dyn` dispatch.
+/// Uses native `impl Future + Send` (RPITIT, Rust 2024). Runtime backend
+/// selection uses enum dispatch via `BraidBackend` in the service crate.
 pub trait BraidStore: Send + Sync {
     /// Store a new Braid.
     fn put(&self, braid: &Braid) -> impl Future<Output = Result<()>> + Send;
@@ -334,8 +333,8 @@ pub trait BraidStore: Send + Sync {
 
 /// Index storage for efficient lookups.
 ///
-/// Uses native `impl Future + Send` (Rust 2024) instead of `#[async_trait]`
-/// because this trait is never used as a trait object (`dyn IndexStore`).
+/// Uses native `impl Future + Send` (RPITIT, Rust 2024).
+/// Not used as a trait object (`dyn IndexStore`).
 pub trait IndexStore: Send + Sync {
     /// Index a Braid for search.
     fn index_braid(&self, braid: &Braid) -> impl Future<Output = Result<()>> + Send;

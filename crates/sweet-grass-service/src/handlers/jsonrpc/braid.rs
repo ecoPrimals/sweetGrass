@@ -281,6 +281,7 @@ pub(super) async fn handle_braid_anchor(
         "braid_id": braid.id.as_str(),
         "branch_id": p.branch_id,
         "content_hash": hash_bytes,
+        "anchor_preimage": preimage.as_str(),
         "anchored_at_branch": true,
         "status": "anchored",
     });
