@@ -11,7 +11,7 @@
 
 #![cfg(any(test, feature = "test"))]
 
-use sweet_grass_core::Braid;
+use sweet_grass_core::{Braid, Timestamp};
 use sweet_grass_core::agent::Did;
 use sweet_grass_core::dehydration::Witness;
 
@@ -87,12 +87,11 @@ impl SigningClient for MockSigningClient {
 
     async fn verify(&self, _braid: &Braid) -> Result<SignatureInfo> {
         let valid = self.verify_result.unwrap_or(true);
-        let now = chrono::Utc::now();
 
         Ok(SignatureInfo {
             signer: self.did.clone(),
             algorithm: "ed25519".to_string(),
-            signed_at: u64::try_from(now.timestamp()).unwrap_or(0),
+            signed_at: Timestamp::now(),
             valid,
         })
     }

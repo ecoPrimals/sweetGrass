@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use sweet_grass_core::Braid;
+use sweet_grass_core::{Braid, Timestamp};
 use sweet_grass_core::activity::{Activity, ActivityType};
 use sweet_grass_core::agent::{AgentAssociation, AgentRole, Did};
 use sweet_grass_core::braid::BraidMetadata;
@@ -144,9 +144,9 @@ async fn query_ordering_smallest_first() {
 async fn query_ordering_oldest_first() {
     let (_mock, store, handle) = setup().await;
     let mut b1 = make_braid("sha256:oo01", "did:key:z6MkA", "text/plain", 100);
-    b1.generated_at_time = 300;
+    b1.generated_at_time = Timestamp::new(300);
     let mut b2 = make_braid("sha256:oo02", "did:key:z6MkA", "text/plain", 100);
-    b2.generated_at_time = 100;
+    b2.generated_at_time = Timestamp::new(100);
 
     store.put(&b1).await.expect("put");
     store.put(&b2).await.expect("put");
@@ -155,8 +155,8 @@ async fn query_ordering_oldest_first() {
         .query(&QueryFilter::default(), QueryOrder::OldestFirst)
         .await
         .expect("query");
-    assert_eq!(result.braids[0].generated_at_time, 100);
-    assert_eq!(result.braids[1].generated_at_time, 300);
+    assert_eq!(result.braids[0].generated_at_time, Timestamp::new(100));
+    assert_eq!(result.braids[1].generated_at_time, Timestamp::new(300));
     handle.abort();
 }
 
@@ -366,23 +366,23 @@ async fn query_with_data_hash_filter() {
 async fn query_with_time_range_filter() {
     let (_mock, store, handle) = setup().await;
     let mut b1 = make_braid("sha256:tr01", "did:key:z6MkA", "text/plain", 100);
-    b1.generated_at_time = 500;
+    b1.generated_at_time = Timestamp::new(500);
     let mut b2 = make_braid("sha256:tr02", "did:key:z6MkA", "text/plain", 200);
-    b2.generated_at_time = 1500;
+    b2.generated_at_time = Timestamp::new(1500);
     let mut b3 = make_braid("sha256:tr03", "did:key:z6MkA", "text/plain", 300);
-    b3.generated_at_time = 2500;
+    b3.generated_at_time = Timestamp::new(2500);
 
     store.put(&b1).await.expect("put");
     store.put(&b2).await.expect("put");
     store.put(&b3).await.expect("put");
 
-    let filter = QueryFilter::new().with_time_range(1000, 2000);
+    let filter = QueryFilter::new().with_time_range(Timestamp::new(1000), Timestamp::new(2000));
     let result = store
         .query(&filter, QueryOrder::NewestFirst)
         .await
         .expect("query");
     assert_eq!(result.total_count, 1);
-    assert_eq!(result.braids[0].generated_at_time, 1500);
+    assert_eq!(result.braids[0].generated_at_time, Timestamp::new(1500));
     handle.abort();
 }
 

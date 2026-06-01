@@ -268,6 +268,7 @@ pub trait SweetGrassRpc {
 )]
 mod tests {
     use super::*;
+    use sweet_grass_core::Timestamp;
 
     #[test]
     fn test_rpc_error_display() {
@@ -330,14 +331,14 @@ mod tests {
     #[test]
     fn test_time_range_serialization() {
         let range = TimeRange {
-            start: 1000,
-            end: 2000,
+            start: Timestamp::new(1000),
+            end: Timestamp::new(2000),
         };
 
         let json = serde_json::to_string(&range).expect("should serialize");
         let parsed: TimeRange = serde_json::from_str(&json).expect("should deserialize");
-        assert_eq!(parsed.start, 1000);
-        assert_eq!(parsed.end, 2000);
+        assert_eq!(parsed.start, Timestamp::new(1000));
+        assert_eq!(parsed.end, Timestamp::new(2000));
     }
 
     #[test]

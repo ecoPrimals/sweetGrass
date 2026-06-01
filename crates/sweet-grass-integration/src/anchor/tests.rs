@@ -8,6 +8,7 @@
 )]
 
 use super::*;
+use sweet_grass_core::Timestamp;
 use sweet_grass_core::agent::Did;
 use sweet_grass_core::braid::BraidBuilder;
 use sweet_grass_store::{BraidStore, MemoryStore};
@@ -188,7 +189,7 @@ async fn test_anchor_info_structure() {
 
     assert_eq!(info.braid_id, braid.id);
     assert_eq!(info.spine_id, "spine-test");
-    assert!(info.anchored_at > 0);
+    assert!(info.anchored_at > Timestamp::ZERO);
 }
 
 #[tokio::test]
@@ -368,7 +369,7 @@ async fn test_anchor_info_serialization() {
         spine_id: "spine-1".to_string(),
         entry_hash: "entry:sha256:abc".to_string(),
         index: 42,
-        anchored_at: 1_710_000_000,
+        anchored_at: Timestamp::new(1_710_000_000),
         verified: true,
     };
 
@@ -388,7 +389,7 @@ async fn test_anchor_receipt_serialization() {
             spine_id: "spine-ser".to_string(),
             entry_hash: "entry:test".to_string(),
             index: 0,
-            anchored_at: 1_710_000_000,
+            anchored_at: Timestamp::new(1_710_000_000),
             verified: false,
         },
         transaction_id: Some("tx-001".to_string()),

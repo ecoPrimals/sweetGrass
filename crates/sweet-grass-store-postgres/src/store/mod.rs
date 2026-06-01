@@ -33,8 +33,8 @@ struct ValidatedFilter<'a> {
 
 impl<'a> ValidatedFilter<'a> {
     fn new(filter: &'a QueryFilter) -> sweet_grass_store::Result<Self> {
-        let created_after_i64 = filter.created_after.map(u64_to_i64).transpose()?;
-        let created_before_i64 = filter.created_before.map(u64_to_i64).transpose()?;
+        let created_after_i64 = filter.created_after.map(|t| u64_to_i64(t.nanos())).transpose()?;
+        let created_before_i64 = filter.created_before.map(|t| u64_to_i64(t.nanos())).transpose()?;
         Ok(Self {
             filter,
             created_after_i64,
@@ -263,7 +263,7 @@ impl BraidStore for PostgresStore {
         .bind(&*braid.mime_type)
         .bind(u64_to_i64(braid.size)?)
         .bind(braid.was_attributed_to.as_str())
-        .bind(u64_to_i64(braid.generated_at_time)?)
+        .bind(u64_to_i64(braid.generated_at_time.nanos())?)
         .bind(&braid_type)
         .bind(&metadata_json)
         .bind(&ecop_json)
@@ -476,8 +476,8 @@ impl BraidStore for PostgresStore {
         )
         .bind(activity.id.as_str())
         .bind(format!("{:?}", activity.activity_type))
-        .bind(u64_to_i64(activity.started_at_time)?)
-        .bind(activity.ended_at_time.map(u64_to_i64).transpose()?)
+        .bind(u64_to_i64(activity.started_at_time.nanos())?)
+        .bind(activity.ended_at_time.map(|t| u64_to_i64(t.nanos())).transpose()?)
         .bind(serde_json::to_value(&activity.used)?)
         .bind(serde_json::to_value(&activity.was_associated_with)?)
         .bind(serde_json::to_value(&activity.metadata)?)

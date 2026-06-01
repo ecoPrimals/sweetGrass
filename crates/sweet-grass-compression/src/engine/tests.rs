@@ -9,6 +9,7 @@
 
 use super::*;
 use crate::session::{SessionOutcome, SessionVertex};
+use sweet_grass_core::Timestamp;
 use sweet_grass_core::agent::Did;
 
 fn make_factory() -> Arc<BraidFactory> {
@@ -362,8 +363,8 @@ fn test_hierarchical_with_summary_disabled() {
 fn test_session_with_ended_at() {
     let engine = CompressionEngine::new(make_factory());
     let mut session = Session::new("ended");
-    session.started_at = 1000;
-    session.ended_at = Some(2000);
+    session.started_at = Timestamp::new(1000);
+    session.ended_at = Some(Timestamp::new(2000));
     session.add_vertex(make_vertex("v1", "sha256:ended").committed());
     session.finalize(SessionOutcome::Committed);
 

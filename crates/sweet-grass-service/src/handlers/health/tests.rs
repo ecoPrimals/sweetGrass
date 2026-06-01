@@ -196,8 +196,9 @@ async fn test_readiness_unavailable_when_store_fails() {
 }
 
 #[test]
-fn test_integrations_discovery_unknown_via_reader() {
-    let integrations = check_integrations_with_reader(|_| None);
+fn test_integrations_discovery_unknown_when_not_configured() {
+    let state = create_test_state();
+    let integrations = check_integrations(&state);
     let discovery = integrations
         .discovery
         .as_ref()
@@ -208,10 +209,10 @@ fn test_integrations_discovery_unknown_via_reader() {
 }
 
 #[test]
-fn test_integrations_discovery_configured_via_reader() {
-    let integrations = check_integrations_with_reader(|key| {
-        (key == "DISCOVERY_ADDRESS").then(|| "localhost:9999".to_string())
-    });
+fn test_integrations_discovery_configured_via_state() {
+    let mut state = create_test_state();
+    state.discovery_address = Some("localhost:9999".to_string());
+    let integrations = check_integrations(&state);
     let discovery = integrations
         .discovery
         .as_ref()

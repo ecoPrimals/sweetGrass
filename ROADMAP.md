@@ -1,10 +1,19 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.39 (May 2026)
+**Current Version**: v0.7.40 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.40 — Type Safety + Handler Env Isolation (Wave 67, June 2026)
+
+- [x] **`Timestamp` newtype** — evolved from `type Timestamp = u64` alias to `struct Timestamp(u64)` with `#[serde(transparent)]` for wire compat; `Timestamp::now()`, `Timestamp::new()`, `Timestamp::ZERO`, `Timestamp::nanos()` API; prevents unit confusion between nanoseconds and seconds across 25+ usage sites in 6 crates
+- [x] **Composition handler env isolation** — `probe_capability()` no longer reads `std::env::var` on every `composition.*_health` request; socket dir snapshotted into `AppState.socket_dir` at construction
+- [x] **Health handler env isolation** — `check_integrations()` no longer reads `DISCOVERY_ADDRESS` at call time; snapshotted into `AppState.discovery_address`
+- [x] **Test-only function gating** — `resolve_socket_dir()`, `probe_capability_with_reader()`, `discover_capability_socket_with_reader()` moved to `#[cfg(test)]`; dead production code eliminated
+- [x] **strandGate provenance trio assessment** — audited rhizoCrypt (v0.14.0, 1,654 tests), loamSpine (v0.9.16, 1,533 tests), sweetGrass integration gaps documented; wiring sequence defined
+- [x] 1,565 tests (0 failures), 55,825 LOC, 38 methods, 0 clippy warnings
 
 ### v0.7.39 — Race Condition Elimination + DI Evolution (Wave 63, May 2026)
 
@@ -16,7 +25,7 @@
 - [x] **DH-1 gap fixed** — `btsp/server.rs` fallback path uses `biomeos/` subdirectory
 - [x] **`deny.toml` hardened** — `libsqlite3-sys`, `sqlx-sqlite`, `sqlx-mysql` explicitly banned
 - [x] **Doc sync** — all root docs, env.example, deploy graph, specs aligned to v0.7.39
-- [x] 1,565 tests (0 failures, was 8 pre-existing), 55,718 LOC, 38 methods, 0 clippy warnings
+- [x] 1,565 tests (0 failures, was 8 pre-existing), 55,718 LOC, 38 methods
 
 ### v0.7.39 — `braid.anchor` + DH-1 `/tmp` Cleanup (Wave 60, May 2026)
 

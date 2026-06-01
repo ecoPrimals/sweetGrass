@@ -14,7 +14,7 @@ mod factory_tests {
     use super::super::*;
     use sweet_grass_core::test_fixtures::TEST_SOURCE_PRIMAL;
     use sweet_grass_core::{
-        ActivityType,
+        ActivityType, Timestamp,
         agent::AgentRole,
         braid::{BraidId, ContentHash, SummaryType},
         contribution::{ContributionRecord, SessionContribution},
@@ -116,7 +116,7 @@ mod factory_tests {
         let braids = vec![BraidId::new()];
 
         let braid = factory
-            .temporal_summary(1000, 2000, braids, None)
+            .temporal_summary(Timestamp::new(1000), Timestamp::new(2000), braids, None)
             .expect("should create");
 
         match braid.braid_type {
@@ -124,8 +124,8 @@ mod factory_tests {
                 summary_type: SummaryType::Temporal { start, end },
                 ..
             } => {
-                assert_eq!(start, 1000);
-                assert_eq!(end, 2000);
+                assert_eq!(start, Timestamp::new(1000));
+                assert_eq!(end, Timestamp::new(2000));
             },
             _ => panic!("Expected Collection with Temporal summary"),
         }
@@ -246,7 +246,7 @@ mod factory_tests {
             content_hash: sweet_grass_core::ContentHash::new("sha256:contrib123"),
             mime_type: "application/json".to_string(),
             size: 256,
-            timestamp: 1_000_000_000,
+            timestamp: Timestamp::new(1_000_000_000),
             description: Some("Test contribution".to_string()),
             source_primal: Some(TEST_SOURCE_PRIMAL.to_string()),
             session_id: Some("session-xyz".to_string()),
@@ -257,7 +257,7 @@ mod factory_tests {
 
         assert_eq!(braid.data_hash.as_str(), "sha256:contrib123");
         assert_eq!(braid.was_attributed_to.as_str(), "did:key:z6MkContributor");
-        assert_eq!(braid.generated_at_time, 1_000_000_000);
+        assert_eq!(braid.generated_at_time, Timestamp::new(1_000_000_000));
         assert_eq!(
             braid.ecop.source_primal.as_deref(),
             Some(TEST_SOURCE_PRIMAL)
@@ -290,7 +290,7 @@ mod factory_tests {
                     content_hash: sweet_grass_core::ContentHash::new("sha256:hash1"),
                     mime_type: "application/json".to_string(),
                     size: 100,
-                    timestamp: 0,
+                    timestamp: Timestamp::ZERO,
                     description: None,
                     source_primal: None,
                     session_id: None,
@@ -302,7 +302,7 @@ mod factory_tests {
                     content_hash: sweet_grass_core::ContentHash::new("sha256:hash2"),
                     mime_type: "text/plain".to_string(),
                     size: 200,
-                    timestamp: 0,
+                    timestamp: Timestamp::ZERO,
                     description: None,
                     source_primal: None,
                     session_id: None,
@@ -344,7 +344,7 @@ mod factory_tests {
             content_hash: sweet_grass_core::ContentHash::new("sha256:chem123"),
             mime_type: "application/json".to_string(),
             size: 0,
-            timestamp: 0,
+            timestamp: Timestamp::ZERO,
             description: None,
             source_primal: None,
             session_id: None,
@@ -376,7 +376,7 @@ mod factory_tests {
                 content_hash: sweet_grass_core::ContentHash::new("sha256:ledgerhash"),
                 mime_type: "text/plain".to_string(),
                 size: 50,
-                timestamp: 0,
+                timestamp: Timestamp::ZERO,
                 description: None,
                 source_primal: None,
                 session_id: None,
@@ -413,7 +413,7 @@ mod factory_tests {
                 content_hash: sweet_grass_core::ContentHash::new("sha256:badledger"),
                 mime_type: "text/plain".to_string(),
                 size: 10,
-                timestamp: 0,
+                timestamp: Timestamp::ZERO,
                 description: None,
                 source_primal: None,
                 session_id: None,

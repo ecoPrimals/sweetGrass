@@ -115,7 +115,60 @@ impl Default for ContentHash {
 }
 
 /// Timestamp in nanoseconds since Unix epoch.
-pub type Timestamp = u64;
+///
+/// Wraps `u64` for type safety — prevents accidental mixing of nanosecond
+/// timestamps with arbitrary integers or second-precision values.
+/// Wire-compatible with plain `u64` via `#[serde(transparent)]`.
+#[derive(
+    Copy, Clone, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
+)]
+#[serde(transparent)]
+pub struct Timestamp(u64);
+
+impl Timestamp {
+    /// Zero timestamp (Unix epoch).
+    pub const ZERO: Self = Self(0);
+
+    /// Create a timestamp from raw nanoseconds.
+    #[must_use]
+    pub const fn new(nanos: u64) -> Self {
+        Self(nanos)
+    }
+
+    /// Get the raw nanosecond value.
+    #[must_use]
+    pub const fn nanos(self) -> u64 {
+        self.0
+    }
+
+    /// Current wall-clock time as nanoseconds since epoch.
+    #[must_use]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "u128->u64 truncation only occurs for dates beyond ~year 2554"
+    )]
+    pub fn now() -> Self {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        Self(
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|d| d.as_nanos() as u64)
+                .unwrap_or(0),
+        )
+    }
+}
+
+impl From<u64> for Timestamp {
+    fn from(nanos: u64) -> Self {
+        Self(nanos)
+    }
+}
+
+impl std::fmt::Display for Timestamp {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 /// Braid identifier (URN format: "urn:braid:uuid:...")
 ///
@@ -334,17 +387,11 @@ pub struct BraidMetadata {
 }
 
 /// Get current timestamp in nanoseconds since Unix epoch.
+///
+/// Convenience wrapper around [`Timestamp::now()`].
 #[must_use]
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "u128->u64 truncation only occurs for dates beyond ~year 2554; acceptable for timestamp"
-)]
 pub fn current_timestamp_nanos() -> Timestamp {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos() as u64)
-        .unwrap_or(0)
+    Timestamp::now()
 }
 
 #[cfg(test)]
@@ -353,7 +400,7 @@ mod tests {
     use std::borrow::Borrow;
     use std::sync::Arc;
 
-    use super::{BraidId, BraidMetadata, BraidType, ContentHash, SummaryType};
+    use super::{BraidId, BraidMetadata, BraidType, ContentHash, SummaryType, Timestamp};
     use crate::agent::Did;
 
     #[test]
@@ -513,8 +560,8 @@ mod tests {
         let bt = BraidType::Collection {
             member_count: 7,
             summary_type: SummaryType::Temporal {
-                start: 100,
-                end: 999,
+                start: Timestamp::new(100),
+                end: Timestamp::new(999),
             },
         };
         let json = serde_json::to_string(&bt).expect("serialize");

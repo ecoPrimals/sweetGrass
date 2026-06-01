@@ -240,6 +240,7 @@ pub struct SessionOperation {
 )]
 mod tests {
     use super::*;
+    use crate::Timestamp;
     use crate::agent::Did;
     use crate::test_fixtures::TEST_SOURCE_PRIMAL;
     use base64::Engine;
@@ -256,7 +257,7 @@ mod tests {
                 agent: Did::new("did:key:z6MkAlice"),
                 kind: "signature".to_string(),
                 evidence: "deadbeef01234567".to_string(),
-                witnessed_at: 1_000_000,
+                witnessed_at: Timestamp::new(1_000_000),
                 encoding: "hex".to_string(),
                 algorithm: Some("ed25519".to_string()),
                 tier: Some("local".to_string()),
@@ -266,11 +267,11 @@ mod tests {
                 op_type: "create".to_string(),
                 content_hash: ContentHash::new("sha256:op1hash"),
                 agent: Did::new("did:key:z6MkAlice"),
-                timestamp: 500_000,
+                timestamp: Timestamp::new(500_000),
                 description: Some("Initial creation".to_string()),
             }],
-            session_start: 100_000,
-            dehydrated_at: 2_000_000,
+            session_start: Timestamp::new(100_000),
+            dehydrated_at: Timestamp::new(2_000_000),
             frontier: vec![ContentHash::new("sha256:frontier1")],
             niche: Some("rootpulse".to_string()),
             compression_ratio: Some(0.42),
@@ -301,8 +302,8 @@ mod tests {
             agents: vec![Did::new("did:key:z6MkSolo")],
             witnesses: Vec::new(),
             operations: Vec::new(),
-            session_start: 0,
-            dehydrated_at: 1,
+            session_start: Timestamp::ZERO,
+            dehydrated_at: Timestamp::new(1),
             frontier: Vec::new(),
             niche: None,
             compression_ratio: None,
@@ -320,7 +321,7 @@ mod tests {
             agent: Did::new("did:key:z6MkTest"),
             kind: "signature".to_string(),
             evidence: "dGVzdA==".to_string(),
-            witnessed_at: 42,
+            witnessed_at: Timestamp::new(42),
             encoding: "base64".to_string(),
             algorithm: Some("ed25519".to_string()),
             tier: None,
@@ -329,7 +330,7 @@ mod tests {
         let json = serde_json::to_string(&w).expect("serialize");
         let parsed: Witness = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(parsed.agent.as_str(), "did:key:z6MkTest");
-        assert_eq!(parsed.witnessed_at, 42);
+        assert_eq!(parsed.witnessed_at, Timestamp::new(42));
     }
 
     #[test]
@@ -338,7 +339,7 @@ mod tests {
             op_type: "derive".to_string(),
             content_hash: ContentHash::new("sha256:derived"),
             agent: Did::new("did:key:z6MkDeriver"),
-            timestamp: 999,
+            timestamp: Timestamp::new(999),
             description: None,
         };
         let json = serde_json::to_string(&op).expect("serialize");
@@ -366,8 +367,8 @@ mod tests {
         assert_eq!(parsed.vertex_count, 42);
         assert_eq!(parsed.agents.len(), 2);
         assert_eq!(parsed.branch_count, 0);
-        assert_eq!(parsed.session_start, 0);
-        assert_eq!(parsed.dehydrated_at, 0);
+        assert_eq!(parsed.session_start, Timestamp::ZERO);
+        assert_eq!(parsed.dehydrated_at, Timestamp::ZERO);
     }
 
     #[test]
@@ -389,8 +390,8 @@ mod tests {
             serde_json::from_value(payload).expect("enriched payload should deserialize");
         assert_eq!(parsed.vertex_count, 100);
         assert_eq!(parsed.branch_count, 5);
-        assert_eq!(parsed.session_start, 1_000_000);
-        assert_eq!(parsed.dehydrated_at, 2_000_000);
+        assert_eq!(parsed.session_start, Timestamp::new(1_000_000));
+        assert_eq!(parsed.dehydrated_at, Timestamp::new(2_000_000));
     }
 
     #[test]
@@ -429,7 +430,7 @@ mod tests {
             agent: Did::new("did:key:z6MkA"),
             kind: WITNESS_KIND_SIGNATURE.to_string(),
             evidence: String::new(),
-            witnessed_at: 0,
+            witnessed_at: Timestamp::ZERO,
             encoding: WITNESS_ENCODING_HEX.to_string(),
             algorithm: None,
             tier: None,
@@ -441,7 +442,7 @@ mod tests {
             agent: Did::new("did:key:z6MkB"),
             kind: "hash".to_string(),
             evidence: "deadbeef".to_string(),
-            witnessed_at: 0,
+            witnessed_at: Timestamp::ZERO,
             encoding: WITNESS_ENCODING_HEX.to_string(),
             algorithm: None,
             tier: None,
@@ -453,7 +454,7 @@ mod tests {
             agent: Did::new("did:key:z6MkC"),
             kind: WITNESS_KIND_SIGNATURE.to_string(),
             evidence: "not-empty".to_string(),
-            witnessed_at: 0,
+            witnessed_at: Timestamp::ZERO,
             encoding: WITNESS_ENCODING_HEX.to_string(),
             algorithm: None,
             tier: None,
@@ -469,7 +470,7 @@ mod tests {
         assert_eq!(w.kind, WITNESS_KIND_SIGNATURE);
         assert_eq!(w.encoding, WITNESS_ENCODING_HEX);
         assert!(w.evidence.is_empty());
-        assert_eq!(w.witnessed_at, 0);
+        assert_eq!(w.witnessed_at, Timestamp::ZERO);
         assert_eq!(w.agent.as_str(), "did:key:z6MkDefaultOnly");
     }
 
@@ -481,7 +482,7 @@ mod tests {
             agent: hash_agent.clone(),
             kind: "hash".to_string(),
             evidence: "sha256:observedcontent".to_string(),
-            witnessed_at: 9_001,
+            witnessed_at: Timestamp::new(9_001),
             encoding: WITNESS_ENCODING_HEX.to_string(),
             algorithm: None,
             tier: Some("gateway".to_string()),
@@ -501,8 +502,8 @@ mod tests {
                 hash_witness.clone(),
             ],
             operations: Vec::new(),
-            session_start: 10,
-            dehydrated_at: 20,
+            session_start: Timestamp::new(10),
+            dehydrated_at: Timestamp::new(20),
             frontier: Vec::new(),
             niche: None,
             compression_ratio: None,
@@ -554,14 +555,14 @@ mod tests {
             op_type: "create".to_string(),
             content_hash: ContentHash::new("sha256:op-artifact-1"),
             agent: Did::new("did:key:z6MkOp1"),
-            timestamp: 100,
+            timestamp: Timestamp::new(100),
             description: Some("first op".to_string()),
         };
         let op2 = SessionOperation {
             op_type: "merge".to_string(),
             content_hash: ContentHash::new("sha256:op-artifact-2"),
             agent: Did::new("did:key:z6MkOp2"),
-            timestamp: 200,
+            timestamp: Timestamp::new(200),
             description: None,
         };
 
@@ -574,8 +575,8 @@ mod tests {
             agents: vec![Did::new("did:key:z6MkOp1"), Did::new("did:key:z6MkOp2")],
             witnesses: Vec::new(),
             operations: vec![op1.clone(), op2.clone()],
-            session_start: 1,
-            dehydrated_at: 2,
+            session_start: Timestamp::new(1),
+            dehydrated_at: Timestamp::new(2),
             frontier: vec![f1.clone(), f2.clone(), f3.clone()],
             niche: None,
             compression_ratio: None,

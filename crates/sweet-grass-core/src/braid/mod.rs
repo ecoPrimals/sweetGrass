@@ -129,7 +129,7 @@ impl Braid {
         hasher.update(self.mime_type.as_bytes());
         hasher.update(self.size.to_le_bytes());
         hasher.update(self.was_attributed_to.as_str().as_bytes());
-        hasher.update(self.generated_at_time.to_le_bytes());
+        hasher.update(self.generated_at_time.nanos().to_le_bytes());
 
         let result = hasher.finalize();
         ContentHash::new(format!("sha256:{}", crate::hash::hex_encode(result)))

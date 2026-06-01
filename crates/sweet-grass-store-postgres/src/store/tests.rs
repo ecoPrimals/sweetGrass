@@ -226,7 +226,7 @@ fn validated_filter_with_hash() {
 #[test]
 fn validated_filter_overflow_timestamp() {
     let filter = QueryFilter {
-        created_after: Some(u64::MAX),
+        created_after: Some(sweet_grass_core::Timestamp::new(u64::MAX)),
         ..Default::default()
     };
     let result = ValidatedFilter::new(&filter);

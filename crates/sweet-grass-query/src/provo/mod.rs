@@ -290,9 +290,10 @@ impl Default for ProvoExport {
 }
 
 /// Convert nanosecond timestamp to ISO 8601 string.
-fn timestamp_to_iso(nanos: u64) -> String {
+fn timestamp_to_iso(ts: sweet_grass_core::Timestamp) -> String {
     use chrono::{TimeZone, Utc};
 
+    let nanos = ts.nanos();
     #[expect(
         clippy::cast_possible_wrap,
         reason = "nanos/1e9 fits in i64 for timestamps until year 2554; chrono::Utc::timestamp_opt requires i64"

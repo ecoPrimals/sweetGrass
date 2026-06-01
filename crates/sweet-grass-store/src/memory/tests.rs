@@ -2,6 +2,7 @@
 // Copyright (C) 2024–2026 ecoPrimals Project
 
 use super::*;
+use sweet_grass_core::Timestamp;
 use sweet_grass_core::activity::ActivityType;
 
 fn make_test_braid(hash: &str, agent: &str) -> Braid {
@@ -421,15 +422,21 @@ async fn test_index_and_unindex_braid() {
 async fn test_by_time_range() {
     let store = MemoryStore::new();
     let mut braid = make_test_braid("sha256:time_range", "did:key:z6MkTest");
-    braid.generated_at_time = 500;
+    braid.generated_at_time = Timestamp::new(500);
 
     store.put(&braid).await.expect("store");
 
-    let ids = store.by_time_range(400, 600).await.expect("should query");
+    let ids = store
+        .by_time_range(Timestamp::new(400), Timestamp::new(600))
+        .await
+        .expect("should query");
     assert_eq!(ids.len(), 1);
     assert_eq!(ids[0], braid.id);
 
-    let empty = store.by_time_range(1000, 2000).await.expect("should query");
+    let empty = store
+        .by_time_range(Timestamp::new(1000), Timestamp::new(2000))
+        .await
+        .expect("should query");
     assert!(empty.is_empty());
 }
 

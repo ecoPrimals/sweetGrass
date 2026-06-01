@@ -378,7 +378,7 @@ impl Activity {
     #[must_use]
     pub fn duration_ns(&self) -> Option<u64> {
         self.ended_at_time
-            .map(|end| end.saturating_sub(self.started_at_time))
+            .map(|end| end.nanos().saturating_sub(self.started_at_time.nanos()))
     }
 
     /// Check if the activity has completed.

@@ -408,7 +408,7 @@ pub async fn create_anchoring_client_async(
 /// Test-only module containing mock implementations.
 #[cfg(any(test, feature = "test"))]
 pub mod testing {
-    use super::{AnchorInfo, AnchorReceipt, AnchoringClient, Braid, BraidId, Result};
+    use super::{AnchorInfo, AnchorReceipt, AnchoringClient, Braid, BraidId, Result, Timestamp};
     use parking_lot::{RwLock, const_rwlock};
 
     /// Mock anchoring client for testing.
@@ -448,7 +448,7 @@ pub mod testing {
                 spine_id: spine_id.to_string(),
                 entry_hash: format!("entry:{}", braid.data_hash),
                 index: 0,
-                anchored_at: u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0),
+                anchored_at: Timestamp::now(),
                 verified: false,
             };
 

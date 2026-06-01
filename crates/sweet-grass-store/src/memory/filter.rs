@@ -59,14 +59,16 @@ fn matches_braid_type(braid: &Braid, filter: &QueryFilter) -> bool {
 }
 
 /// Check time range match.
-const fn matches_time_range(braid: &Braid, filter: &QueryFilter) -> bool {
-    if let Some(after) = filter.created_after
-        && braid.generated_at_time < after
+fn matches_time_range(braid: &Braid, filter: &QueryFilter) -> bool {
+    if filter
+        .created_after
+        .is_some_and(|after| braid.generated_at_time < after)
     {
         return false;
     }
-    if let Some(before) = filter.created_before
-        && braid.generated_at_time > before
+    if filter
+        .created_before
+        .is_some_and(|before| braid.generated_at_time > before)
     {
         return false;
     }
@@ -154,6 +156,7 @@ mod tests {
     use std::sync::Arc;
 
     use super::*;
+    use sweet_grass_core::Timestamp;
     use sweet_grass_core::agent::Did;
 
     fn make_braid(hash: &str, agent: &str, size: u64) -> Braid {
@@ -217,15 +220,15 @@ mod tests {
         ];
 
         // Manually set timestamps for predictable sorting
-        braids[0].generated_at_time = 100;
-        braids[1].generated_at_time = 300;
-        braids[2].generated_at_time = 200;
+        braids[0].generated_at_time = Timestamp::new(100);
+        braids[1].generated_at_time = Timestamp::new(300);
+        braids[2].generated_at_time = Timestamp::new(200);
 
         sort(&mut braids, &QueryOrder::NewestFirst);
 
-        assert_eq!(braids[0].generated_at_time, 300);
-        assert_eq!(braids[1].generated_at_time, 200);
-        assert_eq!(braids[2].generated_at_time, 100);
+        assert_eq!(braids[0].generated_at_time, Timestamp::new(300));
+        assert_eq!(braids[1].generated_at_time, Timestamp::new(200));
+        assert_eq!(braids[2].generated_at_time, Timestamp::new(100));
     }
 
     #[test]
@@ -272,19 +275,19 @@ mod tests {
     #[test]
     fn test_matches_time_range() {
         let mut braid = make_braid("sha256:time", "did:key:z6Mk", 100);
-        braid.generated_at_time = 500;
+        braid.generated_at_time = Timestamp::new(500);
 
-        let in_range = QueryFilter::new().with_time_range(100, 900);
+        let in_range = QueryFilter::new().with_time_range(Timestamp::new(100), Timestamp::new(900));
         assert!(matches(&braid, &in_range));
 
         let too_early = QueryFilter {
-            created_after: Some(600),
+            created_after: Some(Timestamp::new(600)),
             ..QueryFilter::new()
         };
         assert!(!matches(&braid, &too_early));
 
         let too_late = QueryFilter {
-            created_before: Some(400),
+            created_before: Some(Timestamp::new(400)),
             ..QueryFilter::new()
         };
         assert!(!matches(&braid, &too_late));
@@ -351,12 +354,12 @@ mod tests {
             make_braid("sha256:a", "did:key:z6Mk", 100),
             make_braid("sha256:b", "did:key:z6Mk", 100),
         ];
-        braids[0].generated_at_time = 300;
-        braids[1].generated_at_time = 100;
+        braids[0].generated_at_time = Timestamp::new(300);
+        braids[1].generated_at_time = Timestamp::new(100);
 
         sort(&mut braids, &QueryOrder::OldestFirst);
-        assert_eq!(braids[0].generated_at_time, 100);
-        assert_eq!(braids[1].generated_at_time, 300);
+        assert_eq!(braids[0].generated_at_time, Timestamp::new(100));
+        assert_eq!(braids[1].generated_at_time, Timestamp::new(300));
     }
 
     #[test]

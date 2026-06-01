@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use sweet_grass_core::{
-    ContentHash,
+    ContentHash, Timestamp,
     activity::{Activity, ActivityMetadata, ActivityType},
     agent::AgentAssociation,
     braid::{Braid, BraidMetadata, EcoPrimalsAttributes, LedgerCommitRef},
@@ -89,7 +89,7 @@ impl super::BraidFactory {
             .build()
             .map_err(FactoryError::Core)?;
 
-        if record.timestamp != 0 {
+        if record.timestamp != Timestamp::ZERO {
             braid.generated_at_time = record.timestamp;
         }
 

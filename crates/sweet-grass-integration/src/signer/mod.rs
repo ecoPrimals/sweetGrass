@@ -295,7 +295,7 @@ mod tests {
             agent: sweet_grass_core::agent::Did::new("did:key:test"),
             kind: "hash".to_string(),
             evidence: "sha256:abc".to_string(),
-            witnessed_at: 12345,
+            witnessed_at: sweet_grass_core::Timestamp::new(12345),
             encoding: "utf8".to_string(),
             algorithm: None,
             tier: Some("gateway".to_string()),

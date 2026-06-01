@@ -7,6 +7,7 @@
 )]
 
 use super::*;
+use sweet_grass_core::Timestamp;
 
 #[test]
 fn test_query_filter_new() {
@@ -41,9 +42,9 @@ fn test_query_filter_with_type() {
 
 #[test]
 fn test_query_filter_with_time_range() {
-    let filter = QueryFilter::new().with_time_range(1000, 2000);
-    assert_eq!(filter.created_after, Some(1000));
-    assert_eq!(filter.created_before, Some(2000));
+    let filter = QueryFilter::new().with_time_range(Timestamp::new(1000), Timestamp::new(2000));
+    assert_eq!(filter.created_after, Some(Timestamp::new(1000)));
+    assert_eq!(filter.created_before, Some(Timestamp::new(2000)));
 }
 
 #[test]

@@ -8,7 +8,6 @@
 //! - **nest**: tower + storage
 //! - **nucleus**: all subsystems including provenance trio
 
-use std::path::PathBuf;
 use std::time::Duration;
 
 use serde_json::json;
@@ -17,43 +16,48 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::UnixStream;
 use tracing::debug;
 
-use sweet_grass_core::primal_names::{env_vars, paths};
-
 use crate::state::AppState;
 
 use super::{DispatchResult, to_value};
 
 const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
 
-/// Resolve the `biomeOS` socket directory from environment, following
-/// the ecosystem standard fallback chain.
+/// Resolve the `biomeOS` socket directory from a reader closure.
 ///
-/// 1. `BIOMEOS_SOCKET_DIR`
-/// 2. `{XDG_RUNTIME_DIR}/biomeos`
-/// 3. `{TMPDIR}/biomeos`  (platform-agnostic temp fallback)
-/// 4. `{temp_dir}/biomeos` (respects `$TMPDIR`, no hardcoded `/tmp` — DH-1)
-fn resolve_socket_dir(reader: &impl Fn(&str) -> Option<String>) -> PathBuf {
+/// Test-only: production code snapshots the socket dir into `AppState`.
+#[cfg(test)]
+fn resolve_socket_dir(reader: &impl Fn(&str) -> Option<String>) -> std::path::PathBuf {
+    use sweet_grass_core::primal_names::{env_vars, paths};
     if let Some(dir) = reader(env_vars::BIOMEOS_SOCKET_DIR) {
-        return PathBuf::from(dir);
+        return std::path::PathBuf::from(dir);
     }
     if let Some(xdg) = reader(env_vars::XDG_RUNTIME_DIR) {
-        return PathBuf::from(xdg).join(paths::BIOMEOS_DIR);
+        return std::path::PathBuf::from(xdg).join(paths::BIOMEOS_DIR);
     }
     if let Some(tmpdir) = reader(env_vars::TMPDIR) {
-        return PathBuf::from(tmpdir).join(paths::BIOMEOS_DIR);
+        return std::path::PathBuf::from(tmpdir).join(paths::BIOMEOS_DIR);
     }
     paths::default_socket_dir()
 }
 
-/// Probe a capability socket with `health.liveness`.
-///
-/// Returns `"ok"` if the socket responds, `"degraded"` on timeout/error,
-/// or `"unavailable"` if the socket doesn't exist.
-async fn probe_capability(domain: &str) -> &'static str {
-    probe_capability_with_reader(domain, &|key| std::env::var(key).ok()).await
+/// Probe a capability socket with `health.liveness` using a snapshotted
+/// socket directory (avoids env reads at handler call time).
+async fn probe_capability_in_dir(domain: &str, socket_dir: &std::path::Path) -> &'static str {
+    let socket = socket_dir.join(format!("{domain}.sock"));
+    if !socket.exists() {
+        return "unavailable";
+    }
+
+    let result = tokio::time::timeout(PROBE_TIMEOUT, try_liveness_probe(&socket)).await;
+
+    match result {
+        Ok(Ok(())) => "ok",
+        _ => "degraded",
+    }
 }
 
 /// DI-friendly probe for testing without real env vars.
+#[cfg(test)]
 async fn probe_capability_with_reader(
     domain: &str,
     reader: &(impl Fn(&str) -> Option<String> + Sync),
@@ -107,25 +111,24 @@ async fn try_liveness_probe(socket: &std::path::Path) -> std::io::Result<()> {
 
 /// Discover a capability socket following ecosystem conventions.
 ///
-/// Uses the provided reader for env var lookup (DI-friendly).
-///
-/// Resolution: `{BIOMEOS_SOCKET_DIR}/{domain}.sock` → `{XDG_RUNTIME_DIR}/biomeos/{domain}.sock`
-/// → `{TMPDIR}/biomeos/{domain}.sock` → `{temp_dir}/biomeos/{domain}.sock`.
+/// Test-only: production code uses `state.socket_dir` directly.
+#[cfg(test)]
 fn discover_capability_socket_with_reader(
     domain: &str,
     reader: &impl Fn(&str) -> Option<String>,
-) -> PathBuf {
+) -> std::path::PathBuf {
     let sock_name = format!("{domain}.sock");
     resolve_socket_dir(reader).join(&sock_name)
 }
 
 /// `composition.tower_health` — security + discovery.
 pub(super) async fn handle_tower_health(
-    _state: &AppState,
+    state: &AppState,
     _params: serde_json::Value,
 ) -> DispatchResult {
-    let security = probe_capability("security").await;
-    let discovery = probe_capability("discovery").await;
+    let dir = &state.socket_dir;
+    let security = probe_capability_in_dir("security", dir).await;
+    let discovery = probe_capability_in_dir("discovery", dir).await;
 
     let healthy = security == "ok" && discovery == "ok";
     debug!(security, discovery, healthy, "composition.tower_health");
@@ -142,12 +145,13 @@ pub(super) async fn handle_tower_health(
 
 /// `composition.node_health` — tower + compute.
 pub(super) async fn handle_node_health(
-    _state: &AppState,
+    state: &AppState,
     _params: serde_json::Value,
 ) -> DispatchResult {
-    let security = probe_capability("security").await;
-    let discovery = probe_capability("discovery").await;
-    let compute = probe_capability("compute").await;
+    let dir = &state.socket_dir;
+    let security = probe_capability_in_dir("security", dir).await;
+    let discovery = probe_capability_in_dir("discovery", dir).await;
+    let compute = probe_capability_in_dir("compute", dir).await;
 
     let healthy = security == "ok" && discovery == "ok" && compute == "ok";
     debug!(
@@ -168,12 +172,13 @@ pub(super) async fn handle_node_health(
 
 /// `composition.nest_health` — tower + storage.
 pub(super) async fn handle_nest_health(
-    _state: &AppState,
+    state: &AppState,
     _params: serde_json::Value,
 ) -> DispatchResult {
-    let security = probe_capability("security").await;
-    let discovery = probe_capability("discovery").await;
-    let storage = probe_capability("storage").await;
+    let dir = &state.socket_dir;
+    let security = probe_capability_in_dir("security", dir).await;
+    let discovery = probe_capability_in_dir("discovery", dir).await;
+    let storage = probe_capability_in_dir("storage", dir).await;
 
     let healthy = security == "ok" && discovery == "ok" && storage == "ok";
     debug!(
@@ -197,12 +202,13 @@ pub(super) async fn handle_nucleus_health(
     state: &AppState,
     _params: serde_json::Value,
 ) -> DispatchResult {
-    let security = probe_capability("security").await;
-    let discovery = probe_capability("discovery").await;
-    let compute = probe_capability("compute").await;
-    let storage = probe_capability("storage").await;
-    let provenance = probe_capability("provenance").await;
-    let ledger = probe_capability("ledger").await;
+    let dir = &state.socket_dir;
+    let security = probe_capability_in_dir("security", dir).await;
+    let discovery = probe_capability_in_dir("discovery", dir).await;
+    let compute = probe_capability_in_dir("compute", dir).await;
+    let storage = probe_capability_in_dir("storage", dir).await;
+    let provenance = probe_capability_in_dir("provenance", dir).await;
+    let ledger = probe_capability_in_dir("ledger", dir).await;
 
     let self_healthy = state
         .store
@@ -249,6 +255,8 @@ pub(super) async fn handle_nucleus_health(
 #[cfg(test)]
 #[expect(clippy::expect_used, reason = "test code: expect is standard in tests")]
 mod tests {
+    use std::path::PathBuf;
+
     use super::*;
 
     #[test]

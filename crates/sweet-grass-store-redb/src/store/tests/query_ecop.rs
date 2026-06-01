@@ -66,10 +66,10 @@ async fn test_query_filter_time_range() {
     let (store, _temp) = create_test_store();
 
     let mut braid = create_test_braid("sha256:time_range");
-    braid.generated_at_time = 500;
+    braid.generated_at_time = Timestamp::new(500);
     store.put(&braid).await.expect("put");
 
-    let in_range = QueryFilter::new().with_time_range(100, 900);
+    let in_range = QueryFilter::new().with_time_range(Timestamp::new(100), Timestamp::new(900));
     let result = store
         .query(&in_range, QueryOrder::NewestFirst)
         .await
@@ -77,7 +77,7 @@ async fn test_query_filter_time_range() {
     assert_eq!(result.braids.len(), 1);
 
     let too_early = QueryFilter {
-        created_after: Some(600),
+        created_after: Some(Timestamp::new(600)),
         ..QueryFilter::new()
     };
     let result = store
@@ -87,7 +87,7 @@ async fn test_query_filter_time_range() {
     assert!(result.braids.is_empty());
 
     let too_late = QueryFilter {
-        created_before: Some(400),
+        created_before: Some(Timestamp::new(400)),
         ..QueryFilter::new()
     };
     let result = store
@@ -97,7 +97,7 @@ async fn test_query_filter_time_range() {
     assert!(result.braids.is_empty());
 
     let only_after_ok = QueryFilter {
-        created_after: Some(100),
+        created_after: Some(Timestamp::new(100)),
         ..QueryFilter::new()
     };
     let result = store
@@ -107,7 +107,7 @@ async fn test_query_filter_time_range() {
     assert_eq!(result.braids.len(), 1);
 
     let only_before_ok = QueryFilter {
-        created_before: Some(900),
+        created_before: Some(Timestamp::new(900)),
         ..QueryFilter::new()
     };
     let result = store
@@ -126,7 +126,10 @@ async fn test_query_filter_braid_type_excludes_mismatch() {
 
     let filter = QueryFilter::new().with_type(sweet_grass_core::braid::BraidType::Collection {
         member_count: 5,
-        summary_type: sweet_grass_core::braid::SummaryType::Temporal { start: 0, end: 100 },
+        summary_type: sweet_grass_core::braid::SummaryType::Temporal {
+            start: Timestamp::ZERO,
+            end: Timestamp::new(100),
+        },
     });
     let result = store
         .query(&filter, QueryOrder::NewestFirst)

@@ -11,6 +11,8 @@ use sweet_grass_factory::BraidFactory;
 use sweet_grass_query::QueryEngine;
 use sweet_grass_store::MemoryStore;
 
+use std::path::PathBuf;
+
 use crate::backend::BraidBackend;
 #[cfg(unix)]
 use crate::crypto_delegate::CryptoDelegate;
@@ -54,6 +56,14 @@ pub struct AppState {
     /// `FAMILY_ID`). Used by `capability.list` to avoid env reads at
     /// handler call time.
     pub btsp_required: bool,
+
+    /// Resolved `biomeOS` socket directory (snapshotted at startup).
+    /// Used by `composition.*_health` handlers to probe capability sockets
+    /// without re-reading env vars on every request.
+    pub socket_dir: PathBuf,
+
+    /// Snapshotted `DISCOVERY_ADDRESS` for health integration reporting.
+    pub discovery_address: Option<String>,
 }
 
 impl AppState {
@@ -77,6 +87,8 @@ impl AppState {
             method_gate: Arc::new(MethodGate::from_env()),
             tcp_transport_active: false,
             btsp_required: false,
+            socket_dir: Self::snapshot_socket_dir(),
+            discovery_address: None,
         }
     }
 
@@ -99,6 +111,8 @@ impl AppState {
             method_gate: Arc::new(MethodGate::from_env()),
             tcp_transport_active: std::env::var(env_vars::SWEETGRASS_PORT).is_ok(),
             btsp_required: Self::snapshot_btsp_required(),
+            socket_dir: Self::snapshot_socket_dir(),
+            discovery_address: std::env::var("DISCOVERY_ADDRESS").ok(),
         }
     }
 
@@ -134,6 +148,8 @@ impl AppState {
             method_gate: Arc::new(MethodGate::from_env()),
             tcp_transport_active: std::env::var(env_vars::SWEETGRASS_PORT).is_ok(),
             btsp_required: Self::snapshot_btsp_required(),
+            socket_dir: Self::snapshot_socket_dir(),
+            discovery_address: std::env::var("DISCOVERY_ADDRESS").ok(),
         }
     }
 
@@ -143,6 +159,27 @@ impl AppState {
         { crate::btsp::is_btsp_required() }
         #[cfg(not(unix))]
         { false }
+    }
+
+    /// Snapshot the `biomeOS` socket directory from the current env.
+    ///
+    /// Follows the ecosystem standard fallback chain:
+    /// 1. `BIOMEOS_SOCKET_DIR`
+    /// 2. `{XDG_RUNTIME_DIR}/biomeos`
+    /// 3. `{TMPDIR}/biomeos`
+    /// 4. `{temp_dir}/biomeos`
+    fn snapshot_socket_dir() -> PathBuf {
+        use sweet_grass_core::primal_names::{env_vars as ev, paths};
+        if let Ok(dir) = std::env::var(ev::BIOMEOS_SOCKET_DIR) {
+            return PathBuf::from(dir);
+        }
+        if let Ok(xdg) = std::env::var(ev::XDG_RUNTIME_DIR) {
+            return PathBuf::from(xdg).join(paths::BIOMEOS_DIR);
+        }
+        if let Ok(tmpdir) = std::env::var(ev::TMPDIR) {
+            return PathBuf::from(tmpdir).join(paths::BIOMEOS_DIR);
+        }
+        paths::default_socket_dir()
     }
 
     /// Attach a crypto delegate for Tower-delegated braid signing.

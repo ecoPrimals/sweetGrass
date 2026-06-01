@@ -33,8 +33,8 @@ fn test_activity_builder() {
 #[test]
 fn test_activity_duration() {
     let activity = Activity::builder(ActivityType::Analysis)
-        .started_at(1000)
-        .ended_at(2000)
+        .started_at(Timestamp::new(1000))
+        .ended_at(Timestamp::new(2000))
         .build();
 
     assert_eq!(activity.duration_ns(), Some(1000));
@@ -99,8 +99,8 @@ fn test_activity_type_display() {
 fn test_used_entity() {
     let used = UsedEntity::new(EntityReference::by_hash("sha256:input"))
         .with_role(EntityRole::Input)
-        .with_time(42);
-    assert_eq!(used.time, Some(42));
+        .with_time(Timestamp::new(42));
+    assert_eq!(used.time, Some(Timestamp::new(42)));
     assert!(matches!(used.role, EntityRole::Input));
 }
 

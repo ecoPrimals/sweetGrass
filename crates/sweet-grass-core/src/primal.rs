@@ -5,6 +5,7 @@
 //! The main entry point for the `SweetGrass` primal, implementing
 //! lifecycle management and health checking.
 
+use crate::braid::Timestamp;
 use crate::config::SweetGrassConfig;
 use crate::error::SweetGrassError;
 
@@ -112,8 +113,8 @@ pub struct HealthReport {
     pub status: HealthStatus,
     /// Additional checks.
     pub checks: Vec<HealthCheck>,
-    /// Timestamp.
-    pub timestamp: u64,
+    /// Timestamp (nanoseconds since epoch).
+    pub timestamp: Timestamp,
 }
 
 impl HealthReport {
@@ -445,7 +446,7 @@ mod tests {
         assert_eq!(report.version, "2.0.0");
         assert!(report.status.is_healthy());
         assert!(report.checks.is_empty());
-        assert!(report.timestamp > 0);
+        assert!(report.timestamp > Timestamp::ZERO);
     }
 
     #[test]

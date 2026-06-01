@@ -231,8 +231,7 @@ pub async fn health_detailed(
         .as_ref()
         .map(|sk| sk.uptime().as_secs());
 
-    // Check integrations if discovery is available
-    let integrations = check_integrations();
+    let integrations = check_integrations(&state);
     let status = determine_status(store.available, Some(&integrations));
 
     Ok(Json(HealthResponse {
@@ -245,39 +244,30 @@ pub async fn health_detailed(
     }))
 }
 
-/// Check all capability endpoints.
+/// Check all capability endpoints using snapshotted state.
 ///
 /// Uses capability-based discovery to check integration status.
-/// No primal names are hardcoded - only capabilities.
-fn check_integrations() -> IntegrationStatus {
-    check_integrations_with_reader(|key| std::env::var(key).ok())
-}
-
-/// DI-friendly integration checker. Tests inject a reader
-/// instead of mutating process-global environment variables.
-fn check_integrations_with_reader(reader: impl Fn(&str) -> Option<String>) -> IntegrationStatus {
-    let discovery = check_capability(&reader, "DISCOVERY_ADDRESS");
+/// No primal names are hardcoded — only capabilities.
+fn check_integrations(state: &AppState) -> IntegrationStatus {
+    let discovery = state.discovery_address.as_ref().map_or_else(
+        PrimalStatus::unknown,
+        |addr| PrimalStatus {
+            connected: false,
+            address: Some(addr.clone()),
+            last_seen: None,
+            error: Some("Not connected (health check only)".to_string()),
+        },
+    );
 
     IntegrationStatus {
-        signing: None,        // Discovered via Capability::Signing
-        session_events: None, // Discovered via Capability::SessionEvents
-        anchoring: None,      // Discovered via Capability::Anchoring
+        signing: None,
+        session_events: None,
+        anchoring: None,
         discovery: Some(discovery),
-        compute: None, // Discovered via Capability::Compute
+        compute: None,
     }
 }
 
-/// Check a capability via a key reader.
-///
-/// Environment variables follow the pattern: `{CAPABILITY}_ADDRESS`
-fn check_capability(reader: &impl Fn(&str) -> Option<String>, env_var: &str) -> PrimalStatus {
-    reader(env_var).map_or_else(PrimalStatus::unknown, |addr| PrimalStatus {
-        connected: false,
-        address: Some(addr),
-        last_seen: None,
-        error: Some("Not connected (health check only)".to_string()),
-    })
-}
 
 /// Liveness probe.
 pub async fn liveness() -> StatusCode {

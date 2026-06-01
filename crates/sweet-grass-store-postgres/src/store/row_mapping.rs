@@ -9,7 +9,7 @@
 use sqlx::Row;
 
 use sweet_grass_core::{
-    Braid, BraidId,
+    Braid, BraidId, Timestamp,
     activity::{
         Activity, ActivityEcoPrimals, ActivityId, ActivityMetadata, ActivityType, UsedEntity,
     },
@@ -107,7 +107,7 @@ pub fn row_to_braid(row: &sqlx::postgres::PgRow) -> sweet_grass_store::Result<Br
         .map_err(|e| StoreError::Internal(e.to_string()))?;
 
     braid.id = BraidId::from_string(braid_id);
-    braid.generated_at_time = i64_to_u64(generated_at_time);
+    braid.generated_at_time = Timestamp::new(i64_to_u64(generated_at_time));
 
     if let Ok(derived) = serde_json::from_value(was_derived_from) {
         braid.was_derived_from = derived;
@@ -177,8 +177,8 @@ pub fn row_to_activity(row: &sqlx::postgres::PgRow) -> sweet_grass_store::Result
         activity_type,
         used,
         was_associated_with: associations,
-        started_at_time: i64_to_u64(started_at_time),
-        ended_at_time: ended_at_time.map(i64_to_u64),
+        started_at_time: Timestamp::new(i64_to_u64(started_at_time)),
+        ended_at_time: ended_at_time.map(|t| Timestamp::new(i64_to_u64(t))),
         metadata: meta,
         ecop: ecop_parsed,
     })
@@ -214,7 +214,7 @@ pub fn legacy_signature_to_witness(
         }
         .to_owned(),
         evidence: proof_value.to_owned(),
-        witnessed_at: created,
+        witnessed_at: Timestamp::new(created),
         encoding: if is_signed {
             WITNESS_ENCODING_BASE64
         } else {
@@ -412,7 +412,7 @@ mod tests {
         let w = legacy_signature_to_witness(&v);
         assert_eq!(w.kind, WITNESS_KIND_MARKER);
         assert_eq!(w.evidence, "");
-        assert_eq!(w.witnessed_at, 0);
+        assert_eq!(w.witnessed_at, sweet_grass_core::Timestamp::ZERO);
         assert_eq!(w.encoding, WITNESS_ENCODING_NONE);
         assert_eq!(w.algorithm, None);
         assert_eq!(w.tier.as_deref(), Some(WITNESS_TIER_OPEN));
@@ -438,7 +438,7 @@ mod tests {
         let w = legacy_signature_to_witness(&v);
         assert_eq!(w.kind, WITNESS_KIND_SIGNATURE);
         assert_eq!(w.evidence, "c2lnZWQ=");
-        assert_eq!(w.witnessed_at, 1_700_000_000);
+        assert_eq!(w.witnessed_at, sweet_grass_core::Timestamp::new(1_700_000_000));
         assert_eq!(w.encoding, WITNESS_ENCODING_BASE64);
         assert_eq!(w.algorithm.as_deref(), Some(WITNESS_ALGORITHM_ED25519));
         assert_eq!(w.tier.as_deref(), Some(WITNESS_TIER_LOCAL));
@@ -451,7 +451,7 @@ mod tests {
         let w = legacy_signature_to_witness(&v);
         assert_eq!(w.kind, WITNESS_KIND_MARKER);
         assert_eq!(w.evidence, "");
-        assert_eq!(w.witnessed_at, 0);
+        assert_eq!(w.witnessed_at, sweet_grass_core::Timestamp::ZERO);
         assert_eq!(w.encoding, WITNESS_ENCODING_NONE);
         assert_eq!(w.algorithm.as_deref(), Some(WITNESS_ALGORITHM_ED25519));
         assert_eq!(w.tier.as_deref(), Some(WITNESS_TIER_OPEN));

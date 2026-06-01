@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 use tracing::{debug, instrument};
 
-use sweet_grass_core::Braid;
+use sweet_grass_core::{Braid, Timestamp};
 use sweet_grass_core::agent::Did;
 use sweet_grass_core::dehydration::Witness;
 
@@ -142,9 +142,7 @@ impl SigningClient for TarpcSigningClient {
             .map_err(IntegrationError::Signing)?;
 
         let signer = braid.was_attributed_to.clone();
-        let now = chrono::Utc::now();
-
-        let signed_at = u64::try_from(now.timestamp().max(0)).unwrap_or(0);
+        let signed_at = Timestamp::now();
 
         Ok(SignatureInfo {
             signer,

@@ -5,7 +5,7 @@
 //! Tests `QueryFilter`, `QueryOrder`, `query()`, `count()`, `by_agent()`, `derived_from()`.
 
 use super::common::{create_braid_with_metadata, create_test_braid, setup_postgres};
-use sweet_grass_core::{Braid, entity::EntityReference};
+use sweet_grass_core::{Braid, Timestamp, entity::EntityReference};
 use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder};
 
 #[tokio::test]
@@ -58,24 +58,24 @@ async fn test_query_with_time_range() {
     let (_container, store) = setup_postgres().await;
 
     let mut braid1 = create_test_braid("time1");
-    braid1.generated_at_time = 500;
+    braid1.generated_at_time = Timestamp::new(500);
     let mut braid2 = create_test_braid("time2");
-    braid2.generated_at_time = 1500;
+    braid2.generated_at_time = Timestamp::new(1500);
     let mut braid3 = create_test_braid("time3");
-    braid3.generated_at_time = 2500;
+    braid3.generated_at_time = Timestamp::new(2500);
 
     store.put(&braid1).await.expect("put");
     store.put(&braid2).await.expect("put");
     store.put(&braid3).await.expect("put");
 
-    let filter = QueryFilter::new().with_time_range(1000, 2000);
+    let filter = QueryFilter::new().with_time_range(Timestamp::new(1000), Timestamp::new(2000));
     let result = store
         .query(&filter, QueryOrder::NewestFirst)
         .await
         .expect("query");
 
     assert_eq!(result.total_count, 1);
-    assert_eq!(result.braids[0].generated_at_time, 1500);
+    assert_eq!(result.braids[0].generated_at_time, Timestamp::new(1500));
 }
 
 #[tokio::test]
@@ -154,11 +154,11 @@ async fn test_query_ordering_newest_first() {
     let (_container, store) = setup_postgres().await;
 
     let mut braid1 = create_test_braid("ord1");
-    braid1.generated_at_time = 100;
+    braid1.generated_at_time = Timestamp::new(100);
     let mut braid2 = create_test_braid("ord2");
-    braid2.generated_at_time = 300;
+    braid2.generated_at_time = Timestamp::new(300);
     let mut braid3 = create_test_braid("ord3");
-    braid3.generated_at_time = 200;
+    braid3.generated_at_time = Timestamp::new(200);
 
     store.put(&braid1).await.expect("put");
     store.put(&braid2).await.expect("put");
@@ -169,9 +169,9 @@ async fn test_query_ordering_newest_first() {
         .await
         .expect("query");
 
-    assert_eq!(result.braids[0].generated_at_time, 300);
-    assert_eq!(result.braids[1].generated_at_time, 200);
-    assert_eq!(result.braids[2].generated_at_time, 100);
+    assert_eq!(result.braids[0].generated_at_time, Timestamp::new(300));
+    assert_eq!(result.braids[1].generated_at_time, Timestamp::new(200));
+    assert_eq!(result.braids[2].generated_at_time, Timestamp::new(100));
 }
 
 #[tokio::test]
@@ -180,11 +180,11 @@ async fn test_query_ordering_oldest_first() {
     let (_container, store) = setup_postgres().await;
 
     let mut braid1 = create_test_braid("old1");
-    braid1.generated_at_time = 300;
+    braid1.generated_at_time = Timestamp::new(300);
     let mut braid2 = create_test_braid("old2");
-    braid2.generated_at_time = 100;
+    braid2.generated_at_time = Timestamp::new(100);
     let mut braid3 = create_test_braid("old3");
-    braid3.generated_at_time = 200;
+    braid3.generated_at_time = Timestamp::new(200);
 
     store.put(&braid1).await.expect("put");
     store.put(&braid2).await.expect("put");
@@ -195,9 +195,9 @@ async fn test_query_ordering_oldest_first() {
         .await
         .expect("query");
 
-    assert_eq!(result.braids[0].generated_at_time, 100);
-    assert_eq!(result.braids[1].generated_at_time, 200);
-    assert_eq!(result.braids[2].generated_at_time, 300);
+    assert_eq!(result.braids[0].generated_at_time, Timestamp::new(100));
+    assert_eq!(result.braids[1].generated_at_time, Timestamp::new(200));
+    assert_eq!(result.braids[2].generated_at_time, Timestamp::new(300));
 }
 
 #[tokio::test]

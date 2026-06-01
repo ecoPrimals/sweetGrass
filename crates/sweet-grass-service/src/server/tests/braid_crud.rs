@@ -3,6 +3,7 @@
 
 use super::*;
 use crate::rpc::TimeRange;
+use sweet_grass_core::Timestamp;
 
 #[tokio::test]
 async fn test_health_check() {
@@ -230,8 +231,8 @@ async fn test_agent_contributions_with_time_range() {
 
     let agent = Did::new("did:key:z6MkTest");
     let range = TimeRange {
-        start: 0,
-        end: u64::MAX,
+        start: Timestamp::ZERO,
+        end: Timestamp::new(u64::MAX),
     };
     let contributions = server
         .agent_contributions(context::current(), agent, Some(range))
@@ -247,7 +248,10 @@ async fn test_agent_contributions_empty_time_range() {
     create_test_braid(&server).await;
 
     let agent = Did::new("did:key:z6MkTest");
-    let range = TimeRange { start: 0, end: 0 };
+    let range = TimeRange {
+        start: Timestamp::ZERO,
+        end: Timestamp::ZERO,
+    };
     let contributions = server
         .agent_contributions(context::current(), agent, Some(range))
         .await

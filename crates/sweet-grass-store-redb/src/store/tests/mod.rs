@@ -11,6 +11,7 @@
 use std::sync::Arc;
 
 use super::*;
+use sweet_grass_core::Timestamp;
 use sweet_grass_core::braid::BraidBuilder;
 use tempfile::TempDir;
 

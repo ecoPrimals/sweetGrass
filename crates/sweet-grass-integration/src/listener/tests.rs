@@ -10,6 +10,7 @@
 
 use super::*;
 use sweet_grass_compression::SessionVertex;
+use sweet_grass_core::Timestamp;
 use sweet_grass_store::BraidStore;
 
 #[test]
@@ -35,14 +36,14 @@ fn test_session_event_structure() {
         session_id: "test-session".to_string(),
         event_type: SessionEventType::Started,
         session: None,
-        timestamp: 1_234_567_890,
+        timestamp: Timestamp::new(1_234_567_890),
         agent: Did::new("did:key:z6MkTest"),
     };
 
     assert_eq!(event.session_id, "test-session");
     assert_eq!(event.event_type, SessionEventType::Started);
     assert!(event.session.is_none());
-    assert_eq!(event.timestamp, 1_234_567_890);
+    assert_eq!(event.timestamp, Timestamp::new(1_234_567_890));
 }
 
 #[test]
@@ -59,7 +60,7 @@ fn test_session_event_with_session() {
         session_id: "test-session".to_string(),
         event_type: SessionEventType::Committed,
         session: Some(session),
-        timestamp: 1_234_567_890,
+        timestamp: Timestamp::new(1_234_567_890),
         agent: Did::new("did:key:z6MkTest"),
     };
 
@@ -90,7 +91,7 @@ async fn test_mock_client_subscribe() {
             session_id: "test-session".to_string(),
             event_type: SessionEventType::Started,
             session: None,
-            timestamp: u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0),
+            timestamp: Timestamp::now(),
             agent: Did::new("did:key:z6MkTest"),
         })
         .await;
@@ -113,7 +114,7 @@ async fn test_mock_client_subscribe_multiple_events() {
                 session_id: format!("session-{i}"),
                 event_type: SessionEventType::Started,
                 session: None,
-                timestamp: u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0),
+                timestamp: Timestamp::now(),
                 agent: Did::new("did:key:z6MkTest"),
             })
             .await;
@@ -214,7 +215,7 @@ async fn test_mock_event_stream_close() {
                 session_id: format!("session-{i}"),
                 event_type: SessionEventType::Started,
                 session: None,
-                timestamp: u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0),
+                timestamp: Timestamp::now(),
                 agent: Did::new("did:key:z6MkTest"),
             })
             .await;
@@ -250,7 +251,7 @@ fn test_session_event_serialization() {
         session_id: "test-session".to_string(),
         event_type: SessionEventType::Committed,
         session: None,
-        timestamp: 1_234_567_890,
+        timestamp: Timestamp::new(1_234_567_890),
         agent: Did::new("did:key:z6MkTest"),
     };
 
@@ -330,7 +331,7 @@ async fn test_event_handler_start_processes_committed_event() {
         session_id: "compress-test".to_string(),
         event_type: SessionEventType::Committed,
         session: Some(session),
-        timestamp: u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0),
+        timestamp: Timestamp::now(),
         agent: Did::new("did:key:z6MkTest"),
     })
     .await;
@@ -367,7 +368,7 @@ async fn test_event_handler_start_ignores_rolled_back() {
         session_id: "rollback-session".to_string(),
         event_type: SessionEventType::RolledBack,
         session: None,
-        timestamp: u64::try_from(chrono::Utc::now().timestamp()).unwrap_or(0),
+        timestamp: Timestamp::now(),
         agent: Did::new("did:key:z6MkTest"),
     })
     .await;

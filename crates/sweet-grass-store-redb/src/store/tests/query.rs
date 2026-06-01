@@ -470,11 +470,11 @@ async fn test_query_oldest_first_time_ordering() {
     let (store, _temp) = create_test_store();
 
     let mut b1 = create_test_braid("sha256:oldest_order1");
-    b1.generated_at_time = 300;
+    b1.generated_at_time = Timestamp::new(300);
     let mut b2 = create_test_braid("sha256:oldest_order2");
-    b2.generated_at_time = 100;
+    b2.generated_at_time = Timestamp::new(100);
     let mut b3 = create_test_braid("sha256:oldest_order3");
-    b3.generated_at_time = 200;
+    b3.generated_at_time = Timestamp::new(200);
 
     store.put(&b1).await.expect("put");
     store.put(&b2).await.expect("put");
@@ -486,9 +486,9 @@ async fn test_query_oldest_first_time_ordering() {
         .expect("query");
 
     assert_eq!(result.braids.len(), 3);
-    assert_eq!(result.braids[0].generated_at_time, 100);
-    assert_eq!(result.braids[1].generated_at_time, 200);
-    assert_eq!(result.braids[2].generated_at_time, 300);
+    assert_eq!(result.braids[0].generated_at_time, Timestamp::new(100));
+    assert_eq!(result.braids[1].generated_at_time, Timestamp::new(200));
+    assert_eq!(result.braids[2].generated_at_time, Timestamp::new(300));
 }
 
 #[tokio::test]
@@ -496,11 +496,11 @@ async fn test_query_newest_first_time_ordering() {
     let (store, _temp) = create_test_store();
 
     let mut b1 = create_test_braid("sha256:newest_order1");
-    b1.generated_at_time = 300;
+    b1.generated_at_time = Timestamp::new(300);
     let mut b2 = create_test_braid("sha256:newest_order2");
-    b2.generated_at_time = 100;
+    b2.generated_at_time = Timestamp::new(100);
     let mut b3 = create_test_braid("sha256:newest_order3");
-    b3.generated_at_time = 200;
+    b3.generated_at_time = Timestamp::new(200);
 
     store.put(&b1).await.expect("put");
     store.put(&b2).await.expect("put");
@@ -512,9 +512,9 @@ async fn test_query_newest_first_time_ordering() {
         .expect("query");
 
     assert_eq!(result.braids.len(), 3);
-    assert_eq!(result.braids[0].generated_at_time, 300);
-    assert_eq!(result.braids[1].generated_at_time, 200);
-    assert_eq!(result.braids[2].generated_at_time, 100);
+    assert_eq!(result.braids[0].generated_at_time, Timestamp::new(300));
+    assert_eq!(result.braids[1].generated_at_time, Timestamp::new(200));
+    assert_eq!(result.braids[2].generated_at_time, Timestamp::new(100));
 }
 
 #[tokio::test]

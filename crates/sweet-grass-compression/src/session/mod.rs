@@ -303,10 +303,10 @@ impl Session {
             return 0;
         }
 
-        let min = self.vertices.iter().map(|v| v.timestamp).min().unwrap_or(0);
-        let max = self.vertices.iter().map(|v| v.timestamp).max().unwrap_or(0);
+        let min = self.vertices.iter().map(|v| v.timestamp).min().unwrap_or(Timestamp::ZERO);
+        let max = self.vertices.iter().map(|v| v.timestamp).max().unwrap_or(Timestamp::ZERO);
 
-        max.saturating_sub(min)
+        max.nanos().saturating_sub(min.nanos())
     }
 
     /// Check if session is atomic (marked or single vertex).

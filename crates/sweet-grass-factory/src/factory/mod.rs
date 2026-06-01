@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
 use sweet_grass_core::{
-    ContentHash,
+    ContentHash, Timestamp,
     activity::{Activity, ActivityType, UsedEntity},
     agent::{AgentAssociation, AgentRole, Did},
     braid::{
@@ -314,8 +314,8 @@ impl BraidFactory {
     /// Returns an error if Braid construction fails.
     pub fn temporal_summary(
         &self,
-        start: u64,
-        end: u64,
+        start: Timestamp,
+        end: Timestamp,
         braids: Vec<BraidId>,
         metadata: Option<BraidMetadata>,
     ) -> Result<Braid> {

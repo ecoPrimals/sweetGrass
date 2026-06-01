@@ -10,6 +10,7 @@
 use std::sync::Arc;
 
 use super::*;
+use sweet_grass_core::Timestamp;
 use sweet_grass_core::agent::Did;
 
 fn make_test_braid(hash: &str, agent: &str) -> Braid {
@@ -99,15 +100,14 @@ fn test_without_ecop() {
 
 #[test]
 fn test_timestamp_conversion() {
-    let ts = 1_703_203_200_000_000_000_u64; // 2023-12-22 00:00:00 UTC
+    let ts = Timestamp::new(1_703_203_200_000_000_000); // 2023-12-22 00:00:00 UTC
     let iso = timestamp_to_iso(ts);
     assert!(iso.starts_with("2023-12-22"));
 }
 
 #[test]
 fn test_timestamp_conversion_zero() {
-    let ts = 0_u64;
-    let iso = timestamp_to_iso(ts);
+    let iso = timestamp_to_iso(Timestamp::ZERO);
     assert!(iso.starts_with("1970-01-01"));
 }
 
@@ -363,8 +363,8 @@ fn test_export_graph_with_activities() {
             AgentRole::Creator,
         ))
         .compute_units(2.5)
-        .started_at(1000)
-        .ended_at(2000)
+        .started_at(Timestamp::new(1000))
+        .ended_at(Timestamp::new(2000))
         .build();
 
     let mut braid = make_test_braid("sha256:with_act", "did:key:z6MkTest");
@@ -413,8 +413,8 @@ fn test_export_activity_with_associations_and_used() {
         ))
         .uses(UsedEntity::new(EntityReference::by_hash("sha256:input")))
         .compute_units(1.5)
-        .started_at(1000)
-        .ended_at(5000)
+        .started_at(Timestamp::new(1000))
+        .ended_at(Timestamp::new(5000))
         .build();
 
     let mut braid = make_test_braid("sha256:full_activity", "did:key:z6MkTest");
@@ -462,8 +462,7 @@ fn test_json_ld_document_serialization_roundtrip() {
 
 #[test]
 fn test_timestamp_conversion_far_future() {
-    let ts = 18_000_000_000_000_000_000_u64;
-    let iso = timestamp_to_iso(ts);
+    let iso = timestamp_to_iso(Timestamp::new(18_000_000_000_000_000_000));
     assert!(iso.contains("2540"));
 }
 

@@ -18,6 +18,7 @@ use axum_test::TestServer;
 use serde_json::json;
 use sweet_grass_compression::{CompressionEngine, Session, SessionOutcome, SessionVertex};
 use sweet_grass_core::{
+    Timestamp,
     activity::ActivityType,
     agent::Did,
     braid::BraidMetadata,
@@ -598,7 +599,7 @@ fn witness_audit_dehydration_summary() -> DehydrationSummary {
         agent: bob.clone(),
         kind: "hash".to_string(),
         evidence: "sha256:checkpoint-observation".to_string(),
-        witnessed_at: 9_001,
+        witnessed_at: Timestamp::new(9_001),
         encoding: sweet_grass_core::dehydration::WITNESS_ENCODING_HEX.to_string(),
         algorithm: None,
         tier: Some("gateway".to_string()),
@@ -616,11 +617,11 @@ fn witness_audit_dehydration_summary() -> DehydrationSummary {
             op_type: "create".to_string(),
             content_hash: ContentHash::new("sha256:witnesschain_op_artifact"),
             agent: alice,
-            timestamp: 500_000,
+            timestamp: Timestamp::new(500_000),
             description: Some("witness chain op".to_string()),
         }],
-        session_start: 100_000,
-        dehydrated_at: 300_000,
+        session_start: Timestamp::new(100_000),
+        dehydrated_at: Timestamp::new(300_000),
         frontier: vec![ContentHash::new("sha256:witnesschain_frontier")],
         niche: Some("witness_audit".to_string()),
         compression_ratio: Some(0.61),

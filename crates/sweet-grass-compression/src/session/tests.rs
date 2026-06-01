@@ -8,6 +8,7 @@
 )]
 
 use super::*;
+use sweet_grass_core::Timestamp;
 
 fn make_vertex(id: &str, hash: &str) -> SessionVertex {
     SessionVertex::new(id, hash, "application/json", Did::new("did:key:z6MkTest"))
@@ -184,15 +185,15 @@ fn test_temporal_span_empty() {
 fn test_temporal_span_multiple_vertices() {
     let mut session = Session::new("temporal");
     let mut v1 = make_vertex("v1", "sha256:a");
-    v1.timestamp = 1000;
+    v1.timestamp = Timestamp::new(1000);
     session.add_vertex(v1);
 
     let mut v2 = make_vertex("v2", "sha256:b");
-    v2.timestamp = 5000;
+    v2.timestamp = Timestamp::new(5000);
     session.add_vertex(v2.with_parent("v1"));
 
     let mut v3 = make_vertex("v3", "sha256:c");
-    v3.timestamp = 3000;
+    v3.timestamp = Timestamp::new(3000);
     session.add_vertex(v3.with_parent("v1"));
 
     assert_eq!(session.temporal_span(), 4000); // 5000 - 1000
