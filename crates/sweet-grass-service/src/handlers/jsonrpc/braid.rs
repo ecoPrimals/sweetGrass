@@ -5,11 +5,13 @@
 use base64::Engine;
 use serde::Deserialize;
 use sweet_grass_core::braid::{BraidId, BraidMetadata, ContentHash};
+use sweet_grass_core::privacy::{PrivacyLevel, PrivacyMetadata};
 use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder};
 
+use crate::method_gate::error_codes;
 use crate::state::AppState;
 
-use super::{DispatchError, DispatchResult, error_code, internal, parse_params, to_value};
+use super::{DispatchError, DispatchResult, caller_context_from_params, caller_did_from_params, error_code, internal, parse_params, to_value};
 
 /// Accepts both structured `metadata` and flattened convenience fields.
 ///
@@ -34,6 +36,8 @@ pub(super) struct CreateBraidParams {
     source_session: Option<String>,
     #[serde(default)]
     source_merkle_root: Option<String>,
+    #[serde(default)]
+    privacy: Option<PrivacyMetadata>,
 }
 
 impl CreateBraidParams {
@@ -49,6 +53,9 @@ impl CreateBraidParams {
         }
         if meta.tags.is_empty() && let Some(tags) = self.tags {
             meta.tags = tags.into_iter().map(Into::into).collect();
+        }
+        if meta.privacy.is_none() && let Some(privacy) = self.privacy {
+            meta.privacy = Some(privacy);
         }
         if let Some(session) = self.source_session {
             meta.custom
@@ -93,6 +100,46 @@ fn default_spine_id() -> String {
     "default".to_string()
 }
 
+/// Enforce braid privacy visibility before returning stored content.
+fn check_braid_privacy_access(braid: &sweet_grass_core::braid::Braid, params: &serde_json::Value) -> Result<(), DispatchError> {
+    let Some(pm) = &braid.metadata.privacy else {
+        return Ok(());
+    };
+
+    let caller = caller_context_from_params(params);
+
+    match &pm.visibility {
+        PrivacyLevel::Public | PrivacyLevel::AnonymizedPublic { .. } => Ok(()),
+        PrivacyLevel::Authenticated => {
+            if caller.bearer_token.is_some() {
+                Ok(())
+            } else {
+                Err(DispatchError {
+                    code: error_codes::PERMISSION_DENIED,
+                    message: "Authentication required to access this braid".to_string(),
+                    source_detail: None,
+                })
+            }
+        }
+        PrivacyLevel::Private | PrivacyLevel::Encrypted => {
+            let requester = caller_did_from_params(params);
+            match requester {
+                Some(did) if pm.has_access(&did, &braid.was_attributed_to) => Ok(()),
+                _ => Err(DispatchError {
+                    code: error_codes::PERMISSION_DENIED,
+                    message: "Access denied to private braid".to_string(),
+                    source_detail: None,
+                }),
+            }
+        }
+        _ => Err(DispatchError {
+            code: error_codes::PERMISSION_DENIED,
+            message: "Unsupported privacy visibility level".to_string(),
+            source_detail: None,
+        }),
+    }
+}
+
 pub(super) async fn handle_braid_create(
     state: &AppState,
     params: serde_json::Value,
@@ -132,10 +179,13 @@ pub(super) async fn handle_braid_get(
     state: &AppState,
     params: serde_json::Value,
 ) -> DispatchResult {
-    let p: GetBraidParams = parse_params(params)?;
+    let p: GetBraidParams = parse_params(params.clone())?;
     let braid = state.store.get(&p.id).await.map_err(internal)?;
     match braid {
-        Some(b) => to_value(&b),
+        Some(b) => {
+            check_braid_privacy_access(&b, &params)?;
+            to_value(&b)
+        }
         None => Err(DispatchError {
             code: error_code::NOT_FOUND,
             message: format!("Braid not found: {}", p.id),

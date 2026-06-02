@@ -78,12 +78,13 @@ impl RedbConfig {
 
 /// Table name constants (similar to column families).
 pub mod tables {
-    use redb::TableDefinition;
+    use redb::{MultimapTableDefinition, TableDefinition};
 
     /// Main Braid storage.
     pub const BRAIDS: TableDefinition<&[u8], &[u8]> = TableDefinition::new("braids");
-    /// Index by content hash.
-    pub const BY_HASH: TableDefinition<&[u8], &[u8]> = TableDefinition::new("by_hash");
+    /// Index by content hash (1:many — content convergence).
+    pub const BY_HASH: MultimapTableDefinition<&[u8], &[u8]> =
+        MultimapTableDefinition::new("by_hash");
     /// Index by agent DID.
     pub const BY_AGENT: TableDefinition<&[u8], &[u8]> = TableDefinition::new("by_agent");
     /// Index by generation time.

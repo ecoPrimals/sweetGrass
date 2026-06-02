@@ -93,6 +93,42 @@ async fn test_create_and_get_braid() {
 }
 
 #[tokio::test]
+async fn test_create_and_get_braid_with_privacy_metadata() {
+    let state = test_state();
+
+    let create_params = serde_json::json!({
+        "data_hash": "sha256:privacy-test",
+        "mime_type": "application/json",
+        "size": 128,
+        "privacy": { "visibility": "private" }
+    });
+    let result = dispatch(&state, "braid.create", create_params).await;
+    assert!(result.is_ok());
+    let braid = result.unwrap();
+    assert_eq!(
+        braid["metadata"]["privacy"]["visibility"],
+        "private"
+    );
+    let braid_id = braid["@id"].as_str().unwrap().to_string();
+
+    let get_result = dispatch(
+        &state,
+        "braid.get",
+        serde_json::json!({
+            "id": braid_id,
+            "_caller_did": "did:key:z6MkTest"
+        }),
+    )
+    .await;
+    assert!(get_result.is_ok());
+    let fetched = get_result.unwrap();
+    assert_eq!(
+        fetched["metadata"]["privacy"]["visibility"],
+        "private"
+    );
+}
+
+#[tokio::test]
 async fn test_get_braid_not_found() {
     let state = test_state();
     let result = dispatch(

@@ -45,7 +45,9 @@ impl RedbStore {
             .map_err(|e| RedbError::Transaction(e.to_string()))?;
         {
             let _ = write_txn.open_table(BRAIDS).map_err(RedbError::from)?;
-            let _ = write_txn.open_table(BY_HASH).map_err(RedbError::from)?;
+            let _ = write_txn
+                .open_multimap_table(BY_HASH)
+                .map_err(RedbError::from)?;
             let _ = write_txn.open_table(BY_AGENT).map_err(RedbError::from)?;
             let _ = write_txn.open_table(BY_TIME).map_err(RedbError::from)?;
             let _ = write_txn.open_table(BY_TAG).map_err(RedbError::from)?;
@@ -91,7 +93,9 @@ impl RedbStore {
         let braid_id = braid.id.as_str();
         let braid_id_bytes = braid_id.as_bytes();
 
-        let mut by_hash = write_txn.open_table(BY_HASH).map_err(RedbError::from)?;
+        let mut by_hash = write_txn
+            .open_multimap_table(BY_HASH)
+            .map_err(RedbError::from)?;
         by_hash
             .insert(braid.data_hash.as_str().as_bytes(), braid_id_bytes)
             .map_err(|e| RedbError::Write(e.to_string()))?;
@@ -122,9 +126,14 @@ impl RedbStore {
     fn remove_indexes(write_txn: &redb::WriteTransaction, braid: &Braid) -> Result<(), RedbError> {
         let braid_id = braid.id.as_str();
 
-        let mut by_hash = write_txn.open_table(BY_HASH).map_err(RedbError::from)?;
+        let mut by_hash = write_txn
+            .open_multimap_table(BY_HASH)
+            .map_err(RedbError::from)?;
         by_hash
-            .remove(braid.data_hash.as_str().as_bytes())
+            .remove(
+                braid.data_hash.as_str().as_bytes(),
+                braid_id.as_bytes(),
+            )
             .map_err(|e| RedbError::Delete(e.to_string()))?;
 
         let mut by_agent = write_txn.open_table(BY_AGENT).map_err(RedbError::from)?;
@@ -217,16 +226,19 @@ impl BraidStore for RedbStore {
                 .begin_read()
                 .map_err(|e| StoreError::Internal(e.to_string()))?;
             let by_hash = read_txn
-                .open_table(BY_HASH)
+                .open_multimap_table(BY_HASH)
                 .map_err(|e| StoreError::from(RedbError::from(e)))?;
-            match by_hash.get(hash.as_str().as_bytes()) {
-                Ok(Some(guard)) => {
+            let mut values = by_hash
+                .get(hash.as_str().as_bytes())
+                .map_err(|e| StoreError::Internal(e.to_string()))?;
+            match values.next() {
+                Some(Ok(guard)) => {
                     let bytes = guard.value();
                     let braid_id = String::from_utf8_lossy(bytes).to_string();
                     Ok(Some(BraidId::from_string(braid_id)))
                 },
-                Ok(None) => Ok(None),
-                Err(e) => Err(StoreError::Internal(e.to_string())),
+                Some(Err(e)) => Err(StoreError::Internal(e.to_string())),
+                None => Ok(None),
             }
         })
         .await
@@ -236,6 +248,50 @@ impl BraidStore for RedbStore {
             Some(braid_id) => self.get(&braid_id).await,
             None => Ok(None),
         }
+    }
+
+    #[instrument(skip(self))]
+    async fn get_all_by_hash(
+        &self,
+        hash: &ContentHash,
+    ) -> sweet_grass_store::Result<Vec<Braid>> {
+        let db = Arc::clone(&self.db);
+        let hash = hash.clone();
+
+        tokio::task::spawn_blocking(move || {
+            let read_txn = db
+                .begin_read()
+                .map_err(|e| StoreError::Internal(e.to_string()))?;
+            let by_hash = read_txn
+                .open_multimap_table(BY_HASH)
+                .map_err(|e| StoreError::from(RedbError::from(e)))?;
+            let braids_table = read_txn
+                .open_table(BRAIDS)
+                .map_err(|e| StoreError::from(RedbError::from(e)))?;
+
+            let mut braids = Vec::new();
+            let values = by_hash
+                .get(hash.as_str().as_bytes())
+                .map_err(|e| StoreError::Internal(e.to_string()))?;
+
+            for value_result in values {
+                let guard = value_result.map_err(|e| StoreError::Internal(e.to_string()))?;
+                let braid_id = String::from_utf8_lossy(guard.value()).to_string();
+                match braids_table.get(braid_id.as_bytes()) {
+                    Ok(Some(braid_guard)) => {
+                        let braid =
+                            Self::deserialize_braid(braid_guard.value()).map_err(StoreError::from)?;
+                        braids.push(braid);
+                    },
+                    Ok(None) => {},
+                    Err(e) => return Err(StoreError::Internal(e.to_string())),
+                }
+            }
+
+            Ok(braids)
+        })
+        .await
+        .map_err(StoreError::from)?
     }
 
     #[instrument(skip(self))]

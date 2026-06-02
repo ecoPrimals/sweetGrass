@@ -9,6 +9,7 @@ use crate::agent::Did;
 use crate::entity::EntityReference;
 
 use crate::dehydration::Witness;
+use crate::privacy::PrivacyMetadata;
 
 use super::types::{
     BraidContext, BraidId, BraidMetadata, BraidType, ContentHash, EcoPrimalsAttributes, Timestamp,
@@ -25,6 +26,7 @@ pub struct BraidBuilder {
     was_derived_from: Vec<EntityReference>,
     was_attributed_to: Option<Did>,
     metadata: BraidMetadata,
+    privacy: Option<PrivacyMetadata>,
     ecop: EcoPrimalsAttributes,
     generated_at_time: Option<Timestamp>,
 }
@@ -86,6 +88,13 @@ impl BraidBuilder {
         self
     }
 
+    /// Set privacy metadata.
+    #[must_use]
+    pub fn privacy(mut self, pm: PrivacyMetadata) -> Self {
+        self.privacy = Some(pm);
+        self
+    }
+
     /// Set ecoPrimals attributes.
     #[must_use]
     pub fn ecop(mut self, ecop: EcoPrimalsAttributes) -> Self {
@@ -120,6 +129,11 @@ impl BraidBuilder {
             crate::SweetGrassError::Validation("was_attributed_to is required".into())
         })?;
 
+        let mut metadata = self.metadata;
+        if let Some(pm) = self.privacy {
+            metadata.privacy = Some(pm);
+        }
+
         Ok(super::Braid {
             context: BraidContext::default(),
             id: BraidId::from_hash(&data_hash),
@@ -133,7 +147,7 @@ impl BraidBuilder {
             generated_at_time: self
                 .generated_at_time
                 .unwrap_or_else(super::types::current_timestamp_nanos),
-            metadata: self.metadata,
+            metadata,
             ecop: self.ecop,
             witness: Witness::unsigned(),
             loam_anchor: None,

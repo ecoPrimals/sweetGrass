@@ -7,13 +7,19 @@
 //! - Detailed component status for debugging
 //! - Integration status for connected primals
 
+use std::time::Duration;
+
 use axum::{Json, extract::State, http::StatusCode};
 use serde::Serialize;
 use sweet_grass_store::{BraidStore, QueryFilter};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::UnixStream;
 
 use sweet_grass_core::identity;
 
 use crate::state::AppState;
+
+const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
 
 /// Health check response.
 #[derive(Serialize)]
@@ -231,7 +237,7 @@ pub async fn health_detailed(
         .as_ref()
         .map(|sk| sk.uptime().as_secs());
 
-    let integrations = check_integrations(&state);
+    let integrations = check_integrations(&state).await;
     let status = determine_status(store.available, Some(&integrations));
 
     Ok(Json(HealthResponse {
@@ -248,23 +254,84 @@ pub async fn health_detailed(
 ///
 /// Uses capability-based discovery to check integration status.
 /// No primal names are hardcoded — only capabilities.
-fn check_integrations(state: &AppState) -> IntegrationStatus {
-    let discovery = state.discovery_address.as_ref().map_or_else(
-        PrimalStatus::unknown,
-        |addr| PrimalStatus {
-            connected: false,
-            address: Some(addr.clone()),
-            last_seen: None,
-            error: Some("Not connected (health check only)".to_string()),
-        },
+async fn check_integrations(state: &AppState) -> IntegrationStatus {
+    let dir = &state.socket_dir;
+    let (signing, anchoring, discovery, compute) = tokio::join!(
+        probe_integration("security", dir),
+        probe_integration("provenance", dir),
+        probe_integration("discovery", dir),
+        probe_integration("compute", dir),
     );
 
     IntegrationStatus {
-        signing: None,
+        signing: Some(signing),
         session_events: None,
-        anchoring: None,
+        anchoring: Some(anchoring),
         discovery: Some(discovery),
-        compute: None,
+        compute: Some(compute),
+    }
+}
+
+async fn probe_integration(domain: &str, socket_dir: &std::path::Path) -> PrimalStatus {
+    let socket = socket_dir.join(format!("{domain}.sock"));
+    let address = socket.to_string_lossy().into_owned();
+
+    if !socket.exists() {
+        return PrimalStatus {
+            connected: false,
+            address: Some(address.clone()),
+            last_seen: None,
+            error: Some(format!("socket not found: {address}")),
+        };
+    }
+
+    match tokio::time::timeout(PROBE_TIMEOUT, try_liveness_probe(&socket)).await {
+        Ok(Ok(())) => PrimalStatus::connected(Some(address)),
+        Ok(Err(e)) => PrimalStatus {
+            connected: false,
+            address: Some(address),
+            last_seen: None,
+            error: Some(e.to_string()),
+        },
+        Err(_) => PrimalStatus {
+            connected: false,
+            address: Some(address),
+            last_seen: None,
+            error: Some("liveness probe timed out".to_string()),
+        },
+    }
+}
+
+async fn try_liveness_probe(socket: &std::path::Path) -> std::io::Result<()> {
+    let stream = UnixStream::connect(socket).await?;
+    let (reader, mut writer) = stream.into_split();
+
+    let request = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "health.liveness",
+        "params": {},
+        "id": 1,
+    });
+    let mut line = serde_json::to_string(&request)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+    line.push('\n');
+    writer.write_all(line.as_bytes()).await?;
+    writer.flush().await?;
+
+    let mut buf = BufReader::new(reader);
+    let mut response = String::new();
+    buf.read_line(&mut response).await?;
+
+    let parsed: serde_json::Value = serde_json::from_str(&response)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+
+    if parsed.get("result").is_some() {
+        Ok(())
+    } else {
+        Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "no result in liveness response",
+        ))
     }
 }
 

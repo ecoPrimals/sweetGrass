@@ -15,6 +15,7 @@ pub use super::context::{
     ecop_vocab_uri, ecop_vocab_uri_with_reader,
 };
 use crate::hash::hex_decode;
+use crate::privacy::PrivacyMetadata;
 
 /// Content-addressed hash (e.g., "sha256:abc123...").
 ///
@@ -384,6 +385,10 @@ pub struct BraidMetadata {
         deserialize_with = "deserialize_json_value_map"
     )]
     pub custom: HashMap<String, serde_json::Value>,
+
+    /// Privacy controls for this braid.
+    #[serde(default)]
+    pub privacy: Option<PrivacyMetadata>,
 }
 
 /// Get current timestamp in nanoseconds since Unix epoch.

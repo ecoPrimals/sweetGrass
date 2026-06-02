@@ -1,10 +1,19 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.42 (June 2026)
+**Current Version**: v0.7.43 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.43 — Content Convergence + Privacy Integration + Health Probes (Wave 67d, June 2026)
+
+- [x] **redb content convergence** — `BY_HASH` evolved from `TableDefinition` (1:1) to `MultimapTableDefinition` (1:many); `get_all_by_hash` override returns all braids sharing a content hash; `remove_indexes` targets individual braid entries
+- [x] **postgres content convergence** — `get_all_by_hash` override with `fetch_all` on non-unique `data_hash` index
+- [x] **`PrivacyMetadata` integrated into braids** — `BraidMetadata.privacy: Option<PrivacyMetadata>` field; `BraidBuilder::privacy()` fluent setter; `braid.create` accepts `privacy` param; `braid.get` enforces access checks (Public/Authenticated/Private/Encrypted) using caller DID and `has_access()` from privacy module
+- [x] **`health_detailed` live probes** — `check_integrations()` evolved from static stubs to async UDS probes of `security.sock`, `provenance.sock`, `discovery.sock`, `compute.sock` via `health.liveness` JSON-RPC with timeout; real `connected` / `error` status
+- [x] **Privacy module serde evolution** — `PrivacyLevel` gains `#[serde(rename_all = "snake_case")]`; `PrivacyMetadata` gains `#[serde(default)]` for partial JSON deserialization
+- [x] 1,573 tests (0 failures), 56,673 LOC, 39 methods, 0 clippy warnings
 
 ### v0.7.42 — Deep Evolution: Stub Elimination + Error Chains + Store Parity (Wave 67c, June 2026)
 

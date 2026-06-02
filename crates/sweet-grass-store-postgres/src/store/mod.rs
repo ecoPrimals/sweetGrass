@@ -336,6 +336,27 @@ impl BraidStore for PostgresStore {
     }
 
     #[instrument(skip(self))]
+    async fn get_all_by_hash(
+        &self,
+        hash: &ContentHash,
+    ) -> sweet_grass_store::Result<Vec<Braid>> {
+        let rows = sqlx::query(
+            r"
+            SELECT braid_id, data_hash, mime_type, size, attributed_to,
+                   generated_at_time, braid_type, metadata, ecop,
+                   was_derived_from, was_generated_by, signature
+            FROM braids WHERE data_hash = $1
+            ",
+        )
+        .bind(hash.as_str())
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| StoreError::Internal(e.to_string()))?;
+
+        rows.iter().map(row_to_braid).collect()
+    }
+
+    #[instrument(skip(self))]
     async fn delete(&self, id: &BraidId) -> sweet_grass_store::Result<bool> {
         let result = sqlx::query("DELETE FROM braids WHERE braid_id = $1")
             .bind(id.as_str())

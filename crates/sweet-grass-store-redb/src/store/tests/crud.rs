@@ -16,6 +16,30 @@ async fn test_put_and_get() {
 }
 
 #[tokio::test]
+async fn test_content_convergence_get_all_by_hash() {
+    let (store, _temp) = create_test_store();
+    let mut braid1 = create_test_braid("sha256:converged");
+    let mut braid2 = BraidBuilder::default()
+        .data_hash("sha256:converged")
+        .mime_type("text/plain")
+        .size(100)
+        .attributed_to(Did::new("did:key:z6MkBob"))
+        .build()
+        .expect("build braid");
+    braid1.id = BraidId::new();
+    braid2.id = BraidId::new();
+
+    store.put(&braid1).await.expect("put first");
+    store.put(&braid2).await.expect("put second");
+
+    let all = store
+        .get_all_by_hash(&braid1.data_hash)
+        .await
+        .expect("get_all");
+    assert_eq!(all.len(), 2);
+}
+
+#[tokio::test]
 async fn test_get_by_hash() {
     let (store, _temp) = create_test_store();
     let braid = create_test_braid("sha256:hash_test");

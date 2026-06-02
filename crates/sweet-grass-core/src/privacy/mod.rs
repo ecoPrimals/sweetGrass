@@ -34,6 +34,7 @@ use crate::agent::Did;
 
 /// Privacy visibility level for Braids and metadata.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum PrivacyLevel {
     /// Fully public - visible to all.
@@ -208,6 +209,7 @@ pub enum ProcessingType {
 
 /// Privacy metadata attached to Braids.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct PrivacyMetadata {
     /// Visibility level.
     pub visibility: PrivacyLevel,

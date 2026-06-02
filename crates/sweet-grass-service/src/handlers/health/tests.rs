@@ -11,6 +11,7 @@ use axum::extract::State;
 use std::sync::Arc;
 use sweet_grass_core::agent::Did;
 use sweet_grass_store::{BraidStore, MemoryStore};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
 
 use crate::backend::{BraidBackend, CountFailingStore};
 
@@ -89,8 +90,13 @@ async fn test_health_detailed() {
     assert!(result.is_ok());
 
     let response = result.unwrap();
-    assert_eq!(response.status, "healthy");
+    assert_eq!(response.status, "degraded");
     assert!(response.integrations.is_some());
+    let integrations = response.integrations.as_ref().unwrap();
+    assert!(integrations.signing.is_some());
+    assert!(integrations.anchoring.is_some());
+    assert!(integrations.discovery.is_some());
+    assert!(integrations.compute.is_some());
 }
 
 #[test]
@@ -195,31 +201,54 @@ async fn test_readiness_unavailable_when_store_fails() {
     assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
 }
 
-#[test]
-fn test_integrations_discovery_unknown_when_not_configured() {
-    let state = create_test_state();
-    let integrations = check_integrations(&state);
+#[tokio::test]
+async fn test_integrations_probe_missing_socket() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let mut state = create_test_state();
+    state.socket_dir = dir.path().to_path_buf();
+
+    let integrations = check_integrations(&state).await;
     let discovery = integrations
         .discovery
         .as_ref()
         .expect("should have discovery");
     assert!(!discovery.connected);
-    assert!(discovery.address.is_none());
-    assert!(discovery.error.is_none());
+    assert!(discovery.address.is_some());
+    assert!(discovery.error.is_some());
 }
 
-#[test]
-fn test_integrations_discovery_configured_via_state() {
+#[tokio::test]
+async fn test_integrations_probe_live_socket() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let socket_path = dir.path().join("discovery.sock");
+
+    let listener = tokio::net::UnixListener::bind(&socket_path).expect("bind");
+    let server_handle = tokio::spawn(async move {
+        if let Ok((stream, _)) = listener.accept().await {
+            let (reader, mut writer) = stream.into_split();
+            let mut buf = tokio::io::BufReader::new(reader);
+            let mut line = String::new();
+            let _ = buf.read_line(&mut line).await;
+            let response = r#"{"jsonrpc":"2.0","result":{"status":"alive"},"id":1}"#;
+            let _ = writer
+                .write_all(format!("{response}\n").as_bytes())
+                .await;
+            let _ = writer.flush().await;
+        }
+    });
+
     let mut state = create_test_state();
-    state.discovery_address = Some("localhost:9999".to_string());
-    let integrations = check_integrations(&state);
+    state.socket_dir = dir.path().to_path_buf();
+
+    let integrations = check_integrations(&state).await;
     let discovery = integrations
         .discovery
         .as_ref()
         .expect("should have discovery");
-    assert!(!discovery.connected);
-    assert_eq!(discovery.address.as_deref(), Some("localhost:9999"));
-    assert!(discovery.error.is_some());
+    assert!(discovery.connected);
+    assert!(discovery.error.is_none());
+
+    server_handle.abort();
 }
 
 #[test]

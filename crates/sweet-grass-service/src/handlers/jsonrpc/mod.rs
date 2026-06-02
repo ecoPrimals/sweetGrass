@@ -583,12 +583,24 @@ fn extract_bearer_token(params: &serde_json::Value) -> Option<String> {
 ///
 /// Currently extracts only `_bearer_token`; connection origin defaults
 /// to `Loopback` until transport-layer callers thread real peer info.
-fn caller_context_from_params(params: &serde_json::Value) -> crate::method_gate::CallerContext {
+pub(crate) fn caller_context_from_params(
+    params: &serde_json::Value,
+) -> crate::method_gate::CallerContext {
     crate::method_gate::CallerContext {
         bearer_token: extract_bearer_token(params),
         peer: None,
         origin: crate::method_gate::ConnectionOrigin::Loopback,
     }
+}
+
+/// Extract `_caller_did` from JSON-RPC params (if present).
+pub(crate) fn caller_did_from_params(
+    params: &serde_json::Value,
+) -> Option<sweet_grass_core::agent::Did> {
+    params
+        .get("_caller_did")
+        .and_then(serde_json::Value::as_str)
+        .map(sweet_grass_core::agent::Did::new)
 }
 
 /// Dispatch with protocol/application error classification.
