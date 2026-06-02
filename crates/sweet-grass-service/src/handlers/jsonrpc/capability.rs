@@ -254,6 +254,7 @@ pub(super) async fn handle_tools_call(
     let handler = super::find_handler(&call.name).ok_or_else(|| DispatchError {
         code: error_code::METHOD_NOT_FOUND,
         message: format!("Tool not found: {}", call.name),
+        source_detail: None,
     })?;
 
     let result = handler(state, call.arguments).await?;

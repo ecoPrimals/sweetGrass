@@ -139,6 +139,7 @@ pub(super) async fn handle_braid_get(
         None => Err(DispatchError {
             code: error_code::NOT_FOUND,
             message: format!("Braid not found: {}", p.id),
+            source_detail: None,
         }),
     }
 }
@@ -162,6 +163,7 @@ pub(super) async fn handle_braid_get_by_hash(
         None => Err(DispatchError {
             code: error_code::NOT_FOUND,
             message: format!("No braid with hash: {}", p.hash),
+            source_detail: None,
         }),
     }
 }
@@ -207,6 +209,7 @@ pub(super) async fn handle_braid_commit(
         .ok_or_else(|| DispatchError {
             code: error_code::NOT_FOUND,
             message: format!("Braid not found: {}", p.braid_id),
+            source_detail: None,
         })?;
 
     let uuid = braid
@@ -261,6 +264,7 @@ pub(super) async fn handle_braid_anchor(
         .ok_or_else(|| DispatchError {
             code: error_code::NOT_FOUND,
             message: format!("Braid not found: {}", p.braid_id),
+            source_detail: None,
         })?;
 
     let hash_bytes = braid
@@ -270,6 +274,7 @@ pub(super) async fn handle_braid_anchor(
         .ok_or_else(|| DispatchError {
             code: error_code::INVALID_PARAMS,
             message: "Content hash must be sha256 (32 bytes)".to_string(),
+            source_detail: None,
         })?;
 
     let preimage = braid.compute_anchor_preimage(&p.branch_id);

@@ -11,7 +11,7 @@ use crate::entity::EntityReference;
 use crate::dehydration::Witness;
 
 use super::types::{
-    BraidContext, BraidId, BraidMetadata, BraidType, ContentHash, EcoPrimalsAttributes,
+    BraidContext, BraidId, BraidMetadata, BraidType, ContentHash, EcoPrimalsAttributes, Timestamp,
 };
 
 /// Builder for creating Braids.
@@ -26,6 +26,7 @@ pub struct BraidBuilder {
     was_attributed_to: Option<Did>,
     metadata: BraidMetadata,
     ecop: EcoPrimalsAttributes,
+    generated_at_time: Option<Timestamp>,
 }
 
 impl BraidBuilder {
@@ -92,6 +93,13 @@ impl BraidBuilder {
         self
     }
 
+    /// Set the generation timestamp.
+    #[must_use]
+    pub const fn generated_at_time(mut self, ts: Timestamp) -> Self {
+        self.generated_at_time = Some(ts);
+        self
+    }
+
     /// Build the Braid.
     ///
     /// # Errors
@@ -122,7 +130,9 @@ impl BraidBuilder {
             was_generated_by: self.was_generated_by,
             was_derived_from: self.was_derived_from,
             was_attributed_to,
-            generated_at_time: super::types::current_timestamp_nanos(),
+            generated_at_time: self
+                .generated_at_time
+                .unwrap_or_else(super::types::current_timestamp_nanos),
             metadata: self.metadata,
             ecop: self.ecop,
             witness: Witness::unsigned(),

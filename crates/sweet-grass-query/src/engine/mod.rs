@@ -7,7 +7,7 @@
 
 use std::sync::Arc;
 use sweet_grass_core::{Braid, BraidId, ContentHash, agent::Did, entity::EntityReference};
-use sweet_grass_factory::{AttributionCalculator, AttributionChain};
+use sweet_grass_factory::{AttributionCalculator, AttributionChain, AttributionConfig};
 use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder, QueryResult};
 
 use crate::Result;
@@ -217,7 +217,35 @@ impl<S: BraidStore> QueryEngine<S> {
     ///
     /// Returns an error if the entity is not found or provenance graph building fails.
     pub async fn attribution_chain(&self, hash: &ContentHash) -> Result<AttributionChain> {
-        self.full_attribution_chain(hash, None).await
+        self.attribution_chain_with_config(hash, AttributionConfig::default())
+            .await
+    }
+
+    /// Calculate the attribution chain with explicit calculator configuration.
+    ///
+    /// Uses `config.max_depth` for provenance graph traversal and
+    /// `config.decay_factor` for derivation-weighted share decay.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the entity is not found or provenance graph building fails.
+    pub async fn attribution_chain_with_config(
+        &self,
+        hash: &ContentHash,
+        config: AttributionConfig,
+    ) -> Result<AttributionChain> {
+        let graph = self
+            .provenance_graph(EntityReference::by_hash(hash), Some(config.max_depth))
+            .await?;
+
+        let braid = graph
+            .root_braid()
+            .ok_or_else(|| QueryError::NotFound(hash.clone()))?;
+
+        let resolver = |h: &ContentHash| graph.entities.get(h.as_str()).cloned();
+
+        let calculator = AttributionCalculator::with_config(config);
+        Ok(calculator.calculate_with_derivations(braid, resolver))
     }
 
     /// Calculate attribution for an entity including its derivation chain,
@@ -231,18 +259,11 @@ impl<S: BraidStore> QueryEngine<S> {
         hash: &ContentHash,
         depth: Option<u32>,
     ) -> Result<AttributionChain> {
-        let graph = self
-            .provenance_graph(EntityReference::by_hash(hash), depth)
-            .await?;
-
-        let braid = graph
-            .root_braid()
-            .ok_or_else(|| QueryError::NotFound(hash.clone()))?;
-
-        let resolver = |h: &ContentHash| graph.entities.get(h.as_str()).cloned();
-
-        let calculator = AttributionCalculator::new();
-        Ok(calculator.calculate_with_derivations(braid, resolver))
+        let mut config = AttributionConfig::default();
+        if let Some(d) = depth {
+            config.max_depth = d;
+        }
+        self.attribution_chain_with_config(hash, config).await
     }
 
     /// Get contributions summary for an agent.

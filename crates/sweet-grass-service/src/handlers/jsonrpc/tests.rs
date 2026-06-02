@@ -371,6 +371,12 @@ async fn test_lifecycle_status_returns_running() {
     assert_eq!(result["status"], "running");
     assert!(result["version"].is_string());
     assert!(result["gate_mode"].is_string());
+    assert!(result["uptime_secs"].is_number());
+    assert!(result["method_count"].is_number());
+    assert!(result["capabilities_count"].is_number());
+    assert_eq!(result["store_backend"], "memory");
+    assert_eq!(result["method_count"], METHODS.len());
+    assert_eq!(result["capabilities_count"], sweet_grass_core::niche::CAPABILITIES.len());
 }
 
 // ==================== braid domain extended ====================
@@ -527,6 +533,10 @@ fn test_internal_error() {
     let err = internal("something went wrong");
     assert_eq!(err.code, error_code::INTERNAL_ERROR);
     assert!(err.message.contains("something went wrong"));
+    assert_eq!(
+        err.source_detail.as_deref(),
+        Some("something went wrong")
+    );
 }
 
 // ==================== DispatchOutcome ====================

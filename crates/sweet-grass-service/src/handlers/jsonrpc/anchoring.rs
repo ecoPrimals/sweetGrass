@@ -42,6 +42,7 @@ pub(super) async fn handle_anchor_braid(
         .ok_or_else(|| DispatchError {
             code: error_code::NOT_FOUND,
             message: format!("Braid not found: {}", p.braid_id),
+            source_detail: None,
         })?;
 
     let hash_bytes = braid
@@ -51,6 +52,7 @@ pub(super) async fn handle_anchor_braid(
         .ok_or_else(|| DispatchError {
             code: error_code::INVALID_PARAMS,
             message: "Content hash must be sha256 (32 bytes)".to_string(),
+            source_detail: None,
         })?;
 
     let uuid_str = p
@@ -114,6 +116,7 @@ pub(super) async fn handle_verify_anchor(
         .ok_or_else(|| DispatchError {
             code: error_code::NOT_FOUND,
             message: format!("Braid not found: {}", p.braid_id),
+            source_detail: None,
         })?;
 
     let has_witness = braid.witness.is_signed();

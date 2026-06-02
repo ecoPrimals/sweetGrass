@@ -210,6 +210,30 @@ async fn test_attribution_chain_invalid_params() {
     assert_eq!(err.code, error_code::INVALID_PARAMS);
 }
 
+#[tokio::test]
+async fn test_attribution_chain_with_config() {
+    let state = test_state();
+    create_braid_for_attribution(&state, "sha256:attrconfig").await;
+    let result = dispatch(
+        &state,
+        "attribution.chain",
+        serde_json::json!({
+            "hash": "sha256:attrconfig",
+            "config": {
+                "max_depth": 10,
+                "decay_factor": 0.85,
+            },
+        }),
+    )
+    .await;
+    assert!(
+        result.is_ok(),
+        "attribution.chain with config should succeed: {result:?}"
+    );
+    let v = result.unwrap();
+    assert!(v["contributors"].is_array());
+}
+
 // ==================== attribution.witness (JH-5 Phase 3) ====================
 
 #[tokio::test]
@@ -234,6 +258,7 @@ async fn test_attribution_witness_success() {
     assert_eq!(v["event_type"], "security");
     assert!(v["witnessed_at"].is_string());
     assert!(v["chain_depth"].is_number());
+    assert!(v["witness_braid_id"].is_string());
 }
 
 #[tokio::test]

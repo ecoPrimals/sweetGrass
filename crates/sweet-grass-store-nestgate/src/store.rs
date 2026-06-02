@@ -254,6 +254,18 @@ impl NestGateStore {
         {
             return false;
         }
+        if let Some(ref sp) = filter.source_primal {
+            match &braid.ecop.source_primal {
+                Some(p) if p.as_ref() == sp.as_str() => {},
+                _ => return false,
+            }
+        }
+        if let Some(ref n) = filter.niche {
+            match &braid.ecop.niche {
+                Some(niche) if niche.as_ref() == n.as_str() => {},
+                _ => return false,
+            }
+        }
         true
     }
 }
@@ -372,7 +384,9 @@ impl BraidStore for NestGateStore {
             && filter.created_after.is_none()
             && filter.created_before.is_none()
             && filter.mime_type.is_none()
-            && filter.tag.is_none();
+            && filter.tag.is_none()
+            && filter.source_primal.is_none()
+            && filter.niche.is_none();
 
         if is_default {
             let prefix = format!("{}:braid:", self.prefix);

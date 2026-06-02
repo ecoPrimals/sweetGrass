@@ -1,10 +1,22 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.41 (June 2026)
+**Current Version**: v0.7.42 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.42 — Deep Evolution: Stub Elimination + Error Chains + Store Parity (Wave 67c, June 2026)
+
+- [x] **tarpc `verify_anchor` evolved** — was returning `"pending_integration"` stub; now retrieves full braid, checks `witness.is_signed()`, returns `"signed"` or `"unanchored"` with `data_hash` and `generated_at_time` (parity with JSON-RPC handler)
+- [x] **`lifecycle.status` enriched** — now returns `uptime_secs`, `started_at`, `store_backend`, `method_count`, `capabilities_count` alongside existing status/version/gate_mode
+- [x] **`attribution.witness` persists braids** — creates attestation braid via `Braid::builder()` with attestation metadata; `witness_braid_id` returned in response
+- [x] **`attribution.chain` accepts config** — optional `{ config: { max_depth, decay_factor } }` parameter; `QueryEngine::attribution_chain_with_config()` merges overrides with defaults
+- [x] **`DispatchError` error chain preservation** — new `source_detail: Option<String>` field captures `{e:#}` alternate-formatted error chains; propagated to JSON-RPC error `data` field
+- [x] **`BraidBuilder::generated_at_time`** — fluent `const fn` setter for deterministic timestamps in replay/backfill scenarios; builder no longer hardcodes `now()`
+- [x] **NestGate filter parity** — `source_primal` and `niche` filters added to `matches_filter()`; `count()` fast-path updated; mirrors memory backend behavior
+- [x] **5 new `record_provenance` tests** — with vertices, empty vertices, vertex without agent, minimal params, pipeline merkle root verification
+- [x] 1,571 tests (0 failures), 56,356 LOC, 39 methods, 0 clippy warnings
 
 ### v0.7.41 — Provenance Trio Wiring + Anchor Verify Evolution (Wave 67b, June 2026)
 

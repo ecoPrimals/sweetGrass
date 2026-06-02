@@ -501,21 +501,32 @@ impl SweetGrassRpc for SweetGrassServer {
         _ctx: Context,
         braid_id: BraidId,
     ) -> Result<serde_json::Value, RpcError> {
-        let exists = self
+        let braid = self
             .store
-            .exists(&braid_id)
+            .get(&braid_id)
             .await
-            .map_err(|e| RpcError::Store(e.to_string()))?;
+            .map_err(|e| RpcError::Store(e.to_string()))?
+            .ok_or_else(|| RpcError::NotFound(format!("Braid not found: {braid_id}")))?;
 
-        if !exists {
-            return Err(RpcError::NotFound(format!("Braid not found: {braid_id}")));
+        let has_witness = braid.witness.is_signed();
+
+        let verification_status = if has_witness { "signed" } else { "unanchored" };
+
+        let mut response = serde_json::json!({
+            "braid_id": braid_id.as_str(),
+            "anchored": has_witness,
+            "verification_status": verification_status,
+            "data_hash": braid.data_hash.as_str(),
+            "generated_at_time": braid.generated_at_time.nanos(),
+        });
+
+        if has_witness
+            && let Ok(w) = serde_json::to_value(&braid.witness)
+        {
+            response["witness"] = w;
         }
 
-        Ok(serde_json::json!({
-            "braid_id": braid_id.as_str(),
-            "anchored": false,
-            "verification_status": "pending_integration",
-        }))
+        Ok(response)
     }
 
     async fn health_check(self, _ctx: Context) -> Result<HealthStatus, RpcError> {

@@ -133,6 +133,115 @@ async fn test_pipeline_attribute_empty_summaries() {
     );
 }
 
+// ==================== record_provenance domain ====================
+
+#[tokio::test]
+async fn test_record_provenance_with_vertices() {
+    let state = test_state();
+    let params = serde_json::json!({
+        "source_primal": "rhizocrypt",
+        "vertices": [
+            {
+                "session_id": "dag-session-1",
+                "vertex_id": "v001",
+                "event_type": "dag.event.append",
+                "agent": "did:key:z6MkRhizoAgent",
+                "timestamp": 1717300000000000000_u64
+            },
+            {
+                "session_id": "dag-session-1",
+                "vertex_id": "v002",
+                "event_type": "dag.event.append",
+                "agent": "did:key:z6MkRhizoAgent2",
+                "timestamp": 1717300001000000000_u64
+            }
+        ],
+        "agent_count": 2
+    });
+
+    let result = dispatch(&state, "contribution.record_provenance", params).await;
+    assert!(result.is_ok(), "record_provenance should succeed: {result:?}");
+    let resp = result.unwrap();
+    assert_eq!(resp["source_primal"], "rhizocrypt");
+    assert_eq!(resp["braids_created"], 2);
+    assert_eq!(resp["agent_count"], 2);
+    let ids = resp["braid_ids"].as_array().unwrap();
+    assert_eq!(ids.len(), 2);
+}
+
+#[tokio::test]
+async fn test_record_provenance_empty_vertices() {
+    let state = test_state();
+    let params = serde_json::json!({
+        "source_primal": "rhizocrypt",
+        "vertices": [],
+        "agent_count": 0
+    });
+
+    let result = dispatch(&state, "contribution.record_provenance", params).await;
+    assert!(result.is_ok(), "empty vertices should create placeholder braid");
+    let resp = result.unwrap();
+    assert_eq!(resp["braids_created"], 1);
+}
+
+#[tokio::test]
+async fn test_record_provenance_vertex_without_agent() {
+    let state = test_state();
+    let params = serde_json::json!({
+        "source_primal": "loamspine",
+        "vertices": [{
+            "session_id": "ledger-session",
+            "vertex_id": "entry-001",
+            "event_type": "ledger.commit"
+        }],
+        "agent_count": 0
+    });
+
+    let result = dispatch(&state, "contribution.record_provenance", params).await;
+    assert!(result.is_ok(), "vertex without agent should use fallback DID");
+    let resp = result.unwrap();
+    assert_eq!(resp["braids_created"], 1);
+    assert_eq!(resp["source_primal"], "loamspine");
+}
+
+#[tokio::test]
+async fn test_record_provenance_minimal_params() {
+    let state = test_state();
+    let params = serde_json::json!({
+        "source_primal": "unknown-primal"
+    });
+
+    let result = dispatch(&state, "contribution.record_provenance", params).await;
+    assert!(result.is_ok(), "minimal params should succeed with placeholder");
+    let resp = result.unwrap();
+    assert_eq!(resp["braids_created"], 1);
+}
+
+// ==================== pipeline merkle root verification ====================
+
+#[tokio::test]
+async fn test_pipeline_attribute_populates_merkle_root() {
+    let state = test_state();
+    let params = serde_json::json!({
+        "session_id": "merkle-test-session",
+        "agent_did": "did:key:z6MkMerkleAgent",
+        "agent_summaries": [
+            {"agent_did": "did:key:z6MkContrib1", "description": "primary", "weight": 1.0}
+        ]
+    });
+
+    let result = dispatch(&state, "pipeline.attribute", params).await.unwrap();
+    let merkle = result["dehydration_merkle_root"].as_str().unwrap();
+    assert!(!merkle.is_empty(), "merkle root should not be empty");
+    assert_eq!(merkle.len(), 64, "SHA-256 hex should be 64 chars");
+
+    let commit = result["commit_ref"].as_str().unwrap();
+    assert!(
+        commit.starts_with("sweetgrass:pipeline:merkle-test-session:"),
+        "commit_ref should include session ID"
+    );
+}
+
 // ==================== Extended Coverage ====================
 
 #[tokio::test]

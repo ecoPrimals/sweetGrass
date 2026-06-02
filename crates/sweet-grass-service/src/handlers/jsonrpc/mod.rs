@@ -52,6 +52,8 @@ use axum::response::{IntoResponse, Response};
 use serde::Serialize;
 use tracing::instrument;
 
+use sweet_grass_core::niche;
+
 use crate::state::AppState;
 
 /// JSON-RPC 2.0 error codes per specification.
@@ -131,13 +133,22 @@ impl JsonRpcResponse {
     }
 
     fn error(id: serde_json::Value, code: i64, message: impl Into<String>) -> Self {
+        Self::error_with_data(id, code, message, None)
+    }
+
+    fn error_with_data(
+        id: serde_json::Value,
+        code: i64,
+        message: impl Into<String>,
+        data: Option<serde_json::Value>,
+    ) -> Self {
         Self {
             jsonrpc: JSONRPC_VERSION,
             result: None,
             error: Some(JsonRpcError {
                 code,
                 message: message.into(),
-                data: None,
+                data,
             }),
             id,
         }
@@ -151,11 +162,16 @@ impl JsonRpcResponse {
 pub(crate) struct DispatchError {
     pub code: i64,
     pub message: String,
+    pub source_detail: Option<String>,
 }
 
 impl From<(i64, String)> for DispatchError {
     fn from((code, message): (i64, String)) -> Self {
-        Self { code, message }
+        Self {
+            code,
+            message,
+            source_detail: None,
+        }
     }
 }
 
@@ -178,7 +194,11 @@ pub(crate) enum DispatchOutcome {
     /// Protocol violation — the request never reached a handler.
     ProtocolError { code: i64, message: String },
     /// Handler ran but returned a domain error.
-    ApplicationError { code: i64, message: String },
+    ApplicationError {
+        code: i64,
+        message: String,
+        source_detail: Option<String>,
+    },
 }
 
 impl DispatchOutcome {
@@ -201,8 +221,14 @@ impl DispatchOutcome {
     fn into_response(self, id: serde_json::Value) -> JsonRpcResponse {
         match self {
             Self::Success(value) => JsonRpcResponse::success(id, value),
-            Self::ProtocolError { code, message } | Self::ApplicationError { code, message } => {
-                JsonRpcResponse::error(id, code, message)
+            Self::ProtocolError { code, message } => JsonRpcResponse::error(id, code, message),
+            Self::ApplicationError {
+                code,
+                message,
+                source_detail,
+            } => {
+                let data = source_detail.map(|detail| serde_json::json!({ "source_detail": detail }));
+                JsonRpcResponse::error_with_data(id, code, message, data)
             },
         }
     }
@@ -535,6 +561,7 @@ async fn dispatch(state: &AppState, method: &str, params: serde_json::Value) -> 
         None => Err(DispatchError {
             code: error_code::METHOD_NOT_FOUND,
             message: format!("Method not found: {method}"),
+            source_detail: None,
         }),
     }
 }
@@ -598,6 +625,7 @@ async fn dispatch_classified(
         Err(e) => DispatchOutcome::ApplicationError {
             code: e.code,
             message: e.message,
+            source_detail: e.source_detail,
         },
     }
 }
@@ -614,12 +642,27 @@ fn handle_lifecycle_status(state: &AppState, _params: serde_json::Value) -> Disp
         .self_knowledge
         .as_ref()
         .map_or("sweetgrass", |sk| sk.name.as_str());
-    Ok(serde_json::json!({
+    let uptime_secs = state
+        .self_knowledge
+        .as_ref()
+        .map_or(0, |sk| sk.uptime().as_secs());
+    let started_at = state.self_knowledge.as_ref().map(|sk| {
+        chrono::DateTime::<chrono::Utc>::from(sk.established_at).to_rfc3339()
+    });
+    let mut response = serde_json::json!({
         "status": "running",
         "primal": name,
         "version": version,
         "gate_mode": state.method_gate.mode().as_str(),
-    }))
+        "uptime_secs": uptime_secs,
+        "method_count": METHODS.len(),
+        "capabilities_count": niche::CAPABILITIES.len(),
+        "store_backend": state.store_backend,
+    });
+    if let Some(started_at) = started_at {
+        response["started_at"] = serde_json::Value::String(started_at);
+    }
+    Ok(response)
 }
 
 // ==================== Auth Introspection (JH-0) ====================
@@ -680,6 +723,7 @@ pub(crate) fn internal(e: impl std::fmt::Display) -> DispatchError {
     DispatchError {
         code: error_code::INTERNAL_ERROR,
         message: e.to_string(),
+        source_detail: Some(format!("{e:#}")),
     }
 }
 
@@ -692,6 +736,7 @@ pub(crate) fn parse_params<T: serde::de::DeserializeOwned>(
     serde_json::from_value(params).map_err(|e| DispatchError {
         code: error_code::INVALID_PARAMS,
         message: format!("Invalid params: {e}"),
+        source_detail: None,
     })
 }
 
@@ -702,6 +747,7 @@ pub(crate) fn to_value<T: Serialize>(v: &T) -> DispatchResult {
     serde_json::to_value(v).map_err(|e| DispatchError {
         code: error_code::INTERNAL_ERROR,
         message: format!("Serialization error: {e}"),
+        source_detail: None,
     })
 }
 
