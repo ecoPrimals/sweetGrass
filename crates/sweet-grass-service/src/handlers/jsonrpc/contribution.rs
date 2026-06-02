@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Contribution domain handlers: record, `record_session`, `record_dehydration`,
-//! `pipeline_attribute`.
+//! `record_provenance`, `pipeline_attribute`.
 //!
 //! Wire types for the pipeline handler are defined locally — sweetGrass owns
 //! its own types and communicates with trio partners via JSON-RPC, not shared
@@ -9,8 +9,9 @@
 
 use std::sync::Arc;
 
+use sha2::{Digest, Sha256};
 use sweet_grass_core::{
-    braid::{CompressionMeta, EcoPrimalsAttributes},
+    braid::{CompressionMeta, EcoPrimalsAttributes, Timestamp},
     contribution::{ContributionRecord, SessionContribution},
     dehydration::DehydrationSummary,
 };
@@ -70,6 +71,41 @@ struct PipelineResult {
     content_ref: Option<String>,
 }
 
+// ==================== Provenance chain wire types ====================
+
+/// Input to `contribution.record_provenance` — sent by rhizoCrypt's
+/// `ProvenanceNotifier::notify_provenance()` when a provenance chain
+/// is committed.
+///
+/// Fields mirror rhizoCrypt's `ProvenanceChain` serialization shape.
+/// Unknown fields are silently ignored by serde for forward compatibility.
+#[derive(Debug, serde::Deserialize)]
+struct RecordProvenanceRequest {
+    source_primal: String,
+    #[serde(default)]
+    vertices: Vec<ProvenanceVertexRef>,
+    #[serde(default)]
+    agent_count: usize,
+}
+
+/// A vertex reference from rhizoCrypt's provenance chain.
+///
+/// sweetGrass-owned mirror of rhizoCrypt's `VertexRef` — deserialized from
+/// JSON, no compile-time coupling.
+#[derive(Debug, serde::Deserialize)]
+struct ProvenanceVertexRef {
+    #[serde(default)]
+    session_id: String,
+    #[serde(default)]
+    vertex_id: String,
+    #[serde(default)]
+    event_type: String,
+    #[serde(default)]
+    agent: Option<String>,
+    #[serde(default)]
+    timestamp: u64,
+}
+
 // ==================== Handlers ====================
 
 /// Handle pipeline attribution request from the provenance trio pipeline.
@@ -126,13 +162,120 @@ pub(super) async fn handle_pipeline_attribute(
 
     let braid_ref = braid_ids.first().cloned();
 
+    let dehydration_merkle_root = {
+        let mut hasher = Sha256::new();
+        for id in &braid_ids {
+            hasher.update(id.as_bytes());
+        }
+        format!("{:x}", hasher.finalize())
+    };
+
+    let commit_ref = format!(
+        "sweetgrass:pipeline:{}:{}",
+        request.session_id,
+        &dehydration_merkle_root[..16]
+    );
+
     to_value(&PipelineResult {
-        dehydration_merkle_root: String::new(),
-        commit_ref: String::new(),
+        dehydration_merkle_root,
+        commit_ref,
         braid_ref,
         signature: None,
         content_ref: None,
     })
+}
+
+/// Record provenance chain events from a trio partner (typically rhizoCrypt).
+///
+/// Creates one attribution braid per vertex with an agent DID, preserving
+/// the DAG session reference and event type in `EcoPrimalsAttributes`.
+/// If no vertices carry agent attribution, a single summary braid is
+/// created from the first vertex (or a synthetic placeholder).
+pub(super) async fn handle_record_provenance(
+    state: &AppState,
+    params: serde_json::Value,
+) -> DispatchResult {
+    let request: RecordProvenanceRequest = parse_params(params)?;
+
+    let mut braids_created = 0_usize;
+    let mut braid_ids = Vec::new();
+
+    let session_ref = request
+        .vertices
+        .first()
+        .map(|v| v.session_id.clone())
+        .unwrap_or_default();
+
+    for vertex in &request.vertices {
+        let agent = vertex
+            .agent
+            .as_deref()
+            .unwrap_or(sweet_grass_core::identity::UNKNOWN_AGENT_DID);
+        let agent_did = sweet_grass_core::agent::Did::new(agent);
+
+        let data_hash = if vertex.vertex_id.is_empty() {
+            format!("provenance:{}:{}", request.source_primal, vertex.session_id)
+        } else {
+            format!(
+                "provenance:{}:{}:{}",
+                request.source_primal, vertex.session_id, vertex.vertex_id
+            )
+        };
+
+        let mut metadata = sweet_grass_core::braid::BraidMetadata::default();
+        if vertex.timestamp > 0 {
+            metadata.custom.insert(
+                "vertex_timestamp".to_string(),
+                serde_json::json!(Timestamp::new(vertex.timestamp).nanos()),
+            );
+        }
+
+        let braid = sweet_grass_core::Braid::builder()
+            .data_hash(data_hash)
+            .mime_type(sweet_grass_core::identity::MIME_OCTET_STREAM)
+            .size(0)
+            .attributed_to(agent_did)
+            .metadata(metadata)
+            .ecop(EcoPrimalsAttributes {
+                source_primal: Some(Arc::from(request.source_primal.as_str())),
+                session_ref: Some(session_ref.clone()),
+                niche: Some(Arc::from(vertex.event_type.as_str())),
+                ..EcoPrimalsAttributes::default()
+            })
+            .build()
+            .map_err(internal)?;
+
+        state.store.put(&braid).await.map_err(internal)?;
+        braid_ids.push(braid.id.to_string());
+        braids_created += 1;
+    }
+
+    if braids_created == 0 {
+        let agent_did = sweet_grass_core::agent::Did::new(
+            sweet_grass_core::identity::UNKNOWN_AGENT_DID,
+        );
+        let braid = sweet_grass_core::Braid::builder()
+            .data_hash(format!("provenance:{}:empty", request.source_primal))
+            .mime_type(sweet_grass_core::identity::MIME_OCTET_STREAM)
+            .size(0)
+            .attributed_to(agent_did)
+            .ecop(EcoPrimalsAttributes {
+                source_primal: Some(Arc::from(request.source_primal.as_str())),
+                ..EcoPrimalsAttributes::default()
+            })
+            .build()
+            .map_err(internal)?;
+        state.store.put(&braid).await.map_err(internal)?;
+        braid_ids.push(braid.id.to_string());
+        braids_created = 1;
+    }
+
+    to_value(&serde_json::json!({
+        "source_primal": request.source_primal,
+        "braids_created": braids_created,
+        "braid_ids": braid_ids,
+        "agent_count": request.agent_count,
+    }))
 }
 
 pub(super) async fn handle_record_contribution(

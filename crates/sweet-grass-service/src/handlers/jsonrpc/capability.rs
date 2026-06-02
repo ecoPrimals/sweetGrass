@@ -198,6 +198,23 @@ pub(super) fn handle_tools_list(_state: &AppState, _params: serde_json::Value) -
             }),
         },
         McpTool {
+            name: "contribution.record_provenance",
+            description: "Record provenance chain events from a trio partner (vertices with agent attribution)",
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "source_primal": {"type": "string", "description": "Originating primal (e.g. rhizocrypt)"},
+                    "vertices": {
+                        "type": "array",
+                        "items": {"type": "object"},
+                        "description": "Vertex references from the provenance chain"
+                    },
+                    "agent_count": {"type": "integer", "description": "Number of distinct agents in chain"},
+                },
+                "required": ["source_primal"]
+            }),
+        },
+        McpTool {
             name: "health.check",
             description: "Check sweetGrass health status including store and integration status",
             input_schema: serde_json::json!({"type": "object"}),

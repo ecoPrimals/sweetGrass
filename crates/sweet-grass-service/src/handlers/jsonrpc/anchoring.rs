@@ -91,24 +91,48 @@ pub(super) async fn handle_anchor_braid(
     to_value(&response)
 }
 
+/// Verify the anchor status of a braid.
+///
+/// Retrieves the full braid and inspects its witness field to determine
+/// whether it has been cryptographically signed (tower-level anchoring).
+/// Returns `"signed"` when a witness signature is present, or
+/// `"unanchored"` when the braid exists but has no witness.
+///
+/// Full loamSpine ledger verification (cross-primal anchor proof) will
+/// be wired in v0.8.0 via outbound trio clients.
 pub(super) async fn handle_verify_anchor(
     state: &AppState,
     params: serde_json::Value,
 ) -> DispatchResult {
     let p: VerifyAnchorParams = parse_params(params)?;
 
-    let exists = state.store.exists(&p.braid_id).await.map_err(internal)?;
-
-    if !exists {
-        return Err(DispatchError {
+    let braid = state
+        .store
+        .get(&p.braid_id)
+        .await
+        .map_err(internal)?
+        .ok_or_else(|| DispatchError {
             code: error_code::NOT_FOUND,
             message: format!("Braid not found: {}", p.braid_id),
-        });
+        })?;
+
+    let has_witness = braid.witness.is_signed();
+
+    let verification_status = if has_witness { "signed" } else { "unanchored" };
+
+    let mut response = serde_json::json!({
+        "braid_id": p.braid_id.as_str(),
+        "anchored": has_witness,
+        "verification_status": verification_status,
+        "data_hash": braid.data_hash.as_str(),
+        "generated_at_time": braid.generated_at_time.nanos(),
+    });
+
+    if has_witness
+        && let Ok(w) = serde_json::to_value(&braid.witness)
+    {
+        response["witness"] = w;
     }
 
-    to_value(&serde_json::json!({
-        "braid_id": p.braid_id.as_str(),
-        "anchored": false,
-        "verification_status": "pending_integration",
-    }))
+    to_value(&response)
 }

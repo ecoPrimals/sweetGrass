@@ -92,7 +92,7 @@ async fn test_verify_anchor() {
     .await
     .unwrap();
     assert_eq!(result["anchored"], false);
-    assert_eq!(result["verification_status"], "pending_integration");
+    assert_eq!(result["verification_status"], "unanchored");
 }
 
 #[tokio::test]
@@ -239,7 +239,9 @@ async fn test_anchoring_verify_success() {
     .await
     .unwrap();
     assert_eq!(result["anchored"], false);
-    assert_eq!(result["verification_status"], "pending_integration");
+    assert_eq!(result["verification_status"], "unanchored");
+    assert!(result["data_hash"].is_string());
+    assert!(result["generated_at_time"].is_number());
 }
 
 #[tokio::test]

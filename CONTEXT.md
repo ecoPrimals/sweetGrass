@@ -64,7 +64,7 @@ When sweetGrass is **unavailable** in a composition:
 - **DH-1 compliant:** Zero hardcoded `/tmp` in production code — all socket fallbacks use `std::env::temp_dir()` (respects `$TMPDIR`), enabling `ProtectSystem=strict` on VPS
 - **PID file:** Written alongside UDS socket (`sweetgrass.pid`) for instant liveness checks (`kill(pid, 0)`) — eliminates 100ms connect-probe overhead for downstream discovery
 - **Neural API `primal.announce`:** Self-registers with biomeOS on startup — capabilities, cost hints, latency estimates, signal tier (nest). Graceful degradation when biomeOS unavailable.
-- **Source files:** 194 `.rs` files (55,825 LOC), max 763 lines (all files under 800-line threshold)
+- **Source files:** 194 `.rs` files (56,018 LOC), max 763 lines (all files under 800-line threshold)
 - **Property testing:** 25 proptest strategies across 7 crates
 - **Chaos/fault:** 11 attribution chaos + 17 service chaos + 9 fault injection
 - **Edition:** 2024 (`resolver = "3"`), MSRV 1.87

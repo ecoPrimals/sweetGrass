@@ -1,10 +1,19 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.40 (June 2026)
+**Current Version**: v0.7.41 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.41 — Provenance Trio Wiring + Anchor Verify Evolution (Wave 67b, June 2026)
+
+- [x] **`contribution.record_provenance` handler** — new JSON-RPC method accepting provenance chain events from rhizoCrypt `ProvenanceNotifier`; creates per-vertex attribution braids with session reference, event type, and agent DID; preserves vertex timestamps in metadata
+- [x] **`pipeline.attribute` wired** — `dehydration_merkle_root` now computed as SHA-256 of braid IDs; `commit_ref` generated as `sweetgrass:pipeline:{session}:{root_prefix}`; was returning empty strings
+- [x] **`anchoring.verify` evolved** — retrieves full braid and inspects witness signature status; returns `"signed"` or `"unanchored"` with `data_hash` and `generated_at_time`; was returning `"pending_integration"` stub
+- [x] **`braid.create` verified compatible** with projectNUCLEUS `trio.rs` wire format (`data_hash`, `name`, `mime_type`, `description`, `size`)
+- [x] **39 registered capability methods** (was 38) — `contribution.record_provenance` added to niche, operation_dependencies, MCP tools.list, and dispatch table
+- [x] 1,565 tests (0 failures), 56,018 LOC, 39 methods, 0 clippy warnings
 
 ### v0.7.40 — Type Safety + Handler Env Isolation (Wave 67, June 2026)
 

@@ -306,6 +306,10 @@ static METHODS: &[MethodEntry] = &[
         name: "contribution.record_dehydration",
         handler: |s, p| Box::pin(contribution::handle_record_dehydration(s, p)),
     },
+    MethodEntry {
+        name: "contribution.record_provenance",
+        handler: |s, p| Box::pin(contribution::handle_record_provenance(s, p)),
+    },
     // Pipeline (provenance trio coordination)
     MethodEntry {
         name: "pipeline.attribute",
