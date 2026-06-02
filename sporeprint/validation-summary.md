@@ -1,6 +1,6 @@
 +++
 title = "sweetGrass Validation Summary"
-description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,571 tests, 39 methods, zero production debt."
+description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,573 tests, 39 methods, zero production debt."
 date = 2026-05-20
 
 [taxonomies]

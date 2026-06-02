@@ -7,7 +7,7 @@
 
 [primal]
 name = "sweetgrass"
-version = "0.7.39"
+version = "0.7.43"
 description = "Semantic provenance and attribution layer"
 license = "AGPL-3.0-or-later"
 protocol = "jsonrpc-2.0"
@@ -35,7 +35,7 @@ methods = ["compress_session", "create_meta_braid"]
 
 [domains.contribution]
 description = "Contribution recording and dehydration intake"
-methods = ["record", "record_session", "record_dehydration"]
+methods = ["record", "record_session", "record_dehydration", "record_provenance"]
 
 [domains.health]
 description = "Health, liveness, and readiness probes"
@@ -178,6 +178,11 @@ cost = "medium"
 stability = "stable"
 
 [operations."contribution.record_dehydration"]
+depends_on = []
+cost = "medium"
+stability = "stable"
+
+[operations."contribution.record_provenance"]
 depends_on = []
 cost = "medium"
 stability = "stable"

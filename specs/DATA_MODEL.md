@@ -212,6 +212,29 @@ impl Default for BraidContext {
 }
 ```
 
+### 2.4 Braid Metadata
+
+```rust
+/// Domain-specific metadata
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct BraidMetadata {
+    /// Title or name
+    pub title: Option<Arc<str>>,
+    
+    /// Description
+    pub description: Option<Arc<str>>,
+    
+    /// Tags/keywords
+    pub tags: Vec<Arc<str>>,
+    
+    /// Custom key-value metadata
+    pub custom: HashMap<String, serde_json::Value>,
+    
+    /// Privacy controls for this braid
+    pub privacy: Option<PrivacyMetadata>,
+}
+```
+
 ---
 
 ## 3. Activity Structure

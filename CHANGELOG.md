@@ -7,6 +7,116 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.43] - 2026-06-02
+
+### Content Convergence + Privacy Integration + Health Probes (Wave 67d)
+
+#### Added
+- **redb content convergence** — `BY_HASH` evolved to `MultimapTableDefinition`
+  (1:many); `get_all_by_hash` returns all braids sharing a content hash;
+  `remove_indexes` targets individual braid entries.
+- **postgres content convergence** — `get_all_by_hash` override with `fetch_all`
+  on non-unique `data_hash` index.
+- **`PrivacyMetadata` in braids** — `BraidMetadata.privacy` field,
+  `BraidBuilder::privacy()` setter, `braid.create` accepts `privacy` param;
+  `braid.get` enforces Public/Authenticated/Private/Encrypted access via
+  caller DID and `has_access()`.
+- **`health_detailed` live probes** — `check_integrations()` probes
+  `security.sock`, `provenance.sock`, `discovery.sock`, `compute.sock` via
+  async `health.liveness` JSON-RPC with timeout; real `connected` / `error`
+  status.
+
+#### Changed
+- **`PrivacyLevel` serde** — `#[serde(rename_all = "snake_case")]`.
+- **`PrivacyMetadata` serde** — `#[serde(default)]` for partial JSON
+  deserialization.
+
+#### Metrics
+- Tests: 1,573 pass, 0 failures
+- Source files: 56,673 LOC, 39 methods
+- Clippy: 0 warnings (pedantic + nursery)
+
+## [0.7.42] - 2026-06-02
+
+### Deep Evolution: Stub Elimination + Error Chains + Store Parity (Wave 67c)
+
+#### Added
+- **`BraidBuilder::generated_at_time`** — fluent `const fn` setter for
+  deterministic timestamps in replay/backfill scenarios.
+- **`lifecycle.status` enriched** — returns `uptime_secs`, `started_at`,
+  `store_backend`, `method_count`, `capabilities_count`.
+- **5 new `record_provenance` tests** — with vertices, empty vertices,
+  vertex without agent, minimal params, pipeline merkle root verification.
+
+#### Changed
+- **tarpc `verify_anchor`** — retrieves full braid, checks witness signature;
+  returns `"signed"` or `"unanchored"` with `data_hash` and `generated_at_time`
+  (was `"pending_integration"` stub).
+- **`attribution.witness`** — persists attestation braids via `Braid::builder()`;
+  `witness_braid_id` returned in response.
+- **`attribution.chain`** — accepts optional `{ config: { max_depth, decay_factor } }`;
+  `QueryEngine::attribution_chain_with_config()` merges overrides with defaults.
+- **`DispatchError` error chains** — new `source_detail: Option<String>` field
+  captures alternate-formatted error chains; propagated to JSON-RPC error `data`.
+- **NestGate filter parity** — `source_primal` and `niche` filters in
+  `matches_filter()`; `count()` fast-path updated; mirrors memory backend.
+
+#### Metrics
+- Tests: 1,571 pass, 0 failures
+- Source files: 56,356 LOC, 39 methods
+- Clippy: 0 warnings (pedantic + nursery)
+
+## [0.7.41] - 2026-06-02
+
+### Provenance Trio Wiring + Anchor Verify Evolution (Wave 67b)
+
+#### Added
+- **`contribution.record_provenance` handler** — accepts provenance chain events
+  from rhizoCrypt `ProvenanceNotifier`; creates per-vertex attribution braids
+  with session reference, event type, and agent DID.
+- **39 registered capability methods** (was 38) — `contribution.record_provenance`
+  added to niche, operation_dependencies, MCP tools.list, and dispatch table.
+
+#### Changed
+- **`pipeline.attribute` wired** — `dehydration_merkle_root` computed as SHA-256
+  of braid IDs; `commit_ref` generated as
+  `sweetgrass:pipeline:{session}:{root_prefix}` (was empty strings).
+- **`anchoring.verify` evolved** — inspects witness signature status; returns
+  `"signed"` or `"unanchored"` with `data_hash` and `generated_at_time`
+  (was `"pending_integration"` stub).
+- **`braid.create` wire format** — verified compatible with projectNUCLEUS
+  `trio.rs` (`data_hash`, `name`, `mime_type`, `description`, `size`).
+
+#### Metrics
+- Tests: 1,565 pass, 0 failures
+- Source files: 56,018 LOC, 39 methods
+- Clippy: 0 warnings (pedantic + nursery)
+
+## [0.7.40] - 2026-06-01
+
+### Type Safety + Handler Env Isolation (Wave 67)
+
+#### Added
+- **`Timestamp` newtype** — evolved from `type Timestamp = u64` to
+  `struct Timestamp(u64)` with `#[serde(transparent)]`; `now()`, `new()`,
+  `ZERO`, `nanos()` API; prevents unit confusion across 25+ usage sites
+  in 6 crates.
+
+#### Changed
+- **Composition handler env isolation** — `probe_capability()` reads
+  `AppState.socket_dir` snapshotted at construction (not `std::env::var`
+  per request).
+- **Health handler env isolation** — `check_integrations()` reads
+  `AppState.discovery_address` snapshotted at construction.
+- **Test-only function gating** — `resolve_socket_dir()`,
+  `probe_capability_with_reader()`, `discover_capability_socket_with_reader()`
+  moved to `#[cfg(test)]`.
+
+#### Metrics
+- Tests: 1,565 pass, 0 failures
+- Source files: 55,825 LOC, 38 methods
+- Clippy: 0 warnings (pedantic + nursery)
+
 ## [0.7.39] - 2026-05-29
 
 ### `braid.anchor` Method (Wave 60)

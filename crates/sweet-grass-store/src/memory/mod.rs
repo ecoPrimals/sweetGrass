@@ -3,7 +3,7 @@
 //! In-memory Braid store implementation.
 //!
 //! This is the default store for development and testing.
-//! For production, use the `PostgreSQL` or `Oxigraph` backends.
+//! For production, use `redb` (local persistent), `NestGate` (distributed), or `PostgreSQL` backends.
 //!
 //! # Architecture
 //!

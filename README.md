@@ -88,10 +88,10 @@ sweetgrass socket        # Print UDS socket path
 | tarpc | `SWEETGRASS_TARPC_ADDRESS` | ~50μs | Primal-to-primal binary RPC |
 | TCP JSON-RPC | `SWEETGRASS_PORT` | ~1ms | Composition (`--port`, UniBin standard) |
 | UDS JSON-RPC | `SWEETGRASS_SOCKET` | ~0.5ms | biomeOS IPC (XDG-compliant) |
-| HTTP JSON-RPC | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | 38 methods, batch, MCP tools |
+| HTTP JSON-RPC | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | 39 methods, batch, MCP tools |
 | REST | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | Debug, admin (`/api/v1/braids`) |
 
-- **JSON-RPC 2.0**: 38 semantic methods (`braid.create`, `braid.commit`, `braid.anchor`, `contribution.record`, `identity.get`, `capabilities.list`, `tools.list`, `tools.call`, `health.check`, `auth.check`, `lifecycle.status`, `attribution.witness`, `composition.tower_health`, etc.) with batch requests and notification support
+- **JSON-RPC 2.0**: 39 semantic methods (`braid.create`, `braid.commit`, `braid.anchor`, `contribution.record`, `contribution.record_provenance`, `identity.get`, `capabilities.list`, `tools.list`, `tools.call`, `health.check`, `auth.check`, `lifecycle.status`, `attribution.witness`, `composition.tower_health`, etc.) with batch requests and notification support
 - **MCP tool exposure**: `tools.list` + `tools.call` for Squirrel AI coordination
 - **Capability-domain symlink**: `provenance.sock -> sweetgrass.sock` for Tier 3 filesystem discovery
 
@@ -195,7 +195,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | [CHANGELOG.md](./CHANGELOG.md) | Version history |
 | [specs/](./specs/) | Technical specifications (11 docs including Content Convergence) |
 | [docs/guides/](./docs/guides/) | Zero-copy, Tokio Console guides |
-| [showcase/](./showcase/) | Interactive demos |
+| [showcase/](./showcase/) | Interactive demos (fossilized) |
 
 ---
 
@@ -203,21 +203,21 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.39 |
-| Tests | 1,565 local + 56 Docker CI |
+| Version | v0.7.43 |
+| Tests | 1,573 local + 56 Docker CI |
 | Coverage | 90%+ line (91.7% with Postgres Docker) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
 | Max file size | 763 lines (limit: 1000) |
-| .rs files | 194 (56,018 LOC) |
+| .rs files | 194 (56,673 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |
 | cargo deny | advisories ok, bans ok, licenses ok, sources ok |
 | Benchmarks | 7 criterion groups |
-| JSON-RPC methods | 38 (batch + notification + MCP tool exposure + Wire Standard L3 + composition health + auth + lifecycle) |
+| JSON-RPC methods | 39 (batch + notification + MCP tool exposure + Wire Standard L3 + composition health + auth + lifecycle) |
 | Property-based tests | proptest (25 strategies across 7 crates) |
 | Chaos/fault tests | 11 attribution chaos + 17 service chaos + 9 fault injection |
 | BTSP | Phase 3 — `btsp.negotiate` + ChaCha20-Poly1305 AEAD framing; `detect_protocol` three-way multiplexer (EOF-resilient, PG-52) when `FAMILY_ID` set |

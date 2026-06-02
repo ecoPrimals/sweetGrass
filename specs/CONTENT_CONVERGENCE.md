@@ -1,7 +1,7 @@
 # SweetGrass — Content Convergence Specification
 
 **Version**: 0.1.0
-**Status**: Proposed
+**Status**: Implemented (v0.7.43)
 **Last Updated**: March 16, 2026
 **Depends On**: [DATA_MODEL.md](./DATA_MODEL.md), [ARCHITECTURE.md](./ARCHITECTURE.md)
 
@@ -9,11 +9,15 @@
 
 ## 1. Motivation
 
-SweetGrass indexes Braids by their `ContentHash` for O(1) retrieval. The current
-in-memory index uses a `HashMap<ContentHash, BraidId>` — a 1:1 mapping where
+SweetGrass indexes Braids by their `ContentHash` for O(1) retrieval. The pre-v0.7.43
+in-memory index used a `HashMap<ContentHash, BraidId>` — a 1:1 mapping where
 the last write wins. When two independent agents produce Braids with identical
 content hashes (same data, different provenance paths), the earlier index entry
-is silently overwritten.
+was silently overwritten.
+
+**Implemented (v0.7.43):** memory uses `HashMap<ContentHash, HashSet<BraidId>>`;
+redb uses `MultimapTableDefinition`; PostgreSQL uses a non-unique `data_hash`
+index with `get_all_by_hash`.
 
 This "collision" is not a bug in the hash function — it is **provenance convergence**:
 independent paths arriving at the same content. The convergence itself carries
@@ -48,7 +52,7 @@ sweetGrass with both substrates without privileging either.
 
 ---
 
-## 2. Current State
+## 2. Previous State (Pre-v0.7.43)
 
 ### 2.1 Content Hash Index (Lossy)
 

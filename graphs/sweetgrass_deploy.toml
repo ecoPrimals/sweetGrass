@@ -7,7 +7,7 @@
 
 [graph]
 name = "sweetgrass-attribution"
-version = "0.7.39"
+version = "0.7.43"
 description = "Semantic provenance and attribution layer"
 owner = "ecoPrimals"
 composition_model = "provenance-trio"
@@ -37,8 +37,8 @@ capabilities_provided = [
     "attribution.top_contributors", "attribution.witness",
     "provenance.graph", "provenance.export_provo", "provenance.export_graph_provo",
     "compression.compress_session", "compression.create_meta_braid",
-    "composition.tower_health",
-    "contribution.record", "contribution.record_session", "contribution.record_dehydration",
+    "composition.tower_health", "composition.node_health", "composition.nest_health", "composition.nucleus_health",
+    "contribution.record", "contribution.record_session", "contribution.record_dehydration", "contribution.record_provenance",
     "health.check", "health.liveness", "health.readiness",
     "anchoring.anchor", "anchoring.verify",
     "pipeline.attribute",

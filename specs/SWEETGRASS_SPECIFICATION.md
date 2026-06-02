@@ -1,6 +1,6 @@
 # SweetGrass — Semantic Provenance & Attribution Layer Specification
 
-**Version:** 0.7.39  
+**Version:** 0.7.43  
 **Status:** Architectural Specification  
 **Author:** ecoPrimals Project  
 **Date:** May 2026  
@@ -1310,7 +1310,7 @@ pub struct RewardDistribution {
 - [x] Criterion benchmarks (7 groups)
 - [x] Chaos and fault-injection tests
 - [x] Fuzz targets (3) and property tests (proptest)
-- [ ] Privacy features (module exists, integration pending)
+- [x] Privacy features (PrivacyMetadata on BraidMetadata, braid.create privacy param, braid.get access enforcement)
 - [ ] Security audit
 
 ### Planned: v0.8.0+ — Real Deployment
