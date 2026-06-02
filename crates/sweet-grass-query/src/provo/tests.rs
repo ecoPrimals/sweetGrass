@@ -12,6 +12,7 @@ use std::sync::Arc;
 use super::*;
 use sweet_grass_core::Timestamp;
 use sweet_grass_core::agent::Did;
+use sweet_grass_core::entity::EntityReference;
 
 fn make_test_braid(hash: &str, agent: &str) -> Braid {
     let did = Did::new(agent);
@@ -59,7 +60,10 @@ fn test_export_with_derivation() {
 
     let entity = &doc.graph[0];
     assert!(entity["wasDerivedFrom"].is_array());
-    assert_eq!(entity["wasDerivedFrom"].as_array().unwrap().len(), 2);
+    let derived = entity["wasDerivedFrom"].as_array().unwrap();
+    assert_eq!(derived.len(), 2);
+    assert_eq!(derived[0], "urn:braid:sha256:source1");
+    assert_eq!(derived[1], "urn:braid:sha256:source2");
 }
 
 #[test]
@@ -440,6 +444,154 @@ fn test_export_activity_with_associations_and_used() {
 }
 
 #[test]
+fn test_export_derivation_with_by_id_ref() {
+    use sweet_grass_core::braid::BraidId;
+
+    let mut braid = make_test_braid("sha256:derived", "did:key:z6MkTest");
+    braid.was_derived_from = vec![EntityReference::by_id(BraidId::from_string(
+        "urn:braid:uuid:parent-braid",
+    ))];
+
+    let exporter = ProvoExport::new();
+    let doc = exporter.export_braid(&braid).expect("should export");
+
+    let entity = &doc.graph[0];
+    let derived = entity["wasDerivedFrom"].as_array().unwrap();
+    assert_eq!(derived.len(), 1);
+    assert_eq!(derived[0], "urn:braid:uuid:parent-braid");
+}
+
+#[test]
+fn test_export_used_entity_references_use_urn_braid_ids() {
+    use sweet_grass_core::{
+        Activity,
+        activity::{ActivityType, UsedEntity},
+        entity::EntityReference,
+    };
+
+    let activity = Activity::builder(ActivityType::Derivation)
+        .uses(UsedEntity::new(EntityReference::by_hash("sha256:input")))
+        .build();
+
+    let mut braid = make_test_braid("sha256:used_ref", "did:key:z6MkTest");
+    braid.was_generated_by = Some(activity);
+
+    let exporter = ProvoExport::new();
+    let doc = exporter.export_braid(&braid).expect("should export");
+
+    let activity_node = doc
+        .graph
+        .iter()
+        .find(|n| n["@type"] == "Activity")
+        .expect("activity node");
+    let used = activity_node["used"].as_array().unwrap();
+    assert_eq!(used[0], "urn:braid:sha256:input");
+}
+
+#[test]
+fn test_export_acted_on_behalf_of() {
+    use sweet_grass_core::{
+        Activity,
+        activity::ActivityType,
+        agent::{AgentAssociation, AgentRole},
+    };
+
+    let activity = Activity::builder(ActivityType::Creation)
+        .associated_with(
+            AgentAssociation::new(Did::new("did:key:z6MkDelegate"), AgentRole::Orchestrator)
+                .on_behalf_of(Did::new("did:key:z6MkPrincipal")),
+        )
+        .build();
+
+    let mut braid = make_test_braid("sha256:delegation", "did:key:z6MkTest");
+    braid.was_generated_by = Some(activity);
+
+    let exporter = ProvoExport::new();
+    let doc = exporter.export_braid(&braid).expect("should export");
+
+    let activity_node = doc
+        .graph
+        .iter()
+        .find(|n| n["@type"] == "Activity")
+        .expect("activity node");
+    let associations = activity_node["wasAssociatedWith"].as_array().unwrap();
+    assert_eq!(
+        associations[0]["prov:actedOnBehalfOf"],
+        "did:key:z6MkPrincipal"
+    );
+}
+
+#[test]
+fn test_export_invalidated_at_time() {
+    let mut braid = make_test_braid("sha256:invalidated", "did:key:z6MkTest");
+    braid.invalidated_at_time = Some(Timestamp::new(1_703_203_200_000_000_000));
+
+    let exporter = ProvoExport::new();
+    let doc = exporter.export_braid(&braid).expect("should export");
+
+    let entity = &doc.graph[0];
+    assert!(entity["invalidatedAtTime"]
+        .as_str()
+        .unwrap()
+        .starts_with("2023-12-22"));
+}
+
+#[test]
+fn test_export_alternate_of() {
+    let mut braid = make_test_braid("sha256:convergent", "did:key:z6MkTest");
+    braid.alternate_of = vec![
+        EntityReference::by_hash("sha256:other-arrival"),
+        EntityReference::by_id(sweet_grass_core::braid::BraidId::from_string(
+            "urn:braid:uuid:other-braid",
+        )),
+    ];
+
+    let exporter = ProvoExport::new();
+    let doc = exporter.export_braid(&braid).expect("should export");
+
+    let entity = &doc.graph[0];
+    let alternates = entity["alternateOf"].as_array().unwrap();
+    assert_eq!(alternates.len(), 2);
+    assert_eq!(alternates[0], "urn:braid:sha256:other-arrival");
+    assert_eq!(alternates[1], "urn:braid:uuid:other-braid");
+}
+
+#[test]
+fn test_export_braid_type_mapping() {
+    use sweet_grass_core::braid::BraidType;
+
+    let activity = Braid::builder()
+        .data_hash("sha256:activity-type")
+        .mime_type("application/json")
+        .size(1)
+        .attributed_to(Did::new("did:key:z6MkTest"))
+        .braid_type(BraidType::Activity)
+        .build()
+        .expect("should build");
+
+    let exporter = ProvoExport::new();
+    let doc = exporter.export_braid(&activity).expect("should export");
+    assert_eq!(doc.graph[0]["@type"], "Activity");
+
+    let collection = Braid::builder()
+        .data_hash("sha256:collection-type")
+        .mime_type("application/json")
+        .size(1)
+        .attributed_to(Did::new("did:key:z6MkTest"))
+        .braid_type(BraidType::Collection {
+            member_count: 3,
+            summary_type: sweet_grass_core::braid::SummaryType::Custom {
+                criteria: "test".into(),
+            },
+        })
+        .build()
+        .expect("should build");
+
+    let doc = exporter.export_braid(&collection).expect("should export");
+    assert_eq!(doc.graph[0]["@type"], "Collection");
+}
+
+#[test]
 fn test_json_ld_document_serialization_roundtrip() {
     let mut doc = JsonLdDocument::new();
     doc.add_node(serde_json::json!({
@@ -506,5 +658,5 @@ fn test_export_derivation_with_external_ref() {
     let entity = &doc.graph[0];
     let derived = entity["wasDerivedFrom"].as_array().unwrap();
     assert_eq!(derived.len(), 1);
-    assert_eq!(derived[0], "sha256:has_hash");
+    assert_eq!(derived[0], "urn:braid:sha256:has_hash");
 }

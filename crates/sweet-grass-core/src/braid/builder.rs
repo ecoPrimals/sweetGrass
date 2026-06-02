@@ -29,6 +29,8 @@ pub struct BraidBuilder {
     privacy: Option<PrivacyMetadata>,
     ecop: EcoPrimalsAttributes,
     generated_at_time: Option<Timestamp>,
+    invalidated_at_time: Option<Timestamp>,
+    alternate_of: Vec<EntityReference>,
 }
 
 impl BraidBuilder {
@@ -109,6 +111,20 @@ impl BraidBuilder {
         self
     }
 
+    /// Set the invalidation timestamp.
+    #[must_use]
+    pub const fn invalidated_at_time(mut self, ts: Timestamp) -> Self {
+        self.invalidated_at_time = Some(ts);
+        self
+    }
+
+    /// Add an alternate representation reference.
+    #[must_use]
+    pub fn alternate_of(mut self, entity: EntityReference) -> Self {
+        self.alternate_of.push(entity);
+        self
+    }
+
     /// Build the Braid.
     ///
     /// # Errors
@@ -147,6 +163,8 @@ impl BraidBuilder {
             generated_at_time: self
                 .generated_at_time
                 .unwrap_or_else(super::types::current_timestamp_nanos),
+            invalidated_at_time: self.invalidated_at_time,
+            alternate_of: self.alternate_of,
             metadata,
             ecop: self.ecop,
             witness: Witness::unsigned(),

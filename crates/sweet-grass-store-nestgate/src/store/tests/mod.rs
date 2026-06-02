@@ -260,6 +260,26 @@ async fn get_by_hash_returns_none_for_missing() {
     handle.abort();
 }
 
+#[tokio::test]
+async fn test_content_convergence_get_all_by_hash() {
+    let (_mock, store, handle) = setup().await;
+    let mut braid1 = make_braid("sha256:converged", "did:key:z6MkA", "text/plain", 100);
+    let mut braid2 = make_braid("sha256:converged", "did:key:z6MkBob", "text/plain", 100);
+    braid1.id = sweet_grass_core::BraidId::new();
+    braid2.id = sweet_grass_core::BraidId::new();
+
+    store.put(&braid1).await.expect("put first");
+    store.put(&braid2).await.expect("put second");
+
+    let all = store
+        .get_all_by_hash(&braid1.data_hash)
+        .await
+        .expect("get_all");
+    assert_eq!(all.len(), 2);
+
+    handle.abort();
+}
+
 // ── Config, errors, client ──────────────────────────────────────────
 
 #[tokio::test]

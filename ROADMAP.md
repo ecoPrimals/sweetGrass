@@ -1,10 +1,19 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.43 (June 2026)
+**Current Version**: v0.7.44 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.44 — PROV-O Schema Completeness + Privacy Edge Cases + Store Parity (Wave 69, June 2026)
+
+- [x] **PROV-O schema evolution** — added `invalidated_at_time: Option<Timestamp>` (entity lifecycle), `alternate_of: Vec<EntityReference>` (content convergence PROV-O), fluent builder setters for both
+- [x] **PROV-O export fixes** — `wasDerivedFrom`/`used` references now emit consistent `urn:braid:` URIs matching entity `@id`; `EntityReference::ById` no longer silently dropped; `prov:actedOnBehalfOf` delegation exported when present; `@type` mapped from `BraidType` (Entity/Activity/Agent/Collection) instead of hardcoded `"Entity"`; `invalidatedAtTime`/`alternateOf` terms added to JSON-LD context
+- [x] **Privacy edge case tests** — 8 new tests covering all 5 visibility levels: Authenticated denied/allowed, Private denied/owner, Encrypted denied/owner, Public always, no-metadata backward compat
+- [x] **NestGate convergence parity** — `get_all_by_hash` override scans all keys and returns all matching braids; was using trait default (single result). Convergence test added.
+- [x] **Bincode compatibility** — removed `skip_serializing_if` on new Braid fields (incompatible with Bincode positional encoding); `#[serde(default)]` only
+- [x] 1,588 tests (0 failures), 57,176 LOC, 39 methods, 0 clippy warnings
 
 ### v0.7.43 — Content Convergence + Privacy Integration + Health Probes (Wave 67d, June 2026)
 

@@ -778,4 +778,6 @@ mod tests_contribution;
 #[cfg(test)]
 mod tests_protocol;
 #[cfg(test)]
+mod tests_privacy;
+#[cfg(test)]
 mod tests_provenance;

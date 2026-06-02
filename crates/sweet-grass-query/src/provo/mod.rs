@@ -10,6 +10,8 @@ use serde_json::{Value, json};
 use sweet_grass_core::braid::types::{
     PROV_VOCAB_URI, RDFS_VOCAB_URI, SCHEMA_VOCAB_URI, XSD_VOCAB_URI, ecop_vocab_uri,
 };
+use sweet_grass_core::braid::{BraidId, BraidType};
+use sweet_grass_core::entity::EntityReference;
 use sweet_grass_core::{Activity, Braid};
 
 use crate::Result;
@@ -55,6 +57,7 @@ impl JsonLdDocument {
             "Entity": "prov:Entity",
             "Activity": "prov:Activity",
             "Agent": "prov:Agent",
+            "Collection": "prov:Collection",
 
             "wasGeneratedBy": {"@id": "prov:wasGeneratedBy", "@type": "@id"},
             "wasDerivedFrom": {"@id": "prov:wasDerivedFrom", "@type": "@id"},
@@ -64,6 +67,8 @@ impl JsonLdDocument {
             "startedAtTime": {"@id": "prov:startedAtTime", "@type": "xsd:dateTime"},
             "endedAtTime": {"@id": "prov:endedAtTime", "@type": "xsd:dateTime"},
             "generatedAtTime": {"@id": "prov:generatedAtTime", "@type": "xsd:dateTime"},
+            "invalidatedAtTime": {"@id": "prov:invalidatedAtTime", "@type": "xsd:dateTime"},
+            "alternateOf": {"@id": "prov:alternateOf", "@type": "@id"},
             "hadRole": {"@id": "prov:hadRole", "@type": "@id"},
             "actedOnBehalfOf": {"@id": "prov:actedOnBehalfOf", "@type": "@id"},
 
@@ -177,7 +182,10 @@ impl ProvoExport {
         let mut entity = IndexMap::new();
 
         entity.insert("@id".to_string(), json!(braid.id.as_str()));
-        entity.insert("@type".to_string(), json!("Entity"));
+        entity.insert(
+            "@type".to_string(),
+            json!(braid_type_to_prov_type(&braid.braid_type)),
+        );
         entity.insert("dataHash".to_string(), json!(braid.data_hash));
         entity.insert("mimeType".to_string(), json!(braid.mime_type));
         entity.insert("size".to_string(), json!(braid.size));
@@ -192,6 +200,13 @@ impl ProvoExport {
             json!(timestamp_to_iso(braid.generated_at_time)),
         );
 
+        if let Some(invalidated) = braid.invalidated_at_time {
+            entity.insert(
+                "invalidatedAtTime".to_string(),
+                json!(timestamp_to_iso(invalidated)),
+            );
+        }
+
         if let Some(activity) = &braid.was_generated_by {
             entity.insert("wasGeneratedBy".to_string(), json!(activity.id.as_str()));
         }
@@ -200,10 +215,23 @@ impl ProvoExport {
             let derived: Vec<Value> = braid
                 .was_derived_from
                 .iter()
-                .filter_map(|e| e.content_hash().map(|h| json!(h)))
+                .filter_map(entity_reference_to_prov_id)
+                .map(|id| json!(id))
                 .collect();
             if !derived.is_empty() {
                 entity.insert("wasDerivedFrom".to_string(), json!(derived));
+            }
+        }
+
+        if !braid.alternate_of.is_empty() {
+            let alternates: Vec<Value> = braid
+                .alternate_of
+                .iter()
+                .filter_map(entity_reference_to_prov_id)
+                .map(|id| json!(id))
+                .collect();
+            if !alternates.is_empty() {
+                entity.insert("alternateOf".to_string(), json!(alternates));
             }
         }
 
@@ -253,10 +281,14 @@ impl ProvoExport {
                 .was_associated_with
                 .iter()
                 .map(|a| {
-                    json!({
+                    let mut association = json!({
                         "prov:agent": a.agent.as_str(),
                         "prov:hadRole": format!("ecop:{:?}", a.role)
-                    })
+                    });
+                    if let Some(principal) = &a.on_behalf_of {
+                        association["prov:actedOnBehalfOf"] = json!(principal.as_str());
+                    }
+                    association
                 })
                 .collect();
             act.insert("wasAssociatedWith".to_string(), json!(agents));
@@ -266,7 +298,8 @@ impl ProvoExport {
             let used: Vec<Value> = activity
                 .used
                 .iter()
-                .filter_map(|u| u.entity.content_hash().map(|h| json!(h)))
+                .filter_map(|u| entity_reference_to_prov_id(&u.entity))
+                .map(|id| json!(id))
                 .collect();
             if !used.is_empty() {
                 act.insert("used".to_string(), json!(used));
@@ -286,6 +319,39 @@ impl ProvoExport {
 impl Default for ProvoExport {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Map a braid type to its PROV-O `@type` label.
+const fn braid_type_to_prov_type(braid_type: &BraidType) -> &'static str {
+    match braid_type {
+        BraidType::Activity => "Activity",
+        BraidType::Agent => "Agent",
+        BraidType::Collection { .. } => "Collection",
+        _ => "Entity",
+    }
+}
+
+/// Resolve an entity reference to a PROV-O `@id` URI.
+fn entity_reference_to_prov_id(reference: &EntityReference) -> Option<String> {
+    match reference {
+        EntityReference::ById { braid_id } => Some(braid_id.as_str().to_string()),
+        EntityReference::ByHash { data_hash, .. } => {
+            Some(BraidId::from_hash(data_hash).as_str().to_string())
+        }
+        EntityReference::ByLoamEntry { entry_hash, .. } => {
+            Some(BraidId::from_hash(entry_hash).as_str().to_string())
+        }
+        EntityReference::External { hash: Some(hash), .. } => {
+            Some(BraidId::from_hash(hash).as_str().to_string())
+        }
+        EntityReference::External { hash: None, .. } => None,
+        EntityReference::Inline(entity) => {
+            Some(BraidId::from_hash(&entity.hash).as_str().to_string())
+        }
+        _ => reference.content_hash().map(|hash| {
+            BraidId::from_hash(hash).as_str().to_string()
+        }),
     }
 }
 

@@ -308,6 +308,27 @@ impl BraidStore for NestGateStore {
         Ok(None)
     }
 
+    async fn get_all_by_hash(&self, hash: &ContentHash) -> Result<Vec<Braid>> {
+        let prefix = format!("{}:braid:", self.prefix);
+        let keys = self.list_keys(&prefix).await?;
+
+        let mut braids = Vec::new();
+        for key in &keys {
+            if let Some(value) = self.retrieve_value(key).await? {
+                match serde_json::from_value::<Braid>(value) {
+                    Ok(braid) if &braid.data_hash == hash => {
+                        braids.push(braid);
+                    },
+                    Ok(_) => {},
+                    Err(e) => {
+                        warn!(key, error = %e, "Skipping corrupt braid in NestGate");
+                    },
+                }
+            }
+        }
+        Ok(braids)
+    }
+
     async fn delete(&self, id: &BraidId) -> Result<bool> {
         if let Some(braid) = self.get(id).await? {
             let key = self.braid_key(id);

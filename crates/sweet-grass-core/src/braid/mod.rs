@@ -74,6 +74,14 @@ pub struct Braid {
     /// When this Braid was created.
     pub generated_at_time: Timestamp,
 
+    /// When this Braid was invalidated (if applicable).
+    #[serde(default)]
+    pub invalidated_at_time: Option<Timestamp>,
+
+    /// Alternate representations of the same content.
+    #[serde(default)]
+    pub alternate_of: Vec<EntityReference>,
+
     /// Domain-specific metadata.
     #[serde(default)]
     pub metadata: BraidMetadata,
