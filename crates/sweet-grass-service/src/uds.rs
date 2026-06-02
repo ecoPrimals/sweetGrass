@@ -184,7 +184,7 @@ pub fn resolve_socket_path_with(config: &SocketConfig) -> PathBuf {
             .join(&sock_name);
     }
 
-    sweet_grass_core::primal_names::paths::default_socket_dir().join(&sock_name)
+    std::env::temp_dir().join(&sock_name)
 }
 
 /// Start the Unix domain socket JSON-RPC listener with coordinated shutdown.
