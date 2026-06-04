@@ -1,10 +1,19 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.46 (June 2026)
+**Current Version**: v0.7.47 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.47 — AppState Env Snapshots (Wave 78, June 2026)
+
+- [x] **BTSP env var snapshots** — `security_socket_path` and `family_seed_b64` snapshotted into `AppState` at startup. BTSP handshake callers in `uds.rs` and `tcp_jsonrpc.rs` now use `perform_server_handshake_with()` with `state.security_socket_path` instead of re-resolving env on every handshake
+- [x] **BraidContext env snapshots** — `ecop_vocab_uri` and `ecop_base_uri` snapshotted into `AppState`. `BraidContext::with_uris()` constructor avoids `env::var` reads; `BraidBuilder::context()` setter allows passing pre-built context
+- [x] **Listener snapshot consistency** — `uds.rs` and `tcp_jsonrpc.rs` now use `state.btsp_required` instead of re-calling `is_btsp_required()` at listener start
+- [x] **`AppState::new_memory()` snapshot parity** — now snapshots `btsp_required` like other constructors (fixed integration test hang)
+- [x] **5 new `trust.event` behavioral tests** — key exchange weaving, mesh join, gateway witness, deterministic hash, roundtrip via `braid.get`
+- [x] 16 new tests total (1,607 → 1,623)
 
 ### v0.7.46 — Cross-Gate Trust Weaving (Wave 77, June 2026)
 

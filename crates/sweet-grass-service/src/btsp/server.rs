@@ -34,7 +34,10 @@ const DEFAULT_SECURITY_SOCKET: &str = "security.sock";
 /// 2. `BIOMEOS_SOCKET_DIR/security.sock` — capability-domain symlink
 /// 3. `$XDG_RUNTIME_DIR/biomeos/security.sock`
 /// 4. `$TMPDIR/biomeos/security.sock`
-fn resolve_security_socket() -> std::path::PathBuf {
+///
+/// Public for `AppState` startup snapshot; prefer the snapshotted
+/// `AppState.security_socket_path` over calling this at runtime.
+pub fn resolve_security_socket_from_env() -> std::path::PathBuf {
     use sweet_grass_core::primal_names::{env_vars, paths};
 
     if let Ok(path) = std::env::var(env_vars::SECURITY_PROVIDER_SOCKET) {
@@ -71,7 +74,11 @@ fn resolve_security_socket() -> std::path::PathBuf {
 ///
 /// Returns [`BtspError::CryptoProviderUnavailable`] when neither variable
 /// is set.
-fn resolve_family_seed() -> Result<String, BtspError> {
+/// Resolve the family seed from the current environment (base64-encoded).
+///
+/// Public for `AppState` startup snapshot; prefer the snapshotted
+/// `AppState.family_seed_b64` over calling this at runtime.
+pub fn resolve_family_seed_from_env() -> Result<String, BtspError> {
     use sweet_grass_core::primal_names::env_vars;
 
     let raw = std::env::var(env_vars::FAMILY_SEED)
@@ -199,7 +206,7 @@ where
 
     debug!(client_pub = %client_hello.client_ephemeral_pub, "BTSP: received ClientHello");
 
-    let family_seed = resolve_family_seed()?;
+    let family_seed = resolve_family_seed_from_env()?;
 
     let session = call_security_provider_at(
         security_socket,
@@ -323,7 +330,7 @@ pub async fn perform_server_handshake<S>(stream: &mut S) -> Result<HandshakeOutc
 where
     S: AsyncReadExt + AsyncWriteExt + Unpin + Send,
 {
-    perform_server_handshake_with(stream, &resolve_security_socket()).await
+    perform_server_handshake_with(stream, &resolve_security_socket_from_env()).await
 }
 
 /// Run the server-side BTSP handshake using an explicit security-provider
@@ -396,7 +403,7 @@ pub async fn perform_server_handshake_jsonline<S>(
 where
     S: AsyncReadExt + AsyncWriteExt + Unpin + Send,
 {
-    perform_server_handshake_jsonline_with(stream, client_hello, &resolve_security_socket()).await
+    perform_server_handshake_jsonline_with(stream, client_hello, &resolve_security_socket_from_env()).await
 }
 
 /// JSON-line handshake with explicit security-provider socket (DI-friendly).
@@ -426,7 +433,7 @@ where
         "BTSP JSON-line: received ClientHello"
     );
 
-    let family_seed = resolve_family_seed()?;
+    let family_seed = resolve_family_seed_from_env()?;
 
     let session = call_security_provider_at(
         security_socket,
@@ -529,7 +536,7 @@ mod tests {
 
     #[test]
     fn resolve_security_socket_default() {
-        let path = resolve_security_socket();
+        let path = resolve_security_socket_from_env();
         let path_str = path.to_string_lossy();
         assert!(
             path_str.contains("security"),
@@ -594,7 +601,7 @@ mod tests {
             ],
             || {
                 assert_eq!(
-                    resolve_security_socket(),
+                    resolve_security_socket_from_env(),
                     std::path::PathBuf::from("/custom/path.sock")
                 );
             },
@@ -611,7 +618,7 @@ mod tests {
             ],
             || {
                 assert_eq!(
-                    resolve_security_socket(),
+                    resolve_security_socket_from_env(),
                     std::path::PathBuf::from("/run/biomeos/security.sock")
                 );
             },
@@ -628,7 +635,7 @@ mod tests {
             ],
             || {
                 assert_eq!(
-                    resolve_security_socket(),
+                    resolve_security_socket_from_env(),
                     std::path::PathBuf::from("/run/user/1000/biomeos/security.sock")
                 );
             },
@@ -643,7 +650,7 @@ mod tests {
                 ("BEARDOG_FAMILY_SEED", None::<&str>),
             ],
             || {
-                let b64 = resolve_family_seed().expect("should resolve");
+                let b64 = resolve_family_seed_from_env().expect("should resolve");
                 let decoded = base64::engine::general_purpose::STANDARD
                     .decode(&b64)
                     .expect("valid base64");
@@ -660,7 +667,7 @@ mod tests {
                 ("BEARDOG_FAMILY_SEED", Some("fallback_seed_hex")),
             ],
             || {
-                let b64 = resolve_family_seed().expect("should resolve");
+                let b64 = resolve_family_seed_from_env().expect("should resolve");
                 let decoded = base64::engine::general_purpose::STANDARD
                     .decode(&b64)
                     .expect("valid base64");
@@ -677,7 +684,7 @@ mod tests {
                 ("BEARDOG_FAMILY_SEED", Some("secondary")),
             ],
             || {
-                let b64 = resolve_family_seed().expect("should resolve");
+                let b64 = resolve_family_seed_from_env().expect("should resolve");
                 let decoded = base64::engine::general_purpose::STANDARD
                     .decode(&b64)
                     .expect("valid base64");
@@ -694,7 +701,7 @@ mod tests {
                 ("BEARDOG_FAMILY_SEED", None::<&str>),
             ],
             || {
-                let err = resolve_family_seed().unwrap_err();
+                let err = resolve_family_seed_from_env().unwrap_err();
                 assert!(
                     err.to_string().contains("FAMILY_SEED"),
                     "error should mention variable: {err}"
@@ -712,7 +719,7 @@ mod tests {
                 ("BEARDOG_FAMILY_SEED", None::<&str>),
             ],
             || {
-                let b64 = resolve_family_seed().expect("should resolve");
+                let b64 = resolve_family_seed_from_env().expect("should resolve");
                 let decoded = base64::engine::general_purpose::STANDARD
                     .decode(&b64)
                     .expect("valid base64");

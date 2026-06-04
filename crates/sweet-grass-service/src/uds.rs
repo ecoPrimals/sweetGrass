@@ -240,7 +240,7 @@ pub async fn start_uds_listener_at(
     lifecycle::write_pid_file(path);
     create_capability_symlink(path);
 
-    let btsp_required = crate::btsp::is_btsp_required();
+    let btsp_required = state.btsp_required;
     if btsp_required {
         info!("BTSP handshake required on UDS (FAMILY_ID set)");
     }
@@ -351,7 +351,7 @@ async fn handle_uds_connection_btsp(
     use crate::btsp;
     use tokio::io::AsyncWriteExt;
 
-    let outcome = match btsp::perform_server_handshake(&mut stream).await {
+    let outcome = match btsp::perform_server_handshake_with(&mut stream, &state.security_socket_path).await {
         Ok(o) => o,
         Err(e) => {
             warn!("UDS BTSP handshake failed: {e}");
@@ -439,7 +439,7 @@ async fn handle_uds_connection_btsp_jsonline(
     client_hello: crate::btsp::ClientHello,
 ) {
     let outcome =
-        match crate::btsp::perform_server_handshake_jsonline(&mut stream, client_hello).await {
+        match crate::btsp::perform_server_handshake_jsonline_with(&mut stream, client_hello, &state.security_socket_path).await {
             Ok(o) => o,
             Err(e) => {
                 warn!("UDS BTSP JSON-line handshake failed: {e}");

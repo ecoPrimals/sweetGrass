@@ -171,19 +171,30 @@ impl<'de> Deserialize<'de> for BraidContext {
     }
 }
 
-impl Default for BraidContext {
-    fn default() -> Self {
+impl BraidContext {
+    /// Build a context with pre-resolved ecoPrimals URIs.
+    ///
+    /// Avoids `env::var` reads — use this from `BraidFactory` / `AppState`
+    /// with startup-snapshotted values.
+    #[must_use]
+    pub fn with_uris(ecop_vocab: &str, ecop_base: &str) -> Self {
         let mut imports = IndexMap::new();
         imports.insert("prov".to_string(), PROV_VOCAB_URI.to_string());
         imports.insert("xsd".to_string(), XSD_VOCAB_URI.to_string());
         imports.insert("schema".to_string(), SCHEMA_VOCAB_URI.to_string());
-        imports.insert("ecop".to_string(), ecop_vocab_uri());
+        imports.insert("ecop".to_string(), ecop_vocab.to_string());
 
         Self {
-            base: ecop_base_uri(),
+            base: ecop_base.to_string(),
             version: JsonLdVersion,
             imports,
         }
+    }
+}
+
+impl Default for BraidContext {
+    fn default() -> Self {
+        Self::with_uris(&ecop_vocab_uri(), &ecop_base_uri())
     }
 }
 

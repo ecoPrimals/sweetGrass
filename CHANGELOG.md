@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.47] - 2026-06-04
+
+### AppState Env Snapshots (Wave 78)
+
+#### Changed
+- **BTSP env var snapshots** — `security_socket_path` and `family_seed_b64`
+  snapshotted into `AppState` at startup; handshake callers use the snapshot
+  instead of re-reading `SECURITY_PROVIDER_SOCKET` / `FAMILY_SEED` on every
+  connection
+- **BraidContext env snapshots** — `ecop_vocab_uri` and `ecop_base_uri`
+  snapshotted into `AppState`; `BraidContext::with_uris()` constructor and
+  `BraidBuilder::context()` setter avoid per-braid `env::var` reads
+- **Listener snapshot consistency** — `uds.rs` and `tcp_jsonrpc.rs` use
+  `state.btsp_required` instead of re-calling `is_btsp_required()`
+- **`AppState::new_memory()` snapshot parity** — now snapshots `btsp_required`
+  like production constructors (fixed integration test hang where BTSP-enabled
+  test ran raw JSON-RPC path)
+
+#### Added
+- 5 new `trust.event` behavioral tests — key exchange weaving, mesh join,
+  gateway witness, deterministic hash, roundtrip via `braid.get`
+- `BraidContext::with_uris()` — DI-friendly constructor from pre-resolved URIs
+- `BraidBuilder::context()` — fluent setter to skip `BraidContext::default()`
+
+#### Metrics
+- 209 source files, 60,624 LOC, 1,623 tests, 40 methods
+
 ## [0.7.46] - 2026-06-04
 
 ### Cross-Gate Trust Weaving (Wave 77)

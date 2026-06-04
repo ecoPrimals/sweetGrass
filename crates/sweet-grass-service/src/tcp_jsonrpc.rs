@@ -36,11 +36,7 @@ pub async fn start_tcp_jsonrpc_listener(
         crate::ServiceError::Internal(format!("TCP JSON-RPC bind on {addr} failed: {e}"))
     })?;
 
-    #[cfg(unix)]
-    let btsp_required = crate::btsp::is_btsp_required();
-    #[cfg(not(unix))]
-    let btsp_required = false;
-
+    let btsp_required = state.btsp_required;
     run_tcp_jsonrpc_listener(state, listener, shutdown, btsp_required).await
 }
 
@@ -141,7 +137,7 @@ async fn handle_tcp_with_autodetect(
         },
         DetectedProtocol::JsonLineBtsp(client_hello) => {
             debug!("TCP from {peer}: first-line auto-detect → JSON-line BTSP");
-            match crate::btsp::perform_server_handshake_jsonline(&mut stream, client_hello).await {
+            match crate::btsp::perform_server_handshake_jsonline_with(&mut stream, client_hello, &state.security_socket_path).await {
                 Ok(outcome) => {
                     debug!(
                         session = %outcome.complete.session_id,
@@ -208,7 +204,7 @@ async fn handle_tcp_connection_btsp(
     use crate::btsp;
     use tokio::io::AsyncWriteExt;
 
-    let outcome = match btsp::perform_server_handshake(&mut stream).await {
+    let outcome = match btsp::perform_server_handshake_with(&mut stream, &state.security_socket_path).await {
         Ok(o) => o,
         Err(e) => {
             warn!("TCP BTSP handshake failed: {e}");

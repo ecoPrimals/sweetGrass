@@ -67,6 +67,23 @@ pub struct AppState {
 
     /// Snapshotted `TARPC_MAX_CONCURRENT_REQUESTS` (default 10).
     pub tarpc_max_concurrent: usize,
+
+    /// Snapshotted security provider socket path for BTSP handshakes.
+    /// Avoids re-resolving `SECURITY_PROVIDER_SOCKET` / `BIOMEOS_SOCKET_DIR`
+    /// on every handshake.
+    pub security_socket_path: PathBuf,
+
+    /// Snapshotted family seed (base64-encoded) for BTSP `btsp.session.create`.
+    /// `None` when no `FAMILY_ID` / `FAMILY_SEED` is set (BTSP disabled).
+    pub family_seed_b64: Option<String>,
+
+    /// Snapshotted ecoPrimals vocabulary URI for JSON-LD context.
+    /// Avoids re-reading `ECOP_VOCAB_URI` on every `BraidContext::default()`.
+    pub ecop_vocab_uri: String,
+
+    /// Snapshotted ecoPrimals base URI for JSON-LD context.
+    /// Avoids re-reading `ECOP_BASE_URI` on every `BraidContext::default()`.
+    pub ecop_base_uri: String,
 }
 
 impl AppState {
@@ -89,10 +106,14 @@ impl AppState {
             crypto: None,
             method_gate: Arc::new(MethodGate::from_env()),
             tcp_transport_active: false,
-            btsp_required: false,
+            btsp_required: Self::snapshot_btsp_required(),
             socket_dir: Self::snapshot_socket_dir(),
             discovery_address: None,
             tarpc_max_concurrent: Self::snapshot_tarpc_max_concurrent(),
+            security_socket_path: Self::snapshot_security_socket(),
+            family_seed_b64: Self::snapshot_family_seed(),
+            ecop_vocab_uri: Self::snapshot_ecop_vocab_uri(),
+            ecop_base_uri: Self::snapshot_ecop_base_uri(),
         }
     }
 
@@ -118,6 +139,10 @@ impl AppState {
             socket_dir: Self::snapshot_socket_dir(),
             discovery_address: std::env::var("DISCOVERY_ADDRESS").ok(),
             tarpc_max_concurrent: Self::snapshot_tarpc_max_concurrent(),
+            security_socket_path: Self::snapshot_security_socket(),
+            family_seed_b64: Self::snapshot_family_seed(),
+            ecop_vocab_uri: Self::snapshot_ecop_vocab_uri(),
+            ecop_base_uri: Self::snapshot_ecop_base_uri(),
         }
     }
 
@@ -156,7 +181,45 @@ impl AppState {
             socket_dir: Self::snapshot_socket_dir(),
             discovery_address: std::env::var("DISCOVERY_ADDRESS").ok(),
             tarpc_max_concurrent: Self::snapshot_tarpc_max_concurrent(),
+            security_socket_path: Self::snapshot_security_socket(),
+            family_seed_b64: Self::snapshot_family_seed(),
+            ecop_vocab_uri: Self::snapshot_ecop_vocab_uri(),
+            ecop_base_uri: Self::snapshot_ecop_base_uri(),
         }
+    }
+
+    /// Snapshot the security-provider socket path from env.
+    fn snapshot_security_socket() -> PathBuf {
+        #[cfg(unix)]
+        {
+            crate::btsp::server::resolve_security_socket_from_env()
+        }
+        #[cfg(not(unix))]
+        {
+            PathBuf::from("/dev/null")
+        }
+    }
+
+    /// Snapshot family seed (base64-encoded) from env.
+    fn snapshot_family_seed() -> Option<String> {
+        #[cfg(unix)]
+        {
+            crate::btsp::server::resolve_family_seed_from_env().ok()
+        }
+        #[cfg(not(unix))]
+        {
+            None
+        }
+    }
+
+    /// Snapshot ecoPrimals vocabulary URI.
+    fn snapshot_ecop_vocab_uri() -> String {
+        sweet_grass_core::braid::context::ecop_vocab_uri()
+    }
+
+    /// Snapshot ecoPrimals base URI.
+    fn snapshot_ecop_base_uri() -> String {
+        sweet_grass_core::braid::context::ecop_base_uri()
     }
 
     /// Snapshot tarpc concurrency limit from `TARPC_MAX_CONCURRENT_REQUESTS`.

@@ -227,3 +227,165 @@ async fn test_cross_gate_activity_types() {
         "urn:activity:uuid:cross-gate-key-exchange"
     );
 }
+
+// ==================== trust.event weaving ====================
+
+#[tokio::test]
+async fn test_trust_event_weaves_key_exchange() {
+    let state = test_state();
+    let result = dispatch(
+        &state,
+        "trust.event",
+        serde_json::json!({
+            "cross_gate": {
+                "origin_gate": "ironGate",
+                "target_gate": "strandGate",
+                "trust_event": "key_exchange",
+                "origin_agent": "did:key:z6MkIronGateAgent",
+                "target_agent": "did:key:z6MkStrandGateAgent"
+            }
+        }),
+    )
+    .await;
+    assert!(result.is_ok(), "trust.event failed: {result:?}");
+    let braid = result.unwrap();
+
+    assert_eq!(
+        braid["mime_type"],
+        "application/vnd.ecoprimals.trust-event"
+    );
+    assert_eq!(braid["ecop"]["source_gate"], "ironGate");
+    assert_eq!(braid["was_attributed_to"], "did:key:z6MkIronGateAgent");
+
+    let activity = &braid["was_generated_by"];
+    assert_eq!(activity["@type"], "KeyExchange");
+    let assoc = &activity["was_associated_with"][0];
+    assert_eq!(assoc["agent"], "did:key:z6MkIronGateAgent");
+    assert_eq!(assoc["on_behalf_of"], "did:key:z6MkStrandGateAgent");
+
+    let cross_gate = &braid["metadata"]["cross_gate"];
+    assert_eq!(cross_gate["origin_gate"], "ironGate");
+    assert_eq!(cross_gate["target_gate"], "strandGate");
+    assert_eq!(cross_gate["trust_event"], "key_exchange");
+}
+
+#[tokio::test]
+async fn test_trust_event_mesh_join() {
+    let state = test_state();
+    let result = dispatch(
+        &state,
+        "trust.event",
+        serde_json::json!({
+            "cross_gate": {
+                "origin_gate": "westGate",
+                "target_gate": "eastGate",
+                "trust_event": "mesh_join",
+                "origin_agent": "did:key:z6MkWestAgent",
+                "family_id": "west-family"
+            }
+        }),
+    )
+    .await;
+    assert!(result.is_ok(), "trust.event failed: {result:?}");
+    let braid = result.unwrap();
+
+    let activity = &braid["was_generated_by"];
+    assert_eq!(activity["@type"], "MeshJoin");
+    assert!(activity["was_associated_with"][0]["on_behalf_of"].is_null());
+    assert_eq!(
+        braid["metadata"]["cross_gate"]["family_id"],
+        "west-family"
+    );
+}
+
+#[tokio::test]
+async fn test_trust_event_with_gateway_witness() {
+    use base64::Engine;
+    let state = test_state();
+    let sig_b64 =
+        base64::engine::general_purpose::STANDARD.encode(b"fake-ed25519-signature-bytes");
+
+    let result = dispatch(
+        &state,
+        "trust.event",
+        serde_json::json!({
+            "cross_gate": {
+                "origin_gate": "ironGate",
+                "target_gate": "strandGate",
+                "trust_event": "cross_gate_attestation",
+                "origin_agent": "did:key:z6MkWitnessAgent"
+            },
+            "signature": sig_b64
+        }),
+    )
+    .await;
+    assert!(result.is_ok(), "trust.event failed: {result:?}");
+    let braid = result.unwrap();
+
+    assert_eq!(braid["witness"]["tier"], WITNESS_TIER_GATEWAY);
+    assert_eq!(braid["witness"]["context"], "ironGate->strandGate");
+    assert_eq!(braid["witness"]["kind"], "signature");
+}
+
+#[tokio::test]
+async fn test_trust_event_deterministic_hash() {
+    let state = test_state();
+    let params = serde_json::json!({
+        "cross_gate": {
+            "origin_gate": "gateA",
+            "target_gate": "gateB",
+            "trust_event": "gate_enrollment",
+            "origin_agent": "did:key:z6MkDeterm"
+        },
+        "timestamp": 1_700_000_000_000_000_000_u64
+    });
+
+    let braid1 = dispatch(&state, "trust.event", params.clone())
+        .await
+        .unwrap();
+    let hash1 = braid1["data_hash"].as_str().unwrap().to_string();
+
+    assert!(
+        hash1.starts_with("trust:gateA:gateB:gate_enrollment:"),
+        "content hash should be deterministic seed: {hash1}"
+    );
+}
+
+#[tokio::test]
+async fn test_trust_event_roundtrip_via_get() {
+    let state = test_state();
+    let created = dispatch(
+        &state,
+        "trust.event",
+        serde_json::json!({
+            "cross_gate": {
+                "origin_gate": "eastGate",
+                "target_gate": "westGate",
+                "trust_event": "trust_issuer_registered",
+                "origin_agent": "did:key:z6MkRoundTrip",
+                "target_agent": "did:key:z6MkTarget"
+            }
+        }),
+    )
+    .await
+    .unwrap();
+
+    let braid_id = created["@id"].as_str().unwrap();
+    let fetched = dispatch(
+        &state,
+        "braid.get",
+        serde_json::json!({ "id": braid_id }),
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(fetched["was_attributed_to"], "did:key:z6MkRoundTrip");
+    assert_eq!(
+        fetched["metadata"]["cross_gate"]["trust_event"],
+        "trust_issuer_registered"
+    );
+    assert_eq!(
+        fetched["was_generated_by"]["@type"],
+        "TrustEstablishment"
+    );
+}

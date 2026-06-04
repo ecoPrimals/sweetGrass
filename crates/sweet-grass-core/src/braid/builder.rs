@@ -33,6 +33,7 @@ pub struct BraidBuilder {
     invalidated_at_time: Option<Timestamp>,
     alternate_of: Vec<EntityReference>,
     witness: Option<Witness>,
+    context: Option<BraidContext>,
 }
 
 impl BraidBuilder {
@@ -127,6 +128,13 @@ impl BraidBuilder {
         self
     }
 
+    /// Set a pre-built JSON-LD context (avoids env reads in `default()`).
+    #[must_use]
+    pub fn context(mut self, ctx: BraidContext) -> Self {
+        self.context = Some(ctx);
+        self
+    }
+
     /// Set the generation timestamp.
     #[must_use]
     pub const fn generated_at_time(mut self, ts: Timestamp) -> Self {
@@ -174,7 +182,7 @@ impl BraidBuilder {
         }
 
         Ok(super::Braid {
-            context: BraidContext::default(),
+            context: self.context.unwrap_or_default(),
             id: BraidId::from_hash(&data_hash),
             braid_type: self.braid_type,
             data_hash,
