@@ -15,7 +15,7 @@
 //! Delegates to `sweet_grass_core::niche` for the canonical source of
 //! truth — no inline duplication of capability metadata.
 
-use super::{DispatchResult, METHODS, error_code, parse_params, to_value};
+use super::{DispatchError, DispatchResult, METHODS, error_code, parse_params, to_value};
 use crate::state::AppState;
 use sweet_grass_core::primal_names::env_vars;
 

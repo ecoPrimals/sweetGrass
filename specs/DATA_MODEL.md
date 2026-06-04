@@ -1,8 +1,8 @@
 # SweetGrass — Data Model Specification
 
-**Version**: 0.3.0  
+**Version**: 0.4.0  
 **Status**: Active  
-**Last Updated**: March 2026
+**Last Updated**: June 2026
 
 ---
 
@@ -80,6 +80,12 @@ pub struct Braid {
     
     /// When this Braid was created
     pub generated_at_time: Timestamp,
+    
+    /// When this Braid was invalidated (PROV-O prov:invalidatedAtTime)
+    pub invalidated_at_time: Option<Timestamp>,
+    
+    /// Alternate representations (PROV-O prov:alternateOf)
+    pub alternate_of: Vec<EntityReference>,
     
     // ==================== Metadata ====================
     
@@ -232,8 +238,54 @@ pub struct BraidMetadata {
     
     /// Privacy controls for this braid
     pub privacy: Option<PrivacyMetadata>,
+    
+    /// Cross-gate attribution context (v0.7.45)
+    pub cross_gate: Option<CrossGateAttribution>,
 }
 ```
+
+### 2.5 Cross-Gate Attribution
+
+When a braid records provenance that spans gate boundaries (e.g. Gate A trusting
+Gate B's key), the `CrossGateAttribution` metadata captures the full context:
+
+```rust
+/// Attribution context for braids spanning gate boundaries.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CrossGateAttribution {
+    /// Gate that originated the cross-gate event.
+    pub origin_gate: Arc<str>,
+    /// Gate that received/verified the event.
+    pub target_gate: Arc<str>,
+    /// Type of cross-gate trust event.
+    pub trust_event: CrossGateTrustEvent,
+    /// DID of the signing agent on the origin gate.
+    pub origin_agent: Did,
+    /// DID of the verifying agent on the target gate (if known).
+    pub target_agent: Option<Did>,
+    /// Family ID binding (BTSP transport trust boundary).
+    pub family_id: Option<String>,
+}
+
+/// Cross-gate trust event types.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CrossGateTrustEvent {
+    KeyExchange,
+    TrustIssuerRegistered,
+    GateEnrollment,
+    FamilyEnrollment,
+    CrossGateAttestation,
+    MeshJoin,
+    MeshLeave,
+}
+```
+
+PROV-O mapping:
+- `origin_agent` → `prov:wasAttributedTo` (origin gate's agent DID)
+- `target_agent` → `prov:actedOnBehalfOf` (target gate's verifying agent)
+- `trust_event` → `ecop:trustEvent` (semantic type of gate-boundary interaction)
+- `origin_gate`/`target_gate` → `ecop:originGate`/`ecop:targetGate`
 
 ---
 
@@ -327,6 +379,12 @@ pub enum ActivityType {
     CertificateTransfer,
     CertificateLoan,
     CertificateReturn,
+    
+    // === Cross-Gate Trust ===
+    KeyExchange,
+    TrustEstablishment,
+    GateEnrollment,
+    CrossGateAttestation,
     
     // === Custom ===
     Custom { type_uri: String },
@@ -582,6 +640,9 @@ pub struct EcoPrimalsAttributes {
     /// Source primal
     pub source_primal: Option<PrimalId>,
     
+    /// Source gate (v0.7.45)
+    pub source_gate: Option<Arc<str>>,
+    
     /// Niche context
     pub niche: Option<NicheId>,
     
@@ -673,8 +734,8 @@ pub struct Witness {
     pub witnessed_at: Timestamp,
     pub encoding: String,       // "base64", "hex", "utf8", "none"
     pub algorithm: Option<String>,  // "ed25519", "ecdsa-p256", etc.
-    pub tier: Option<String>,       // "local", "gateway", "anchor", "external", "open"
-    pub context: Option<String>,
+    pub tier: Option<String>,       // "local", "tower", "gateway", "anchor", "external", "open"
+    pub context: Option<String>,    // freeform context (e.g. "strandGate->ironGate")
 }
 
 impl Witness {
@@ -843,6 +904,58 @@ pub struct GraphStats {
     "encoding": "base64",
     "algorithm": "ed25519",
     "tier": "local"
+  }
+}
+```
+
+### 10.2 Cross-Gate Trust Event Example
+
+```json
+{
+  "@context": { "...prov-o context..." },
+  "@id": "urn:braid:sha256:crossgate-trust-001",
+  "@type": "prov:Entity",
+  
+  "dataHash": "sha256:crossgate-key-exchange-irongate-strandgate",
+  "mimeType": "application/x-sweetgrass-trust-event",
+  "size": 0,
+  
+  "wasGeneratedBy": {
+    "@id": "urn:activity:uuid:key-exchange-001",
+    "@type": "ecop:KeyExchange",
+    "wasAssociatedWith": [{
+      "agent": "did:key:z6MkIronGateAgent",
+      "role": "ecop:Creator",
+      "actedOnBehalfOf": "did:key:z6MkStrandGateAgent"
+    }]
+  },
+  
+  "wasAttributedTo": "did:key:z6MkIronGateAgent",
+  "generatedAtTime": "2026-06-03T12:00:00Z",
+  
+  "ecop": {
+    "sourcePrimal": "sweetGrass",
+    "sourceGate": "ironGate"
+  },
+  
+  "crossGateAttribution": {
+    "originGate": "ironGate",
+    "targetGate": "strandGate",
+    "trustEvent": "key_exchange",
+    "originAgent": "did:key:z6MkIronGateAgent",
+    "targetAgent": "did:key:z6MkStrandGateAgent",
+    "familyId": "biomeos-family-42"
+  },
+  
+  "witness": {
+    "agent": "did:key:z6MkIronGateAgent",
+    "kind": "signature",
+    "evidence": "mEf4K2j9...",
+    "witnessed_at": 1717416000000000000,
+    "encoding": "base64",
+    "algorithm": "ed25519",
+    "tier": "gateway",
+    "context": "ironGate->strandGate"
   }
 }
 ```

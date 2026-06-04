@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 pub use super::braid_type::{BraidType, SummaryType};
+pub use super::cross_gate::{CrossGateAttribution, CrossGateTrustEvent};
 pub use super::context::{
     BraidContext, DEFAULT_ECOP_BASE_URI, DEFAULT_ECOP_VOCAB_URI, JsonLdVersion, PROV_VOCAB_URI,
     RDFS_VOCAB_URI, SCHEMA_VOCAB_URI, XSD_VOCAB_URI, ecop_base_uri, ecop_base_uri_with_reader,
@@ -264,6 +265,10 @@ pub struct EcoPrimalsAttributes {
     /// Source primal that created this Braid.
     pub source_primal: Option<Arc<str>>,
 
+    /// Gate that originated this Braid (e.g. "strandGate", "ironGate").
+    #[serde(default)]
+    pub source_gate: Option<Arc<str>>,
+
     /// Niche context.
     pub niche: Option<Arc<str>>,
 
@@ -389,6 +394,10 @@ pub struct BraidMetadata {
     /// Privacy controls for this braid.
     #[serde(default)]
     pub privacy: Option<PrivacyMetadata>,
+
+    /// Cross-gate trust attribution (bearDog w135 mesh events).
+    #[serde(default)]
+    pub cross_gate: Option<CrossGateAttribution>,
 }
 
 /// Get current timestamp in nanoseconds since Unix epoch.
@@ -405,7 +414,10 @@ mod tests {
     use std::borrow::Borrow;
     use std::sync::Arc;
 
-    use super::{BraidId, BraidMetadata, BraidType, ContentHash, SummaryType, Timestamp};
+    use super::{
+        BraidId, BraidMetadata, BraidType, ContentHash, CrossGateAttribution, CrossGateTrustEvent,
+        SummaryType, Timestamp,
+    };
     use crate::agent::Did;
 
     #[test]
@@ -465,6 +477,25 @@ mod tests {
         let bytes = bincode::serialize(&bt).expect("serialize");
         let decoded: BraidType = bincode::deserialize(&bytes).expect("deserialize");
         assert_eq!(decoded, bt);
+    }
+
+    #[test]
+    fn braid_metadata_bincode_roundtrip_with_cross_gate() {
+        let meta = BraidMetadata {
+            cross_gate: Some(CrossGateAttribution {
+                origin_gate: Arc::from("strandGate"),
+                target_gate: Arc::from("ironGate"),
+                trust_event: CrossGateTrustEvent::KeyExchange,
+                origin_agent: Did::new("did:key:z6MkOrigin"),
+                target_agent: Some(Did::new("did:key:z6MkTarget")),
+                family_id: Some("family-42".to_string()),
+            }),
+            ..Default::default()
+        };
+
+        let bytes = bincode::serialize(&meta).expect("serialize");
+        let decoded: BraidMetadata = bincode::deserialize(&bytes).expect("deserialize");
+        assert_eq!(decoded.cross_gate, meta.cross_gate);
     }
 
     #[test]

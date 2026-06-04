@@ -19,10 +19,12 @@ use crate::entity::EntityReference;
 mod braid_type;
 pub mod builder;
 pub mod context;
+pub mod cross_gate;
 mod tests;
 pub mod types;
 
 pub use builder::BraidBuilder;
+pub use cross_gate::{CrossGateAttribution, CrossGateTrustEvent};
 pub use types::{
     BraidContext, BraidId, BraidMetadata, BraidType, CompressionMeta, ContentHash,
     DEFAULT_ECOP_BASE_URI, DEFAULT_ECOP_VOCAB_URI, EcoPrimalsAttributes, JsonLdVersion,

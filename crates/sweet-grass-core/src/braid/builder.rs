@@ -11,6 +11,7 @@ use crate::entity::EntityReference;
 use crate::dehydration::Witness;
 use crate::privacy::PrivacyMetadata;
 
+use super::cross_gate::CrossGateAttribution;
 use super::types::{
     BraidContext, BraidId, BraidMetadata, BraidType, ContentHash, EcoPrimalsAttributes, Timestamp,
 };
@@ -94,6 +95,13 @@ impl BraidBuilder {
     #[must_use]
     pub fn privacy(mut self, pm: PrivacyMetadata) -> Self {
         self.privacy = Some(pm);
+        self
+    }
+
+    /// Set cross-gate attribution metadata.
+    #[must_use]
+    pub fn cross_gate(mut self, cga: CrossGateAttribution) -> Self {
+        self.metadata.cross_gate = Some(cga);
         self
     }
 

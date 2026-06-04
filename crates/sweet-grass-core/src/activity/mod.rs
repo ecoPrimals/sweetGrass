@@ -168,6 +168,16 @@ pub enum ActivityType {
     /// Certificate return.
     CertificateReturn,
 
+    // === Cross-gate trust ===
+    /// Cross-gate key exchange completed.
+    KeyExchange,
+    /// Trust issuer registration between gates.
+    TrustEstablishment,
+    /// Gate enrollment into mesh network.
+    GateEnrollment,
+    /// Cross-gate authentication event.
+    CrossGateAttestation,
+
     // === Custom ===
     /// Custom activity type with URI.
     Custom {

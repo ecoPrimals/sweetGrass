@@ -77,7 +77,16 @@ impl JsonLdDocument {
             "size": "ecop:size",
             "computeUnits": "ecop:computeUnits",
             "sourcePrimal": "ecop:sourcePrimal",
-            "niche": "ecop:niche"
+            "sourceGate": "ecop:sourceGate",
+            "niche": "ecop:niche",
+
+            "crossGateAttribution": "ecop:crossGateAttribution",
+            "originGate": "ecop:originGate",
+            "targetGate": "ecop:targetGate",
+            "trustEvent": "ecop:trustEvent",
+            "originAgent": {"@id": "ecop:originAgent", "@type": "@id"},
+            "targetAgent": {"@id": "ecop:targetAgent", "@type": "@id"},
+            "familyId": "ecop:familyId"
         })
     }
 
@@ -248,8 +257,28 @@ impl ProvoExport {
             if let Some(primal) = &braid.ecop.source_primal {
                 entity.insert("sourcePrimal".to_string(), json!(primal));
             }
+            if let Some(gate) = &braid.ecop.source_gate {
+                entity.insert("sourceGate".to_string(), json!(gate));
+            }
             if let Some(niche) = &braid.ecop.niche {
                 entity.insert("niche".to_string(), json!(niche));
+            }
+            if let Some(cga) = &braid.metadata.cross_gate {
+                let mut cg = IndexMap::new();
+                cg.insert("originGate".to_string(), json!(cga.origin_gate));
+                cg.insert("targetGate".to_string(), json!(cga.target_gate));
+                cg.insert(
+                    "trustEvent".to_string(),
+                    serde_json::to_value(&cga.trust_event).unwrap_or(json!("unknown")),
+                );
+                cg.insert("originAgent".to_string(), json!(cga.origin_agent.as_str()));
+                if let Some(target) = &cga.target_agent {
+                    cg.insert("targetAgent".to_string(), json!(target.as_str()));
+                }
+                if let Some(fid) = &cga.family_id {
+                    cg.insert("familyId".to_string(), json!(fid));
+                }
+                entity.insert("crossGateAttribution".to_string(), json!(cg));
             }
         }
 

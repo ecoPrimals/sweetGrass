@@ -660,3 +660,70 @@ fn test_export_derivation_with_external_ref() {
     assert_eq!(derived.len(), 1);
     assert_eq!(derived[0], "urn:braid:sha256:has_hash");
 }
+
+#[test]
+fn test_export_cross_gate_attribution() {
+    use sweet_grass_core::braid::cross_gate::{CrossGateAttribution, CrossGateTrustEvent};
+
+    let mut braid = make_test_braid("sha256:cross_gate_export", "did:key:z6MkStrand");
+    braid.ecop.source_gate = Some("strandGate".into());
+    braid.metadata.cross_gate = Some(CrossGateAttribution {
+        origin_gate: "strandGate".into(),
+        target_gate: "ironGate".into(),
+        trust_event: CrossGateTrustEvent::KeyExchange,
+        origin_agent: sweet_grass_core::agent::Did::new("did:key:z6MkStrandAgent"),
+        target_agent: Some(sweet_grass_core::agent::Did::new("did:key:z6MkIronAgent")),
+        family_id: Some("family-42".to_string()),
+    });
+
+    let exporter = ProvoExport::new();
+    let doc = exporter.export_braid(&braid).expect("should export");
+
+    let entity = &doc.graph[0];
+    assert_eq!(entity["sourceGate"], "strandGate");
+
+    let cga = &entity["crossGateAttribution"];
+    assert_eq!(cga["originGate"], "strandGate");
+    assert_eq!(cga["targetGate"], "ironGate");
+    assert_eq!(cga["trustEvent"], "key_exchange");
+    assert_eq!(cga["originAgent"], "did:key:z6MkStrandAgent");
+    assert_eq!(cga["targetAgent"], "did:key:z6MkIronAgent");
+    assert_eq!(cga["familyId"], "family-42");
+}
+
+#[test]
+fn test_export_cross_gate_minimal() {
+    use sweet_grass_core::braid::cross_gate::{CrossGateAttribution, CrossGateTrustEvent};
+
+    let mut braid = make_test_braid("sha256:cross_gate_min", "did:key:z6MkStrand");
+    braid.metadata.cross_gate = Some(CrossGateAttribution {
+        origin_gate: "southGate".into(),
+        target_gate: "eastGate".into(),
+        trust_event: CrossGateTrustEvent::MeshJoin,
+        origin_agent: sweet_grass_core::agent::Did::new("did:key:z6MkSouth"),
+        target_agent: None,
+        family_id: None,
+    });
+
+    let exporter = ProvoExport::new();
+    let doc = exporter.export_braid(&braid).expect("should export");
+
+    let cga = &doc.graph[0]["crossGateAttribution"];
+    assert_eq!(cga["trustEvent"], "mesh_join");
+    assert!(cga.get("targetAgent").is_none());
+    assert!(cga.get("familyId").is_none());
+}
+
+#[test]
+fn test_context_includes_cross_gate_terms() {
+    let doc = super::JsonLdDocument::new();
+    let ctx = &doc.context;
+    assert!(ctx.get("sourceGate").is_some());
+    assert!(ctx.get("crossGateAttribution").is_some());
+    assert!(ctx.get("originGate").is_some());
+    assert!(ctx.get("targetGate").is_some());
+    assert!(ctx.get("trustEvent").is_some());
+    assert!(ctx.get("originAgent").is_some());
+    assert!(ctx.get("targetAgent").is_some());
+    assert!(ctx.get("familyId").is_some());
+}

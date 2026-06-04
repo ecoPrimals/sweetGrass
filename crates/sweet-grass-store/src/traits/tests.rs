@@ -66,6 +66,12 @@ fn test_query_filter_with_offset() {
 }
 
 #[test]
+fn test_query_filter_with_source_gate() {
+    let filter = QueryFilter::new().with_source_gate("ironGate");
+    assert_eq!(filter.source_gate.as_deref(), Some("ironGate"));
+}
+
+#[test]
 fn test_query_filter_chained() {
     let filter = QueryFilter::new()
         .with_hash("sha256:test")
@@ -119,6 +125,7 @@ fn test_query_filter_serialization() {
 
     assert_eq!(parsed.data_hash, filter.data_hash);
     assert_eq!(parsed.limit, filter.limit);
+    assert_eq!(parsed.source_gate, filter.source_gate);
 }
 
 #[test]

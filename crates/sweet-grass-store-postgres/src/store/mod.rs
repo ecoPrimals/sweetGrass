@@ -73,6 +73,9 @@ impl<'a> ValidatedFilter<'a> {
         if self.filter.braid_type.is_some() {
             conditions.push(format!("braid_type = ${}", next()));
         }
+        if self.filter.source_gate.is_some() {
+            conditions.push(format!("ecop->>'source_gate' = ${}", next()));
+        }
         conditions.join(" AND ")
     }
 }
@@ -100,6 +103,9 @@ macro_rules! bind_filter {
         }
         if let Some(braid_type) = &$vf.filter.braid_type {
             q = q.bind(format!("{braid_type:?}"));
+        }
+        if let Some(gate) = &$vf.filter.source_gate {
+            q = q.bind(gate.as_ref());
         }
         q
     }};

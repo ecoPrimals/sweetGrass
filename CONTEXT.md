@@ -27,7 +27,7 @@ attribution before distributing rewards.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 (required) + tarpc (optional high-perf) + REST + UDS
 - **License:** scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0)
-- **Tests:** 1,588 local + 56 Docker CI (cargo test --all-features)
+- **Tests:** 1,602 local + 56 Docker CI (cargo test --all-features)
 
 ## Degradation Behavior
 
@@ -64,7 +64,7 @@ When sweetGrass is **unavailable** in a composition:
 - **DH-1 compliant:** Zero hardcoded `/tmp` in production code — all socket fallbacks use `std::env::temp_dir()` (respects `$TMPDIR`), enabling `ProtectSystem=strict` on VPS
 - **PID file:** Written alongside UDS socket (`sweetgrass.pid`) for instant liveness checks (`kill(pid, 0)`) — eliminates 100ms connect-probe overhead for downstream discovery
 - **Neural API `primal.announce`:** Self-registers with biomeOS on startup — capabilities, cost hints, latency estimates, signal tier (nest). Graceful degradation when biomeOS unavailable.
-- **Source files:** 195 `.rs` files (57,176 LOC), max 763 lines (all files under 800-line threshold)
+- **Source files:** 206 `.rs` files (59,957 LOC), max 763 lines (all files under 800-line threshold)
 - **Property testing:** 25 proptest strategies across 7 crates
 - **Chaos/fault:** 11 attribution chaos + 17 service chaos + 9 fault injection
 - **Edition:** 2024 (`resolver = "3"`), MSRV 1.87

@@ -112,6 +112,13 @@ fn matches_ecop_fields(braid: &Braid, filter: &QueryFilter) -> bool {
         }
     }
 
+    if let Some(ref gate) = filter.source_gate {
+        match &braid.ecop.source_gate {
+            Some(g) if g.as_ref() == gate.as_ref() => {},
+            _ => return false,
+        }
+    }
+
     true
 }
 
@@ -393,6 +400,25 @@ mod tests {
             niche: Some("chemistry".to_string()),
             ..QueryFilter::new()
         };
+        assert!(!matches(&braid, &filter));
+    }
+
+    #[test]
+    fn test_matches_ecop_source_gate() {
+        let mut braid = make_braid("sha256:gate", "did:key:z6Mk", 100);
+        braid.ecop.source_gate = Some(Arc::from("ironGate"));
+
+        let matching = QueryFilter::new().with_source_gate("ironGate");
+        assert!(matches(&braid, &matching));
+
+        let not_matching = QueryFilter::new().with_source_gate("strandGate");
+        assert!(!matches(&braid, &not_matching));
+    }
+
+    #[test]
+    fn test_matches_ecop_source_gate_none() {
+        let braid = make_braid("sha256:no-gate", "did:key:z6Mk", 100);
+        let filter = QueryFilter::new().with_source_gate("ironGate");
         assert!(!matches(&braid, &filter));
     }
 }

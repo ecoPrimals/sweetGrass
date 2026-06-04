@@ -1,10 +1,25 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.44 (June 2026)
+**Current Version**: v0.7.45 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.45 — Cross-Gate Attribution Schema (Wave 76, June 2026)
+
+- [x] **Cross-gate attribution schema** — `CrossGateAttribution` struct with `origin_gate`, `target_gate`, `trust_event`, `origin_agent`, `target_agent`, `family_id`; `CrossGateTrustEvent` enum (KeyExchange, TrustIssuerRegistered, GateEnrollment, FamilyEnrollment, CrossGateAttestation, MeshJoin, MeshLeave)
+- [x] **`source_gate` on `EcoPrimalsAttributes`** — first-class gate identity alongside `source_primal`
+- [x] **`cross_gate` on `BraidMetadata`** — typed field for multi-gate provenance braids
+- [x] **Cross-gate activity types** — `KeyExchange`, `TrustEstablishment`, `GateEnrollment`, `CrossGateAttestation` added to `ActivityType` enum
+- [x] **Witness tier vocabulary** — `WITNESS_TIER_GATEWAY`, `WITNESS_TIER_ANCHOR`, `WITNESS_TIER_EXTERNAL` constants; `Witness::from_gateway_ed25519()` constructor for cross-gate signatures
+- [x] **`source_gate` query filter** — `QueryFilter::with_source_gate()` across all backends (memory, redb, NestGate, postgres)
+- [x] **PROV-O export** — `sourceGate`, `crossGateAttribution` terms in JSON-LD context; cross-gate metadata exported in `braid_to_entity`
+- [x] **BraidBuilder support** — `cross_gate()` fluent setter; `braid.create` handler accepts `cross_gate` + `source_gate` params
+- [x] **Tests** — 5 cross-gate integration tests, 3 PROV-O export tests, source_gate filter tests
+- [x] **Bincode fix** — removed `skip_serializing_if` on `QueryFilter::source_gate` (tarpc Bincode compatibility)
+- [x] **DATA_MODEL.md** — updated to v0.4.0 with cross-gate schema, activity types, witness tiers, JSON-LD example
+- [x] 1,602 tests (0 failures), 59,957 LOC, 206 source files, 0 clippy warnings
 
 ### v0.7.44 — PROV-O Schema Completeness + Privacy Edge Cases + Store Parity (Wave 69, June 2026)
 

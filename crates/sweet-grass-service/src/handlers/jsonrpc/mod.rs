@@ -781,3 +781,5 @@ mod tests_protocol;
 mod tests_privacy;
 #[cfg(test)]
 mod tests_provenance;
+#[cfg(test)]
+mod tests_cross_gate;

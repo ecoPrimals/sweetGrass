@@ -93,6 +93,30 @@ fn test_activity_type_display() {
     assert_eq!(format!("{}", ActivityType::Computation), "Computation");
     assert_eq!(format!("{}", ActivityType::Import), "Import");
     assert_eq!(format!("{}", ActivityType::Derivation), "Derivation");
+    assert_eq!(format!("{}", ActivityType::KeyExchange), "KeyExchange");
+    assert_eq!(
+        format!("{}", ActivityType::TrustEstablishment),
+        "TrustEstablishment"
+    );
+    assert_eq!(format!("{}", ActivityType::GateEnrollment), "GateEnrollment");
+    assert_eq!(
+        format!("{}", ActivityType::CrossGateAttestation),
+        "CrossGateAttestation"
+    );
+}
+
+#[test]
+fn test_activity_type_cross_gate_serialization() {
+    for activity_type in [
+        ActivityType::KeyExchange,
+        ActivityType::TrustEstablishment,
+        ActivityType::GateEnrollment,
+        ActivityType::CrossGateAttestation,
+    ] {
+        let json = serde_json::to_string(&activity_type).expect("serialize");
+        let parsed: ActivityType = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(parsed, activity_type);
+    }
 }
 
 #[test]

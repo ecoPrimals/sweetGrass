@@ -2,9 +2,13 @@
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Braid domain handlers: create, get, `get_by_hash`, query, delete, commit, anchor.
 
+use std::sync::Arc;
+
 use base64::Engine;
 use serde::Deserialize;
-use sweet_grass_core::braid::{BraidId, BraidMetadata, ContentHash};
+use sweet_grass_core::activity::Activity;
+use sweet_grass_core::braid::{BraidId, BraidMetadata, ContentHash, CrossGateAttribution};
+use sweet_grass_core::dehydration::Witness;
 use sweet_grass_core::privacy::{PrivacyLevel, PrivacyMetadata};
 use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder};
 
@@ -38,6 +42,14 @@ pub(super) struct CreateBraidParams {
     source_merkle_root: Option<String>,
     #[serde(default)]
     privacy: Option<PrivacyMetadata>,
+    #[serde(default)]
+    cross_gate: Option<CrossGateAttribution>,
+    #[serde(default)]
+    source_gate: Option<String>,
+    #[serde(default)]
+    was_generated_by: Option<Activity>,
+    #[serde(default)]
+    witness: Option<Witness>,
 }
 
 impl CreateBraidParams {
@@ -56,6 +68,9 @@ impl CreateBraidParams {
         }
         if meta.privacy.is_none() && let Some(privacy) = self.privacy {
             meta.privacy = Some(privacy);
+        }
+        if meta.cross_gate.is_none() && let Some(cross_gate) = self.cross_gate {
+            meta.cross_gate = Some(cross_gate);
         }
         if let Some(session) = self.source_session {
             meta.custom
@@ -144,15 +159,33 @@ pub(super) async fn handle_braid_create(
     state: &AppState,
     params: serde_json::Value,
 ) -> DispatchResult {
-    let p: CreateBraidParams = parse_params(params)?;
+    let mut p: CreateBraidParams = parse_params(params)?;
+    let source_gate = p.source_gate.clone();
+    let use_auto_sign = p.witness.is_none();
+    let was_generated_by = p.was_generated_by.take();
+    let witness = p.witness.take();
     let (data_hash, mime_type, size, metadata) = p.into_metadata();
     let mut braid = state
         .factory
         .from_hash(data_hash, mime_type, size, metadata)
         .map_err(internal)?;
 
+    if let Some(gate) = source_gate {
+        braid.ecop.source_gate = Some(Arc::from(gate.as_str()));
+    }
+
+    if let Some(activity) = was_generated_by {
+        braid.was_generated_by = Some(activity);
+    }
+
+    if let Some(w) = witness {
+        braid.witness = w;
+    }
+
     #[cfg(unix)]
-    if let Some(crypto) = &state.crypto {
+    if use_auto_sign
+        && let Some(crypto) = &state.crypto
+    {
         match crypto
             .sign(braid.compute_signing_hash().as_str().as_bytes())
             .await

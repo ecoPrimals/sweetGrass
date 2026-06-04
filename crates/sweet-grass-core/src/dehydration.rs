@@ -145,6 +145,12 @@ pub const WITNESS_TIER_LOCAL: &str = "local";
 pub const WITNESS_TIER_OPEN: &str = "open";
 /// Provenance tier: Tower-delegated (signed by `BearDog` crypto authority).
 pub const WITNESS_TIER_TOWER: &str = "tower";
+/// Witness from a remote gate's security provider.
+pub const WITNESS_TIER_GATEWAY: &str = "gateway";
+/// Witness anchored to an external chain or registry.
+pub const WITNESS_TIER_ANCHOR: &str = "anchor";
+/// Witness from an external third-party verifier.
+pub const WITNESS_TIER_EXTERNAL: &str = "external";
 
 impl Witness {
     /// Create an unsigned placeholder witness (open tier, no evidence).
@@ -194,6 +200,22 @@ impl Witness {
             algorithm: Some(WITNESS_ALGORITHM_ED25519.to_owned()),
             tier: Some(WITNESS_TIER_TOWER.to_owned()),
             context: None,
+        }
+    }
+
+    /// Create a gateway-tier witness (cross-gate Ed25519 signature).
+    #[must_use]
+    pub fn from_gateway_ed25519(agent: &Did, signature: &[u8], gate_context: &str) -> Self {
+        use base64::Engine;
+        Self {
+            agent: agent.clone(),
+            kind: WITNESS_KIND_SIGNATURE.to_owned(),
+            evidence: base64::engine::general_purpose::STANDARD.encode(signature),
+            witnessed_at: Timestamp::now(),
+            encoding: WITNESS_ENCODING_BASE64.to_owned(),
+            algorithm: Some(WITNESS_ALGORITHM_ED25519.to_owned()),
+            tier: Some(WITNESS_TIER_GATEWAY.to_owned()),
+            context: Some(gate_context.to_owned()),
         }
     }
 
@@ -405,6 +427,23 @@ mod tests {
         assert_eq!(w.tier.as_deref(), Some(WITNESS_TIER_OPEN));
         assert_eq!(w.context, None);
         assert!(!w.is_signed());
+    }
+
+    #[test]
+    fn test_witness_from_gateway_ed25519() {
+        let agent = Did::new("did:key:z6MkGatewaySigner");
+        let w = Witness::from_gateway_ed25519(&agent, b"gateway-sig", "strandGate->ironGate");
+        assert_eq!(w.agent, agent);
+        assert_eq!(w.kind, WITNESS_KIND_SIGNATURE);
+        assert_eq!(
+            w.evidence,
+            base64::engine::general_purpose::STANDARD.encode(b"gateway-sig")
+        );
+        assert_eq!(w.encoding, WITNESS_ENCODING_BASE64);
+        assert_eq!(w.algorithm.as_deref(), Some(WITNESS_ALGORITHM_ED25519));
+        assert_eq!(w.tier.as_deref(), Some(WITNESS_TIER_GATEWAY));
+        assert_eq!(w.context.as_deref(), Some("strandGate->ironGate"));
+        assert!(w.is_signed());
     }
 
     #[test]

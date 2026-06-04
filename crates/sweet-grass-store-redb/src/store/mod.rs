@@ -422,6 +422,11 @@ impl BraidStore for RedbStore {
                     {
                         continue;
                     }
+                    if let Some(ref gate) = filter.source_gate
+                        && braid.ecop.source_gate.as_deref() != Some(gate.as_ref())
+                    {
+                        continue;
+                    }
                     braids.push(braid);
                 }
             }

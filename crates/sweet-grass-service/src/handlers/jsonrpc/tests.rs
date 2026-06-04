@@ -10,6 +10,7 @@
 //! - `tests_compression` — `compression.*`
 //! - `tests_contribution` — `contribution.*` + `pipeline.*`
 //! - `tests_provenance` — `provenance.*`
+//! - `tests_cross_gate` — cross-gate attribution braids, `source_gate` query
 
 #![expect(clippy::unwrap_used, reason = "test file: unwrap is standard in tests")]
 

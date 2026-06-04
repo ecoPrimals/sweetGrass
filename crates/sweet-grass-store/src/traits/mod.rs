@@ -6,6 +6,7 @@
 //! Braids and related provenance data.
 
 use std::future::Future;
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use sweet_grass_core::{
@@ -52,6 +53,10 @@ pub struct QueryFilter {
 
     /// Filter by niche.
     pub niche: Option<String>,
+
+    /// Filter by originating gate (e.g. `"ironGate"`, `"strandGate"`).
+    #[serde(default)]
+    pub source_gate: Option<Arc<str>>,
 
     /// Maximum results to return.
     pub limit: Option<usize>,
@@ -107,6 +112,13 @@ impl QueryFilter {
     #[must_use]
     pub fn with_tag(mut self, tag: impl Into<String>) -> Self {
         self.tag = Some(tag.into());
+        self
+    }
+
+    /// Filter by originating gate.
+    #[must_use]
+    pub fn with_source_gate(mut self, gate: impl AsRef<str>) -> Self {
+        self.source_gate = Some(Arc::from(gate.as_ref()));
         self
     }
 

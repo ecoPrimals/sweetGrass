@@ -54,6 +54,15 @@ pub mod paths {
     /// resolution when `BIOMEOS_SOCKET_DIR`, `XDG_RUNTIME_DIR`, and
     /// `TMPDIR` are all absent.
     pub const DEFAULT_SOCKET_DIR: &str = "/tmp/biomeos";
+
+    /// Resolve the default socket directory (respects `$TMPDIR` when present).
+    #[must_use]
+    pub fn default_socket_dir() -> std::path::PathBuf {
+        std::env::var(super::env_vars::TMPDIR).map_or_else(
+            |_| std::path::PathBuf::from(DEFAULT_SOCKET_DIR),
+            |tmpdir| std::path::PathBuf::from(tmpdir).join(BIOMEOS_DIR),
+        )
+    }
 }
 
 /// Infrastructure environment variable names.

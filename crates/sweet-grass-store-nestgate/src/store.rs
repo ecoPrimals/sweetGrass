@@ -266,6 +266,12 @@ impl NestGateStore {
                 _ => return false,
             }
         }
+        if let Some(ref gate) = filter.source_gate {
+            match &braid.ecop.source_gate {
+                Some(g) if g.as_ref() == gate.as_ref() => {},
+                _ => return false,
+            }
+        }
         true
     }
 }

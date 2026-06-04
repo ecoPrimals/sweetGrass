@@ -1,7 +1,7 @@
 +++
 title = "sweetGrass Validation Summary"
-description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,573 tests, 39 methods, zero production debt."
-date = 2026-05-20
+description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,602 tests, 39 methods, zero production debt. Cross-gate attribution."
+date = 2026-06-03
 
 [taxonomies]
 primals = ["sweetgrass", "beardog", "rhizocrypt", "loamspine", "nestgate"]
@@ -10,10 +10,10 @@ springs = []
 
 ## Status
 
-- **Version**: v0.7.44
-- **1,588 tests** (all passed, 0 failed, 56 Docker CI integration tests)
+- **Version**: v0.7.45
+- **1,602 tests** (all passed, 0 failed, 56 Docker CI integration tests)
 - **39 registered capability methods** across 12 domains
-- **195 source files** (57,176 LOC Rust), max 763 lines per file
+- **206 source files** (59,957 LOC Rust), max 763 lines per file
 - **Neural API `primal.announce`**: self-registers with biomeOS on startup (Wave 43)
 - **Zero production debt**: 0 unsafe, 0 `#[allow]`, 0 TODO/FIXME, 0 `println!`, 0 production `unwrap()`, 0 `std::sync::Mutex`, 0 `Box<dyn Error>`, 0 `async_trait`, 0 `Rc<`, 0 missing SPDX
 - **Clippy**: 0 warnings (pedantic + nursery)
