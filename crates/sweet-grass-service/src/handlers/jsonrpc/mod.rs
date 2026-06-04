@@ -40,7 +40,9 @@ mod composition;
 mod compression;
 mod contribution;
 mod health;
+mod lifecycle;
 mod provenance;
+mod registry;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -52,9 +54,9 @@ use axum::response::{IntoResponse, Response};
 use serde::Serialize;
 use tracing::instrument;
 
-use sweet_grass_core::niche;
-
 use crate::state::AppState;
+
+use registry::{METHODS, find_handler, find_handler_normalized, normalize_method, resolve_alias};
 
 /// JSON-RPC 2.0 error codes per specification.
 pub(crate) mod error_code {
@@ -176,7 +178,7 @@ impl From<(i64, String)> for DispatchError {
 }
 
 pub(crate) type DispatchResult = Result<serde_json::Value, DispatchError>;
-type DispatchFn = for<'a> fn(
+pub(super) type DispatchFn = for<'a> fn(
     &'a AppState,
     serde_json::Value,
 ) -> Pin<Box<dyn Future<Output = DispatchResult> + Send + 'a>>;
@@ -232,240 +234,6 @@ impl DispatchOutcome {
             },
         }
     }
-}
-
-pub(super) struct MethodEntry {
-    pub(super) name: &'static str,
-    handler: DispatchFn,
-}
-
-/// Static dispatch table — each domain.operation maps to a handler fn.
-///
-/// Replaces the former giant match statement with a scannable, extendable table.
-static METHODS: &[MethodEntry] = &[
-    // Braid operations
-    MethodEntry {
-        name: "braid.create",
-        handler: |s, p| Box::pin(braid::handle_braid_create(s, p)),
-    },
-    MethodEntry {
-        name: "braid.get",
-        handler: |s, p| Box::pin(braid::handle_braid_get(s, p)),
-    },
-    MethodEntry {
-        name: "braid.get_by_hash",
-        handler: |s, p| Box::pin(braid::handle_braid_get_by_hash(s, p)),
-    },
-    MethodEntry {
-        name: "braid.query",
-        handler: |s, p| Box::pin(braid::handle_braid_query(s, p)),
-    },
-    MethodEntry {
-        name: "braid.delete",
-        handler: |s, p| Box::pin(braid::handle_braid_delete(s, p)),
-    },
-    MethodEntry {
-        name: "braid.commit",
-        handler: |s, p| Box::pin(braid::handle_braid_commit(s, p)),
-    },
-    MethodEntry {
-        name: "braid.anchor",
-        handler: |s, p| Box::pin(braid::handle_braid_anchor(s, p)),
-    },
-    MethodEntry {
-        name: "anchoring.anchor",
-        handler: |s, p| Box::pin(anchoring::handle_anchor_braid(s, p)),
-    },
-    MethodEntry {
-        name: "anchoring.verify",
-        handler: |s, p| Box::pin(anchoring::handle_verify_anchor(s, p)),
-    },
-    // Provenance
-    MethodEntry {
-        name: "provenance.graph",
-        handler: |s, p| Box::pin(provenance::handle_provenance_graph(s, p)),
-    },
-    MethodEntry {
-        name: "provenance.export_provo",
-        handler: |s, p| Box::pin(provenance::handle_export_provo(s, p)),
-    },
-    MethodEntry {
-        name: "provenance.export_graph_provo",
-        handler: |s, p| Box::pin(provenance::handle_export_graph_provo(s, p)),
-    },
-    // Attribution
-    MethodEntry {
-        name: "attribution.chain",
-        handler: |s, p| Box::pin(attribution::handle_attribution_chain(s, p)),
-    },
-    MethodEntry {
-        name: "attribution.calculate_rewards",
-        handler: |s, p| Box::pin(attribution::handle_calculate_rewards(s, p)),
-    },
-    MethodEntry {
-        name: "attribution.top_contributors",
-        handler: |s, p| Box::pin(attribution::handle_top_contributors(s, p)),
-    },
-    MethodEntry {
-        name: "attribution.witness",
-        handler: |s, p| Box::pin(attribution::handle_attribution_witness(s, p)),
-    },
-    // Compression
-    MethodEntry {
-        name: "compression.compress_session",
-        handler: |s, p| Box::pin(async move { compression::handle_compress_session_sync(s, p) }),
-    },
-    MethodEntry {
-        name: "compression.create_meta_braid",
-        handler: |s, p| Box::pin(compression::handle_create_meta_braid(s, p)),
-    },
-    // Contribution recording
-    MethodEntry {
-        name: "contribution.record",
-        handler: |s, p| Box::pin(contribution::handle_record_contribution(s, p)),
-    },
-    MethodEntry {
-        name: "contribution.record_session",
-        handler: |s, p| Box::pin(contribution::handle_record_session(s, p)),
-    },
-    MethodEntry {
-        name: "contribution.record_dehydration",
-        handler: |s, p| Box::pin(contribution::handle_record_dehydration(s, p)),
-    },
-    MethodEntry {
-        name: "contribution.record_provenance",
-        handler: |s, p| Box::pin(contribution::handle_record_provenance(s, p)),
-    },
-    // Pipeline (provenance trio coordination)
-    MethodEntry {
-        name: "pipeline.attribute",
-        handler: |s, p| Box::pin(contribution::handle_pipeline_attribute(s, p)),
-    },
-    // Health (wateringHole PRIMAL_IPC_PROTOCOL v3.0)
-    MethodEntry {
-        name: "health.check",
-        handler: |s, p| Box::pin(health::handle_health(s, p)),
-    },
-    MethodEntry {
-        name: "health.liveness",
-        handler: |s, p| Box::pin(async move { health::handle_liveness(s, p) }),
-    },
-    MethodEntry {
-        name: "health.readiness",
-        handler: |s, p| Box::pin(health::handle_readiness(s, p)),
-    },
-    // Identity (biomeOS Neural API probes this for primal name + version)
-    MethodEntry {
-        name: "identity.get",
-        handler: |s, p| Box::pin(async move { health::handle_identity_get(s, p) }),
-    },
-    // Capability discovery (wateringHole SEMANTIC_METHOD_NAMING v2.1)
-    // `capabilities.list` is canonical; `capability.list` retained as alias
-    MethodEntry {
-        name: "capabilities.list",
-        handler: |s, p| Box::pin(async move { capability::handle_capability_list(s, p) }),
-    },
-    MethodEntry {
-        name: "capability.list",
-        handler: |s, p| Box::pin(async move { capability::handle_capability_list(s, p) }),
-    },
-    // MCP tool exposure (airSpring v0.10 pattern for Squirrel AI coordination)
-    MethodEntry {
-        name: "tools.list",
-        handler: |s, p| Box::pin(async move { capability::handle_tools_list(s, p) }),
-    },
-    MethodEntry {
-        name: "tools.call",
-        handler: |s, p| Box::pin(capability::handle_tools_call(s, p)),
-    },
-    MethodEntry {
-        name: "composition.tower_health",
-        handler: |s, p| Box::pin(composition::handle_tower_health(s, p)),
-    },
-    MethodEntry {
-        name: "composition.node_health",
-        handler: |s, p| Box::pin(composition::handle_node_health(s, p)),
-    },
-    MethodEntry {
-        name: "composition.nest_health",
-        handler: |s, p| Box::pin(composition::handle_nest_health(s, p)),
-    },
-    MethodEntry {
-        name: "composition.nucleus_health",
-        handler: |s, p| Box::pin(composition::handle_nucleus_health(s, p)),
-    },
-    // Lifecycle (wateringHole public surface, classified public in method gate)
-    MethodEntry {
-        name: "lifecycle.status",
-        handler: |s, p| Box::pin(async move { handle_lifecycle_status(s, p) }),
-    },
-    // Auth introspection (JH-0 method gate)
-    MethodEntry {
-        name: "auth.mode",
-        handler: |s, _p| Box::pin(async move { handle_auth_mode(s) }),
-    },
-    MethodEntry {
-        name: "auth.check",
-        handler: |s, p| Box::pin(async move { handle_auth_check(s, p) }),
-    },
-    MethodEntry {
-        name: "auth.peer_info",
-        handler: |_s, p| Box::pin(async move { handle_auth_peer_info(p) }),
-    },
-];
-
-/// Normalize a JSON-RPC method name for case-insensitive lookup.
-///
-/// Lowercases the method name so that `Braid.Create` matches `braid.create`.
-/// Underscores within operation names are preserved (e.g. `get_by_hash`).
-/// Adopted from barraCuda `normalize_method` pattern via loamSpine / wetSpring.
-fn normalize_method(raw: &str) -> String {
-    raw.to_ascii_lowercase()
-}
-
-/// Wire-name aliases for downstream compatibility (GAP-36 reconciliation).
-///
-/// Downstream springs and integration guides reference method names that
-/// diverge from the canonical wire names. This table maps every known
-/// variant to the canonical name so callers get a valid handler instead
-/// of `-32601 Method not found`.
-///
-/// Sources: `PROVENANCE_TRIO_INTEGRATION_GUIDE.md`, `CAPABILITY_DOMAIN_REGISTRY.md`,
-/// ludoSpring trio graph, primalSpring handoffs, biomeOS Neural API translation
-/// errors (GAP-MATRIX-09).
-static ALIASES: &[(&str, &str)] = &[
-    ("braid.attribution.create", "braid.create"),
-    ("attribution.create_braid", "braid.create"),
-    ("provenance.create_braid", "braid.create"),
-    ("attribution.braid", "braid.create"),
-    ("attribution.add_contribution", "contribution.record"),
-    ("attribution.calculate", "attribution.calculate_rewards"),
-    ("attribution.seal", "braid.commit"),
-    ("attribution.export_prov", "provenance.export_provo"),
-    ("provenance.lineage", "attribution.chain"),
-    ("attribution.anchor", "anchoring.anchor"),
-];
-
-fn resolve_alias(method: &str) -> Option<&'static str> {
-    ALIASES
-        .iter()
-        .find(|(alias, _)| *alias == method)
-        .map(|(_, canonical)| *canonical)
-}
-
-pub(super) fn find_handler(method: &str) -> Option<DispatchFn> {
-    find_handler_normalized(&normalize_method(method))
-}
-
-fn find_handler_normalized(normalized: &str) -> Option<DispatchFn> {
-    METHODS
-        .iter()
-        .find(|m| m.name == normalized)
-        .or_else(|| {
-            let canonical = resolve_alias(normalized)?;
-            METHODS.iter().find(|m| m.name == canonical)
-        })
-        .map(|m| m.handler)
 }
 
 /// Process a single JSON-RPC request, returning `None` for notifications.
@@ -640,93 +408,6 @@ async fn dispatch_classified(
             source_detail: e.source_detail,
         },
     }
-}
-
-// ==================== Lifecycle ====================
-
-#[expect(
-    clippy::unnecessary_wraps,
-    reason = "must match DispatchFn signature"
-)]
-fn handle_lifecycle_status(state: &AppState, _params: serde_json::Value) -> DispatchResult {
-    let version = env!("CARGO_PKG_VERSION");
-    let name = state
-        .self_knowledge
-        .as_ref()
-        .map_or("sweetgrass", |sk| sk.name.as_str());
-    let uptime_secs = state
-        .self_knowledge
-        .as_ref()
-        .map_or(0, |sk| sk.uptime().as_secs());
-    let started_at = state.self_knowledge.as_ref().map(|sk| {
-        chrono::DateTime::<chrono::Utc>::from(sk.established_at).to_rfc3339()
-    });
-    let mut response = serde_json::json!({
-        "status": "running",
-        "primal": name,
-        "version": version,
-        "gate_mode": state.method_gate.mode().as_str(),
-        "uptime_secs": uptime_secs,
-        "method_count": METHODS.len(),
-        "capabilities_count": niche::CAPABILITIES.len(),
-        "store_backend": state.store_backend,
-    });
-    if let Some(started_at) = started_at {
-        response["started_at"] = serde_json::Value::String(started_at);
-    }
-    Ok(response)
-}
-
-// ==================== Auth Introspection (JH-0) ====================
-
-#[expect(
-    clippy::unnecessary_wraps,
-    reason = "must match DispatchFn signature"
-)]
-fn handle_auth_mode(state: &AppState) -> DispatchResult {
-    Ok(serde_json::json!({
-        "mode": state.method_gate.mode().as_str(),
-    }))
-}
-
-/// Enriched auth check per primalSpring later-term pattern.
-///
-/// Returns `{ authenticated, verified, enforcement, scopes, subject, expires_in }`.
-/// Fields that require live `BearDog` token verification return `null` until
-/// `auth.verify_ionic` is wired (JH-11).
-#[expect(
-    clippy::unnecessary_wraps,
-    clippy::needless_pass_by_value,
-    reason = "must match DispatchFn signature"
-)]
-fn handle_auth_check(state: &AppState, params: serde_json::Value) -> DispatchResult {
-    let caller = caller_context_from_params(&params);
-    let has_token = caller.bearer_token.is_some();
-    Ok(serde_json::json!({
-        "authenticated": has_token,
-        "verified": false,
-        "enforcement": state.method_gate.mode().as_str(),
-        "scopes": serde_json::Value::Null,
-        "subject": serde_json::Value::Null,
-        "expires_in": serde_json::Value::Null,
-    }))
-}
-
-#[expect(
-    clippy::unnecessary_wraps,
-    clippy::needless_pass_by_value,
-    reason = "must match DispatchFn signature"
-)]
-fn handle_auth_peer_info(params: serde_json::Value) -> DispatchResult {
-    let ctx = caller_context_from_params(&params);
-    Ok(serde_json::json!({
-        "origin": format!("{:?}", ctx.origin),
-        "authenticated": ctx.bearer_token.is_some(),
-        "peer": ctx.peer.as_ref().map(|p| serde_json::json!({
-            "uid": p.uid,
-            "pid": p.pid,
-        })),
-    }))
 }
 
 // ==================== Helpers (used by domain modules) ====================

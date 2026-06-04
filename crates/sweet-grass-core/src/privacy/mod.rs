@@ -221,15 +221,15 @@ pub struct PrivacyMetadata {
     pub consent_obtained: bool,
 
     /// Consent details if applicable.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub consent_details: Option<ConsentDetails>,
 
     /// Parties granted access (for Private visibility).
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub granted_access: Vec<Did>,
 
     /// Processing restrictions.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub processing_restrictions: Vec<ProcessingType>,
 
     /// Whether this data can be included in derived works.

@@ -383,11 +383,11 @@ pub struct AgentAssociation {
     pub role: AgentRole,
 
     /// Acting on behalf of another agent.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub on_behalf_of: Option<Did>,
 
     /// Plan/protocol followed.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub had_plan: Option<String>,
 }
 
@@ -436,7 +436,7 @@ pub struct Agent {
     pub agent_type: AgentType,
 
     /// Display name.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub name: Option<String>,
 }
 

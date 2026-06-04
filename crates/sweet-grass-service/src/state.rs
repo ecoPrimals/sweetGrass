@@ -64,6 +64,9 @@ pub struct AppState {
 
     /// Snapshotted `DISCOVERY_ADDRESS` for health integration reporting.
     pub discovery_address: Option<String>,
+
+    /// Snapshotted `TARPC_MAX_CONCURRENT_REQUESTS` (default 10).
+    pub tarpc_max_concurrent: usize,
 }
 
 impl AppState {
@@ -89,6 +92,7 @@ impl AppState {
             btsp_required: false,
             socket_dir: Self::snapshot_socket_dir(),
             discovery_address: None,
+            tarpc_max_concurrent: Self::snapshot_tarpc_max_concurrent(),
         }
     }
 
@@ -113,6 +117,7 @@ impl AppState {
             btsp_required: Self::snapshot_btsp_required(),
             socket_dir: Self::snapshot_socket_dir(),
             discovery_address: std::env::var("DISCOVERY_ADDRESS").ok(),
+            tarpc_max_concurrent: Self::snapshot_tarpc_max_concurrent(),
         }
     }
 
@@ -150,7 +155,16 @@ impl AppState {
             btsp_required: Self::snapshot_btsp_required(),
             socket_dir: Self::snapshot_socket_dir(),
             discovery_address: std::env::var("DISCOVERY_ADDRESS").ok(),
+            tarpc_max_concurrent: Self::snapshot_tarpc_max_concurrent(),
         }
+    }
+
+    /// Snapshot tarpc concurrency limit from `TARPC_MAX_CONCURRENT_REQUESTS`.
+    fn snapshot_tarpc_max_concurrent() -> usize {
+        std::env::var(env_vars::TARPC_MAX_CONCURRENT_REQUESTS)
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(10)
     }
 
     /// Snapshot the BTSP requirement from the current env.

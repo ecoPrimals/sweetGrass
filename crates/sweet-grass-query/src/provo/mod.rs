@@ -269,7 +269,8 @@ impl ProvoExport {
                 cg.insert("targetGate".to_string(), json!(cga.target_gate));
                 cg.insert(
                     "trustEvent".to_string(),
-                    serde_json::to_value(&cga.trust_event).unwrap_or(json!("unknown")),
+                    serde_json::to_value(&cga.trust_event)
+                        .unwrap_or_else(|_| json!("unknown")),
                 );
                 cg.insert("originAgent".to_string(), json!(cga.origin_agent.as_str()));
                 if let Some(target) = &cga.target_agent {

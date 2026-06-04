@@ -17,7 +17,6 @@
 
 use super::{DispatchError, DispatchResult, METHODS, error_code, parse_params, to_value};
 use crate::state::AppState;
-use sweet_grass_core::primal_names::env_vars;
 
 /// `capabilities.list` / `capability.list` — Wire Standard L3 (Composable).
 ///
@@ -28,7 +27,7 @@ use sweet_grass_core::primal_names::env_vars;
 /// - L3: `provided_capabilities`, `consumed_capabilities`,
 ///   `cost_estimates` (per-method), `operation_dependencies`
 pub(super) fn handle_capability_list(
-    _state: &AppState,
+    state: &AppState,
     _params: serde_json::Value,
 ) -> DispatchResult {
     use sweet_grass_core::niche;
@@ -90,16 +89,11 @@ pub(super) fn handle_capability_list(
     let count = methods.len();
 
     let mut transport = vec!["http", "uds"];
-    if std::env::var(env_vars::SWEETGRASS_PORT).is_ok() {
+    if state.tcp_transport_active {
         transport.push("tcp");
     }
 
-    let btsp_active = {
-        #[cfg(unix)]
-        { crate::btsp::is_btsp_required() }
-        #[cfg(not(unix))]
-        { false }
-    };
+    let btsp_active = state.btsp_required;
 
     to_value(&serde_json::json!({
         "primal": niche::NICHE_ID,

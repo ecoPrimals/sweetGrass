@@ -150,7 +150,7 @@ async fn main() {
             let tcp_address = match tcp_address {
                 Ok(a) => a,
                 Err(msg) => {
-                    eprintln!("Error: --port {msg}");
+                    let _ = writeln!(std::io::stderr(), "Error: --port {msg}");
                     std::process::exit(exit_code::CONFIG_ERROR);
                 },
             };

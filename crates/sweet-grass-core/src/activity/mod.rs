@@ -251,11 +251,11 @@ pub struct UsedEntity {
     pub role: EntityRole,
 
     /// When it was used.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub time: Option<Timestamp>,
 
     /// How much was used.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub extent: Option<UsageExtent>,
 }
 
@@ -290,35 +290,35 @@ impl UsedEntity {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ActivityEcoPrimals {
     /// Compute units consumed.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub compute_units: Option<f64>,
 
     /// Storage used (bytes).
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub storage_bytes: Option<u64>,
 
     /// Network transfer (bytes).
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub network_bytes: Option<u64>,
 
     /// Duration (nanoseconds).
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub duration_ns: Option<u64>,
 
     /// Session events provider session reference (capability-based, runtime-discovered).
-    #[serde(skip_serializing_if = "Option::is_none", alias = "rhizo_session")]
+    #[serde(default, alias = "rhizo_session")]
     pub session_ref: Option<String>,
 
     /// Compute provider task ID (capability-based, runtime-discovered).
-    #[serde(skip_serializing_if = "Option::is_none", alias = "toadstool_task")]
+    #[serde(default, alias = "toadstool_task")]
     pub compute_task: Option<String>,
 
     /// Ledger entry reference (capability-based, runtime-discovered).
-    #[serde(skip_serializing_if = "Option::is_none", alias = "loam_entry")]
+    #[serde(default, alias = "loam_entry")]
     pub ledger_entry: Option<String>,
 
     /// Niche context.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub niche: Option<String>,
 }
 
@@ -326,19 +326,19 @@ pub struct ActivityEcoPrimals {
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ActivityMetadata {
     /// Description of the activity.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub description: Option<String>,
 
     /// Software/tool used.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub software: Option<String>,
 
     /// Software version.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub software_version: Option<String>,
 
     /// Custom parameters.
-    #[serde(default, skip_serializing_if = "std::collections::HashMap::is_empty")]
+    #[serde(default)]
     pub parameters: std::collections::HashMap<String, serde_json::Value>,
 }
 
@@ -354,18 +354,18 @@ pub struct Activity {
     pub activity_type: ActivityType,
 
     /// Inputs used by this activity.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub used: Vec<UsedEntity>,
 
     /// Agent(s) who performed the activity.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[serde(default)]
     pub was_associated_with: Vec<AgentAssociation>,
 
     /// When the activity started.
     pub started_at_time: Timestamp,
 
     /// When the activity ended.
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     pub ended_at_time: Option<Timestamp>,
 
     /// Activity metadata.

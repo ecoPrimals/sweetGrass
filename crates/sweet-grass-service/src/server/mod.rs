@@ -94,12 +94,6 @@ impl SweetGrassServer {
     /// Create from `AppState` — shares the same store as the HTTP/JSON-RPC stack.
     #[must_use]
     pub fn from_app_state(state: &crate::state::AppState) -> Self {
-        let max_concurrent_requests = std::env::var(
-            sweet_grass_core::primal_names::env_vars::TARPC_MAX_CONCURRENT_REQUESTS,
-        )
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(DEFAULT_MAX_CONCURRENT_REQUESTS);
         Self {
             store: Arc::clone(&state.store),
             factory: Arc::clone(&state.factory),
@@ -108,7 +102,7 @@ impl SweetGrassServer {
             attribution: Arc::new(AttributionCalculator::new()),
             store_backend: state.store_backend,
             start_time: Instant::now(),
-            max_concurrent_requests,
+            max_concurrent_requests: state.tarpc_max_concurrent,
             #[cfg(unix)]
             crypto: state.crypto.clone(),
         }
