@@ -1,10 +1,19 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.47 (June 2026)
+**Current Version**: v0.7.48 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.48 — Zero Hot-Path Env Reads (Wave 78b, June 2026)
+
+- [x] **`BraidFactory` context injection** — `with_context()` builder wires `BraidContext` into factory; all 6 builder calls now use pre-resolved URIs
+- [x] **`QueryEngine` vocab threading** — `with_ecop_vocab()` passes snapshotted URI to `ProvoExport`; PROV-O exports no longer read env
+- [x] **`ProvoExport` env elimination** — `with_ecop_vocab()` and `JsonLdDocument::with_ecop_vocab()` avoid runtime `env::var`
+- [x] **`trust.event` handler** — uses `BraidContext::with_uris()` from `AppState` instead of `BraidContext::default()`
+- [x] **`AppState` constructors** — all three snapshot `BraidContext` for factory and thread vocab to `QueryEngine`
+- [x] Zero `env::var` reads on any hot path (factory, query, trust handler)
 
 ### v0.7.47 — AppState Env Snapshots (Wave 78, June 2026)
 

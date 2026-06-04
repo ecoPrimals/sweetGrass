@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.48] - 2026-06-04
+
+### Zero Hot-Path Env Reads — Factory + Query + Trust (Wave 78b)
+
+#### Changed
+- **`BraidFactory` context injection** — new `with_context()` builder wires a
+  pre-resolved `BraidContext` into the factory; all 6 `Braid::builder()` calls
+  (including `contribution.rs`) now use the factory's context instead of reading
+  `ECOP_VOCAB_URI` / `ECOP_BASE_URI` per braid
+- **`QueryEngine` vocab threading** — new `with_ecop_vocab()` builder passes
+  the snapshotted URI to `ProvoExport`; PROV-O exports no longer read env vars
+- **`ProvoExport` env elimination** — new `with_ecop_vocab()` builder and
+  `JsonLdDocument::with_ecop_vocab()` constructor avoid runtime `env::var`
+- **`trust.event` handler** — builds `BraidContext::with_uris()` from
+  `AppState` snapshots instead of `BraidContext::default()`
+- **`AppState` constructors** — all three (`new_memory`, `with_store`,
+  `with_self_knowledge`) now snapshot a `BraidContext` for the factory and
+  thread `ecop_vocab_uri` into the `QueryEngine`
+
+#### Metrics
+- Tests: 1,623 (0 new — wiring change, existing tests validate)
+- LOC: ~60,650
+- Zero `env::var` reads on any hot path (factory, query, trust handler)
+
 ## [0.7.47] - 2026-06-04
 
 ### AppState Env Snapshots (Wave 78)

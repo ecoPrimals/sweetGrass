@@ -20,6 +20,7 @@ use sweet_grass_core::{
     primal_info::SelfKnowledge,
 };
 
+use sweet_grass_core::braid::BraidContext;
 use sweet_grass_core::identity;
 
 use crate::Result;
@@ -59,6 +60,9 @@ pub struct BraidFactory {
 
     /// Niche context (shared across all created Braids).
     niche: Option<Arc<str>>,
+
+    /// Pre-resolved JSON-LD context (avoids per-braid `env::var` reads).
+    context: Option<BraidContext>,
 }
 
 impl BraidFactory {
@@ -81,6 +85,7 @@ impl BraidFactory {
             default_agent,
             source_primal: Arc::from(self_knowledge.name.as_str()),
             niche: None,
+            context: None,
         }
     }
 
@@ -93,7 +98,15 @@ impl BraidFactory {
             default_agent,
             source_primal: Arc::from(identity::DEFAULT_SOURCE_PRIMAL),
             niche: None,
+            context: None,
         }
+    }
+
+    /// Set a pre-resolved JSON-LD context to avoid per-braid `env::var` reads.
+    #[must_use]
+    pub fn with_context(mut self, ctx: BraidContext) -> Self {
+        self.context = Some(ctx);
+        self
     }
 
     /// Set the source primal name.
@@ -108,6 +121,16 @@ impl BraidFactory {
     pub fn with_niche(mut self, niche: impl Into<Arc<str>>) -> Self {
         self.niche = Some(niche.into());
         self
+    }
+
+    /// Build a `BraidBuilder` pre-configured with the factory's context.
+    fn builder(&self) -> sweet_grass_core::braid::builder::BraidBuilder {
+        let b = Braid::builder();
+        if let Some(ctx) = &self.context {
+            b.context(ctx.clone())
+        } else {
+            b
+        }
     }
 
     /// Create a Braid from raw data.
@@ -148,7 +171,7 @@ impl BraidFactory {
             ..Default::default()
         };
 
-        Braid::builder()
+        self.builder()
             .data_hash(hash)
             .mime_type(mime_type)
             .size(size)
@@ -210,7 +233,7 @@ impl BraidFactory {
             ..Default::default()
         };
 
-        let mut braid = Braid::builder()
+        let mut braid = self.builder()
             .data_hash(hash)
             .mime_type(mime_type)
             .size(size)
@@ -268,7 +291,7 @@ impl BraidFactory {
             summary_type,
         };
 
-        let mut braid = Braid::builder()
+        let mut braid = self.builder()
             .data_hash(hash)
             .mime_type(identity::MIME_META_BRAID)
             .size(0)
@@ -340,7 +363,7 @@ impl BraidFactory {
             ..Default::default()
         };
 
-        let mut braid = Braid::builder()
+        let mut braid = self.builder()
             .data_hash(entry.data_hash.clone())
             .mime_type(&*entry.mime_type)
             .size(entry.size)
@@ -408,7 +431,7 @@ impl BraidFactory {
             ..Default::default()
         };
 
-        Braid::builder()
+        self.builder()
             .data_hash(data_hash)
             .mime_type(identity::MIME_CERTIFICATE)
             .size(size)

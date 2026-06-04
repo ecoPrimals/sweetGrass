@@ -10,7 +10,7 @@ springs = []
 
 ## Status
 
-- **Version**: v0.7.47
+- **Version**: v0.7.48
 - **1,623 tests** (all passed, 0 failed, 56 Docker CI integration tests)
 - **40 registered capability methods** across 13 domains
 - **209 source files** (60,624 LOC Rust), max 783 lines per file

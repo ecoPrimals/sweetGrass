@@ -62,7 +62,13 @@ pub(super) async fn handle_trust_event(
         Witness::unsigned()
     };
 
+    let ctx = sweet_grass_core::braid::BraidContext::with_uris(
+        &state.ecop_vocab_uri,
+        &state.ecop_base_uri,
+    );
+
     let braid = sweet_grass_core::Braid::builder()
+        .context(ctx)
         .data_hash(content_hash)
         .mime_type(sweet_grass_core::identity::MIME_TRUST_EVENT)
         .size(0)

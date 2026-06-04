@@ -34,17 +34,23 @@ impl JsonLdDocument {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            context: Self::prov_o_context(),
+            context: Self::prov_o_context_with(&ecop_vocab_uri()),
             graph: Vec::new(),
         }
     }
 
-    /// Get the standard PROV-O context.
-    ///
-    /// Namespace URIs are sourced from `sweet_grass_core::braid::types` constants.
-    /// The ecoPrimals namespace honours the `ECOP_VOCAB_URI` env var at runtime.
-    fn prov_o_context() -> Value {
-        let ecop_ns = ecop_vocab_uri();
+    /// Create with a pre-resolved ecoPrimals vocabulary URI (avoids `env::var`).
+    #[must_use]
+    pub fn with_ecop_vocab(ecop_ns: &str) -> Self {
+        Self {
+            context: Self::prov_o_context_with(ecop_ns),
+            graph: Vec::new(),
+        }
+    }
+
+    /// Build the standard PROV-O context with a given ecoPrimals namespace.
+    fn prov_o_context_with(ecop_ns: &str) -> Value {
+        let ecop_ns = ecop_ns.to_string();
 
         json!({
             "@version": 1.1,
@@ -124,6 +130,7 @@ impl Default for JsonLdDocument {
 pub struct ProvoExport {
     include_metadata: bool,
     include_ecop: bool,
+    ecop_vocab: Option<String>,
 }
 
 impl ProvoExport {
@@ -133,7 +140,15 @@ impl ProvoExport {
         Self {
             include_metadata: true,
             include_ecop: true,
+            ecop_vocab: None,
         }
+    }
+
+    /// Set a pre-resolved ecoPrimals vocabulary URI (avoids `env::var` on export).
+    #[must_use]
+    pub fn with_ecop_vocab(mut self, uri: impl Into<String>) -> Self {
+        self.ecop_vocab = Some(uri.into());
+        self
     }
 
     /// Set whether to include metadata.
@@ -150,13 +165,22 @@ impl ProvoExport {
         self
     }
 
+    /// Build a `JsonLdDocument` using the pre-resolved ecoPrimals URI if set.
+    fn make_doc(&self) -> JsonLdDocument {
+        self.ecop_vocab
+            .as_ref()
+            .map_or_else(JsonLdDocument::new, |uri| {
+                JsonLdDocument::with_ecop_vocab(uri)
+            })
+    }
+
     /// Export a single Braid as PROV-O JSON-LD.
     ///
     /// # Errors
     ///
     /// Returns an error if the export operation fails.
     pub fn export_braid(&self, braid: &Braid) -> Result<JsonLdDocument> {
-        let mut doc = JsonLdDocument::new();
+        let mut doc = self.make_doc();
 
         doc.add_node(self.braid_to_entity(braid));
 
@@ -173,7 +197,7 @@ impl ProvoExport {
     ///
     /// Returns an error if the export operation fails.
     pub fn export_graph(&self, graph: &ProvenanceGraph) -> Result<JsonLdDocument> {
-        let mut doc = JsonLdDocument::new();
+        let mut doc = self.make_doc();
 
         for braid in graph.entities.values() {
             doc.add_node(self.braid_to_entity(braid));

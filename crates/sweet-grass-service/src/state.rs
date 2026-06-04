@@ -7,6 +7,7 @@ use std::sync::Arc;
 use sweet_grass_compression::CompressionEngine;
 use sweet_grass_core::SelfKnowledge;
 use sweet_grass_core::agent::Did;
+use sweet_grass_core::braid::BraidContext;
 use sweet_grass_factory::BraidFactory;
 use sweet_grass_query::QueryEngine;
 use sweet_grass_store::MemoryStore;
@@ -91,8 +92,10 @@ impl AppState {
     #[must_use]
     pub fn new_memory(default_agent: Did) -> Self {
         let store = Arc::new(BraidBackend::Memory(MemoryStore::new()));
-        let factory = Arc::new(BraidFactory::new(default_agent));
-        let query = Arc::new(QueryEngine::new(Arc::clone(&store)));
+        let vocab = Self::snapshot_ecop_vocab_uri();
+        let ctx = Self::snapshot_braid_context();
+        let factory = Arc::new(BraidFactory::new(default_agent).with_context(ctx));
+        let query = Arc::new(QueryEngine::new(Arc::clone(&store)).with_ecop_vocab(&vocab));
         let compression = Arc::new(CompressionEngine::new(Arc::clone(&factory)));
 
         Self {
@@ -120,8 +123,10 @@ impl AppState {
     /// Create with custom store.
     #[must_use]
     pub fn with_store(store: Arc<BraidBackend>, default_agent: Did) -> Self {
-        let factory = Arc::new(BraidFactory::new(default_agent));
-        let query = Arc::new(QueryEngine::new(Arc::clone(&store)));
+        let vocab = Self::snapshot_ecop_vocab_uri();
+        let ctx = Self::snapshot_braid_context();
+        let factory = Arc::new(BraidFactory::new(default_agent).with_context(ctx));
+        let query = Arc::new(QueryEngine::new(Arc::clone(&store)).with_ecop_vocab(&vocab));
         let compression = Arc::new(CompressionEngine::new(Arc::clone(&factory)));
 
         Self {
@@ -157,11 +162,12 @@ impl AppState {
         self_knowledge: SelfKnowledge,
         store_backend: &'static str,
     ) -> Self {
-        let factory = Arc::new(BraidFactory::from_self_knowledge(
-            default_agent,
-            &self_knowledge,
-        ));
-        let query = Arc::new(QueryEngine::new(Arc::clone(&store)));
+        let vocab = Self::snapshot_ecop_vocab_uri();
+        let ctx = Self::snapshot_braid_context();
+        let factory = Arc::new(
+            BraidFactory::from_self_knowledge(default_agent, &self_knowledge).with_context(ctx),
+        );
+        let query = Arc::new(QueryEngine::new(Arc::clone(&store)).with_ecop_vocab(&vocab));
         let compression = Arc::new(
             CompressionEngine::new(Arc::clone(&factory)).with_source(self_knowledge.name.as_str()),
         );
@@ -220,6 +226,14 @@ impl AppState {
     /// Snapshot ecoPrimals base URI.
     fn snapshot_ecop_base_uri() -> String {
         sweet_grass_core::braid::context::ecop_base_uri()
+    }
+
+    /// Snapshot a `BraidContext` from the current environment.
+    fn snapshot_braid_context() -> BraidContext {
+        BraidContext::with_uris(
+            &Self::snapshot_ecop_vocab_uri(),
+            &Self::snapshot_ecop_base_uri(),
+        )
     }
 
     /// Snapshot tarpc concurrency limit from `TARPC_MAX_CONCURRENT_REQUESTS`.

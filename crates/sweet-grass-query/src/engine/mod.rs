@@ -28,6 +28,7 @@ use futures;
 pub struct QueryEngine<S: BraidStore> {
     store: Arc<S>,
     max_depth: u32,
+    ecop_vocab: Option<String>,
 }
 
 impl<S: BraidStore> QueryEngine<S> {
@@ -37,7 +38,15 @@ impl<S: BraidStore> QueryEngine<S> {
         Self {
             store,
             max_depth: DEFAULT_MAX_DEPTH,
+            ecop_vocab: None,
         }
+    }
+
+    /// Set a pre-resolved ecoPrimals vocabulary URI for PROV-O exports.
+    #[must_use]
+    pub fn with_ecop_vocab(mut self, uri: impl Into<String>) -> Self {
+        self.ecop_vocab = Some(uri.into());
+        self
     }
 
     /// Set the maximum traversal depth.
@@ -306,7 +315,7 @@ impl<S: BraidStore> QueryEngine<S> {
             .await?
             .ok_or_else(|| QueryError::NotFound(hash.clone()))?;
 
-        let exporter = ProvoExport::new();
+        let exporter = self.make_exporter();
         exporter.export_braid(&braid)
     }
 
@@ -321,8 +330,18 @@ impl<S: BraidStore> QueryEngine<S> {
         depth: Option<u32>,
     ) -> Result<JsonLdDocument> {
         let graph = self.provenance_graph(root, depth).await?;
-        let exporter = ProvoExport::new();
+        let exporter = self.make_exporter();
         exporter.export_graph(&graph)
+    }
+
+    /// Build a `ProvoExport` pre-configured with the engine's vocabulary URI.
+    fn make_exporter(&self) -> ProvoExport {
+        let e = ProvoExport::new();
+        if let Some(uri) = &self.ecop_vocab {
+            e.with_ecop_vocab(uri)
+        } else {
+            e
+        }
     }
 }
 
