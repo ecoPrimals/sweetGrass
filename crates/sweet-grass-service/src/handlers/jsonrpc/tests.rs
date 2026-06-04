@@ -252,8 +252,8 @@ async fn test_record_session_dispatch() {
 fn test_dispatch_table_completeness() {
     assert_eq!(
         METHODS.len(),
-        39,
-        "dispatch table should have all 39 methods (35 domain + lifecycle + 3 auth)"
+        40,
+        "dispatch table should have all 40 methods (36 domain + lifecycle + 3 auth)"
     );
 
     let expected = [
@@ -288,6 +288,7 @@ fn test_dispatch_table_completeness() {
         "composition.node_health",
         "composition.nest_health",
         "composition.nucleus_health",
+        "trust.event",
         "lifecycle.status",
         "capabilities.list",
         "capability.list",

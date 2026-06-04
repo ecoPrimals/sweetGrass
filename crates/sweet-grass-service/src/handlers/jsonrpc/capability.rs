@@ -128,13 +128,9 @@ struct McpTool {
     input_schema: serde_json::Value,
 }
 
-/// `tools.list` — MCP-compatible tool listing for Squirrel AI coordination.
-///
-/// Returns tools in the MCP `tools/list` format so Squirrel (or other
-/// MCP-aware agents) can discover sweetGrass braid operations.
-/// Pattern adopted from airSpring v0.10.
-pub(super) fn handle_tools_list(_state: &AppState, _params: serde_json::Value) -> DispatchResult {
-    let tools = vec![
+#[expect(clippy::too_many_lines, reason = "declarative tool definitions, no logic")]
+fn mcp_tools() -> Vec<McpTool> {
+    vec![
         McpTool {
             name: "braid.create",
             description: "Create a new attribution braid from content hash and metadata",
@@ -215,6 +211,19 @@ pub(super) fn handle_tools_list(_state: &AppState, _params: serde_json::Value) -
             }),
         },
         McpTool {
+            name: "trust.event",
+            description: "Weave a cross-gate trust braid from a trust event (key exchange, enrollment, attestation)",
+            input_schema: serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "cross_gate": {"type": "object", "description": "CrossGateAttribution: origin_gate, target_gate, trust_event, origin_agent, target_agent?, family_id?"},
+                    "signature": {"type": "string", "description": "Base64 Ed25519 signature for gateway witness"},
+                    "timestamp": {"type": "integer", "description": "Event timestamp in nanoseconds (defaults to now)"},
+                },
+                "required": ["cross_gate"]
+            }),
+        },
+        McpTool {
             name: "health.check",
             description: "Check sweetGrass health status including store and integration status",
             input_schema: serde_json::json!({"type": "object"}),
@@ -224,9 +233,16 @@ pub(super) fn handle_tools_list(_state: &AppState, _params: serde_json::Value) -
             description: "List all capabilities, methods, and domains this primal offers",
             input_schema: serde_json::json!({"type": "object"}),
         },
-    ];
+    ]
+}
 
-    to_value(&serde_json::json!({ "tools": tools }))
+/// `tools.list` — MCP-compatible tool listing for Squirrel AI coordination.
+///
+/// Returns tools in the MCP `tools/list` format so Squirrel (or other
+/// MCP-aware agents) can discover sweetGrass braid operations.
+/// Pattern adopted from airSpring v0.10.
+pub(super) fn handle_tools_list(_state: &AppState, _params: serde_json::Value) -> DispatchResult {
+    to_value(&serde_json::json!({ "tools": mcp_tools() }))
 }
 
 /// `tools.call` — MCP-compatible tool invocation for AI coordination.

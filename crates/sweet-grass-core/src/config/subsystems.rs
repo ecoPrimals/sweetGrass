@@ -48,7 +48,7 @@ pub enum StorageBackend {
     Redb,
     /// `PostgreSQL` relational store.
     Postgres,
-    /// `NestGate` IPC store (via UDS to NestGate primal).
+    /// `NestGate` IPC store (via UDS to `NestGate` primal).
     NestGate,
     /// Custom backend.
     Custom(String),

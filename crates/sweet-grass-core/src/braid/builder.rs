@@ -32,6 +32,7 @@ pub struct BraidBuilder {
     generated_at_time: Option<Timestamp>,
     invalidated_at_time: Option<Timestamp>,
     alternate_of: Vec<EntityReference>,
+    witness: Option<Witness>,
 }
 
 impl BraidBuilder {
@@ -112,6 +113,20 @@ impl BraidBuilder {
         self
     }
 
+    /// Set the source gate identity.
+    #[must_use]
+    pub fn source_gate(mut self, gate: impl Into<Arc<str>>) -> Self {
+        self.ecop.source_gate = Some(gate.into());
+        self
+    }
+
+    /// Set an explicit witness (overrides the default `unsigned`).
+    #[must_use]
+    pub fn witness(mut self, w: Witness) -> Self {
+        self.witness = Some(w);
+        self
+    }
+
     /// Set the generation timestamp.
     #[must_use]
     pub const fn generated_at_time(mut self, ts: Timestamp) -> Self {
@@ -175,7 +190,7 @@ impl BraidBuilder {
             alternate_of: self.alternate_of,
             metadata,
             ecop: self.ecop,
-            witness: Witness::unsigned(),
+            witness: self.witness.unwrap_or_else(Witness::unsigned),
             loam_anchor: None,
         })
     }

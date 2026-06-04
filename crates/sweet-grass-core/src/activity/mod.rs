@@ -177,6 +177,10 @@ pub enum ActivityType {
     GateEnrollment,
     /// Cross-gate authentication event.
     CrossGateAttestation,
+    /// Gate joined the mesh network.
+    MeshJoin,
+    /// Gate left the mesh network.
+    MeshLeave,
 
     // === Custom ===
     /// Custom activity type with URI.

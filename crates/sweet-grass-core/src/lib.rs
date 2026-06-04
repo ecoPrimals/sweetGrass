@@ -74,6 +74,9 @@ pub mod identity {
     /// MIME type for certificate mint braids.
     pub const MIME_CERTIFICATE: &str = "application/vnd.ecoprimals.certificate";
 
+    /// MIME type for cross-gate trust event braids.
+    pub const MIME_TRUST_EVENT: &str = "application/vnd.ecoprimals.trust-event";
+
     /// Default storage backend when none is configured.
     pub const DEFAULT_STORAGE_BACKEND: &str = "memory";
 

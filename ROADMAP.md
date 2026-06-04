@@ -1,10 +1,24 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.45 (June 2026)
+**Current Version**: v0.7.46 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.46 — Cross-Gate Trust Weaving (Wave 77, June 2026)
+
+- [x] **`trust.event` JSON-RPC method** — auto-weaves a cross-gate braid from a trust event. Maps `CrossGateTrustEvent` to `ActivityType`, wires `origin_agent` as `wasAttributedTo` with `target_agent` delegation via `actedOnBehalfOf`, builds gateway-tier `Witness` from signature, sets `source_gate` and `cross_gate` metadata, uses `application/vnd.ecoprimals.trust-event` MIME
+- [x] **`CrossGateTrustEvent::to_activity_type()`** — exhaustive mapping of all 7 trust events to PROV-O activity types
+- [x] **`CrossGateAttribution` helpers** — `gate_context()`, `to_activity()`, `content_hash_seed()` methods
+- [x] **`MeshJoin` + `MeshLeave` activity types** — added to `ActivityType` enum for full trust event coverage
+- [x] **`BraidBuilder::source_gate()` + `BraidBuilder::witness()`** — fluent setters for gateway identity and explicit witness
+- [x] **MIME constant** — `identity::MIME_TRUST_EVENT` for cross-gate trust braids
+- [x] **Dead config cleanup** — `StorageBackend::Oxigraph`/`::File` replaced with `Redb`/`NestGate`; dead `QueryConfig` flags removed
+- [x] **MCP tool** — `trust.event` added to `tools.list` for AI coordination
+- [x] **Niche capabilities** — `trust.event` registered in capabilities, cost estimates, operation graph
+- [x] 5 new core tests (activity type mapping, gate context, deterministic hash, delegation wiring)
+- [x] 1,607 tests (0 failures), 60,377 LOC, 209 source files, 40 methods, 0 clippy warnings
 
 ### v0.7.45 — Cross-Gate Attribution Schema (Wave 76, June 2026)
 

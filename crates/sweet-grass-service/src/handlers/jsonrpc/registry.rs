@@ -171,6 +171,11 @@ pub(super) static METHODS: &[MethodEntry] = &[
         name: "lifecycle.status",
         handler: |s, p| Box::pin(async move { super::lifecycle::handle_lifecycle_status(s, p) }),
     },
+    // Cross-gate trust events
+    MethodEntry {
+        name: "trust.event",
+        handler: |s, p| Box::pin(super::trust::handle_trust_event(s, p)),
+    },
     // Auth introspection (JH-0 method gate)
     MethodEntry {
         name: "auth.mode",

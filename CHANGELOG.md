@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.46] - 2026-06-04
+
+### Cross-Gate Trust Weaving (Wave 77)
+
+#### Added
+- **`trust.event` JSON-RPC method** — auto-weaves a cross-gate braid from a
+  trust event payload. Maps `CrossGateTrustEvent` → `ActivityType`, wires
+  `origin_agent` as `wasAttributedTo` with `target_agent` delegation,
+  builds gateway-tier `Witness` from Ed25519 signature, sets `source_gate`
+  and `cross_gate` metadata, uses `MIME_TRUST_EVENT`.
+- **`CrossGateTrustEvent::to_activity_type()`** — exhaustive mapping of all
+  7 trust events to PROV-O activity types.
+- **`CrossGateAttribution` helpers** — `gate_context()`, `to_activity()`,
+  `content_hash_seed()` methods.
+- **`MeshJoin` + `MeshLeave` activity types** — added to `ActivityType`.
+- **`BraidBuilder::source_gate()` + `BraidBuilder::witness()`** — fluent
+  setters.
+- **`MIME_TRUST_EVENT`** constant.
+- **MCP tool entry** — `trust.event` in `tools.list`.
+- 5 core unit tests (activity mapping, gate context, hash seed, delegation).
+
+#### Changed
+- **Dead config cleanup** — `StorageBackend::Oxigraph`/`::File` replaced
+  with `Redb`/`NestGate`; dead `QueryConfig` flags removed.
+- **`mcp_tools()` extracted** from `handle_tools_list` to fix
+  `too_many_lines` clippy warning.
+
+#### Metrics
+- Tests: 1,607 pass, 0 failures
+- Source files: 209 (60,377 LOC), 40 methods
+- Clippy: 0 warnings (pedantic + nursery)
+
 ## [0.7.45] - 2026-06-03
 
 ### Cross-Gate Attribution + Deep Debt (Wave 76)
@@ -38,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Metrics
 - Tests: 1,602 pass, 0 failures
-- Source files: 208 (60,070 LOC), 39 methods
+- Source files: 208 (60,070 LOC), 40 methods
 - Clippy: 0 warnings (pedantic + nursery)
 
 ## [0.7.44] - 2026-06-02
