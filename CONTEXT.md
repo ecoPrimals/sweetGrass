@@ -53,7 +53,7 @@ When sweetGrass is **unavailable** in a composition:
 - **UDS contract:** Newline-delimited JSON-RPC 2.0; compositions should use `\n`-terminated requests and >=10s read timeout (`braid.create`/`provenance.graph` may touch storage)
 - **Transport ports:** `--port` = TCP JSON-RPC (opt-in, newline-delimited; accepts `host:port` or bare port number — bare port binds `127.0.0.1` localhost-only per PG-55; use `0.0.0.0:PORT` for all-interfaces in Docker/production), `--http-port` / `--http-address host:port` = HTTP REST+JSON-RPC (primary integration surface, default `0.0.0.0:0` = dynamic), `--tarpc-address` = tarpc (default dynamic). Recommended TCP allocation: **9850** (avoids biomeOS TCP fallback range at 9800)
 - **Discovery tiers supported:** Tier 3 (UDS filesystem convention: `sweetgrass.sock` / `sweetgrass-{family}.sock` + `provenance.sock` capability symlink), Tier 4 (registry announce via `DISCOVERY_ADDRESS` / `DISCOVERY_BOOTSTRAP`), and partial Tier 5 (`primal.announce` Neural API self-registration with biomeOS). Tiers 1/2 (Songbird `ipc.resolve`, TCP probing) not yet implemented — sweetGrass is UDS-primary
-- **Version:** 0.7.44
+- **Version:** 0.7.45
 - **Method gate:** JH-0 pre-dispatch capability gate with token extraction — `auth.mode`, `auth.check` (enriched: `authenticated`, `verified`, `enforcement`, `scopes`, `subject`, `expires_in`), `auth.peer_info` methods; `_bearer_token` extracted from JSON-RPC params and threaded through gate; `SWEETGRASS_AUTH_MODE=permissive|enforced` env var; public whitelist (`health.*`, `auth.*`, `identity.get`, `capabilities.list`, `capability.list`, `lifecycle.status`, `tools.list`); all other methods protected; starts permissive
 - **Audit pipeline:** `attribution.witness` method for JH-5 Phase 3 (`defense.log` -> `dag.event.append` -> `attribution.witness`)
 - **Composition path:** `braid.create` accepts flattened convenience fields (`name`, `description`, `tags`, `source_session`, `source_merkle_root`) for provenance trio pipeline callers — merged into `BraidMetadata`; structured `metadata` takes precedence
@@ -64,7 +64,7 @@ When sweetGrass is **unavailable** in a composition:
 - **DH-1 compliant:** Zero hardcoded `/tmp` in production code — all socket fallbacks use `std::env::temp_dir()` (respects `$TMPDIR`), enabling `ProtectSystem=strict` on VPS
 - **PID file:** Written alongside UDS socket (`sweetgrass.pid`) for instant liveness checks (`kill(pid, 0)`) — eliminates 100ms connect-probe overhead for downstream discovery
 - **Neural API `primal.announce`:** Self-registers with biomeOS on startup — capabilities, cost hints, latency estimates, signal tier (nest). Graceful degradation when biomeOS unavailable.
-- **Source files:** 206 `.rs` files (59,957 LOC), max 763 lines (all files under 800-line threshold)
+- **Source files:** 208 `.rs` files (60,070 LOC), max 782 lines (all files under 800-line threshold)
 - **Property testing:** 25 proptest strategies across 7 crates
 - **Chaos/fault:** 11 attribution chaos + 17 service chaos + 9 fault injection
 - **Edition:** 2024 (`resolver = "3"`), MSRV 1.87

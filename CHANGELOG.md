@@ -7,6 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.45] - 2026-06-03
+
+### Cross-Gate Attribution + Deep Debt (Wave 76)
+
+#### Added
+- **Cross-gate attribution schema** — `CrossGateAttribution` struct
+  (`origin_gate`, `target_gate`, `trust_event`, `origin_agent`,
+  `target_agent`, `family_id`); `CrossGateTrustEvent` enum (7 variants).
+- **`source_gate` on `EcoPrimalsAttributes`** — first-class gate identity.
+- **`cross_gate` on `BraidMetadata`** — typed cross-gate context.
+- **Cross-gate activity types** — `KeyExchange`, `TrustEstablishment`,
+  `GateEnrollment`, `CrossGateAttestation` on `ActivityType`.
+- **Witness tier constants** — `WITNESS_TIER_GATEWAY`, `WITNESS_TIER_ANCHOR`,
+  `WITNESS_TIER_EXTERNAL`; `Witness::from_gateway_ed25519()` constructor.
+- **`source_gate` query filter** — across all 4 store backends.
+- **PROV-O export** — `sourceGate`, `crossGateAttribution` terms in JSON-LD.
+- 5 cross-gate integration tests, 3 PROV-O export tests.
+
+#### Changed
+- **Bincode safety** — removed `skip_serializing_if` from 28 fields on tarpc
+  types (Activity, ActivityEcoPrimals, ActivityMetadata, UsedEntity,
+  AgentAssociation, Agent, PrivacyMetadata). `#[serde(default)]` only.
+- **AppState snapshots** — `capability.list` uses `state.tcp_transport_active`
+  and `state.btsp_required`; `server::from_app_state` uses
+  `state.tarpc_max_concurrent`. No more hot-path `env::var` reads.
+- **`jsonrpc/mod.rs` split** — dispatch table to `registry.rs` (241 lines),
+  lifecycle/auth handlers to `lifecycle.rs` (92 lines). mod.rs: 786 → 466.
+- **CLI hygiene** — `eprintln!` replaced with `writeln!(stderr)`.
+
+#### Metrics
+- Tests: 1,602 pass, 0 failures
+- Source files: 208 (60,070 LOC), 39 methods
+- Clippy: 0 warnings (pedantic + nursery)
+
+## [0.7.44] - 2026-06-02
+
+### PROV-O Schema Completeness + Privacy Edge Cases + Store Parity (Wave 69)
+
+#### Added
+- **PROV-O schema** — `invalidated_at_time: Option<Timestamp>`,
+  `alternate_of: Vec<EntityReference>` on `Braid`; fluent builder setters.
+- **PROV-O export** — `wasDerivedFrom`/`used` URIs fixed to `urn:braid:`;
+  `prov:actedOnBehalfOf` delegation; `BraidType` mapped to PROV `@type`;
+  `invalidatedAtTime`/`alternateOf` in JSON-LD context.
+- **Privacy edge tests** — 8 tests covering all 5 visibility levels.
+- **NestGate convergence** — `get_all_by_hash` override for parity.
+
+#### Changed
+- **Bincode fix** — removed `skip_serializing_if` on new Braid fields.
+
+#### Metrics
+- Tests: 1,588 pass, 0 failures
+- Source files: 195 (57,176 LOC), 39 methods
+- Clippy: 0 warnings (pedantic + nursery)
+
 ## [0.7.43] - 2026-06-02
 
 ### Content Convergence + Privacy Integration + Health Probes (Wave 67d)

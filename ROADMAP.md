@@ -19,7 +19,7 @@
 - [x] **Tests** — 5 cross-gate integration tests, 3 PROV-O export tests, source_gate filter tests
 - [x] **Bincode fix** — removed `skip_serializing_if` on `QueryFilter::source_gate` (tarpc Bincode compatibility)
 - [x] **DATA_MODEL.md** — updated to v0.4.0 with cross-gate schema, activity types, witness tiers, JSON-LD example
-- [x] 1,602 tests (0 failures), 59,957 LOC, 206 source files, 0 clippy warnings
+- [x] 1,602 tests (0 failures), 60,070 LOC, 208 source files, 0 clippy warnings
 
 ### v0.7.44 — PROV-O Schema Completeness + Privacy Edge Cases + Store Parity (Wave 69, June 2026)
 
@@ -603,7 +603,7 @@
 - [ ] Evolved `MemoryStore` indexes (collision-preserving)
 - [ ] `convergence.query` JSON-RPC method
 - [ ] PostgreSQL `content_convergence` table and migrations
-- [x] Coverage target: 90%+ with llvm-cov *(91.7% line coverage, 1,565 tests)*
+- [x] Coverage target: 90%+ with llvm-cov *(91.7% line coverage, 1,602 tests)*
 
 ### v0.9.0 — sunCloud Integration (Q3 2026)
 

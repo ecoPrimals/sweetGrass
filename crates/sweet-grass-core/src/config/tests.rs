@@ -307,9 +307,9 @@ fn test_listener_config_serialization() {
 fn test_storage_backend_variants() {
     for (variant, expected) in [
         (StorageBackend::Memory, "\"memory\""),
-        (StorageBackend::File, "\"file\""),
+        (StorageBackend::Redb, "\"redb\""),
         (StorageBackend::Postgres, "\"postgres\""),
-        (StorageBackend::Oxigraph, "\"oxigraph\""),
+        (StorageBackend::NestGate, "\"nestgate\""),
     ] {
         let json = serde_json::to_string(&variant).expect("serialize");
         assert_eq!(json, expected);

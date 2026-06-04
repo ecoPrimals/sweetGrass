@@ -44,12 +44,12 @@ impl Default for StorageConfig {
 pub enum StorageBackend {
     /// In-memory storage (for testing/development).
     Memory,
-    /// File-based storage.
-    File,
-    /// `PostgreSQL` with graph extension.
+    /// `redb` embedded key-value store.
+    Redb,
+    /// `PostgreSQL` relational store.
     Postgres,
-    /// `Oxigraph` RDF store.
-    Oxigraph,
+    /// `NestGate` IPC store (via UDS to NestGate primal).
+    NestGate,
     /// Custom backend.
     Custom(String),
 }
@@ -102,15 +102,6 @@ impl Default for CompressionConfig {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct QueryConfig {
-    /// Enable GraphQL API.
-    pub graphql: bool,
-
-    /// Enable SPARQL API.
-    pub sparql: bool,
-
-    /// Enable full-text search.
-    pub full_text_search: bool,
-
     /// Maximum query depth for provenance graphs.
     pub max_provenance_depth: u32,
 
@@ -125,9 +116,6 @@ pub struct QueryConfig {
 impl Default for QueryConfig {
     fn default() -> Self {
         Self {
-            graphql: true,
-            sparql: false,
-            full_text_search: true,
             max_provenance_depth: DEFAULT_MAX_PROVENANCE_DEPTH,
             timeout: Duration::from_secs(30),
             max_results: 1000,
