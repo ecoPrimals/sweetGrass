@@ -18,10 +18,10 @@ alwaysApply: false
 - Use `bytes::Bytes` for zero-copy byte buffers in IPC
 - Avoid `.to_string()` when `.clone()` on `Arc<str>` suffices
 
-## async-trait
-- `async-trait` crate is used for trait-object dispatch (`dyn BraidStore`, etc.)
-- Native RPITIT is not object-safe; this is the correct Rust 2024 pattern
-- Do NOT remove `async-trait` from traits used with `dyn` dispatch
+## Async Traits
+- Use RPITIT (`impl Future` in trait return position) — `async-trait` crate eliminated v0.7.27
+- `BraidStore` and other core traits use concrete backend enums, not `dyn` dispatch
+- `BraidBackend` enum dispatches to `MemoryStore`, `RedbStore`, `PostgresStore`, `NestGateStore`
 
 ## Module Structure
 - `mod.rs` + `tests.rs` pattern for modules with tests

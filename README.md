@@ -88,7 +88,7 @@ sweetgrass socket        # Print UDS socket path
 | tarpc | `SWEETGRASS_TARPC_ADDRESS` | ~50μs | Primal-to-primal binary RPC |
 | TCP JSON-RPC | `SWEETGRASS_PORT` | ~1ms | Composition (`--port`, UniBin standard) |
 | UDS JSON-RPC | `SWEETGRASS_SOCKET` | ~0.5ms | biomeOS IPC (XDG-compliant) |
-| HTTP JSON-RPC | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | 39 methods, batch, MCP tools |
+| HTTP JSON-RPC | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | 40 methods, batch, MCP tools |
 | REST | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | Debug, admin (`/api/v1/braids`) |
 
 - **JSON-RPC 2.0**: 40 semantic methods (`braid.create`, `braid.commit`, `braid.anchor`, `trust.event`, `contribution.record`, `contribution.record_provenance`, `identity.get`, `capabilities.list`, `tools.list`, `tools.call`, `health.check`, `auth.check`, `lifecycle.status`, `attribution.witness`, `composition.tower_health`, etc.) with batch requests and notification support
@@ -203,14 +203,14 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.46 |
+| Version | v0.7.47 |
 | Tests | 1,623 local + 56 Docker CI |
 | Coverage | 90%+ line (91.7% with Postgres Docker) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
-| Max file size | 782 lines (limit: 1000) |
+| Max file size | 783 lines (limit: 1000) |
 | .rs files | 209 (60,624 LOC) |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |

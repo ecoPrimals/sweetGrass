@@ -69,6 +69,10 @@ methods = ["status"]
 description = "Ecosystem composition health probes"
 methods = ["tower_health", "node_health", "nest_health", "nucleus_health"]
 
+[domains.trust]
+description = "Cross-gate trust braid weaving"
+methods = ["event"]
+
 [domains.tools]
 description = "MCP tool exposure for Squirrel AI coordination"
 methods = ["list", "call"]
@@ -265,6 +269,11 @@ stability = "beta"
 [operations."composition.nucleus_health"]
 depends_on = []
 cost = "low"
+stability = "beta"
+
+[operations."trust.event"]
+depends_on = ["braid.create"]
+cost = "medium"
 stability = "beta"
 
 [operations."tools.call"]

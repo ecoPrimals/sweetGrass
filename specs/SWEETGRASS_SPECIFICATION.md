@@ -3,7 +3,7 @@
 **Version:** 0.7.47  
 **Status:** Architectural Specification  
 **Author:** ecoPrimals Project  
-**Date:** May 2026  
+**Date:** June 2026  
 **License:** AGPL-3.0-or-later  
 
 ---

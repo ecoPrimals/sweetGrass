@@ -91,6 +91,7 @@ When sweetGrass is **unavailable** in a composition:
 - `pipeline.attribute` — provenance trio pipeline coordination
 - `auth.mode`, `auth.check`, `auth.peer_info` — JH-0 method gate introspection
 - `lifecycle.status` — running state, version, gate mode
+- `trust.event` — cross-gate trust braid weaving (auto-maps trust events to PROV-O activities)
 - `composition.tower_health`, `composition.node_health`, `composition.nest_health`, `composition.nucleus_health` — ecosystem composition health probes
 
 ## What This Does NOT Do

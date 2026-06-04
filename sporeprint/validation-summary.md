@@ -41,6 +41,7 @@ springs = []
 | lifecycle | 1 | Stable |
 | capabilities + tools | 4 | Stable |
 | auth | 3 | Stable |
+| trust | 1 | Beta |
 
 ## Key Binaries
 

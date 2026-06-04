@@ -46,6 +46,7 @@ capabilities_provided = [
     "auth.check", "auth.mode", "auth.peer_info",
     "lifecycle.status",
     "tools.list", "tools.call",
+    "trust.event",
 ]
 capabilities_consumed = [
     "crypto.sign", "crypto.verify",

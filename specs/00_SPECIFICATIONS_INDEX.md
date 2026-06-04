@@ -2,7 +2,7 @@
 
 **Version**: 1.1.0  
 **Status**: Canonical  
-**Last Updated**: March 2026
+**Last Updated**: June 2026
 
 ---
 
