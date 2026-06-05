@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.50] - 2026-06-05
+
+### Attribution Braid Testing + Transport Audit (Wave 79)
+
+#### Added
+- **Provenance chain scenario test** — end-to-end test simulating
+  bearDog→rhizoCrypt→sweetGrass trust flow: Ed25519-signed trust event
+  creates braid with correct `wasAttributedTo`, `on_behalf_of` delegation,
+  gateway-tier witness, cross-gate metadata, MIME type, and roundtrip
+  retrieval via `braid.get`
+- **Exhaustive mesh event type test** — validates all 7
+  `CrossGateTrustEvent` variants (`key_exchange`, `trust_issuer_registered`,
+  `gate_enrollment`, `family_enrollment`, `cross_gate_attestation`,
+  `mesh_join`, `mesh_leave`) produce correct PROV-O activity types and MIME
+- **Gate-filtered provenance query test** — verifies `QueryFilter` by
+  `source_gate` and `mime_type` returns correct braids from trust events
+
+#### Verified
+- **Transport compliance** — `--socket` CLI injection works natively,
+  TCP is opt-in via `--port`/`SWEETGRASS_PORT`, no `0.0.0.0` default bind,
+  UDS path resolved via 5-tier fallback. sweetGrass is Phase 2 ready.
+- **Deep debt sweep** — zero hits on TODO/FIXME/HACK, unwrap/expect in
+  production, println/eprintln, `Box<dyn Error>`, `std::sync::Mutex`,
+  `async_trait`, hardcoded primal names
+
+#### Metrics
+- Tests: 1,605+ (3 new provenance chain tests)
+- Zero clippy warnings (pedantic + nursery)
+
 ## [0.7.49] - 2026-06-05
 
 ### Env Var Constant Consolidation (Wave 78c)

@@ -1,10 +1,18 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.49 (June 2026)
+**Current Version**: v0.7.50 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.50 — Attribution Braid Testing + Transport Audit (Wave 79, June 2026)
+
+- [x] **Provenance chain scenario test** — end-to-end bearDog→rhizoCrypt→sweetGrass trust flow with Ed25519 signatures, delegation, gateway witness
+- [x] **Exhaustive mesh event type test** — all 7 `CrossGateTrustEvent` variants validated against PROV-O activity mapping
+- [x] **Gate-filtered provenance query test** — `QueryFilter` by `source_gate` and `mime_type` verified
+- [x] **Transport compliance audit** — `--socket` injection, opt-in TCP, no `0.0.0.0` default, 5-tier UDS fallback confirmed Phase 2 ready
+- [x] **Deep debt sweep** — zero hits across all 14 audit categories
 
 ### v0.7.49 — Env Var Constant Consolidation (Wave 78c, June 2026)
 
