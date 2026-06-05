@@ -8,6 +8,7 @@
 
 use serde::{Deserialize, Serialize};
 use sweet_grass_core::config::Capability;
+use sweet_grass_core::primal_names::env_vars;
 
 use super::{DiscoveredPrimal, DiscoveryError, LocalDiscovery, PrimalDiscovery, RegistryError};
 
@@ -132,9 +133,9 @@ impl RegistryDiscovery {
     pub async fn from_reader(
         reader: impl Fn(&str) -> Option<String>,
     ) -> Result<Self, DiscoveryError> {
-        let addr = reader("DISCOVERY_ADDRESS")
-            .or_else(|| reader("UNIVERSAL_ADAPTER_ADDRESS"))
-            .or_else(|| reader("DISCOVERY_BOOTSTRAP"))
+        let addr = reader(env_vars::DISCOVERY_ADDRESS)
+            .or_else(|| reader(env_vars::UNIVERSAL_ADAPTER_ADDRESS))
+            .or_else(|| reader(env_vars::DISCOVERY_BOOTSTRAP))
             .ok_or_else(|| {
                 DiscoveryError::ServiceUnavailable(
                     "No discovery address found. Set DISCOVERY_ADDRESS or \

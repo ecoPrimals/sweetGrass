@@ -124,18 +124,18 @@ impl SelfKnowledge {
     pub fn from_reader(reader: impl Fn(&str) -> Option<String>) -> Result<Self, BootstrapEnvError> {
         Ok(Self {
             name: reader(primal_names::env_vars::PRIMAL_NAME).unwrap_or_else(|| identity::PRIMAL_NAME.to_string()),
-            instance_id: reader("PRIMAL_INSTANCE_ID")
+            instance_id: reader(primal_names::env_vars::PRIMAL_INSTANCE_ID)
                 .unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
             capabilities: Self::parse_capabilities_from(&reader),
-            tarpc_port: Self::parse_port_from("TARPC_PORT", 0, &reader)?,
-            rest_port: Self::parse_port_from("REST_PORT", 0, &reader)?,
+            tarpc_port: Self::parse_port_from(primal_names::env_vars::TARPC_PORT, 0, &reader)?,
+            rest_port: Self::parse_port_from(primal_names::env_vars::REST_PORT, 0, &reader)?,
             established_at: SystemTime::now(),
         })
     }
 
     /// Parse capabilities from a key reader.
     fn parse_capabilities_from(reader: &impl Fn(&str) -> Option<String>) -> Vec<Capability> {
-        let caps_str = reader("PRIMAL_CAPABILITIES").unwrap_or_default();
+        let caps_str = reader(primal_names::env_vars::PRIMAL_CAPABILITIES).unwrap_or_default();
 
         if caps_str.is_empty() {
             return Vec::new();

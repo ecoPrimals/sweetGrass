@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.49] - 2026-06-05
+
+### Env Var Constant Consolidation (Wave 78c)
+
+#### Changed
+- **Centralized env var constants** — 18 new constants added to
+  `primal_names::env_vars` replacing bare string literals across the codebase:
+  `DISCOVERY_ADDRESS`, `UNIVERSAL_ADAPTER_ADDRESS`, `DISCOVERY_BOOTSTRAP`,
+  `PRIMAL_INSTANCE_ID`, `TARPC_PORT`, `REST_PORT`, `PRIMAL_CAPABILITIES`,
+  `SWEETGRASS_CONFIG`, `XDG_CONFIG_HOME`, `SWEETGRASS_NAME`,
+  `SWEETGRASS_TARPC_LISTEN`, `SWEETGRASS_REST_LISTEN`,
+  `SWEETGRASS_DISCOVERY_BOOTSTRAP`, `ECOP_VOCAB_URI`, `ECOP_BASE_URI`,
+  `NEURAL_API_SOCKET`, `ECOPRIMALS_FAMILY_ID`, `STORAGE_PATH`,
+  `SWEETGRASS_RETRY_MAX`, `SWEETGRASS_RETRY_INITIAL_MS`,
+  `SWEETGRASS_RETRY_MAX_MS`, `SWEETGRASS_AGENT_DID`,
+  `SWEETGRASS_HTTP_PORT`, `SWEETGRASS_HTTP_ADDRESS`,
+  `SWEETGRASS_TARPC_ADDRESS`, `STORAGE_BACKEND`
+- **Wired constants** into `state.rs`, `config/mod.rs`, `primal_info.rs`,
+  `braid/context.rs`, `discovery/registry.rs`, `resilience/mod.rs`,
+  `neural_announce.rs`, `bootstrap.rs`, `nestgate/discovery.rs`
+- Zero bare env var strings remain in production code (clap `env = "..."`
+  attributes excepted — clap requires string literals)
+
+#### Metrics
+- Tests: 1,623 (unchanged)
+- Zero clippy warnings (pedantic + nursery)
+
 ## [0.7.48] - 2026-06-04
 
 ### Zero Hot-Path Env Reads — Factory + Query + Trust (Wave 78b)

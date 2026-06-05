@@ -2,6 +2,7 @@
 // Copyright (C) 2024–2026 ecoPrimals Project
 
 use super::*;
+use sweet_grass_core::primal_names::env_vars;
 
 #[tokio::test]
 async fn test_create_discovery_no_env() {
@@ -21,7 +22,7 @@ async fn test_registry_from_reader_missing() {
 #[tokio::test]
 async fn test_create_discovery_with_invalid_addr_fallback() {
     let discovery = super::create_discovery_with_reader(|key| {
-        (key == "DISCOVERY_ADDRESS").then(|| crate::testing::TEST_INVALID_ADDR.to_string())
+        (key == env_vars::DISCOVERY_ADDRESS).then(|| crate::testing::TEST_INVALID_ADDR.to_string())
     })
     .await;
 
@@ -31,9 +32,9 @@ async fn test_create_discovery_with_invalid_addr_fallback() {
 #[tokio::test]
 async fn test_create_discovery_prefers_discovery_address() {
     let discovery = super::create_discovery_with_reader(|key| match key {
-        "DISCOVERY_ADDRESS" => Some(crate::testing::TEST_INVALID_ADDR.to_string()),
-        "UNIVERSAL_ADAPTER_ADDRESS" => Some("127.0.0.1:2".to_string()),
-        "DISCOVERY_BOOTSTRAP" => Some("127.0.0.1:3".to_string()),
+        env_vars::DISCOVERY_ADDRESS => Some(crate::testing::TEST_INVALID_ADDR.to_string()),
+        env_vars::UNIVERSAL_ADAPTER_ADDRESS => Some("127.0.0.1:2".to_string()),
+        env_vars::DISCOVERY_BOOTSTRAP => Some("127.0.0.1:3".to_string()),
         _ => None,
     })
     .await;

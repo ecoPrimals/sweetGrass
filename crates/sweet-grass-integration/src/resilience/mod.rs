@@ -12,6 +12,8 @@
 use std::sync::atomic::{AtomicU8, AtomicU64, Ordering};
 use std::time::Duration;
 
+use sweet_grass_core::primal_names::env_vars;
+
 /// Circuit breaker states.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -197,17 +199,17 @@ impl RetryPolicy {
     where
         F: Fn(&str) -> Result<String, std::env::VarError>,
     {
-        let max_retries = reader("SWEETGRASS_RETRY_MAX")
+        let max_retries = reader(env_vars::SWEETGRASS_RETRY_MAX)
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(3);
 
-        let initial_delay_ms: u64 = reader("SWEETGRASS_RETRY_INITIAL_MS")
+        let initial_delay_ms: u64 = reader(env_vars::SWEETGRASS_RETRY_INITIAL_MS)
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(100);
 
-        let max_delay_ms: u64 = reader("SWEETGRASS_RETRY_MAX_MS")
+        let max_delay_ms: u64 = reader(env_vars::SWEETGRASS_RETRY_MAX_MS)
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(5000);

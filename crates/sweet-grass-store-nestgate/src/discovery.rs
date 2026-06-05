@@ -74,7 +74,7 @@ mod tests {
     #[test]
     fn test_discover_explicit_nestgate_socket() {
         let path = discover_socket(&|key| match key {
-            "NESTGATE_SOCKET" => Some("/custom/nestgate.sock".to_string()),
+            env_vars::NESTGATE_SOCKET => Some("/custom/nestgate.sock".to_string()),
             _ => None,
         });
         assert_eq!(path.to_str(), Some("/custom/nestgate.sock"));
@@ -83,7 +83,7 @@ mod tests {
     #[test]
     fn test_discover_storage_provider_socket() {
         let path = discover_socket(&|key| match key {
-            "STORAGE_PROVIDER_SOCKET" => Some("/alt/storage.sock".to_string()),
+            env_vars::STORAGE_PROVIDER_SOCKET => Some("/alt/storage.sock".to_string()),
             _ => None,
         });
         assert_eq!(path.to_str(), Some("/alt/storage.sock"));
@@ -92,7 +92,7 @@ mod tests {
     #[test]
     fn test_discover_biomeos_socket_dir() {
         let path = discover_socket(&|key| match key {
-            "BIOMEOS_SOCKET_DIR" => Some("/run/biomeos".to_string()),
+            env_vars::BIOMEOS_SOCKET_DIR => Some("/run/biomeos".to_string()),
             _ => None,
         });
         assert_eq!(path.to_str(), Some("/run/biomeos/nestgate.sock"));
@@ -101,7 +101,7 @@ mod tests {
     #[test]
     fn test_discover_xdg_runtime() {
         let path = discover_socket(&|key| match key {
-            "XDG_RUNTIME_DIR" => Some("/run/user/1000".to_string()),
+            env_vars::XDG_RUNTIME_DIR => Some("/run/user/1000".to_string()),
             _ => None,
         });
         assert_eq!(path.to_str(), Some("/run/user/1000/biomeos/nestgate.sock"));
@@ -117,8 +117,8 @@ mod tests {
     #[test]
     fn test_discover_priority_order() {
         let path = discover_socket(&|key| match key {
-            "NESTGATE_SOCKET" => Some("/first.sock".to_string()),
-            "STORAGE_PROVIDER_SOCKET" => Some("/second.sock".to_string()),
+            env_vars::NESTGATE_SOCKET => Some("/first.sock".to_string()),
+            env_vars::STORAGE_PROVIDER_SOCKET => Some("/second.sock".to_string()),
             _ => None,
         });
         assert_eq!(
@@ -144,7 +144,7 @@ mod tests {
         let dir_str = dir.path().to_string_lossy().to_string();
         let path = discover_socket_with_family(
             &|key| match key {
-                "BIOMEOS_SOCKET_DIR" => Some(dir_str.clone()),
+                env_vars::BIOMEOS_SOCKET_DIR => Some(dir_str.clone()),
                 _ => None,
             },
             Some("my-family"),
@@ -158,7 +158,7 @@ mod tests {
         let dir_str = dir.path().to_string_lossy().to_string();
         let path = discover_socket_with_family(
             &|key| match key {
-                "BIOMEOS_SOCKET_DIR" => Some(dir_str.clone()),
+                env_vars::BIOMEOS_SOCKET_DIR => Some(dir_str.clone()),
                 _ => None,
             },
             Some("missing-family"),
@@ -170,7 +170,7 @@ mod tests {
     fn test_discover_with_family_none_uses_standard_chain() {
         let path = discover_socket_with_family(
             &|key| match key {
-                "NESTGATE_SOCKET" => Some("/explicit/path.sock".to_string()),
+                env_vars::NESTGATE_SOCKET => Some("/explicit/path.sock".to_string()),
                 _ => None,
             },
             None,
@@ -182,7 +182,7 @@ mod tests {
     fn test_discover_with_family_no_biomeos_dir_ignores_family() {
         let path = discover_socket_with_family(
             &|key| match key {
-                "XDG_RUNTIME_DIR" => Some("/run/user/1000".to_string()),
+                env_vars::XDG_RUNTIME_DIR => Some("/run/user/1000".to_string()),
                 _ => None,
             },
             Some("some-family"),

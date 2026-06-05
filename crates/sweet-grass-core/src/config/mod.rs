@@ -25,6 +25,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use crate::identity;
+use crate::primal_names::env_vars;
 
 pub use capability::Capability;
 pub use subsystems::*;
@@ -211,14 +212,14 @@ impl SweetGrassConfig {
     fn find_config_path_with_reader(
         reader: &impl Fn(&str) -> Option<String>,
     ) -> Option<std::path::PathBuf> {
-        if let Some(path) = reader("SWEETGRASS_CONFIG") {
+        if let Some(path) = reader(env_vars::SWEETGRASS_CONFIG) {
             let p = std::path::PathBuf::from(path);
             if p.is_file() {
                 return Some(p);
             }
         }
 
-        if let Some(xdg) = reader("XDG_CONFIG_HOME") {
+        if let Some(xdg) = reader(env_vars::XDG_CONFIG_HOME) {
             let p = std::path::PathBuf::from(xdg)
                 .join(crate::identity::PRIMAL_NAME)
                 .join("config.toml");
@@ -244,19 +245,19 @@ impl SweetGrassConfig {
         config: &mut Self,
         reader: &impl Fn(&str) -> Option<String>,
     ) {
-        if let Some(name) = reader("SWEETGRASS_NAME") {
+        if let Some(name) = reader(env_vars::SWEETGRASS_NAME) {
             config.name = name;
         }
 
-        if let Some(tarpc) = reader("SWEETGRASS_TARPC_LISTEN") {
+        if let Some(tarpc) = reader(env_vars::SWEETGRASS_TARPC_LISTEN) {
             config.network.tarpc_listen = Some(tarpc);
         }
 
-        if let Some(rest) = reader("SWEETGRASS_REST_LISTEN") {
+        if let Some(rest) = reader(env_vars::SWEETGRASS_REST_LISTEN) {
             config.network.rest_listen = Some(rest);
         }
 
-        if let Some(bootstrap) = reader("SWEETGRASS_DISCOVERY_BOOTSTRAP") {
+        if let Some(bootstrap) = reader(env_vars::SWEETGRASS_DISCOVERY_BOOTSTRAP) {
             config.network.discovery_bootstrap = Some(bootstrap);
         }
     }

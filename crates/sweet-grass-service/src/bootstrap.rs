@@ -361,7 +361,8 @@ async fn announce_capabilities(self_knowledge: &SelfKnowledge, state: &AppState)
 pub async fn create_app_state_from_env() -> Result<AppState, BootstrapError> {
     let store = BraidStoreFactory::from_env().await?;
     let did_str =
-        std::env::var("SWEETGRASS_AGENT_DID").unwrap_or_else(|_| "did:primal:test".to_string());
+        std::env::var(sweet_grass_core::primal_names::env_vars::SWEETGRASS_AGENT_DID)
+            .unwrap_or_else(|_| "did:primal:test".to_string());
     let default_agent = Did::new(&did_str);
     Ok(AppState::with_store(Arc::new(store), default_agent))
 }

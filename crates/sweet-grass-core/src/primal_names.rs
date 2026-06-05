@@ -159,6 +159,19 @@ pub mod env_vars {
     /// `BearDog`'s socket path at runtime).
     pub const DISCOVERY_SOCKET: &str = "DISCOVERY_SOCKET";
 
+    /// `DISCOVERY_ADDRESS` — TCP address for Songbird discovery bootstrap.
+    ///
+    /// Primary env var for locating the discovery service when no UDS socket
+    /// is available (e.g. cross-gate federation).
+    pub const DISCOVERY_ADDRESS: &str = "DISCOVERY_ADDRESS";
+
+    /// `UNIVERSAL_ADAPTER_ADDRESS` — legacy/fallback name for the discovery
+    /// bootstrap address. Checked after `DISCOVERY_ADDRESS`.
+    pub const UNIVERSAL_ADAPTER_ADDRESS: &str = "UNIVERSAL_ADAPTER_ADDRESS";
+
+    /// `DISCOVERY_BOOTSTRAP` — tertiary fallback for discovery service address.
+    pub const DISCOVERY_BOOTSTRAP: &str = "DISCOVERY_BOOTSTRAP";
+
     /// POSIX login name for the current user.
     ///
     /// Used in UDS socket path resolution when `$TMPDIR/biomeos-{user}/` is
@@ -176,6 +189,75 @@ pub mod env_vars {
     /// Values: `enforced` / `enforce` / `strict` enable token checks;
     /// unset or any other value defaults to permissive mode.
     pub const SWEETGRASS_AUTH_MODE: &str = "SWEETGRASS_AUTH_MODE";
+
+    /// Unique instance identifier for this primal process.
+    pub const PRIMAL_INSTANCE_ID: &str = "PRIMAL_INSTANCE_ID";
+
+    /// tarpc listen port override.
+    pub const TARPC_PORT: &str = "TARPC_PORT";
+
+    /// REST/HTTP listen port override.
+    pub const REST_PORT: &str = "REST_PORT";
+
+    /// Comma-separated list of capability strings for self-knowledge.
+    pub const PRIMAL_CAPABILITIES: &str = "PRIMAL_CAPABILITIES";
+
+    /// Path to a sweetGrass TOML configuration file.
+    pub const SWEETGRASS_CONFIG: &str = "SWEETGRASS_CONFIG";
+
+    /// XDG base directory for user configuration.
+    pub const XDG_CONFIG_HOME: &str = "XDG_CONFIG_HOME";
+
+    /// Override primal name in configuration.
+    pub const SWEETGRASS_NAME: &str = "SWEETGRASS_NAME";
+
+    /// Override tarpc listen address in configuration.
+    pub const SWEETGRASS_TARPC_LISTEN: &str = "SWEETGRASS_TARPC_LISTEN";
+
+    /// Override REST listen address in configuration.
+    pub const SWEETGRASS_REST_LISTEN: &str = "SWEETGRASS_REST_LISTEN";
+
+    /// Discovery bootstrap address override in configuration.
+    pub const SWEETGRASS_DISCOVERY_BOOTSTRAP: &str = "SWEETGRASS_DISCOVERY_BOOTSTRAP";
+
+    /// ecoPrimals JSON-LD vocabulary namespace URI override.
+    pub const ECOP_VOCAB_URI: &str = "ECOP_VOCAB_URI";
+
+    /// ecoPrimals JSON-LD base URI override.
+    pub const ECOP_BASE_URI: &str = "ECOP_BASE_URI";
+
+    /// Explicit path to the biomeOS neural-api socket.
+    pub const NEURAL_API_SOCKET: &str = "NEURAL_API_SOCKET";
+
+    /// ecoPrimals family identifier (used for socket name resolution).
+    pub const ECOPRIMALS_FAMILY_ID: &str = "ECOPRIMALS_FAMILY_ID";
+
+    /// Redb storage directory path override.
+    pub const STORAGE_PATH: &str = "STORAGE_PATH";
+
+    /// Maximum retry attempts for inter-primal IPC.
+    pub const SWEETGRASS_RETRY_MAX: &str = "SWEETGRASS_RETRY_MAX";
+
+    /// Initial delay (ms) for exponential backoff retries.
+    pub const SWEETGRASS_RETRY_INITIAL_MS: &str = "SWEETGRASS_RETRY_INITIAL_MS";
+
+    /// Maximum delay (ms) cap for exponential backoff retries.
+    pub const SWEETGRASS_RETRY_MAX_MS: &str = "SWEETGRASS_RETRY_MAX_MS";
+
+    /// Override the default agent DID for sweetGrass attribution.
+    pub const SWEETGRASS_AGENT_DID: &str = "SWEETGRASS_AGENT_DID";
+
+    /// HTTP listen port for sweetGrass REST API.
+    pub const SWEETGRASS_HTTP_PORT: &str = "SWEETGRASS_HTTP_PORT";
+
+    /// HTTP listen address for sweetGrass REST API.
+    pub const SWEETGRASS_HTTP_ADDRESS: &str = "SWEETGRASS_HTTP_ADDRESS";
+
+    /// tarpc listen address override.
+    pub const SWEETGRASS_TARPC_ADDRESS: &str = "SWEETGRASS_TARPC_ADDRESS";
+
+    /// Storage backend selector (e.g. `memory`, `redb`, `postgres`).
+    pub const STORAGE_BACKEND: &str = "STORAGE_BACKEND";
 }
 
 #[cfg(test)]

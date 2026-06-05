@@ -1,10 +1,16 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.48 (June 2026)
+**Current Version**: v0.7.49 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.49 — Env Var Constant Consolidation (Wave 78c, June 2026)
+
+- [x] **Centralized env var constants** — 26 new constants in `primal_names::env_vars` replacing all bare string literals
+- [x] **Wired constants** into `state.rs`, `config/mod.rs`, `primal_info.rs`, `braid/context.rs`, `discovery/registry.rs`, `resilience/mod.rs`, `neural_announce.rs`, `bootstrap.rs`, `nestgate/discovery.rs`
+- [x] Zero bare env var strings in production code (clap attributes excepted)
 
 ### v0.7.48 — Zero Hot-Path Env Reads (Wave 78b, June 2026)
 

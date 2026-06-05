@@ -10,6 +10,8 @@ use indexmap::IndexMap;
 use serde::ser::SerializeMap;
 use serde::{Deserialize, Serialize};
 
+use crate::primal_names::env_vars;
+
 /// W3C PROV-O vocabulary namespace.
 pub const PROV_VOCAB_URI: &str = "http://www.w3.org/ns/prov#";
 /// W3C XML Schema namespace.
@@ -39,7 +41,7 @@ pub fn ecop_vocab_uri() -> String {
 /// DI-friendly vocabulary URI resolution.
 #[must_use]
 pub fn ecop_vocab_uri_with_reader(reader: impl Fn(&str) -> Option<String>) -> String {
-    reader("ECOP_VOCAB_URI").unwrap_or_else(|| DEFAULT_ECOP_VOCAB_URI.to_string())
+    reader(env_vars::ECOP_VOCAB_URI).unwrap_or_else(|| DEFAULT_ECOP_VOCAB_URI.to_string())
 }
 
 /// Resolve the ecoPrimals base URI from environment or default.
@@ -51,7 +53,7 @@ pub fn ecop_base_uri() -> String {
 /// DI-friendly base URI resolution.
 #[must_use]
 pub fn ecop_base_uri_with_reader(reader: impl Fn(&str) -> Option<String>) -> String {
-    reader("ECOP_BASE_URI").unwrap_or_else(|| DEFAULT_ECOP_BASE_URI.to_string())
+    reader(env_vars::ECOP_BASE_URI).unwrap_or_else(|| DEFAULT_ECOP_BASE_URI.to_string())
 }
 
 /// JSON-LD context version — always 1.1 per W3C specification.

@@ -18,6 +18,7 @@ use std::path::PathBuf;
 use tracing::{debug, info, warn};
 
 use sweet_grass_core::niche;
+use sweet_grass_core::primal_names::env_vars;
 
 /// Default family for neural-api socket resolution.
 const DEFAULT_FAMILY: &str = "ecoPrimal";
@@ -34,7 +35,7 @@ fn resolve_neural_api_socket() -> Option<PathBuf> {
 
 /// DI-friendly variant for testing.
 fn resolve_neural_api_socket_with(reader: &dyn Fn(&str) -> Option<String>) -> Option<PathBuf> {
-    if let Some(explicit) = reader("NEURAL_API_SOCKET") {
+    if let Some(explicit) = reader(env_vars::NEURAL_API_SOCKET) {
         let path = PathBuf::from(&explicit);
         if path.exists() {
             return Some(path);
@@ -42,20 +43,20 @@ fn resolve_neural_api_socket_with(reader: &dyn Fn(&str) -> Option<String>) -> Op
         debug!("NEURAL_API_SOCKET={explicit} does not exist");
     }
 
-    let family = reader("ECOPRIMALS_FAMILY_ID")
-        .or_else(|| reader("BIOMEOS_FAMILY_ID"))
+    let family = reader(env_vars::ECOPRIMALS_FAMILY_ID)
+        .or_else(|| reader(env_vars::BIOMEOS_FAMILY_ID))
         .unwrap_or_else(|| DEFAULT_FAMILY.to_string());
 
     let socket_name = format!("neural-api-{family}.sock");
 
-    if let Some(dir) = reader("BIOMEOS_SOCKET_DIR") {
+    if let Some(dir) = reader(env_vars::BIOMEOS_SOCKET_DIR) {
         let path = PathBuf::from(dir).join(&socket_name);
         if path.exists() {
             return Some(path);
         }
     }
 
-    if let Some(xdg) = reader("XDG_RUNTIME_DIR") {
+    if let Some(xdg) = reader(env_vars::XDG_RUNTIME_DIR) {
         let path = PathBuf::from(xdg).join("biomeos").join(&socket_name);
         if path.exists() {
             return Some(path);
@@ -240,7 +241,7 @@ mod tests {
         let sock_str = sock.to_string_lossy().to_string();
 
         let reader = move |key: &str| -> Option<String> {
-            if key == "NEURAL_API_SOCKET" {
+            if key == env_vars::NEURAL_API_SOCKET {
                 Some(sock_str.clone())
             } else {
                 None
@@ -263,8 +264,8 @@ mod tests {
 
         let reader = move |key: &str| -> Option<String> {
             match key {
-                "XDG_RUNTIME_DIR" => Some(xdg.clone()),
-                "ECOPRIMALS_FAMILY_ID" => Some("testFamily".to_string()),
+                env_vars::XDG_RUNTIME_DIR => Some(xdg.clone()),
+                env_vars::ECOPRIMALS_FAMILY_ID => Some("testFamily".to_string()),
                 _ => None,
             }
         };
