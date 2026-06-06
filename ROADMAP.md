@@ -1,10 +1,17 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.50 (June 2026)
+**Current Version**: v0.7.51 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.51 — Localhost-Only Default Bind (Wave 79b, June 2026)
+
+- [x] **`--http-address` default** — `0.0.0.0:0` → `127.0.0.1:0` per Tower Atomic posture
+- [x] **`--tarpc-address` default** — `0.0.0.0:0` → `127.0.0.1:0`
+- [x] **`--http-port` shorthand** — `0.0.0.0:PORT` → `127.0.0.1:PORT`
+- [x] External all-interfaces binding is now opt-in only
 
 ### v0.7.50 — Attribution Braid Testing + Transport Audit (Wave 79, June 2026)
 

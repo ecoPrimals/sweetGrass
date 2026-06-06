@@ -53,24 +53,26 @@ enum Commands {
         #[arg(long, env = "SWEETGRASS_PORT")]
         port: Option<String>,
 
-        /// HTTP port shorthand (sets HTTP bind to `0.0.0.0:<PORT>`).
+        /// HTTP port shorthand (sets HTTP bind to `127.0.0.1:<PORT>`).
         ///
         /// Convenience alternative to `--http-address`. If both are given,
         /// `--http-port` takes precedence. HTTP is the primary integration
-        /// surface for health probes and JSON-RPC.
+        /// surface for health probes and JSON-RPC. Use
+        /// `--http-address 0.0.0.0:PORT` for all-interfaces binding.
         #[arg(long, env = "SWEETGRASS_HTTP_PORT")]
         http_port: Option<u16>,
 
         /// REST/JSON-RPC bind address in `host:port` format (HTTP-wrapped).
         ///
-        /// Examples: `0.0.0.0:8080`, `127.0.0.1:0`, `[::1]:9090`.
-        /// Port `0` = OS-assigned ephemeral port. The resolved address
-        /// is logged at startup.
-        #[arg(long, env = "SWEETGRASS_HTTP_ADDRESS", default_value = "0.0.0.0:0")]
+        /// Defaults to localhost-only per Tower Atomic security posture.
+        /// Use `0.0.0.0:PORT` for all-interfaces binding in
+        /// Docker/production. Port `0` = OS-assigned ephemeral port.
+        /// The resolved address is logged at startup.
+        #[arg(long, env = "SWEETGRASS_HTTP_ADDRESS", default_value = "127.0.0.1:0")]
         http_address: String,
 
-        /// tarpc bind address.
-        #[arg(long, env = "SWEETGRASS_TARPC_ADDRESS", default_value = "0.0.0.0:0")]
+        /// tarpc bind address (localhost-only by default).
+        #[arg(long, env = "SWEETGRASS_TARPC_ADDRESS", default_value = "127.0.0.1:0")]
         tarpc_address: String,
 
         /// Storage backend: memory, postgres, redb.
@@ -145,7 +147,7 @@ async fn main() {
             socket,
         } => {
             let effective_http_address =
-                http_port.map_or(http_address, |p| format!("0.0.0.0:{p}"));
+                http_port.map_or(http_address, |p| format!("127.0.0.1:{p}"));
             let tcp_address = port.map(|p| parse_tcp_port_arg(&p)).transpose();
             let tcp_address = match tcp_address {
                 Ok(a) => a,

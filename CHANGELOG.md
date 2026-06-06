@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.51] - 2026-06-05
+
+### Localhost-Only Default Bind (Wave 79b)
+
+#### Changed
+- **`--http-address` default** — changed from `0.0.0.0:0` to `127.0.0.1:0`
+  per Tower Atomic security posture. External binding is now opt-in via
+  explicit `0.0.0.0:PORT` or `--http-address 0.0.0.0:PORT`.
+- **`--tarpc-address` default** — changed from `0.0.0.0:0` to `127.0.0.1:0`
+  for same reason.
+- **`--http-port` shorthand** — now formats as `127.0.0.1:PORT` instead of
+  `0.0.0.0:PORT`.
+- Zero `0.0.0.0` literals remain in production code or defaults.
+
+#### Metrics
+- Tests: 1,615+ (zero failures)
+- Zero clippy warnings (pedantic + nursery)
+
 ## [0.7.50] - 2026-06-05
 
 ### Attribution Braid Testing + Transport Audit (Wave 79)
