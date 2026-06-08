@@ -106,10 +106,7 @@ async fn test_create_and_get_braid_with_privacy_metadata() {
     let result = dispatch(&state, "braid.create", create_params).await;
     assert!(result.is_ok());
     let braid = result.unwrap();
-    assert_eq!(
-        braid["metadata"]["privacy"]["visibility"],
-        "private"
-    );
+    assert_eq!(braid["metadata"]["privacy"]["visibility"], "private");
     let braid_id = braid["@id"].as_str().unwrap().to_string();
 
     let get_result = dispatch(
@@ -123,10 +120,7 @@ async fn test_create_and_get_braid_with_privacy_metadata() {
     .await;
     assert!(get_result.is_ok());
     let fetched = get_result.unwrap();
-    assert_eq!(
-        fetched["metadata"]["privacy"]["visibility"],
-        "private"
-    );
+    assert_eq!(fetched["metadata"]["privacy"]["visibility"], "private");
 }
 
 #[tokio::test]
@@ -399,13 +393,9 @@ async fn test_alias_provenance_lineage_maps_to_attribution_chain() {
 #[tokio::test]
 async fn test_lifecycle_status_returns_running() {
     let state = test_state();
-    let result = dispatch(
-        &state,
-        "lifecycle.status",
-        serde_json::json!({}),
-    )
-    .await
-    .unwrap();
+    let result = dispatch(&state, "lifecycle.status", serde_json::json!({}))
+        .await
+        .unwrap();
     assert_eq!(result["status"], "running");
     assert!(result["version"].is_string());
     assert!(result["gate_mode"].is_string());
@@ -414,7 +404,10 @@ async fn test_lifecycle_status_returns_running() {
     assert!(result["capabilities_count"].is_number());
     assert_eq!(result["store_backend"], "memory");
     assert_eq!(result["method_count"], METHODS.len());
-    assert_eq!(result["capabilities_count"], sweet_grass_core::niche::CAPABILITIES.len());
+    assert_eq!(
+        result["capabilities_count"],
+        sweet_grass_core::niche::CAPABILITIES.len()
+    );
 }
 
 // ==================== braid domain extended ====================
@@ -571,10 +564,7 @@ fn test_internal_error() {
     let err = internal("something went wrong");
     assert_eq!(err.code, error_code::INTERNAL_ERROR);
     assert!(err.message.contains("something went wrong"));
-    assert_eq!(
-        err.source_detail.as_deref(),
-        Some("something went wrong")
-    );
+    assert_eq!(err.source_detail.as_deref(), Some("something went wrong"));
 }
 
 // ==================== DispatchOutcome ====================
@@ -689,7 +679,12 @@ async fn test_braid_anchor_success() {
     assert_eq!(result["status"], "anchored");
     assert!(result["content_hash"].is_string());
     assert!(result["anchor_preimage"].is_string());
-    assert!(result["anchor_preimage"].as_str().unwrap().starts_with("sha256:"));
+    assert!(
+        result["anchor_preimage"]
+            .as_str()
+            .unwrap()
+            .starts_with("sha256:")
+    );
     assert_eq!(result["braid_id"], braid_id);
 }
 

@@ -137,7 +137,13 @@ async fn handle_tcp_with_autodetect(
         },
         DetectedProtocol::JsonLineBtsp(client_hello) => {
             debug!("TCP from {peer}: first-line auto-detect → JSON-line BTSP");
-            match crate::btsp::perform_server_handshake_jsonline_with(&mut stream, client_hello, &state.security_socket_path).await {
+            match crate::btsp::perform_server_handshake_jsonline_with(
+                &mut stream,
+                client_hello,
+                &state.security_socket_path,
+            )
+            .await
+            {
                 Ok(outcome) => {
                     debug!(
                         session = %outcome.complete.session_id,
@@ -204,13 +210,14 @@ async fn handle_tcp_connection_btsp(
     use crate::btsp;
     use tokio::io::AsyncWriteExt;
 
-    let outcome = match btsp::perform_server_handshake_with(&mut stream, &state.security_socket_path).await {
-        Ok(o) => o,
-        Err(e) => {
-            warn!("TCP BTSP handshake failed: {e}");
-            return Ok(());
-        },
-    };
+    let outcome =
+        match btsp::perform_server_handshake_with(&mut stream, &state.security_socket_path).await {
+            Ok(o) => o,
+            Err(e) => {
+                warn!("TCP BTSP handshake failed: {e}");
+                return Ok(());
+            },
+        };
 
     debug!(
         session = %outcome.complete.session_id,
@@ -257,11 +264,16 @@ async fn handle_tcp_connection_btsp(
     .await?
     {
         crate::btsp::transport::NegotiateOutcome::Encrypted(session_keys) => {
-            crate::btsp::transport::run_encrypted_frame_loop(&mut reader, &mut writer, &state, &session_keys)
-                .await?;
+            crate::btsp::transport::run_encrypted_frame_loop(
+                &mut reader,
+                &mut writer,
+                &state,
+                &session_keys,
+            )
+            .await?;
             return Ok(());
-        }
-        crate::btsp::transport::NegotiateOutcome::NullCipher => {}
+        },
+        crate::btsp::transport::NegotiateOutcome::NullCipher => {},
         crate::btsp::transport::NegotiateOutcome::NotNegotiate => {
             if let Some(response) =
                 crate::handlers::jsonrpc::process_single(&state, first_request).await
@@ -272,7 +284,7 @@ async fn handle_tcp_connection_btsp(
                     .map_err(|e| crate::ServiceError::Internal(e.to_string()))?;
                 writer.flush().await?;
             }
-        }
+        },
     }
 
     crate::btsp::transport::run_plaintext_frame_loop(&mut reader, &mut writer, &state).await
@@ -327,8 +339,8 @@ async fn handle_tcp_post_jsonline(
             )
             .await?;
             return Ok(());
-        }
-        crate::btsp::transport::NegotiateOutcome::NullCipher => {}
+        },
+        crate::btsp::transport::NegotiateOutcome::NullCipher => {},
         crate::btsp::transport::NegotiateOutcome::NotNegotiate => {
             if let Some(response) =
                 crate::handlers::jsonrpc::process_single(&state, first_request).await
@@ -338,7 +350,7 @@ async fn handle_tcp_post_jsonline(
                 writer.write_all(resp_str.as_bytes()).await?;
                 writer.flush().await?;
             }
-        }
+        },
     }
 
     let stream = buf_reader

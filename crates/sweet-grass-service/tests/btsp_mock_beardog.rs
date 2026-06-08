@@ -498,7 +498,8 @@ mod btsp_tests {
                     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
                     let state_clone = state.clone();
                     let listener_handle = tokio::spawn(async move {
-                        let _ = run_tcp_jsonrpc_listener(state_clone, listener, shutdown_rx, true).await;
+                        let _ = run_tcp_jsonrpc_listener(state_clone, listener, shutdown_rx, true)
+                            .await;
                     });
 
                     let mut stream = tokio::net::TcpStream::connect(addr)

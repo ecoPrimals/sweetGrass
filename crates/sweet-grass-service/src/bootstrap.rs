@@ -281,9 +281,7 @@ fn resolve_advertise_host(reader: &impl Fn(&str) -> Option<String>) -> String {
                 .ok()
                 .map(|s| s.trim().to_owned())
                 .filter(|s| !s.is_empty())
-                .unwrap_or_else(|| {
-                    sweet_grass_core::identity::FALLBACK_ADVERTISE_HOST.to_string()
-                })
+                .unwrap_or_else(|| sweet_grass_core::identity::FALLBACK_ADVERTISE_HOST.to_string())
         },
     )
 }
@@ -360,9 +358,8 @@ async fn announce_capabilities(self_knowledge: &SelfKnowledge, state: &AppState)
 #[cfg(test)]
 pub async fn create_app_state_from_env() -> Result<AppState, BootstrapError> {
     let store = BraidStoreFactory::from_env().await?;
-    let did_str =
-        std::env::var(sweet_grass_core::primal_names::env_vars::SWEETGRASS_AGENT_DID)
-            .unwrap_or_else(|_| "did:primal:test".to_string());
+    let did_str = std::env::var(sweet_grass_core::primal_names::env_vars::SWEETGRASS_AGENT_DID)
+        .unwrap_or_else(|_| "did:primal:test".to_string());
     let default_agent = Did::new(&did_str);
     Ok(AppState::with_store(Arc::new(store), default_agent))
 }

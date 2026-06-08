@@ -33,9 +33,10 @@ fn spawn_listener(
     tokio::sync::watch::Sender<bool>,
 ) {
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let handle = tokio::spawn(async move {
-        run_tcp_jsonrpc_listener(state, listener, shutdown_rx, false).await
-    });
+    let handle =
+        tokio::spawn(
+            async move { run_tcp_jsonrpc_listener(state, listener, shutdown_rx, false).await },
+        );
     (handle, shutdown_tx)
 }
 
@@ -75,8 +76,7 @@ async fn tcp_jsonrpc_health_check() {
 
     let mut lines = BufReader::new(reader).lines();
     let response_line = lines.next_line().await.unwrap().expect("response");
-    let response: serde_json::Value =
-        serde_json::from_str(&response_line).expect("parse response");
+    let response: serde_json::Value = serde_json::from_str(&response_line).expect("parse response");
 
     assert_eq!(response["jsonrpc"], "2.0");
     assert!(response["result"].is_object());
@@ -104,8 +104,7 @@ async fn tcp_jsonrpc_parse_error() {
 
     let mut lines = BufReader::new(reader).lines();
     let response_line = lines.next_line().await.unwrap().expect("response");
-    let response: serde_json::Value =
-        serde_json::from_str(&response_line).expect("parse response");
+    let response: serde_json::Value = serde_json::from_str(&response_line).expect("parse response");
 
     assert_eq!(response["jsonrpc"], "2.0");
     assert!(response["error"].is_object());
@@ -149,8 +148,7 @@ async fn tcp_jsonrpc_notification_no_response_then_roundtrip() {
 
     let mut lines = BufReader::new(reader).lines();
     let response_line = lines.next_line().await.unwrap().expect("response");
-    let response: serde_json::Value =
-        serde_json::from_str(&response_line).expect("parse response");
+    let response: serde_json::Value = serde_json::from_str(&response_line).expect("parse response");
 
     assert_eq!(response["jsonrpc"], "2.0");
     assert_eq!(response["id"], 7);
@@ -242,8 +240,7 @@ async fn tcp_jsonrpc_skips_empty_lines() {
 
     let mut lines = BufReader::new(reader).lines();
     let response_line = lines.next_line().await.unwrap().expect("response");
-    let response: serde_json::Value =
-        serde_json::from_str(&response_line).expect("parse response");
+    let response: serde_json::Value = serde_json::from_str(&response_line).expect("parse response");
 
     assert_eq!(response["id"], 11);
     assert_eq!(response["result"]["status"], "healthy");
@@ -274,8 +271,7 @@ async fn tcp_jsonrpc_method_not_found() {
 
     let mut lines = BufReader::new(reader).lines();
     let response_line = lines.next_line().await.unwrap().expect("response");
-    let response: serde_json::Value =
-        serde_json::from_str(&response_line).expect("parse response");
+    let response: serde_json::Value = serde_json::from_str(&response_line).expect("parse response");
 
     assert_eq!(response["jsonrpc"], "2.0");
     assert_eq!(response["id"], 404);
@@ -329,8 +325,7 @@ async fn tcp_jsonrpc_invalid_jsonrpc_version() {
 
     let mut lines = BufReader::new(reader).lines();
     let response_line = lines.next_line().await.unwrap().expect("response");
-    let response: serde_json::Value =
-        serde_json::from_str(&response_line).expect("parse response");
+    let response: serde_json::Value = serde_json::from_str(&response_line).expect("parse response");
 
     assert_eq!(response["jsonrpc"], "2.0");
     assert_eq!(response["id"], 88);

@@ -123,7 +123,8 @@ impl SelfKnowledge {
     /// Returns error if port values are not valid numbers.
     pub fn from_reader(reader: impl Fn(&str) -> Option<String>) -> Result<Self, BootstrapEnvError> {
         Ok(Self {
-            name: reader(primal_names::env_vars::PRIMAL_NAME).unwrap_or_else(|| identity::PRIMAL_NAME.to_string()),
+            name: reader(primal_names::env_vars::PRIMAL_NAME)
+                .unwrap_or_else(|| identity::PRIMAL_NAME.to_string()),
             instance_id: reader(primal_names::env_vars::PRIMAL_INSTANCE_ID)
                 .unwrap_or_else(|| uuid::Uuid::new_v4().to_string()),
             capabilities: Self::parse_capabilities_from(&reader),

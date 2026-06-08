@@ -31,9 +31,7 @@ fn spawn_server(
     tokio::sync::watch::Sender<bool>,
 ) {
     let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
-    let handle = tokio::spawn(async move {
-        run_tarpc_server(listener, server, shutdown_rx).await
-    });
+    let handle = tokio::spawn(async move { run_tarpc_server(listener, server, shutdown_rx).await });
     (handle, shutdown_tx)
 }
 

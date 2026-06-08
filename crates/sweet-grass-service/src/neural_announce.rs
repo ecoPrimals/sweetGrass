@@ -171,8 +171,9 @@ async fn send_jsonrpc_uds(
         buf_reader.read_line(&mut response_line),
     )
     .await
-    .map_err(|_| std::io::Error::new(std::io::ErrorKind::TimedOut, "neural-api response timeout"))?
-    ?;
+    .map_err(|_| {
+        std::io::Error::new(std::io::ErrorKind::TimedOut, "neural-api response timeout")
+    })??;
 
     if bytes_read == 0 {
         return Err(std::io::Error::new(

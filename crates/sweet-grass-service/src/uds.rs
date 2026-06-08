@@ -24,8 +24,8 @@ use sweet_grass_core::primal_names::env_vars;
 #[path = "uds/lifecycle.rs"]
 mod lifecycle;
 pub use lifecycle::{
-    cleanup_capability_symlink, cleanup_pid_file, cleanup_socket_at,
-    create_capability_symlink, pid_path, write_pid_file,
+    cleanup_capability_symlink, cleanup_pid_file, cleanup_socket_at, create_capability_symlink,
+    pid_path, write_pid_file,
 };
 
 /// BTSP Phase 1 configuration error: `FAMILY_ID` and `BIOMEOS_INSECURE=1`
@@ -351,13 +351,14 @@ async fn handle_uds_connection_btsp(
     use crate::btsp;
     use tokio::io::AsyncWriteExt;
 
-    let outcome = match btsp::perform_server_handshake_with(&mut stream, &state.security_socket_path).await {
-        Ok(o) => o,
-        Err(e) => {
-            warn!("UDS BTSP handshake failed: {e}");
-            return Ok(());
-        },
-    };
+    let outcome =
+        match btsp::perform_server_handshake_with(&mut stream, &state.security_socket_path).await {
+            Ok(o) => o,
+            Err(e) => {
+                warn!("UDS BTSP handshake failed: {e}");
+                return Ok(());
+            },
+        };
 
     debug!(
         session = %outcome.complete.session_id,
@@ -405,12 +406,15 @@ async fn handle_uds_connection_btsp(
     {
         crate::btsp::transport::NegotiateOutcome::Encrypted(session_keys) => {
             crate::btsp::transport::run_encrypted_frame_loop(
-                &mut reader, &mut writer, &state, &session_keys,
+                &mut reader,
+                &mut writer,
+                &state,
+                &session_keys,
             )
             .await?;
             return Ok(());
-        }
-        crate::btsp::transport::NegotiateOutcome::NullCipher => {}
+        },
+        crate::btsp::transport::NegotiateOutcome::NullCipher => {},
         crate::btsp::transport::NegotiateOutcome::NotNegotiate => {
             if let Some(response) =
                 crate::handlers::jsonrpc::process_single(&state, first_request).await
@@ -421,7 +425,7 @@ async fn handle_uds_connection_btsp(
                     .map_err(|e| crate::ServiceError::Internal(e.to_string()))?;
                 writer.flush().await?;
             }
-        }
+        },
     }
 
     crate::btsp::transport::run_plaintext_frame_loop(&mut reader, &mut writer, &state).await
@@ -438,14 +442,19 @@ async fn handle_uds_connection_btsp_jsonline(
     state: crate::state::AppState,
     client_hello: crate::btsp::ClientHello,
 ) {
-    let outcome =
-        match crate::btsp::perform_server_handshake_jsonline_with(&mut stream, client_hello, &state.security_socket_path).await {
-            Ok(o) => o,
-            Err(e) => {
-                warn!("UDS BTSP JSON-line handshake failed: {e}");
-                return;
-            },
-        };
+    let outcome = match crate::btsp::perform_server_handshake_jsonline_with(
+        &mut stream,
+        client_hello,
+        &state.security_socket_path,
+    )
+    .await
+    {
+        Ok(o) => o,
+        Err(e) => {
+            warn!("UDS BTSP JSON-line handshake failed: {e}");
+            return;
+        },
+    };
 
     debug!(
         session = %outcome.complete.session_id,
@@ -454,9 +463,7 @@ async fn handle_uds_connection_btsp_jsonline(
         "UDS BTSP JSON-line handshake succeeded"
     );
 
-    if let Err(e) =
-        handle_post_jsonline_handshake(stream, state, outcome.handshake_key).await
-    {
+    if let Err(e) = handle_post_jsonline_handshake(stream, state, outcome.handshake_key).await {
         warn!("UDS JSON-RPC error (post BTSP JSON-line handshake): {e}");
     }
 }
@@ -505,16 +512,21 @@ async fn handle_post_jsonline_handshake(
     .await?
     {
         crate::btsp::transport::NegotiateOutcome::Encrypted(session_keys) => {
-            let mut combined = buf_reader.into_inner().reunite(writer)
+            let mut combined = buf_reader
+                .into_inner()
+                .reunite(writer)
                 .map_err(|e| crate::ServiceError::Internal(format!("reunite: {e}")))?;
             let (mut enc_reader, mut enc_writer) = tokio::io::split(&mut combined);
             crate::btsp::transport::run_encrypted_frame_loop(
-                &mut enc_reader, &mut enc_writer, &state, &session_keys,
+                &mut enc_reader,
+                &mut enc_writer,
+                &state,
+                &session_keys,
             )
             .await?;
             return Ok(());
-        }
-        crate::btsp::transport::NegotiateOutcome::NullCipher => {}
+        },
+        crate::btsp::transport::NegotiateOutcome::NullCipher => {},
         crate::btsp::transport::NegotiateOutcome::NotNegotiate => {
             if let Some(response) =
                 crate::handlers::jsonrpc::process_single(&state, first_request).await
@@ -524,14 +536,15 @@ async fn handle_post_jsonline_handshake(
                 writer.write_all(resp_str.as_bytes()).await?;
                 writer.flush().await?;
             }
-        }
+        },
     }
 
-    let stream = buf_reader.into_inner().reunite(writer)
+    let stream = buf_reader
+        .into_inner()
+        .reunite(writer)
         .map_err(|e| crate::ServiceError::Internal(format!("reunite: {e}")))?;
     handle_uds_connection_raw(stream, state).await
 }
-
 
 /// Handle a UDS connection where the first JSON-RPC request has already been
 /// consumed by the auto-detect layer.
@@ -656,8 +669,7 @@ async fn write_jsonrpc_error(
         "error": { "code": code, "message": message.into() },
         "id": id,
     });
-    let mut resp = serde_json::to_string(&response)
-        .map_err(std::io::Error::other)?;
+    let mut resp = serde_json::to_string(&response).map_err(std::io::Error::other)?;
     resp.push('\n');
     stream.write_all(resp.as_bytes()).await?;
     stream.flush().await

@@ -8,11 +8,11 @@ use crate::state::AppState;
 
 use super::{DispatchResult, caller_context_from_params, registry::METHODS};
 
-#[expect(
-    clippy::unnecessary_wraps,
-    reason = "must match DispatchFn signature"
-)]
-pub(super) fn handle_lifecycle_status(state: &AppState, _params: serde_json::Value) -> DispatchResult {
+#[expect(clippy::unnecessary_wraps, reason = "must match DispatchFn signature")]
+pub(super) fn handle_lifecycle_status(
+    state: &AppState,
+    _params: serde_json::Value,
+) -> DispatchResult {
     let version = env!("CARGO_PKG_VERSION");
     let name = state
         .self_knowledge
@@ -22,9 +22,10 @@ pub(super) fn handle_lifecycle_status(state: &AppState, _params: serde_json::Val
         .self_knowledge
         .as_ref()
         .map_or(0, |sk| sk.uptime().as_secs());
-    let started_at = state.self_knowledge.as_ref().map(|sk| {
-        chrono::DateTime::<chrono::Utc>::from(sk.established_at).to_rfc3339()
-    });
+    let started_at = state
+        .self_knowledge
+        .as_ref()
+        .map(|sk| chrono::DateTime::<chrono::Utc>::from(sk.established_at).to_rfc3339());
     let mut response = serde_json::json!({
         "status": "running",
         "primal": name,
@@ -41,10 +42,7 @@ pub(super) fn handle_lifecycle_status(state: &AppState, _params: serde_json::Val
     Ok(response)
 }
 
-#[expect(
-    clippy::unnecessary_wraps,
-    reason = "must match DispatchFn signature"
-)]
+#[expect(clippy::unnecessary_wraps, reason = "must match DispatchFn signature")]
 pub(super) fn handle_auth_mode(state: &AppState) -> DispatchResult {
     Ok(serde_json::json!({
         "mode": state.method_gate.mode().as_str(),

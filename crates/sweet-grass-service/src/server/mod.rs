@@ -71,12 +71,11 @@ impl SweetGrassServer {
         compression: Arc<CompressionEngine>,
         attribution: Arc<AttributionCalculator>,
     ) -> Self {
-        let max_concurrent_requests = std::env::var(
-            sweet_grass_core::primal_names::env_vars::TARPC_MAX_CONCURRENT_REQUESTS,
-        )
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(DEFAULT_MAX_CONCURRENT_REQUESTS);
+        let max_concurrent_requests =
+            std::env::var(sweet_grass_core::primal_names::env_vars::TARPC_MAX_CONCURRENT_REQUESTS)
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(DEFAULT_MAX_CONCURRENT_REQUESTS);
         Self {
             store,
             factory,
@@ -479,10 +478,10 @@ impl SweetGrassRpc for SweetGrassServer {
                     if let Ok(w) = serde_json::to_value(&witness) {
                         response["witness"] = w;
                     }
-                }
+                },
                 Err(e) => {
                     tracing::warn!("crypto.sign unavailable, anchor unsigned: {e}");
-                }
+                },
             }
         }
 
@@ -514,9 +513,7 @@ impl SweetGrassRpc for SweetGrassServer {
             "generated_at_time": braid.generated_at_time.nanos(),
         });
 
-        if has_witness
-            && let Ok(w) = serde_json::to_value(&braid.witness)
-        {
+        if has_witness && let Ok(w) = serde_json::to_value(&braid.witness) {
             response["witness"] = w;
         }
 

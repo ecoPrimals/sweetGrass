@@ -132,7 +132,10 @@ fn test_write_and_cleanup_pid_file() {
 #[test]
 fn test_pid_path_derivation() {
     let sock = std::path::PathBuf::from("/tmp/biomeos/sweetgrass.sock");
-    assert_eq!(pid_path(&sock), std::path::PathBuf::from("/tmp/biomeos/sweetgrass.pid"));
+    assert_eq!(
+        pid_path(&sock),
+        std::path::PathBuf::from("/tmp/biomeos/sweetgrass.pid")
+    );
 
     let family_sock = std::path::PathBuf::from("/run/user/1000/biomeos/sweetgrass-alpha.sock");
     assert_eq!(

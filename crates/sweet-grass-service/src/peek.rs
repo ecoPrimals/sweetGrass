@@ -262,7 +262,10 @@ mod tests {
                 assert_eq!(val["method"], "braid.create");
                 assert_eq!(val["id"], 1);
             },
-            other => panic!("expected JsonRpc for EOF-terminated line, got {}", variant_name(&other)),
+            other => panic!(
+                "expected JsonRpc for EOF-terminated line, got {}",
+                variant_name(&other)
+            ),
         }
     }
 
@@ -279,7 +282,8 @@ mod tests {
 
     #[tokio::test]
     async fn detect_jsonrpc_with_leading_whitespace() {
-        let line = b"\n \t{\"jsonrpc\":\"2.0\",\"method\":\"health.check\",\"params\":{},\"id\":1}\n";
+        let line =
+            b"\n \t{\"jsonrpc\":\"2.0\",\"method\":\"health.check\",\"params\":{},\"id\":1}\n";
         let mut cursor = std::io::Cursor::new(line.to_vec());
         let result = detect_protocol(&mut cursor).await.unwrap();
         match result {
@@ -295,7 +299,8 @@ mod tests {
 
     #[tokio::test]
     async fn detect_btsp_with_leading_newline() {
-        let line = b"\r\n{\"protocol\":\"btsp\",\"version\":1,\"client_ephemeral_pub\":\"dGVzdA==\"}\n";
+        let line =
+            b"\r\n{\"protocol\":\"btsp\",\"version\":1,\"client_ephemeral_pub\":\"dGVzdA==\"}\n";
         let mut cursor = std::io::Cursor::new(line.to_vec());
         let result = detect_protocol(&mut cursor).await.unwrap();
         assert!(

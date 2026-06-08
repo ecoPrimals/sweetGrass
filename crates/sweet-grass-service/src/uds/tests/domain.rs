@@ -129,14 +129,12 @@ async fn test_uds_braid_query_roundtrip() {
     writer.write_all(req_str.as_bytes()).await.unwrap();
     writer.flush().await.expect("flush");
 
-    let query_resp_line = tokio::time::timeout(
-        std::time::Duration::from_secs(5),
-        lines.next_line(),
-    )
-    .await
-    .expect("braid.query should respond within 5s")
-    .unwrap()
-    .expect("query response");
+    let query_resp_line =
+        tokio::time::timeout(std::time::Duration::from_secs(5), lines.next_line())
+            .await
+            .expect("braid.query should respond within 5s")
+            .unwrap()
+            .expect("query response");
     let query_resp: serde_json::Value = serde_json::from_str(&query_resp_line).unwrap();
 
     assert_eq!(query_resp["jsonrpc"], "2.0");
@@ -212,14 +210,12 @@ async fn test_uds_provenance_graph_roundtrip() {
     writer.write_all(req_str.as_bytes()).await.unwrap();
     writer.flush().await.expect("flush");
 
-    let graph_resp_line = tokio::time::timeout(
-        std::time::Duration::from_secs(5),
-        lines.next_line(),
-    )
-    .await
-    .expect("provenance.graph should respond within 5s")
-    .unwrap()
-    .expect("graph response");
+    let graph_resp_line =
+        tokio::time::timeout(std::time::Duration::from_secs(5), lines.next_line())
+            .await
+            .expect("provenance.graph should respond within 5s")
+            .unwrap()
+            .expect("graph response");
     let graph_resp: serde_json::Value = serde_json::from_str(&graph_resp_line).unwrap();
 
     assert_eq!(graph_resp["jsonrpc"], "2.0");
@@ -252,33 +248,32 @@ async fn test_uds_composition_pattern_single_shot() {
 
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-    let send_and_receive = |path: std::path::PathBuf,
-                            request: serde_json::Value|
-     -> std::pin::Pin<Box<dyn std::future::Future<Output = serde_json::Value> + Send>> {
-        Box::pin(async move {
-            let stream = tokio::net::UnixStream::connect(&path)
-                .await
-                .expect("connect");
-            let (reader, mut writer) = stream.into_split();
+    let send_and_receive =
+        |path: std::path::PathBuf,
+         request: serde_json::Value|
+         -> std::pin::Pin<Box<dyn std::future::Future<Output = serde_json::Value> + Send>> {
+            Box::pin(async move {
+                let stream = tokio::net::UnixStream::connect(&path)
+                    .await
+                    .expect("connect");
+                let (reader, mut writer) = stream.into_split();
 
-            let mut req_str = serde_json::to_string(&request).unwrap();
-            req_str.push('\n');
-            writer.write_all(req_str.as_bytes()).await.unwrap();
-            writer.flush().await.expect("flush");
+                let mut req_str = serde_json::to_string(&request).unwrap();
+                req_str.push('\n');
+                writer.write_all(req_str.as_bytes()).await.unwrap();
+                writer.flush().await.expect("flush");
 
-            let mut lines = BufReader::new(reader).lines();
-            let resp_line = tokio::time::timeout(
-                std::time::Duration::from_secs(5),
-                lines.next_line(),
-            )
-            .await
-            .expect("should respond within 5s")
-            .unwrap()
-            .expect("response line");
+                let mut lines = BufReader::new(reader).lines();
+                let resp_line =
+                    tokio::time::timeout(std::time::Duration::from_secs(5), lines.next_line())
+                        .await
+                        .expect("should respond within 5s")
+                        .unwrap()
+                        .expect("response line");
 
-            serde_json::from_str(&resp_line).expect("parse response")
-        })
-    };
+                serde_json::from_str(&resp_line).expect("parse response")
+            })
+        };
 
     let liveness = send_and_receive(
         sock_path.clone(),
@@ -369,8 +364,8 @@ async fn test_uds_braid_create_tower_signed() {
     });
 
     let crypto = crate::crypto_delegate::CryptoDelegate::with_socket(beardog_sock);
-    let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkSignedBraid"))
-        .with_crypto(crypto);
+    let state =
+        crate::state::AppState::new_memory(Did::new("did:key:z6MkSignedBraid")).with_crypto(crypto);
 
     let path_clone = sock_path.clone();
     let state_clone = state.clone();
@@ -402,16 +397,12 @@ async fn test_uds_braid_create_tower_signed() {
     writer.flush().await.expect("flush");
 
     let mut lines = BufReader::new(reader).lines();
-    let response_line = tokio::time::timeout(
-        std::time::Duration::from_secs(10),
-        lines.next_line(),
-    )
-    .await
-    .expect("braid.create signed should respond within 10s")
-    .unwrap()
-    .expect("response");
-    let response: serde_json::Value =
-        serde_json::from_str(&response_line).expect("parse response");
+    let response_line = tokio::time::timeout(std::time::Duration::from_secs(10), lines.next_line())
+        .await
+        .expect("braid.create signed should respond within 10s")
+        .unwrap()
+        .expect("response");
+    let response: serde_json::Value = serde_json::from_str(&response_line).expect("parse response");
 
     assert_eq!(response["jsonrpc"], "2.0");
     assert_eq!(response["id"], 42);
@@ -446,7 +437,10 @@ async fn test_uds_braid_create_tower_signed() {
 }
 
 #[tokio::test]
-#[expect(clippy::too_many_lines, reason = "integration test with mock BearDog + UDS listener setup")]
+#[expect(
+    clippy::too_many_lines,
+    reason = "integration test with mock BearDog + UDS listener setup"
+)]
 async fn test_uds_anchoring_anchor_tower_signed() {
     use std::os::unix::net::UnixListener as StdUnixListener;
 
@@ -486,8 +480,8 @@ async fn test_uds_anchoring_anchor_tower_signed() {
     });
 
     let crypto = crate::crypto_delegate::CryptoDelegate::with_socket(beardog_sock);
-    let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkAnchorTest"))
-        .with_crypto(crypto);
+    let state =
+        crate::state::AppState::new_memory(Did::new("did:key:z6MkAnchorTest")).with_crypto(crypto);
 
     let path_clone = sock_path.clone();
     let state_clone = state.clone();
@@ -520,14 +514,11 @@ async fn test_uds_anchoring_anchor_tower_signed() {
     writer.flush().await.expect("flush");
 
     let mut lines = BufReader::new(reader).lines();
-    let create_line = tokio::time::timeout(
-        std::time::Duration::from_secs(10),
-        lines.next_line(),
-    )
-    .await
-    .expect("braid.create should respond")
-    .unwrap()
-    .expect("create response");
+    let create_line = tokio::time::timeout(std::time::Duration::from_secs(10), lines.next_line())
+        .await
+        .expect("braid.create should respond")
+        .unwrap()
+        .expect("create response");
     let created: serde_json::Value = serde_json::from_str(&create_line).expect("parse create");
     let braid_id = created["result"]["@id"].as_str().expect("braid @id");
 
@@ -552,14 +543,11 @@ async fn test_uds_anchoring_anchor_tower_signed() {
     writer2.flush().await.expect("flush anchor");
 
     let mut lines2 = BufReader::new(reader2).lines();
-    let anchor_line = tokio::time::timeout(
-        std::time::Duration::from_secs(10),
-        lines2.next_line(),
-    )
-    .await
-    .expect("anchoring.anchor should respond within 10s")
-    .unwrap()
-    .expect("anchor response");
+    let anchor_line = tokio::time::timeout(std::time::Duration::from_secs(10), lines2.next_line())
+        .await
+        .expect("anchoring.anchor should respond within 10s")
+        .unwrap()
+        .expect("anchor response");
     let response: serde_json::Value =
         serde_json::from_str(&anchor_line).expect("parse anchor response");
 

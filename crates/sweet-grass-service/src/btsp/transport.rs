@@ -40,11 +40,11 @@ pub async fn try_phase3_negotiate<W: tokio::io::AsyncWrite + Unpin + Send>(
     writer: &mut W,
     use_jsonline: bool,
 ) -> std::result::Result<NegotiateOutcome, crate::ServiceError> {
-    use base64::Engine;
     use super::phase3::{
         NegotiateParams, NegotiateResult, Phase3Cipher, SessionKeys, generate_server_nonce,
         select_cipher,
     };
+    use base64::Engine;
 
     let method = request
         .get("method")
@@ -324,7 +324,9 @@ mod tests {
 
             let payload = serde_json::to_vec(&resp).unwrap();
             let encrypted = server_keys.encrypt(&payload).unwrap();
-            write_frame(&mut sw, &encrypted).await.expect("server write");
+            write_frame(&mut sw, &encrypted)
+                .await
+                .expect("server write");
         });
 
         let request = serde_json::json!({
@@ -335,7 +337,9 @@ mod tests {
         });
         let plaintext = serde_json::to_vec(&request).unwrap();
         let encrypted = client_keys.encrypt(&plaintext).unwrap();
-        write_frame(&mut cw, &encrypted).await.expect("client write");
+        write_frame(&mut cw, &encrypted)
+            .await
+            .expect("client write");
 
         let resp_frame = read_frame(&mut cr).await.expect("client read");
         let decrypted = client_keys.decrypt(&resp_frame).expect("client decrypt");
@@ -374,7 +378,9 @@ mod tests {
 
         let plaintext = b"hello encrypted btsp frame";
         let encrypted = client_keys.encrypt(plaintext).unwrap();
-        write_frame(&mut left, &encrypted).await.expect("write frame");
+        write_frame(&mut left, &encrypted)
+            .await
+            .expect("write frame");
 
         let frame = read_frame(&mut right).await.expect("read frame");
         let decrypted = server_keys.decrypt(&frame).expect("decrypt frame");
@@ -414,7 +420,9 @@ mod tests {
             .expect("write encrypted frame");
 
         let response_frame = read_frame(&mut client_reader).await.expect("read response");
-        let decrypted = client_keys.decrypt(&response_frame).expect("decrypt response");
+        let decrypted = client_keys
+            .decrypt(&response_frame)
+            .expect("decrypt response");
         let response: serde_json::Value =
             serde_json::from_slice(&decrypted).expect("parse response JSON");
 
@@ -523,14 +531,9 @@ mod tests {
 
         let (mut client_read, mut server_write) = tokio::io::duplex(4096);
 
-        let result = try_phase3_negotiate(
-            &request,
-            Some(&handshake_key),
-            &mut server_write,
-            true,
-        )
-        .await
-        .expect("negotiate should not error");
+        let result = try_phase3_negotiate(&request, Some(&handshake_key), &mut server_write, true)
+            .await
+            .expect("negotiate should not error");
 
         assert!(
             matches!(result, NegotiateOutcome::Encrypted(_)),
@@ -562,14 +565,9 @@ mod tests {
 
         let (_, mut writer) = tokio::io::duplex(4096);
 
-        let result = try_phase3_negotiate(
-            &request,
-            Some(&[0u8; 32]),
-            &mut writer,
-            false,
-        )
-        .await
-        .expect("should not error");
+        let result = try_phase3_negotiate(&request, Some(&[0u8; 32]), &mut writer, false)
+            .await
+            .expect("should not error");
 
         assert!(matches!(result, NegotiateOutcome::NotNegotiate));
     }
@@ -592,14 +590,9 @@ mod tests {
 
         let (mut client_read, mut server_write) = tokio::io::duplex(4096);
 
-        let result = try_phase3_negotiate(
-            &request,
-            None,
-            &mut server_write,
-            true,
-        )
-        .await
-        .expect("should not error");
+        let result = try_phase3_negotiate(&request, None, &mut server_write, true)
+            .await
+            .expect("should not error");
 
         assert!(matches!(result, NegotiateOutcome::NullCipher));
 
@@ -635,14 +628,9 @@ mod tests {
 
         let (mut client_read, mut server_write) = tokio::io::duplex(4096);
 
-        let outcome = try_phase3_negotiate(
-            &request,
-            None,
-            &mut server_write,
-            true,
-        )
-        .await
-        .expect("should not error");
+        let outcome = try_phase3_negotiate(&request, None, &mut server_write, true)
+            .await
+            .expect("should not error");
 
         assert!(matches!(outcome, NegotiateOutcome::NullCipher));
 
@@ -699,14 +687,9 @@ mod tests {
             let neg_req: serde_json::Value =
                 serde_json::from_slice(&neg_frame).expect("parse negotiate");
 
-            let outcome = try_phase3_negotiate(
-                &neg_req,
-                Some(&handshake_key),
-                &mut sw,
-                false,
-            )
-            .await
-            .expect("negotiate");
+            let outcome = try_phase3_negotiate(&neg_req, Some(&handshake_key), &mut sw, false)
+                .await
+                .expect("negotiate");
             let NegotiateOutcome::Encrypted(session_keys) = outcome else {
                 panic!("expected Encrypted, got NotNegotiate or NullCipher");
             };
@@ -731,9 +714,8 @@ mod tests {
             .decode(server_nonce_b64)
             .unwrap();
 
-        let client_keys =
-            SessionKeys::derive(&handshake_key, &client_nonce, &server_nonce, false)
-                .expect("client key derivation");
+        let client_keys = SessionKeys::derive(&handshake_key, &client_nonce, &server_nonce, false)
+            .expect("client key derivation");
 
         let request = serde_json::json!({
             "jsonrpc": "2.0",
@@ -746,9 +728,7 @@ mod tests {
         write_frame(&mut cw, &encrypted).await.unwrap();
 
         let resp_frame = read_frame(&mut cr).await.expect("read encrypted response");
-        let decrypted = client_keys
-            .decrypt(&resp_frame)
-            .expect("decrypt response");
+        let decrypted = client_keys.decrypt(&resp_frame).expect("decrypt response");
         let response: serde_json::Value =
             serde_json::from_slice(&decrypted).expect("parse decrypted response");
 

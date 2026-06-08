@@ -28,10 +28,7 @@ async fn create_braid_with_privacy(
 
     let result = dispatch(state, "braid.create", params).await;
     assert!(result.is_ok(), "braid.create failed: {:?}", result.err());
-    result.unwrap()["@id"]
-        .as_str()
-        .unwrap()
-        .to_string()
+    result.unwrap()["@id"].as_str().unwrap().to_string()
 }
 
 #[tokio::test]
@@ -44,12 +41,7 @@ async fn test_authenticated_braid_denied_without_token() {
     )
     .await;
 
-    let result = dispatch(
-        &state,
-        "braid.get",
-        serde_json::json!({ "id": braid_id }),
-    )
-    .await;
+    let result = dispatch(&state, "braid.get", serde_json::json!({ "id": braid_id })).await;
     assert!(result.is_err());
     assert_eq!(result.unwrap_err().code, error_code::PERMISSION_DENIED);
 }
@@ -140,12 +132,7 @@ async fn test_encrypted_braid_denied_no_did() {
     )
     .await;
 
-    let result = dispatch(
-        &state,
-        "braid.get",
-        serde_json::json!({ "id": braid_id }),
-    )
-    .await;
+    let result = dispatch(&state, "braid.get", serde_json::json!({ "id": braid_id })).await;
     assert!(result.is_err());
     assert_eq!(result.unwrap_err().code, error_code::PERMISSION_DENIED);
 }
@@ -185,12 +172,7 @@ async fn test_public_braid_always_accessible() {
     )
     .await;
 
-    let result = dispatch(
-        &state,
-        "braid.get",
-        serde_json::json!({ "id": braid_id }),
-    )
-    .await;
+    let result = dispatch(&state, "braid.get", serde_json::json!({ "id": braid_id })).await;
     assert!(result.is_ok());
     let fetched = result.unwrap();
     assert_eq!(fetched["@id"], braid_id);
@@ -200,15 +182,9 @@ async fn test_public_braid_always_accessible() {
 #[tokio::test]
 async fn test_no_privacy_metadata_always_accessible() {
     let state = test_state();
-    let braid_id =
-        create_braid_with_privacy(&state, "sha256:no-privacy", None).await;
+    let braid_id = create_braid_with_privacy(&state, "sha256:no-privacy", None).await;
 
-    let result = dispatch(
-        &state,
-        "braid.get",
-        serde_json::json!({ "id": braid_id }),
-    )
-    .await;
+    let result = dispatch(&state, "braid.get", serde_json::json!({ "id": braid_id })).await;
     assert!(result.is_ok());
     let fetched = result.unwrap();
     assert_eq!(fetched["@id"], braid_id);

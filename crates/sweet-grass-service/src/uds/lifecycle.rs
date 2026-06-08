@@ -33,7 +33,10 @@ pub fn write_pid_file(socket_path: &std::path::Path) {
     let path = pid_path(socket_path);
     match std::fs::write(&path, pid.to_string()) {
         Ok(()) => info!("PID file written: {} (pid {pid})", path.display()),
-        Err(e) => warn!("Failed to write PID file {}: {e} (non-fatal)", path.display()),
+        Err(e) => warn!(
+            "Failed to write PID file {}: {e} (non-fatal)",
+            path.display()
+        ),
     }
 }
 

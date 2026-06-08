@@ -152,12 +152,7 @@ pub fn operation_dependencies() -> Vec<OperationMeta> {
             "medium",
             20,
         ),
-        OperationMeta::new(
-            "attribution.witness",
-            &["braid.create"],
-            "low",
-            5,
-        ),
+        OperationMeta::new("attribution.witness", &["braid.create"], "low", 5),
         OperationMeta::new(
             "compression.compress_session",
             &["braid.create"],

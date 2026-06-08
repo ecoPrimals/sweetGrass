@@ -162,12 +162,11 @@ impl SessionKeys {
         use chacha20poly1305::aead::{Aead, KeyInit, OsRng};
         use chacha20poly1305::{AeadCore, ChaCha20Poly1305};
 
-        let cipher =
-            ChaCha20Poly1305::new_from_slice(&self.encrypt_key).map_err(|e| {
-                BtspError::HandshakeFailed {
-                    reason: format!("cipher init: {e}"),
-                }
-            })?;
+        let cipher = ChaCha20Poly1305::new_from_slice(&self.encrypt_key).map_err(|e| {
+            BtspError::HandshakeFailed {
+                reason: format!("cipher init: {e}"),
+            }
+        })?;
 
         let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
 
@@ -208,12 +207,11 @@ impl SessionKeys {
         let (nonce_bytes, ciphertext) = frame.split_at(NONCE_SIZE);
         let nonce = Nonce::from_slice(nonce_bytes);
 
-        let cipher =
-            ChaCha20Poly1305::new_from_slice(&self.decrypt_key).map_err(|e| {
-                BtspError::HandshakeFailed {
-                    reason: format!("cipher init: {e}"),
-                }
-            })?;
+        let cipher = ChaCha20Poly1305::new_from_slice(&self.decrypt_key).map_err(|e| {
+            BtspError::HandshakeFailed {
+                reason: format!("cipher init: {e}"),
+            }
+        })?;
 
         cipher
             .decrypt(nonce, ciphertext)
@@ -258,7 +256,10 @@ mod tests {
 
     #[test]
     fn cipher_wire_names() {
-        assert_eq!(Phase3Cipher::ChaCha20Poly1305.wire_name(), "chacha20-poly1305");
+        assert_eq!(
+            Phase3Cipher::ChaCha20Poly1305.wire_name(),
+            "chacha20-poly1305"
+        );
         assert_eq!(Phase3Cipher::Null.wire_name(), "null");
     }
 

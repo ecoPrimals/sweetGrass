@@ -33,8 +33,14 @@ struct ValidatedFilter<'a> {
 
 impl<'a> ValidatedFilter<'a> {
     fn new(filter: &'a QueryFilter) -> sweet_grass_store::Result<Self> {
-        let created_after_i64 = filter.created_after.map(|t| u64_to_i64(t.nanos())).transpose()?;
-        let created_before_i64 = filter.created_before.map(|t| u64_to_i64(t.nanos())).transpose()?;
+        let created_after_i64 = filter
+            .created_after
+            .map(|t| u64_to_i64(t.nanos()))
+            .transpose()?;
+        let created_before_i64 = filter
+            .created_before
+            .map(|t| u64_to_i64(t.nanos()))
+            .transpose()?;
         Ok(Self {
             filter,
             created_after_i64,
@@ -342,10 +348,7 @@ impl BraidStore for PostgresStore {
     }
 
     #[instrument(skip(self))]
-    async fn get_all_by_hash(
-        &self,
-        hash: &ContentHash,
-    ) -> sweet_grass_store::Result<Vec<Braid>> {
+    async fn get_all_by_hash(&self, hash: &ContentHash) -> sweet_grass_store::Result<Vec<Braid>> {
         let rows = sqlx::query(
             r"
             SELECT braid_id, data_hash, mime_type, size, attributed_to,
@@ -504,7 +507,12 @@ impl BraidStore for PostgresStore {
         .bind(activity.id.as_str())
         .bind(format!("{:?}", activity.activity_type))
         .bind(u64_to_i64(activity.started_at_time.nanos())?)
-        .bind(activity.ended_at_time.map(|t| u64_to_i64(t.nanos())).transpose()?)
+        .bind(
+            activity
+                .ended_at_time
+                .map(|t| u64_to_i64(t.nanos()))
+                .transpose()?,
+        )
         .bind(serde_json::to_value(&activity.used)?)
         .bind(serde_json::to_value(&activity.was_associated_with)?)
         .bind(serde_json::to_value(&activity.metadata)?)

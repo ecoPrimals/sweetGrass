@@ -4,11 +4,11 @@
 
 use std::sync::Arc;
 
-use sweet_grass_core::{Braid, Timestamp};
 use sweet_grass_core::activity::{Activity, ActivityType};
 use sweet_grass_core::agent::{AgentAssociation, AgentRole, Did};
 use sweet_grass_core::braid::BraidMetadata;
 use sweet_grass_core::entity::EntityReference;
+use sweet_grass_core::{Braid, Timestamp};
 use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder};
 
 use super::{make_braid, setup};

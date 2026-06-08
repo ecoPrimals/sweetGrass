@@ -42,13 +42,9 @@ async fn test_create_cross_gate_trust_braid() {
     assert_eq!(cross_gate["origin_agent"], "did:key:z6MkIronGateAgent");
 
     let braid_id = braid["@id"].as_str().unwrap();
-    let fetched = dispatch(
-        &state,
-        "braid.get",
-        serde_json::json!({ "id": braid_id }),
-    )
-    .await
-    .unwrap();
+    let fetched = dispatch(&state, "braid.get", serde_json::json!({ "id": braid_id }))
+        .await
+        .unwrap();
     assert_eq!(fetched["ecop"]["source_gate"], "ironGate");
     assert_eq!(
         fetched["metadata"]["cross_gate"]["trust_event"],
@@ -115,13 +111,9 @@ async fn test_cross_gate_witness_gateway_tier() {
         .unwrap();
     let braid_id = created["@id"].as_str().unwrap();
 
-    let fetched = dispatch(
-        &state,
-        "braid.get",
-        serde_json::json!({ "id": braid_id }),
-    )
-    .await
-    .unwrap();
+    let fetched = dispatch(&state, "braid.get", serde_json::json!({ "id": braid_id }))
+        .await
+        .unwrap();
 
     assert_eq!(fetched["witness"]["tier"], WITNESS_TIER_GATEWAY);
     assert_eq!(fetched["witness"]["context"], "ironGate->strandGate");
@@ -172,10 +164,7 @@ async fn test_query_by_source_gate() {
     let iron_braids = iron_query["braids"].as_array().unwrap();
     assert_eq!(iron_braids.len(), 1);
     assert_eq!(iron_braids[0]["ecop"]["source_gate"], "ironGate");
-    assert_eq!(
-        iron_braids[0]["data_hash"],
-        "sha256:iron-gate-query-001"
-    );
+    assert_eq!(iron_braids[0]["data_hash"], "sha256:iron-gate-query-001");
 
     let strand_query = dispatch(
         &state,
@@ -212,20 +201,13 @@ async fn test_cross_gate_activity_types() {
         .unwrap();
     let braid_id = created["@id"].as_str().unwrap();
 
-    let fetched = dispatch(
-        &state,
-        "braid.get",
-        serde_json::json!({ "id": braid_id }),
-    )
-    .await
-    .unwrap();
+    let fetched = dispatch(&state, "braid.get", serde_json::json!({ "id": braid_id }))
+        .await
+        .unwrap();
 
     let activity = &fetched["was_generated_by"];
     assert_eq!(activity["@type"], "KeyExchange");
-    assert_eq!(
-        activity["@id"],
-        "urn:activity:uuid:cross-gate-key-exchange"
-    );
+    assert_eq!(activity["@id"], "urn:activity:uuid:cross-gate-key-exchange");
 }
 
 // ==================== trust.event weaving ====================
@@ -250,10 +232,7 @@ async fn test_trust_event_weaves_key_exchange() {
     assert!(result.is_ok(), "trust.event failed: {result:?}");
     let braid = result.unwrap();
 
-    assert_eq!(
-        braid["mime_type"],
-        "application/vnd.ecoprimals.trust-event"
-    );
+    assert_eq!(braid["mime_type"], "application/vnd.ecoprimals.trust-event");
     assert_eq!(braid["ecop"]["source_gate"], "ironGate");
     assert_eq!(braid["was_attributed_to"], "did:key:z6MkIronGateAgent");
 
@@ -292,18 +271,14 @@ async fn test_trust_event_mesh_join() {
     let activity = &braid["was_generated_by"];
     assert_eq!(activity["@type"], "MeshJoin");
     assert!(activity["was_associated_with"][0]["on_behalf_of"].is_null());
-    assert_eq!(
-        braid["metadata"]["cross_gate"]["family_id"],
-        "west-family"
-    );
+    assert_eq!(braid["metadata"]["cross_gate"]["family_id"], "west-family");
 }
 
 #[tokio::test]
 async fn test_trust_event_with_gateway_witness() {
     use base64::Engine;
     let state = test_state();
-    let sig_b64 =
-        base64::engine::general_purpose::STANDARD.encode(b"fake-ed25519-signature-bytes");
+    let sig_b64 = base64::engine::general_purpose::STANDARD.encode(b"fake-ed25519-signature-bytes");
 
     let result = dispatch(
         &state,
@@ -371,23 +346,16 @@ async fn test_trust_event_roundtrip_via_get() {
     .unwrap();
 
     let braid_id = created["@id"].as_str().unwrap();
-    let fetched = dispatch(
-        &state,
-        "braid.get",
-        serde_json::json!({ "id": braid_id }),
-    )
-    .await
-    .unwrap();
+    let fetched = dispatch(&state, "braid.get", serde_json::json!({ "id": braid_id }))
+        .await
+        .unwrap();
 
     assert_eq!(fetched["was_attributed_to"], "did:key:z6MkRoundTrip");
     assert_eq!(
         fetched["metadata"]["cross_gate"]["trust_event"],
         "trust_issuer_registered"
     );
-    assert_eq!(
-        fetched["was_generated_by"]["@type"],
-        "TrustEstablishment"
-    );
+    assert_eq!(fetched["was_generated_by"]["@type"], "TrustEstablishment");
 }
 
 #[tokio::test]
@@ -408,9 +376,7 @@ async fn test_provenance_chain_beardog_to_sweetgrass() {
         "timestamp": 1_717_600_000
     });
 
-    let braid = dispatch(&state, "trust.event", trust_event)
-        .await
-        .unwrap();
+    let braid = dispatch(&state, "trust.event", trust_event).await.unwrap();
 
     assert_eq!(braid["was_attributed_to"], "did:key:z6MkBearDogSouth");
     assert_eq!(braid["mime_type"], "application/vnd.ecoprimals.trust-event");
@@ -437,13 +403,9 @@ async fn test_provenance_chain_beardog_to_sweetgrass() {
     assert_eq!(witness["tier"], "gateway");
 
     let braid_id = braid["@id"].as_str().unwrap();
-    let refetched = dispatch(
-        &state,
-        "braid.get",
-        serde_json::json!({ "id": braid_id }),
-    )
-    .await
-    .unwrap();
+    let refetched = dispatch(&state, "braid.get", serde_json::json!({ "id": braid_id }))
+        .await
+        .unwrap();
     assert_eq!(refetched["was_attributed_to"], "did:key:z6MkBearDogSouth");
 }
 
@@ -485,8 +447,7 @@ async fn test_all_mesh_event_types_weave_braids() {
             "event type {event} should map to {expected_activity}"
         );
         assert_eq!(
-            braid["mime_type"],
-            "application/vnd.ecoprimals.trust-event",
+            braid["mime_type"], "application/vnd.ecoprimals.trust-event",
             "MIME should be trust-event for {event}"
         );
     }
@@ -519,18 +480,25 @@ async fn test_trust_event_provenance_query_by_gate() {
         .query(&iron_filter, QueryOrder::NewestFirst)
         .await
         .unwrap();
-    assert_eq!(iron_braids.braids.len(), 1, "should find 1 ironGate trust braid");
+    assert_eq!(
+        iron_braids.braids.len(),
+        1,
+        "should find 1 ironGate trust braid"
+    );
     assert_eq!(
         iron_braids.braids[0].ecop.source_gate.as_deref(),
         Some("ironGate")
     );
 
-    let trust_filter =
-        QueryFilter::new().with_mime_type("application/vnd.ecoprimals.trust-event");
+    let trust_filter = QueryFilter::new().with_mime_type("application/vnd.ecoprimals.trust-event");
     let all_trust = state
         .store
         .query(&trust_filter, QueryOrder::NewestFirst)
         .await
         .unwrap();
-    assert_eq!(all_trust.braids.len(), 3, "should find all 3 trust event braids");
+    assert_eq!(
+        all_trust.braids.len(),
+        3,
+        "should find all 3 trust event braids"
+    );
 }

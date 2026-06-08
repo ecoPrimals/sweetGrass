@@ -98,10 +98,7 @@ impl CryptoDelegate {
         let message_b64 = base64::engine::general_purpose::STANDARD.encode(message);
 
         let result = self
-            .call_jsonrpc(
-                "crypto.sign",
-                serde_json::json!({ "message": message_b64 }),
-            )
+            .call_jsonrpc("crypto.sign", serde_json::json!({ "message": message_b64 }))
             .await?;
 
         let b64 = base64::engine::general_purpose::STANDARD;
@@ -126,13 +123,13 @@ impl CryptoDelegate {
                 CryptoDelegateError::InvalidResponse("missing `public_key` field".into())
             })?;
 
-        let signature = b64.decode(sig_b64).map_err(|e| {
-            CryptoDelegateError::InvalidResponse(format!("signature base64: {e}"))
-        })?;
+        let signature = b64
+            .decode(sig_b64)
+            .map_err(|e| CryptoDelegateError::InvalidResponse(format!("signature base64: {e}")))?;
 
-        let public_key = b64.decode(pub_b64).map_err(|e| {
-            CryptoDelegateError::InvalidResponse(format!("public_key base64: {e}"))
-        })?;
+        let public_key = b64
+            .decode(pub_b64)
+            .map_err(|e| CryptoDelegateError::InvalidResponse(format!("public_key base64: {e}")))?;
 
         Ok(CryptoSignResult {
             signature,
@@ -170,15 +167,11 @@ impl CryptoDelegate {
         method: &str,
         params: serde_json::Value,
     ) -> Result<serde_json::Value, CryptoDelegateError> {
-        let stream =
-            tokio::net::UnixStream::connect(&self.socket_path)
-                .await
-                .map_err(|e| {
-                    CryptoDelegateError::Unavailable(format!(
-                        "{}: {e}",
-                        self.socket_path.display()
-                    ))
-                })?;
+        let stream = tokio::net::UnixStream::connect(&self.socket_path)
+            .await
+            .map_err(|e| {
+                CryptoDelegateError::Unavailable(format!("{}: {e}", self.socket_path.display()))
+            })?;
 
         let (reader, mut writer) = stream.into_split();
 
@@ -224,9 +217,7 @@ mod tests {
     use std::os::unix::net::UnixListener as StdUnixListener;
     use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
-    fn start_mock_beardog(
-        listener: StdUnixListener,
-    ) -> tokio::task::JoinHandle<()> {
+    fn start_mock_beardog(listener: StdUnixListener) -> tokio::task::JoinHandle<()> {
         listener.set_nonblocking(true).unwrap();
         let listener = tokio::net::UnixListener::from_std(listener).unwrap();
 

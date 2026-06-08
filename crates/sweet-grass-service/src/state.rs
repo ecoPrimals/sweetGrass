@@ -247,9 +247,13 @@ impl AppState {
     /// Snapshot the BTSP requirement from the current env.
     fn snapshot_btsp_required() -> bool {
         #[cfg(unix)]
-        { crate::btsp::is_btsp_required() }
+        {
+            crate::btsp::is_btsp_required()
+        }
         #[cfg(not(unix))]
-        { false }
+        {
+            false
+        }
     }
 
     /// Snapshot the `biomeOS` socket directory from the current env.

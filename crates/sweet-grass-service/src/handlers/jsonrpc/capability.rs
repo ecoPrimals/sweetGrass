@@ -128,7 +128,10 @@ struct McpTool {
     input_schema: serde_json::Value,
 }
 
-#[expect(clippy::too_many_lines, reason = "declarative tool definitions, no logic")]
+#[expect(
+    clippy::too_many_lines,
+    reason = "declarative tool definitions, no logic"
+)]
 fn mcp_tools() -> Vec<McpTool> {
     vec![
         McpTool {

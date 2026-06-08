@@ -219,7 +219,7 @@ impl MethodGate {
                     "method gate: unauthenticated call to protected method (permissive — allowing)"
                 );
                 Ok(())
-            }
+            },
             EnforcementMode::Enforced => {
                 tracing::warn!(
                     method,
@@ -231,7 +231,7 @@ impl MethodGate {
                     error_codes::PERMISSION_DENIED,
                     format!("permission denied: method '{method}' requires a capability token"),
                 ))
-            }
+            },
         }
     }
 }
@@ -278,10 +278,7 @@ mod tests {
     fn auth_introspection_is_public() {
         assert_eq!(classify_method("auth.check"), MethodAccessLevel::Public);
         assert_eq!(classify_method("auth.mode"), MethodAccessLevel::Public);
-        assert_eq!(
-            classify_method("auth.peer_info"),
-            MethodAccessLevel::Public
-        );
+        assert_eq!(classify_method("auth.peer_info"), MethodAccessLevel::Public);
     }
 
     #[test]
@@ -303,10 +300,7 @@ mod tests {
             classify_method("braid.create"),
             MethodAccessLevel::Protected
         );
-        assert_eq!(
-            classify_method("braid.query"),
-            MethodAccessLevel::Protected
-        );
+        assert_eq!(classify_method("braid.query"), MethodAccessLevel::Protected);
     }
 
     #[test]
@@ -343,10 +337,7 @@ mod tests {
 
     #[test]
     fn tools_call_is_protected() {
-        assert_eq!(
-            classify_method("tools.call"),
-            MethodAccessLevel::Protected
-        );
+        assert_eq!(classify_method("tools.call"), MethodAccessLevel::Protected);
     }
 
     #[test]

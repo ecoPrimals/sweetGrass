@@ -160,7 +160,10 @@ async fn test_record_provenance_with_vertices() {
     });
 
     let result = dispatch(&state, "contribution.record_provenance", params).await;
-    assert!(result.is_ok(), "record_provenance should succeed: {result:?}");
+    assert!(
+        result.is_ok(),
+        "record_provenance should succeed: {result:?}"
+    );
     let resp = result.unwrap();
     assert_eq!(resp["source_primal"], "rhizocrypt");
     assert_eq!(resp["braids_created"], 2);
@@ -179,7 +182,10 @@ async fn test_record_provenance_empty_vertices() {
     });
 
     let result = dispatch(&state, "contribution.record_provenance", params).await;
-    assert!(result.is_ok(), "empty vertices should create placeholder braid");
+    assert!(
+        result.is_ok(),
+        "empty vertices should create placeholder braid"
+    );
     let resp = result.unwrap();
     assert_eq!(resp["braids_created"], 1);
 }
@@ -198,7 +204,10 @@ async fn test_record_provenance_vertex_without_agent() {
     });
 
     let result = dispatch(&state, "contribution.record_provenance", params).await;
-    assert!(result.is_ok(), "vertex without agent should use fallback DID");
+    assert!(
+        result.is_ok(),
+        "vertex without agent should use fallback DID"
+    );
     let resp = result.unwrap();
     assert_eq!(resp["braids_created"], 1);
     assert_eq!(resp["source_primal"], "loamspine");
@@ -212,7 +221,10 @@ async fn test_record_provenance_minimal_params() {
     });
 
     let result = dispatch(&state, "contribution.record_provenance", params).await;
-    assert!(result.is_ok(), "minimal params should succeed with placeholder");
+    assert!(
+        result.is_ok(),
+        "minimal params should succeed with placeholder"
+    );
     let resp = result.unwrap();
     assert_eq!(resp["braids_created"], 1);
 }
@@ -230,7 +242,9 @@ async fn test_pipeline_attribute_populates_merkle_root() {
         ]
     });
 
-    let result = dispatch(&state, "pipeline.attribute", params).await.unwrap();
+    let result = dispatch(&state, "pipeline.attribute", params)
+        .await
+        .unwrap();
     let merkle = result["dehydration_merkle_root"].as_str().unwrap();
     assert!(!merkle.is_empty(), "merkle root should not be empty");
     assert_eq!(merkle.len(), 64, "SHA-256 hex should be 64 chars");

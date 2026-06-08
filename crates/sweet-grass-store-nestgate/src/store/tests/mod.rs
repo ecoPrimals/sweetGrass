@@ -318,7 +318,7 @@ async fn new_with_reader_uses_discovery() {
     let store = NestGateStore::new_with_reader(&config, &|key| match key {
         sweet_grass_core::primal_names::env_vars::NESTGATE_SOCKET => {
             Some("/custom/nestgate.sock".to_string())
-        }
+        },
         _ => None,
     })
     .expect("create store with reader");

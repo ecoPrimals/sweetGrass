@@ -130,10 +130,7 @@ impl RedbStore {
             .open_multimap_table(BY_HASH)
             .map_err(RedbError::from)?;
         by_hash
-            .remove(
-                braid.data_hash.as_str().as_bytes(),
-                braid_id.as_bytes(),
-            )
+            .remove(braid.data_hash.as_str().as_bytes(), braid_id.as_bytes())
             .map_err(|e| RedbError::Delete(e.to_string()))?;
 
         let mut by_agent = write_txn.open_table(BY_AGENT).map_err(RedbError::from)?;
@@ -251,10 +248,7 @@ impl BraidStore for RedbStore {
     }
 
     #[instrument(skip(self))]
-    async fn get_all_by_hash(
-        &self,
-        hash: &ContentHash,
-    ) -> sweet_grass_store::Result<Vec<Braid>> {
+    async fn get_all_by_hash(&self, hash: &ContentHash) -> sweet_grass_store::Result<Vec<Braid>> {
         let db = Arc::clone(&self.db);
         let hash = hash.clone();
 
@@ -279,8 +273,8 @@ impl BraidStore for RedbStore {
                 let braid_id = String::from_utf8_lossy(guard.value()).to_string();
                 match braids_table.get(braid_id.as_bytes()) {
                     Ok(Some(braid_guard)) => {
-                        let braid =
-                            Self::deserialize_braid(braid_guard.value()).map_err(StoreError::from)?;
+                        let braid = Self::deserialize_braid(braid_guard.value())
+                            .map_err(StoreError::from)?;
                         braids.push(braid);
                     },
                     Ok(None) => {},

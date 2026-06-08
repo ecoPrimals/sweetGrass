@@ -233,7 +233,8 @@ impl BraidFactory {
             ..Default::default()
         };
 
-        let mut braid = self.builder()
+        let mut braid = self
+            .builder()
             .data_hash(hash)
             .mime_type(mime_type)
             .size(size)
@@ -291,7 +292,8 @@ impl BraidFactory {
             summary_type,
         };
 
-        let mut braid = self.builder()
+        let mut braid = self
+            .builder()
             .data_hash(hash)
             .mime_type(identity::MIME_META_BRAID)
             .size(0)
@@ -363,7 +365,8 @@ impl BraidFactory {
             ..Default::default()
         };
 
-        let mut braid = self.builder()
+        let mut braid = self
+            .builder()
             .data_hash(entry.data_hash.clone())
             .mime_type(&*entry.mime_type)
             .size(entry.size)

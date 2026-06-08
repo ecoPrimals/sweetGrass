@@ -190,11 +190,7 @@ pub(super) async fn handle_attribution_witness(
         .map_err(internal)?;
 
     let attester = Did::new(&p.witness_agent);
-    let attestation_statement = format!(
-        "{} attestation for {}",
-        p.event_type,
-        p.hash.as_str()
-    );
+    let attestation_statement = format!("{} attestation for {}", p.event_type, p.hash.as_str());
 
     let mut metadata = BraidMetadata {
         description: Some(Arc::from(attestation_statement.as_str())),
@@ -222,11 +218,7 @@ pub(super) async fn handle_attribution_witness(
         .build()
         .map_err(internal)?;
 
-    state
-        .store
-        .put(&witness_braid)
-        .await
-        .map_err(internal)?;
+    state.store.put(&witness_braid).await.map_err(internal)?;
 
     let witness_record = serde_json::json!({
         "hash": p.hash.as_str(),

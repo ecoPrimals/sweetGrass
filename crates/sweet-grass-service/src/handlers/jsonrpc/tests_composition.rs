@@ -39,8 +39,7 @@ async fn test_composition_braid_create_flattened_name_description() {
 
     assert!(result["@id"].as_str().unwrap().starts_with("urn:braid:"));
     assert_eq!(
-        result["metadata"]["title"],
-        "abg-pipeline-20260504",
+        result["metadata"]["title"], "abg-pipeline-20260504",
         "flattened name should map to metadata.title"
     );
     assert!(
@@ -262,7 +261,10 @@ async fn test_composition_full_provenance_trio_pipeline() {
         braid["metadata"]["custom"]["source_session"],
         "019df42d-0fba-7170-a216-2f3b282e3fb9"
     );
-    assert_eq!(braid["metadata"]["custom"]["source_merkle_root"], merkle_hex);
+    assert_eq!(
+        braid["metadata"]["custom"]["source_merkle_root"],
+        merkle_hex
+    );
 
     let chain = dispatch(
         &state,

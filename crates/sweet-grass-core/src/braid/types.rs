@@ -9,12 +9,12 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 pub use super::braid_type::{BraidType, SummaryType};
-pub use super::cross_gate::{CrossGateAttribution, CrossGateTrustEvent};
 pub use super::context::{
     BraidContext, DEFAULT_ECOP_BASE_URI, DEFAULT_ECOP_VOCAB_URI, JsonLdVersion, PROV_VOCAB_URI,
     RDFS_VOCAB_URI, SCHEMA_VOCAB_URI, XSD_VOCAB_URI, ecop_base_uri, ecop_base_uri_with_reader,
     ecop_vocab_uri, ecop_vocab_uri_with_reader,
 };
+pub use super::cross_gate::{CrossGateAttribution, CrossGateTrustEvent};
 use crate::hash::hex_decode;
 use crate::privacy::PrivacyMetadata;
 

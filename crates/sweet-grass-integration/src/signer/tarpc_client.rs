@@ -14,9 +14,9 @@ use std::sync::Arc;
 
 use tracing::{debug, instrument};
 
-use sweet_grass_core::{Braid, Timestamp};
 use sweet_grass_core::agent::Did;
 use sweet_grass_core::dehydration::Witness;
+use sweet_grass_core::{Braid, Timestamp};
 
 use crate::Result;
 use crate::discovery::DiscoveredPrimal;

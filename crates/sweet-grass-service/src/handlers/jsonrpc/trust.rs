@@ -13,8 +13,8 @@
 //! - Uses `application/vnd.ecoprimals.trust-event` MIME type
 
 use serde::Deserialize;
-use sweet_grass_core::braid::cross_gate::CrossGateAttribution;
 use sweet_grass_core::braid::Timestamp;
+use sweet_grass_core::braid::cross_gate::CrossGateAttribution;
 use sweet_grass_core::dehydration::Witness;
 use sweet_grass_store::BraidStore;
 
@@ -42,9 +42,7 @@ pub(super) async fn handle_trust_event(
 ) -> DispatchResult {
     let p: TrustEventParams = parse_params(params)?;
 
-    let now = p
-        .timestamp
-        .map_or_else(Timestamp::now, Timestamp::new);
+    let now = p.timestamp.map_or_else(Timestamp::now, Timestamp::new);
 
     let activity = p.cross_gate.to_activity(now);
     let content_hash = p.cross_gate.content_hash_seed();

@@ -303,8 +303,18 @@ impl Session {
             return 0;
         }
 
-        let min = self.vertices.iter().map(|v| v.timestamp).min().unwrap_or(Timestamp::ZERO);
-        let max = self.vertices.iter().map(|v| v.timestamp).max().unwrap_or(Timestamp::ZERO);
+        let min = self
+            .vertices
+            .iter()
+            .map(|v| v.timestamp)
+            .min()
+            .unwrap_or(Timestamp::ZERO);
+        let max = self
+            .vertices
+            .iter()
+            .map(|v| v.timestamp)
+            .max()
+            .unwrap_or(Timestamp::ZERO);
 
         max.nanos().saturating_sub(min.nanos())
     }

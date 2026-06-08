@@ -83,10 +83,10 @@ pub(super) async fn handle_anchor_braid(
                 if let Ok(w) = serde_json::to_value(&witness) {
                     response["witness"] = w;
                 }
-            }
+            },
             Err(e) => {
                 tracing::warn!("crypto.sign unavailable, anchor unsigned: {e}");
-            }
+            },
         }
     }
 
@@ -131,9 +131,7 @@ pub(super) async fn handle_verify_anchor(
         "generated_at_time": braid.generated_at_time.nanos(),
     });
 
-    if has_witness
-        && let Ok(w) = serde_json::to_value(&braid.witness)
-    {
+    if has_witness && let Ok(w) = serde_json::to_value(&braid.witness) {
         response["witness"] = w;
     }
 

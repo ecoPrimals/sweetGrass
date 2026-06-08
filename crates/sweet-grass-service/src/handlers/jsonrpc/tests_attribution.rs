@@ -251,7 +251,10 @@ async fn test_attribution_witness_success() {
         }),
     )
     .await;
-    assert!(result.is_ok(), "attribution.witness should succeed: {result:?}");
+    assert!(
+        result.is_ok(),
+        "attribution.witness should succeed: {result:?}"
+    );
     let v = result.unwrap();
     assert_eq!(v["hash"], "sha256:witnesstest");
     assert_eq!(v["witness_agent"], "did:key:z6MkSkunkBat");

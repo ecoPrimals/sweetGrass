@@ -180,10 +180,11 @@ impl From<(i64, String)> for DispatchError {
 }
 
 pub(crate) type DispatchResult = Result<serde_json::Value, DispatchError>;
-pub(super) type DispatchFn = for<'a> fn(
-    &'a AppState,
-    serde_json::Value,
-) -> Pin<Box<dyn Future<Output = DispatchResult> + Send + 'a>>;
+pub(super) type DispatchFn =
+    for<'a> fn(
+        &'a AppState,
+        serde_json::Value,
+    ) -> Pin<Box<dyn Future<Output = DispatchResult> + Send + 'a>>;
 
 /// Outcome of a JSON-RPC dispatch, separating protocol errors from
 /// application-level errors (aligned with rhizoCrypt `DispatchOutcome`).
@@ -231,7 +232,8 @@ impl DispatchOutcome {
                 message,
                 source_detail,
             } => {
-                let data = source_detail.map(|detail| serde_json::json!({ "source_detail": detail }));
+                let data =
+                    source_detail.map(|detail| serde_json::json!({ "source_detail": detail }));
                 JsonRpcResponse::error_with_data(id, code, message, data)
             },
         }
@@ -459,10 +461,10 @@ mod tests_compression;
 #[cfg(test)]
 mod tests_contribution;
 #[cfg(test)]
-mod tests_protocol;
+mod tests_cross_gate;
 #[cfg(test)]
 mod tests_privacy;
 #[cfg(test)]
-mod tests_provenance;
+mod tests_protocol;
 #[cfg(test)]
-mod tests_cross_gate;
+mod tests_provenance;

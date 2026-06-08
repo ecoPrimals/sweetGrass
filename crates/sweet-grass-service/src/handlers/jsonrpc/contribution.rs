@@ -251,9 +251,8 @@ pub(super) async fn handle_record_provenance(
     }
 
     if braids_created == 0 {
-        let agent_did = sweet_grass_core::agent::Did::new(
-            sweet_grass_core::identity::UNKNOWN_AGENT_DID,
-        );
+        let agent_did =
+            sweet_grass_core::agent::Did::new(sweet_grass_core::identity::UNKNOWN_AGENT_DID);
         let braid = sweet_grass_core::Braid::builder()
             .data_hash(format!("provenance:{}:empty", request.source_primal))
             .mime_type(sweet_grass_core::identity::MIME_OCTET_STREAM)

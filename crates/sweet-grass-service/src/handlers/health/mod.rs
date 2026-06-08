@@ -335,7 +335,6 @@ async fn try_liveness_probe(socket: &std::path::Path) -> std::io::Result<()> {
     }
 }
 
-
 /// Liveness probe.
 pub async fn liveness() -> StatusCode {
     StatusCode::OK

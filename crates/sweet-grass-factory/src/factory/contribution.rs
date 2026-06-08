@@ -78,7 +78,8 @@ impl super::BraidFactory {
             ..EcoPrimalsAttributes::default()
         };
 
-        let mut braid = self.builder()
+        let mut braid = self
+            .builder()
             .data_hash(record.content_hash.clone())
             .mime_type(record.mime_type.clone())
             .size(record.size)

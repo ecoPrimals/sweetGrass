@@ -438,7 +438,10 @@ mod tests {
         let w = legacy_signature_to_witness(&v);
         assert_eq!(w.kind, WITNESS_KIND_SIGNATURE);
         assert_eq!(w.evidence, "c2lnZWQ=");
-        assert_eq!(w.witnessed_at, sweet_grass_core::Timestamp::new(1_700_000_000));
+        assert_eq!(
+            w.witnessed_at,
+            sweet_grass_core::Timestamp::new(1_700_000_000)
+        );
         assert_eq!(w.encoding, WITNESS_ENCODING_BASE64);
         assert_eq!(w.algorithm.as_deref(), Some(WITNESS_ALGORITHM_ED25519));
         assert_eq!(w.tier.as_deref(), Some(WITNESS_TIER_LOCAL));

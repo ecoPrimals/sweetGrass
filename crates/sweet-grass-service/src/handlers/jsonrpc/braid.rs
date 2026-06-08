@@ -15,7 +15,10 @@ use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder};
 use crate::method_gate::error_codes;
 use crate::state::AppState;
 
-use super::{DispatchError, DispatchResult, caller_context_from_params, caller_did_from_params, error_code, internal, parse_params, to_value};
+use super::{
+    DispatchError, DispatchResult, caller_context_from_params, caller_did_from_params, error_code,
+    internal, parse_params, to_value,
+};
 
 /// Accepts both structured `metadata` and flattened convenience fields.
 ///
@@ -57,19 +60,29 @@ impl CreateBraidParams {
     fn into_metadata(self) -> (ContentHash, String, u64, Option<BraidMetadata>) {
         let mut meta = self.metadata.unwrap_or_default();
 
-        if meta.title.is_none() && let Some(name) = self.name {
+        if meta.title.is_none()
+            && let Some(name) = self.name
+        {
             meta.title = Some(name.into());
         }
-        if meta.description.is_none() && let Some(desc) = self.description {
+        if meta.description.is_none()
+            && let Some(desc) = self.description
+        {
             meta.description = Some(desc.into());
         }
-        if meta.tags.is_empty() && let Some(tags) = self.tags {
+        if meta.tags.is_empty()
+            && let Some(tags) = self.tags
+        {
             meta.tags = tags.into_iter().map(Into::into).collect();
         }
-        if meta.privacy.is_none() && let Some(privacy) = self.privacy {
+        if meta.privacy.is_none()
+            && let Some(privacy) = self.privacy
+        {
             meta.privacy = Some(privacy);
         }
-        if meta.cross_gate.is_none() && let Some(cross_gate) = self.cross_gate {
+        if meta.cross_gate.is_none()
+            && let Some(cross_gate) = self.cross_gate
+        {
             meta.cross_gate = Some(cross_gate);
         }
         if let Some(session) = self.source_session {
@@ -116,7 +129,10 @@ fn default_spine_id() -> String {
 }
 
 /// Enforce braid privacy visibility before returning stored content.
-fn check_braid_privacy_access(braid: &sweet_grass_core::braid::Braid, params: &serde_json::Value) -> Result<(), DispatchError> {
+fn check_braid_privacy_access(
+    braid: &sweet_grass_core::braid::Braid,
+    params: &serde_json::Value,
+) -> Result<(), DispatchError> {
     let Some(pm) = &braid.metadata.privacy else {
         return Ok(());
     };
@@ -135,7 +151,7 @@ fn check_braid_privacy_access(braid: &sweet_grass_core::braid::Braid, params: &s
                     source_detail: None,
                 })
             }
-        }
+        },
         PrivacyLevel::Private | PrivacyLevel::Encrypted => {
             let requester = caller_did_from_params(params);
             match requester {
@@ -146,7 +162,7 @@ fn check_braid_privacy_access(braid: &sweet_grass_core::braid::Braid, params: &s
                     source_detail: None,
                 }),
             }
-        }
+        },
         _ => Err(DispatchError {
             code: error_codes::PERMISSION_DENIED,
             message: "Unsupported privacy visibility level".to_string(),
@@ -183,9 +199,7 @@ pub(super) async fn handle_braid_create(
     }
 
     #[cfg(unix)]
-    if use_auto_sign
-        && let Some(crypto) = &state.crypto
-    {
+    if use_auto_sign && let Some(crypto) = &state.crypto {
         match crypto
             .sign(braid.compute_signing_hash().as_str().as_bytes())
             .await
@@ -197,10 +211,10 @@ pub(super) async fn handle_braid_create(
                     &agent_did,
                     &result.signature,
                 );
-            }
+            },
             Err(e) => {
                 tracing::warn!("crypto.sign unavailable, braid unsigned: {e}");
-            }
+            },
         }
     }
 
@@ -218,7 +232,7 @@ pub(super) async fn handle_braid_get(
         Some(b) => {
             check_braid_privacy_access(&b, &params)?;
             to_value(&b)
-        }
+        },
         None => Err(DispatchError {
             code: error_code::NOT_FOUND,
             message: format!("Braid not found: {}", p.id),
@@ -384,10 +398,10 @@ pub(super) async fn handle_braid_anchor(
                 if let Ok(w) = serde_json::to_value(&witness) {
                     response["witness"] = w;
                 }
-            }
+            },
             Err(e) => {
                 tracing::warn!("crypto.sign unavailable, branch anchor unsigned: {e}");
-            }
+            },
         }
     }
 

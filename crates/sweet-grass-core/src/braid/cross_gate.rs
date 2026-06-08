@@ -47,8 +47,7 @@ impl CrossGateAttribution {
     pub fn to_activity(&self, started_at: Timestamp) -> Activity {
         let activity_type = self.trust_event.to_activity_type();
 
-        let mut assoc =
-            AgentAssociation::new(self.origin_agent.clone(), AgentRole::Creator);
+        let mut assoc = AgentAssociation::new(self.origin_agent.clone(), AgentRole::Creator);
         if let Some(target) = &self.target_agent {
             assoc = assoc.on_behalf_of(target.clone());
         }

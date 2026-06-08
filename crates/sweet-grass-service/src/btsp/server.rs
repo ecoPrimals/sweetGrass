@@ -300,9 +300,7 @@ fn extract_handshake_key(verify_result: &serde_json::Value) -> Option<[u8; 32]> 
         .get("session_key")
         .and_then(serde_json::Value::as_str)?;
 
-    let decoded = base64::engine::general_purpose::STANDARD
-        .decode(b64)
-        .ok()?;
+    let decoded = base64::engine::general_purpose::STANDARD.decode(b64).ok()?;
 
     let key: [u8; 32] = decoded.try_into().ok()?;
     debug!("BTSP: extracted 32-byte handshake key for Phase 3");
@@ -403,7 +401,12 @@ pub async fn perform_server_handshake_jsonline<S>(
 where
     S: AsyncReadExt + AsyncWriteExt + Unpin + Send,
 {
-    perform_server_handshake_jsonline_with(stream, client_hello, &resolve_security_socket_from_env()).await
+    perform_server_handshake_jsonline_with(
+        stream,
+        client_hello,
+        &resolve_security_socket_from_env(),
+    )
+    .await
 }
 
 /// JSON-line handshake with explicit security-provider socket (DI-friendly).

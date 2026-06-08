@@ -530,10 +530,12 @@ fn test_export_invalidated_at_time() {
     let doc = exporter.export_braid(&braid).expect("should export");
 
     let entity = &doc.graph[0];
-    assert!(entity["invalidatedAtTime"]
-        .as_str()
-        .unwrap()
-        .starts_with("2023-12-22"));
+    assert!(
+        entity["invalidatedAtTime"]
+            .as_str()
+            .unwrap()
+            .starts_with("2023-12-22")
+    );
 }
 
 #[test]

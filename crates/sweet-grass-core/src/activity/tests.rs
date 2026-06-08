@@ -98,7 +98,10 @@ fn test_activity_type_display() {
         format!("{}", ActivityType::TrustEstablishment),
         "TrustEstablishment"
     );
-    assert_eq!(format!("{}", ActivityType::GateEnrollment), "GateEnrollment");
+    assert_eq!(
+        format!("{}", ActivityType::GateEnrollment),
+        "GateEnrollment"
+    );
     assert_eq!(
         format!("{}", ActivityType::CrossGateAttestation),
         "CrossGateAttestation"

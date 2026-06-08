@@ -293,8 +293,7 @@ impl ProvoExport {
                 cg.insert("targetGate".to_string(), json!(cga.target_gate));
                 cg.insert(
                     "trustEvent".to_string(),
-                    serde_json::to_value(&cga.trust_event)
-                        .unwrap_or_else(|_| json!("unknown")),
+                    serde_json::to_value(&cga.trust_event).unwrap_or_else(|_| json!("unknown")),
                 );
                 cg.insert("originAgent".to_string(), json!(cga.origin_agent.as_str()));
                 if let Some(target) = &cga.target_agent {
@@ -392,20 +391,20 @@ fn entity_reference_to_prov_id(reference: &EntityReference) -> Option<String> {
         EntityReference::ById { braid_id } => Some(braid_id.as_str().to_string()),
         EntityReference::ByHash { data_hash, .. } => {
             Some(BraidId::from_hash(data_hash).as_str().to_string())
-        }
+        },
         EntityReference::ByLoamEntry { entry_hash, .. } => {
             Some(BraidId::from_hash(entry_hash).as_str().to_string())
-        }
-        EntityReference::External { hash: Some(hash), .. } => {
-            Some(BraidId::from_hash(hash).as_str().to_string())
-        }
+        },
+        EntityReference::External {
+            hash: Some(hash), ..
+        } => Some(BraidId::from_hash(hash).as_str().to_string()),
         EntityReference::External { hash: None, .. } => None,
         EntityReference::Inline(entity) => {
             Some(BraidId::from_hash(&entity.hash).as_str().to_string())
-        }
-        _ => reference.content_hash().map(|hash| {
-            BraidId::from_hash(hash).as_str().to_string()
-        }),
+        },
+        _ => reference
+            .content_hash()
+            .map(|hash| BraidId::from_hash(hash).as_str().to_string()),
     }
 }
 

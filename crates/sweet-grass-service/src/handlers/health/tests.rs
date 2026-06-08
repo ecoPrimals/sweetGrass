@@ -230,9 +230,7 @@ async fn test_integrations_probe_live_socket() {
             let mut line = String::new();
             let _ = buf.read_line(&mut line).await;
             let response = r#"{"jsonrpc":"2.0","result":{"status":"alive"},"id":1}"#;
-            let _ = writer
-                .write_all(format!("{response}\n").as_bytes())
-                .await;
+            let _ = writer.write_all(format!("{response}\n").as_bytes()).await;
             let _ = writer.flush().await;
         }
     });
