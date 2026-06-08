@@ -102,6 +102,15 @@ enum Commands {
         /// `XDG_RUNTIME_DIR/biomeos/` → `biomeos-{USER}/` → `{temp_dir}/biomeos/`.
         #[arg(long, env = "SWEETGRASS_SOCKET")]
         socket: Option<String>,
+
+        /// Launcher-injected transport endpoint (JSON).
+        ///
+        /// When set, overrides `--socket` and `--port`. The launcher or
+        /// Tower Atomic decides the transport — the primal doesn't self-bind.
+        /// Format: `{"transport":"uds","path":"/run/membrane/sweetgrass.sock"}`
+        /// or `{"transport":"tcp","host":"127.0.0.1","port":9100}`.
+        #[arg(long, env = "TRANSPORT_ENDPOINT")]
+        transport_endpoint: Option<String>,
     },
 
     /// Check status of a running `SweetGrass` instance.
@@ -145,6 +154,7 @@ async fn main() {
             log_level,
             no_tarpc,
             socket,
+            transport_endpoint,
         } => {
             let effective_http_address =
                 http_port.map_or(http_address, |p| format!("127.0.0.1:{p}"));
@@ -156,6 +166,29 @@ async fn main() {
                     std::process::exit(exit_code::CONFIG_ERROR);
                 },
             };
+
+            let resolved_endpoint = transport_endpoint
+                .as_deref()
+                .map(sweet_grass_core::transport::parse_transport_endpoint)
+                .transpose();
+            let resolved_endpoint = match resolved_endpoint {
+                Ok(ep) => ep,
+                Err(e) => {
+                    let _ = writeln!(
+                        std::io::stderr(),
+                        "Error: TRANSPORT_ENDPOINT invalid JSON: {e}"
+                    );
+                    std::process::exit(exit_code::CONFIG_ERROR);
+                },
+            };
+
+            let effective_socket = match &resolved_endpoint {
+                Some(sweet_grass_core::transport::TransportEndpoint::Uds { path }) => {
+                    Some(path.clone())
+                }
+                _ => socket,
+            };
+
             run_server(ServerConfig {
                 tcp_address,
                 http_address: effective_http_address,
@@ -165,7 +198,8 @@ async fn main() {
                 storage_path,
                 log_level,
                 no_tarpc,
-                socket,
+                socket: effective_socket,
+                transport_endpoint: resolved_endpoint,
             })
             .await
         },
@@ -187,6 +221,7 @@ struct ServerConfig {
     log_level: String,
     no_tarpc: bool,
     socket: Option<String>,
+    transport_endpoint: Option<sweet_grass_core::transport::TransportEndpoint>,
 }
 
 async fn run_server(config: ServerConfig) -> i32 {
@@ -206,6 +241,10 @@ async fn run_server(config: ServerConfig) -> i32 {
     }
 
     info!("SweetGrass starting — semantic provenance and attribution layer");
+
+    if let Some(ref ep) = config.transport_endpoint {
+        info!(transport = %ep, "Transport endpoint injected by launcher");
+    }
 
     let storage_config = StorageConfig {
         backend: config.storage.clone(),

@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.53] - 2026-06-08
+
+### Transport Endpoint Injection (Wave 100)
+
+#### Added
+- **`TransportEndpoint` type** in `sweet-grass-core::transport` —
+  wire-compatible with `sourdough_core::TransportEndpoint` (same serde
+  tagged JSON: `uds`, `tcp`, `mesh_relay`). Includes `is_local()`,
+  `transport_name()`, `Display`, and `parse_transport_endpoint()`.
+- **`connect_transport()`** in `sweet-grass-service::transport_connect` —
+  returns a `TransportStream` enum (UDS or TCP) implementing `AsyncRead +
+  AsyncWrite`. `MeshRelay` returns `Unsupported` until Songbird Phase 2.
+- **`TRANSPORT_ENDPOINT` env var** accepted by the service binary. When set
+  (JSON string), overrides `--socket`/`--port`. UDS endpoints are resolved
+  to `--socket` path. Logged at startup.
+- **`TRANSPORT_ENDPOINT` constant** in `primal_names::env_vars`.
+- **15 new tests** — wire compatibility with sourdough format, roundtrip
+  serde, connection failure modes, display formatting.
+
+#### Verified
+- Zero new dependencies added (TransportEndpoint defined locally, wire-compatible)
+- `ring` still absent from dep tree
+- All existing transport paths (CLI `--socket`, `--port`) continue working
+
+#### Metrics
+- Tests: 1,630+ (15 new)
+- Zero clippy warnings (pedantic + nursery)
+
 ## [0.7.52] - 2026-06-08
 
 ### Ring Elimination — ecoBin Cross-Arch Clean (Wave 98)

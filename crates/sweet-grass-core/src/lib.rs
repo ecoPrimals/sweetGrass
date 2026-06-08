@@ -45,6 +45,7 @@ pub mod primal_info;
 pub mod primal_names;
 pub mod privacy;
 pub mod scyborg;
+pub mod transport;
 
 /// Primal identity constants.
 ///

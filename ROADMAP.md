@@ -1,10 +1,17 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.52 (June 2026)
+**Current Version**: v0.7.53 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.53 — Transport Endpoint Injection (Wave 100, June 2026)
+
+- [x] **`TransportEndpoint`** type in `sweet-grass-core::transport` — wire-compatible with sourdough/songbird format
+- [x] **`connect_transport()`** in `sweet-grass-service::transport_connect` — `TransportStream` enum (UDS/TCP)
+- [x] **`TRANSPORT_ENDPOINT` env var** accepted by binary, overrides `--socket`/`--port` when set
+- [x] Zero new external deps — type defined locally, wire-compatible via serde
 
 ### v0.7.52 — Ring Elimination (Wave 98, June 2026)
 

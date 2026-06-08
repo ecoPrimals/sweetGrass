@@ -258,6 +258,11 @@ pub mod env_vars {
 
     /// Storage backend selector (e.g. `memory`, `redb`, `postgres`).
     pub const STORAGE_BACKEND: &str = "STORAGE_BACKEND";
+
+    /// Transport endpoint injection (launcher-provided, JSON-encoded).
+    ///
+    /// See [`crate::transport::TransportEndpoint`] for the wire format.
+    pub const TRANSPORT_ENDPOINT: &str = "TRANSPORT_ENDPOINT";
 }
 
 #[cfg(test)]
