@@ -61,13 +61,6 @@ pub fn test_db_url() -> String {
     std::env::var("TEST_DATABASE_URL").unwrap_or_else(|_| TEST_DB_URL_FALLBACK.to_string())
 }
 
-/// Format a `PostgreSQL` URL for `testcontainers` (dynamic host/port).
-///
-/// Use when connecting to a containerized `PostgreSQL` instance.
-#[must_use]
-pub fn postgres_test_url_for_port(port: u16) -> String {
-    format!("postgresql://postgres:postgres@127.0.0.1:{port}/postgres")
-}
 
 /// Allocate a random port from the operating system.
 ///
@@ -145,24 +138,6 @@ mod tests {
         // Should be able to bind to the allocated port
         let result = TcpListener::bind(format!("127.0.0.1:{port}"));
         assert!(result.is_ok(), "Port {port} should be available");
-    }
-
-    #[test]
-    fn test_postgres_test_url_for_port() {
-        let url = postgres_test_url_for_port(15432);
-        assert_eq!(
-            url,
-            "postgresql://postgres:postgres@127.0.0.1:15432/postgres"
-        );
-    }
-
-    #[test]
-    fn test_postgres_test_url_for_port_different_ports() {
-        let url1 = postgres_test_url_for_port(5432);
-        let url2 = postgres_test_url_for_port(5433);
-        assert_ne!(url1, url2);
-        assert!(url1.contains("5432"));
-        assert!(url2.contains("5433"));
     }
 
     #[test]

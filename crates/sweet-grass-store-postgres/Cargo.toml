@@ -40,8 +40,6 @@ tracing = { workspace = true }
 proptest = { workspace = true }
 sweet-grass-integration = { path = "../sweet-grass-integration", features = ["test"] }
 tokio = { workspace = true, features = ["test-util", "macros"] }
-testcontainers = { workspace = true }
-testcontainers-modules = { workspace = true }
 
 [features]
 default = []

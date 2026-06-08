@@ -11,7 +11,7 @@ use sweet_grass_store::{BraidStore, QueryFilter, QueryOrder};
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_query_with_agent_filter() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let agent1 = sweet_grass_core::agent::Did::new("did:key:z6MkAgent1");
     let agent2 = sweet_grass_core::agent::Did::new("did:key:z6MkAgent2");
@@ -55,7 +55,7 @@ async fn test_query_with_agent_filter() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_query_with_time_range() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let mut braid1 = create_test_braid("time1");
     braid1.generated_at_time = Timestamp::new(500);
@@ -81,7 +81,7 @@ async fn test_query_with_time_range() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_query_by_mime_type() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let braid1 = create_test_braid("mime1"); // text/plain
     let braid2 = create_braid_with_metadata("mime2", vec![]); // application/json
@@ -102,7 +102,7 @@ async fn test_query_by_mime_type() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_query_by_tag() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let braid1 = create_braid_with_metadata("tag1", vec!["important", "test"]);
     let braid2 = create_braid_with_metadata("tag2", vec!["other"]);
@@ -130,7 +130,7 @@ async fn test_query_by_tag() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_query_pagination_limit_offset() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     for i in 0..10 {
         let braid = create_test_braid(&format!("page{i}"));
@@ -151,7 +151,7 @@ async fn test_query_pagination_limit_offset() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_query_ordering_newest_first() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let mut braid1 = create_test_braid("ord1");
     braid1.generated_at_time = Timestamp::new(100);
@@ -177,7 +177,7 @@ async fn test_query_ordering_newest_first() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_query_ordering_oldest_first() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let mut braid1 = create_test_braid("old1");
     braid1.generated_at_time = Timestamp::new(300);
@@ -203,7 +203,7 @@ async fn test_query_ordering_oldest_first() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_query_ordering_largest_first() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let mut braid1 = create_test_braid("size1");
     braid1.size = 50;
@@ -229,7 +229,7 @@ async fn test_query_ordering_largest_first() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_query_ordering_smallest_first() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let mut braid1 = create_test_braid("small1");
     braid1.size = 500;
@@ -255,7 +255,7 @@ async fn test_query_ordering_smallest_first() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_count_with_filter() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let agent = sweet_grass_core::agent::Did::new("did:key:z6MkCountAgent");
     let braid1 = Braid::builder()
@@ -286,7 +286,7 @@ async fn test_count_with_filter() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_by_agent_multiple_braids() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let agent = sweet_grass_core::agent::Did::new("did:key:z6MkByAgent");
     let braids: Vec<_> = (0..5)
@@ -312,7 +312,7 @@ async fn test_by_agent_multiple_braids() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_derived_from_entity_references() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let source_hash = sweet_grass_core::ContentHash::new("sha256:source");
     let mut braid = create_test_braid("derived");

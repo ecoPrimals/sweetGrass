@@ -10,7 +10,7 @@ use sweet_grass_store::BraidStore;
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_basic_crud() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let braid = create_test_braid("crud001");
 
@@ -48,7 +48,7 @@ async fn test_basic_crud() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_get_by_hash() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let braid = create_test_braid("hash001");
     store.put(&braid).await.expect("Failed to store braid");
@@ -65,7 +65,7 @@ async fn test_get_by_hash() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_upsert_behavior() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let braid = create_test_braid("upsert001");
 
@@ -86,7 +86,7 @@ async fn test_upsert_behavior() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_update_existing_braid() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let mut braid = create_test_braid("update001");
     store.put(&braid).await.expect("initial put");
@@ -102,7 +102,7 @@ async fn test_update_existing_braid() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_delete_nonexistent() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let braid = create_test_braid("nonexistent");
     let deleted = store.delete(&braid.id).await.expect("delete");
@@ -114,7 +114,7 @@ async fn test_delete_nonexistent() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_get_by_hash_nonexistent() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let result = store
         .get_by_hash(&"sha256:nonexistent".into())
@@ -127,7 +127,7 @@ async fn test_get_by_hash_nonexistent() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_exists_correctness() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let braid = create_test_braid("exists001");
 
@@ -150,7 +150,7 @@ async fn test_exists_correctness() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_store_connectivity_via_count() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let count = store
         .count(&sweet_grass_store::QueryFilter::default())

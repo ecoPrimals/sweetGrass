@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.52] - 2026-06-08
+
+### Ring Elimination — ecoBin Cross-Arch Clean (Wave 98)
+
+#### Removed
+- **`testcontainers`** — dev-dep that pulled `bollard → rustls → ring`
+  (C/ASM crypto). Replaced with external `DATABASE_URL` connection pattern.
+- **`testcontainers-modules`** — companion crate, also removed.
+- **`postgres_test_url_for_port()`** — dead helper in `sweet-grass-integration`
+  that only existed for testcontainers dynamic port.
+- **3 `deny.toml` advisory ignores** — `RUSTSEC-2025-{0111,0134,0141}` were
+  testcontainers/bollard chain advisories, no longer applicable.
+- **`deny.toml` ring/rustls wrappers** — `bollard`, `hyper-rustls`,
+  `tokio-rustls`, `rustls-webpki` wrappers removed; ring/rustls are now
+  fully denied with zero exceptions.
+- **`deny.toml` skip-tree entries** — `testcontainers` and
+  `testcontainers-modules` removed from skip-tree.
+
+#### Changed
+- **Postgres integration tests** — now connect via `DATABASE_URL` env var
+  to an external Postgres instance (Docker Compose, CI service, or manual).
+  Tests remain behind `#[cfg(feature = "integration-tests")]`.
+
+#### Verified
+- `cargo tree -i ring` — **package not found** (completely absent)
+- `cargo tree -i bollard` — **package not found**
+- `cargo tree -i rustls` — **package not found**
+- Zero C/ASM crypto in entire dep tree (dev + production)
+- ecoBin cross-arch compilation unblocked for `aarch64-linux-android`
+
+#### Metrics
+- Tests: 1,613+ (2 dead testcontainers tests removed)
+- Zero clippy warnings (pedantic + nursery)
+
 ## [0.7.51] - 2026-06-05
 
 ### Localhost-Only Default Bind (Wave 79b)

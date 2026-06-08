@@ -9,7 +9,7 @@ use super::common::setup_postgres;
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_migrations_idempotent() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     // Run migrations twice - should succeed both times
     store.run_migrations().await.expect("first migration");
@@ -22,7 +22,7 @@ async fn test_migrations_idempotent() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_table_exists_after_migration() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let pool = store.pool();
     let (count,): (i64,) = sqlx::query_as(

@@ -11,7 +11,7 @@ use tokio::task::JoinSet;
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_parallel_puts_different_braids() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let mut handles = JoinSet::new();
     for i in 0..10 {
@@ -35,7 +35,7 @@ async fn test_parallel_puts_different_braids() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_concurrent_reads_while_writing() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let braid = create_test_braid("concurrent");
     store.put(&braid).await.expect("initial put");
@@ -64,7 +64,7 @@ async fn test_concurrent_reads_while_writing() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_batch_operations() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let braids: Vec<_> = (0..10)
         .map(|i| create_test_braid(&format!("batch{i}")))

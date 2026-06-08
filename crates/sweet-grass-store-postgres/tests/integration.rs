@@ -15,22 +15,30 @@
 //!
 //! ## Running Tests
 //!
-//! These tests require Docker to run real `PostgreSQL`:
+//! These tests require a running `PostgreSQL` instance (via Docker or native):
 //!
 //! ```bash
-//! # All integration tests
-//! cargo test --package sweet-grass-store-postgres --test integration -- --ignored
+//! # Start Postgres
+//! docker run --rm -d -p 5432:5432 \
+//!   -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres \
+//!   -e POSTGRES_DB=sweetgrass_test --name sg-test-pg postgres:16
+//!
+//! # Run integration tests
+//! DATABASE_URL="postgres://postgres:postgres@localhost:5432/sweetgrass_test" \
+//!   cargo test -p sweet-grass-store-postgres --test integration \
+//!   --features integration-tests
 //!
 //! # Specific module
-//! cargo test --package sweet-grass-store-postgres --test integration crud -- --ignored
+//! DATABASE_URL="..." \
+//!   cargo test -p sweet-grass-store-postgres --test integration crud \
+//!   --features integration-tests
 //! ```
 //!
 //! ## Best Practices
 //!
-//! - Each test uses isolated `PostgreSQL` container (`testcontainers`)
-//! - Dynamic port allocation prevents conflicts
-//! - Tests can run in parallel safely
-//! - Containers auto-cleanup after tests
+//! - `DATABASE_URL` env var specifies the connection string
+//! - Tests can share a single Postgres instance safely
+//! - No `testcontainers` / `bollard` / `ring` in the dep tree
 
 #![cfg(feature = "integration-tests")]
 #![expect(

@@ -1,10 +1,18 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.51 (June 2026)
+**Current Version**: v0.7.52 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.52 — Ring Elimination (Wave 98, June 2026)
+
+- [x] **Removed `testcontainers` + `testcontainers-modules`** — dev-deps that pulled `bollard → rustls → ring` (C/ASM crypto)
+- [x] **Postgres integration tests** refactored to `DATABASE_URL` env var pattern (no Docker SDK dependency)
+- [x] **`deny.toml` hardened** — ring/rustls fully denied with zero wrappers, 3 advisory ignores removed, skip-tree cleaned
+- [x] **`cargo tree -i ring` returns empty** — zero C/ASM crypto in entire dep tree
+- [x] ecoBin cross-arch compilation unblocked for `aarch64-linux-android`
 
 ### v0.7.51 — Localhost-Only Default Bind (Wave 79b, June 2026)
 

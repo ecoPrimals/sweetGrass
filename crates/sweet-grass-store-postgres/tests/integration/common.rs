@@ -13,31 +13,26 @@ use sweet_grass_core::{
     agent::{AgentAssociation, AgentRole, Did},
     braid::BraidMetadata,
 };
-use sweet_grass_integration::testing::postgres_test_url_for_port;
 use sweet_grass_store_postgres::{PostgresConfig, PostgresStore};
-use testcontainers::{ContainerAsync, runners::AsyncRunner};
-use testcontainers_modules::postgres::Postgres;
 
-/// Helper to spin up a `PostgreSQL` container and return a connected store.
+/// Connect to an external PostgreSQL instance and return a store.
 ///
-/// This uses `testcontainers` to start a real `PostgreSQL` instance with:
-/// - Default postgres user/password
-/// - Temporary storage (cleaned up after tests)
-/// - Dynamic port allocation (no conflicts)
-pub async fn setup_postgres() -> (ContainerAsync<Postgres>, PostgresStore) {
-    let container = Postgres::default()
-        .start()
-        .await
-        .expect("Failed to start PostgreSQL container");
+/// Reads `DATABASE_URL` from the environment (set by CI or Docker Compose).
+/// Start Postgres externally before running integration tests:
+///
+/// ```bash
+/// docker run --rm -d -p 5432:5432 \
+///   -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres \
+///   -e POSTGRES_DB=sweetgrass_test --name sg-test-pg postgres:16
+/// DATABASE_URL="postgres://postgres:postgres@localhost:5432/sweetgrass_test" \
+///   cargo test -p sweet-grass-store-postgres --test integration \
+///   --features integration-tests -- --ignored
+/// ```
+pub async fn setup_postgres() -> PostgresStore {
+    let url = std::env::var("DATABASE_URL")
+        .expect("DATABASE_URL must be set for integration tests");
 
-    let host_port = container
-        .get_host_port_ipv4(5432)
-        .await
-        .expect("Failed to get PostgreSQL port");
-
-    let connection_string = postgres_test_url_for_port(host_port);
-
-    let config = PostgresConfig::new(&connection_string)
+    let config = PostgresConfig::new(&url)
         .max_connections(5)
         .min_connections(1);
 
@@ -50,7 +45,7 @@ pub async fn setup_postgres() -> (ContainerAsync<Postgres>, PostgresStore) {
         .await
         .expect("Failed to run migrations");
 
-    (container, store)
+    store
 }
 
 /// Create a minimal test braid with the given hash suffix.

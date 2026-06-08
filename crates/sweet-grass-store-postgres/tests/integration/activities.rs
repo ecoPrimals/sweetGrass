@@ -11,7 +11,7 @@ use sweet_grass_store::BraidStore;
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_put_activity_and_get_activity() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let activity = create_test_activity();
     store.put_activity(&activity).await.expect("put_activity");
@@ -29,7 +29,7 @@ async fn test_put_activity_and_get_activity() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_get_activity_nonexistent_returns_none() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let activity_id = sweet_grass_core::ActivityId::new();
     let retrieved = store
@@ -43,7 +43,7 @@ async fn test_get_activity_nonexistent_returns_none() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_activities_for_braid_returns_associated_activities() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     // Create activity and braid; link via was_generated_by
     let activity = create_test_activity();
@@ -72,7 +72,7 @@ async fn test_activities_for_braid_returns_associated_activities() {
 #[tokio::test]
 #[ignore = "Requires Docker"]
 async fn test_activities_for_braid_empty_when_no_association() {
-    let (_container, store) = setup_postgres().await;
+    let store = setup_postgres().await;
 
     let braid = create_test_braid("no_activities");
     store.put(&braid).await.expect("put braid");

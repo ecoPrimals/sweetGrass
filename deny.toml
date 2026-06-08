@@ -5,12 +5,7 @@
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 yanked = "deny"
-ignore = [
-    # Dev-only: testcontainers → tokio-tar / bollard dep chain (no safe upgrades yet)
-    "RUSTSEC-2025-0111",
-    "RUSTSEC-2025-0134",
-    "RUSTSEC-2025-0141",
-]
+ignore = []
 
 [licenses]
 allow = [
@@ -49,12 +44,10 @@ deny = [
     { name = "openssl", wrappers = [], use-instead = "Tower Atomic (Songbird + BearDog)" },
     { name = "openssl-sys", wrappers = [], use-instead = "Tower Atomic (Songbird + BearDog)" },
     { name = "native-tls", wrappers = [], use-instead = "Tower Atomic (Songbird + BearDog)" },
-    # ring/rustls: wrappers allow the testcontainers dev-dep chain (bollard → rustls → ring).
-    # Any NEW production dep pulling these will still be caught.
     { name = "aws-lc-sys", wrappers = [], reason = "C/ASM crypto backend — Tower Atomic replaces this" },
     { name = "aws-lc-rs", wrappers = [], reason = "C/ASM crypto backend — Tower Atomic replaces this" },
-    { name = "ring", wrappers = ["rustls", "rustls-webpki"], reason = "C/ASM crypto backend — Tower Atomic replaces this" },
-    { name = "rustls", wrappers = ["bollard", "hyper-rustls", "tokio-rustls"], reason = "depends on ring (C/ASM) — Tower Atomic replaces this" },
+    { name = "ring", wrappers = [], reason = "C/ASM crypto backend — Tower Atomic replaces this" },
+    { name = "rustls", wrappers = [], reason = "depends on ring (C/ASM) — Tower Atomic replaces this" },
     
     # Outbound HTTP clients - route through neuralAPI → Songbird instead
     { name = "reqwest", wrappers = [], use-instead = "neuralAPI capability.call(\"http.request\", ...)" },
@@ -78,9 +71,6 @@ skip-tree = [
     { name = "criterion" },
     # Dev-only: proptest pulls in rand 0.8 / rand_chacha 0.3 chains
     { name = "proptest" },
-    # Dev-only: testcontainers pulls in bollard → older base64, docker deps
-    { name = "testcontainers" },
-    { name = "testcontainers-modules" },
 ]
 
 [sources]
