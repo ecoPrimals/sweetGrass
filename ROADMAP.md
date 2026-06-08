@@ -1,10 +1,16 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.53 (June 2026)
+**Current Version**: v0.7.54 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.54 — Deep Debt Audit + Transport Roundtrip Coverage (Wave 101, June 2026)
+
+- [x] **Transport connect roundtrip tests** — UDS and TCP success paths, `Send`/`Unpin` assertions
+- [x] **3 doc warnings fixed** — unresolved links in transport, server, tcp_jsonrpc modules
+- [x] **14-category deep debt audit** — all clean, zero items found
 
 ### v0.7.53 — Transport Endpoint Injection (Wave 100, June 2026)
 

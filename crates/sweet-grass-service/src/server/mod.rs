@@ -580,7 +580,7 @@ pub async fn start_tarpc_server(
     run_tarpc_server(tcp_listener, server, shutdown).await
 }
 
-/// Run a tarpc server on a pre-bound [`TcpListener`].
+/// Run a tarpc server on a pre-bound `TcpListener`.
 ///
 /// Preferred over [`start_tarpc_server`] in tests to avoid port-rebind
 /// races. Accepts connections until `shutdown` signals.

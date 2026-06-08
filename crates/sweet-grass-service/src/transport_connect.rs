@@ -92,7 +92,10 @@ pub async fn connect_transport(endpoint: &TransportEndpoint) -> std::io::Result<
 
 #[cfg(test)]
 mod tests {
+    #![expect(clippy::unwrap_used, reason = "test file")]
+
     use super::*;
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     #[tokio::test]
     async fn connect_uds_nonexistent_fails() {
@@ -115,5 +118,66 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert_eq!(err.kind(), std::io::ErrorKind::Unsupported);
+    }
+
+    #[tokio::test]
+    async fn connect_uds_roundtrip() {
+        let dir = tempfile::tempdir().unwrap();
+        let sock = dir.path().join("transport-test.sock");
+        let listener = tokio::net::UnixListener::bind(&sock).unwrap();
+
+        let ep = TransportEndpoint::uds(sock.to_str().unwrap());
+
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut buf = [0u8; 5];
+            stream.read_exact(&mut buf).await.unwrap();
+            stream.write_all(&buf).await.unwrap();
+        });
+
+        let mut stream = connect_transport(&ep).await.unwrap();
+        stream.write_all(b"hello").await.unwrap();
+
+        let mut buf = [0u8; 5];
+        stream.read_exact(&mut buf).await.unwrap();
+        assert_eq!(&buf, b"hello");
+
+        server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn connect_tcp_roundtrip() {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let port = listener.local_addr().unwrap().port();
+
+        let ep = TransportEndpoint::tcp("127.0.0.1", port);
+
+        let server = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut buf = [0u8; 4];
+            stream.read_exact(&mut buf).await.unwrap();
+            stream.write_all(&buf).await.unwrap();
+        });
+
+        let mut stream = connect_transport(&ep).await.unwrap();
+        stream.write_all(b"ping").await.unwrap();
+
+        let mut buf = [0u8; 4];
+        stream.read_exact(&mut buf).await.unwrap();
+        assert_eq!(&buf, b"ping");
+
+        server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn transport_stream_is_send() {
+        fn assert_send<T: Send>() {}
+        assert_send::<TransportStream>();
+    }
+
+    #[tokio::test]
+    async fn transport_stream_is_unpin() {
+        fn assert_unpin<T: Unpin>() {}
+        assert_unpin::<TransportStream>();
     }
 }

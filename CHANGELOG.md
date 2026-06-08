@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.54] - 2026-06-08
+
+### Deep Debt Audit + Transport Roundtrip Coverage (Wave 101)
+
+#### Added
+- **Transport connect roundtrip tests** — UDS and TCP success-path tests
+  with real listeners, plus `Send`/`Unpin` trait assertion tests (4 new)
+
+#### Fixed
+- **3 doc warnings** — unresolved `[connect_transport]` link in
+  `sweet-grass-core::transport`, unresolved `[TcpListener]` links in
+  `server/mod.rs` and `tcp_jsonrpc.rs`
+
+#### Verified (14-category deep debt audit)
+- No files over 800 lines (largest: 778L test file)
+- Zero `unsafe` code (`#![forbid(unsafe_code)]` on all crate roots)
+- Zero `unwrap()`/`expect()` in production code
+- Zero `#[allow]` attributes
+- Zero `println!`/`eprintln!` in production
+- Zero `Box<dyn Error>`, `std::sync::Mutex`, `Rc<`, `async_trait`
+- Zero `TODO`/`FIXME`/`HACK` in committed code
+- Zero `unimplemented!`/`todo!` in production
+- Zero hardcoded primal names (except self-knowledge)
+- All mocks gated to `#[cfg(any(test, feature = "test"))]`
+- All external deps are pure Rust (zero C/ASM in tree)
+- Zero doc warnings
+- All companion test files present for production modules
+
+#### Metrics
+- Tests: 1,634+ (4 new)
+- Zero clippy warnings (pedantic + nursery)
+- Zero doc warnings
+
 ## [0.7.53] - 2026-06-08
 
 ### Transport Endpoint Injection (Wave 100)

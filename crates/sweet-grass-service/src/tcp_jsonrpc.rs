@@ -40,7 +40,7 @@ pub async fn start_tcp_jsonrpc_listener(
     run_tcp_jsonrpc_listener(state, listener, shutdown, btsp_required).await
 }
 
-/// Run a TCP JSON-RPC listener on a pre-bound [`TcpListener`].
+/// Run a TCP JSON-RPC listener on a pre-bound `TcpListener`.
 ///
 /// Accepts connections until `shutdown` signals. The `btsp_required`
 /// flag controls whether incoming connections must perform a BTSP

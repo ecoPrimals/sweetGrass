@@ -4,7 +4,7 @@
 //!
 //! Wire-compatible with `sourdough_core::TransportEndpoint` (same serde
 //! tagged JSON format). Primals accept a `TRANSPORT_ENDPOINT` env var and
-//! call [`connect_transport`] — the launcher or Songbird decides the
+//! call `connect_transport` — the launcher or Songbird decides the
 //! transport, not the primal.
 //!
 //! # Wire Format
