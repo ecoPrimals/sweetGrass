@@ -1,6 +1,6 @@
 # SweetGrass — Semantic Provenance & Attribution Layer Specification
 
-**Version:** 0.7.49  
+**Version:** 0.7.55  
 **Status:** Architectural Specification  
 **Author:** ecoPrimals Project  
 **Date:** June 2026  

@@ -27,7 +27,7 @@ attribution before distributing rewards.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 (required) + tarpc (optional high-perf) + REST + UDS
 - **License:** scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0)
-- **Tests:** 1,623 local + 56 Docker CI (cargo test --all-features)
+- **Tests:** 1,634+ local + 56 Docker CI (cargo test --all-features)
 
 ## Degradation Behavior
 
@@ -51,9 +51,9 @@ When sweetGrass is **unavailable** in a composition:
 - **Coverage:** 90%+ line (91.7% with Postgres Docker, llvm-cov)
 - **BTSP:** Phase 3 — server-side `btsp.negotiate` handler with ChaCha20-Poly1305 AEAD encrypted framing; `detect_protocol` three-way multiplexer (JSON-RPC, JSON-line BTSP, length-prefixed BTSP) when `FAMILY_ID` set; HKDF-SHA256 directional session keys from BearDog's `session_key`; NULL cipher graceful fallback; `family_seed` forwarded to BearDog for crypto; EOF-resilient first-line detection for shell callers; whitespace-tolerant autodetect (leading `\n`/`\r`/` `/`\t` skipped before classification)
 - **UDS contract:** Newline-delimited JSON-RPC 2.0; compositions should use `\n`-terminated requests and >=10s read timeout (`braid.create`/`provenance.graph` may touch storage)
-- **Transport ports:** `--port` = TCP JSON-RPC (opt-in, newline-delimited; accepts `host:port` or bare port number — bare port binds `127.0.0.1` localhost-only per PG-55; use `0.0.0.0:PORT` for all-interfaces in Docker/production), `--http-port` / `--http-address host:port` = HTTP REST+JSON-RPC (primary integration surface, default `0.0.0.0:0` = dynamic), `--tarpc-address` = tarpc (default dynamic). Recommended TCP allocation: **9850** (avoids biomeOS TCP fallback range at 9800)
+- **Transport ports:** `--port` = TCP JSON-RPC (opt-in, newline-delimited; accepts `host:port` or bare port number — bare port binds `127.0.0.1` localhost-only per PG-55; use `0.0.0.0:PORT` for all-interfaces in Docker/production), `--http-port` / `--http-address host:port` = HTTP REST+JSON-RPC (primary integration surface, default `127.0.0.1:0`), `--tarpc-address` = tarpc (default `127.0.0.1:0`), `--transport-endpoint` = launcher-injected transport (JSON `TransportEndpoint`). Recommended TCP allocation: **9850** (avoids biomeOS TCP fallback range at 9800)
 - **Discovery tiers supported:** Tier 3 (UDS filesystem convention: `sweetgrass.sock` / `sweetgrass-{family}.sock` + `provenance.sock` capability symlink), Tier 4 (registry announce via `DISCOVERY_ADDRESS` / `DISCOVERY_BOOTSTRAP`), and partial Tier 5 (`primal.announce` Neural API self-registration with biomeOS). Tiers 1/2 (Songbird `ipc.resolve`, TCP probing) not yet implemented — sweetGrass is UDS-primary
-- **Version:** 0.7.49
+- **Version:** 0.7.55
 - **Method gate:** JH-0 pre-dispatch capability gate with token extraction — `auth.mode`, `auth.check` (enriched: `authenticated`, `verified`, `enforcement`, `scopes`, `subject`, `expires_in`), `auth.peer_info` methods; `_bearer_token` extracted from JSON-RPC params and threaded through gate; `SWEETGRASS_AUTH_MODE=permissive|enforced` env var; public whitelist (`health.*`, `auth.*`, `identity.get`, `capabilities.list`, `capability.list`, `lifecycle.status`, `tools.list`); all other methods protected; starts permissive
 - **Audit pipeline:** `attribution.witness` method for JH-5 Phase 3 (`defense.log` -> `dag.event.append` -> `attribution.witness`)
 - **Composition path:** `braid.create` accepts flattened convenience fields (`name`, `description`, `tags`, `source_session`, `source_merkle_root`) for provenance trio pipeline callers — merged into `BraidMetadata`; structured `metadata` takes precedence
@@ -61,10 +61,10 @@ When sweetGrass is **unavailable** in a composition:
 - **Wire-name aliases (GAP-36):** 10 downstream wire-name variants resolved transparently — `braid.attribution.create`, `attribution.create_braid`, `provenance.create_braid`, etc. all route to canonical handlers
 - **Lifecycle:** `lifecycle.status` returns running state, version, gate mode (classified public in method gate)
 - **TCP BTSP enforcement:** Raw JSON-RPC rejected on TCP when `FAMILY_ID` is set — BTSP handshake mandatory. UDS permits unauthenticated access for health probes and local composition
-- **DH-1 compliant:** Zero hardcoded `/tmp` in production code — all socket fallbacks use `std::env::temp_dir()` (respects `$TMPDIR`), enabling `ProtectSystem=strict` on VPS
+- **DH-1 compliant:** Zero hardcoded `/tmp` in production code — all socket fallbacks resolve into `biomeos/` subdirectory (respects `$TMPDIR`), enabling `ProtectSystem=strict` systemd hardening
 - **PID file:** Written alongside UDS socket (`sweetgrass.pid`) for instant liveness checks (`kill(pid, 0)`) — eliminates 100ms connect-probe overhead for downstream discovery
 - **Neural API `primal.announce`:** Self-registers with biomeOS on startup — capabilities, cost hints, latency estimates, signal tier (nest). Graceful degradation when biomeOS unavailable.
-- **Source files:** 209 `.rs` files (60,624 LOC), max 783 lines (all files under 800-line threshold)
+- **Source files:** 210+ `.rs` files, max 783 lines (all files under 800-line threshold)
 - **Property testing:** 25 proptest strategies across 7 crates
 - **Chaos/fault:** 11 attribution chaos + 17 service chaos + 9 fault injection
 - **Edition:** 2024 (`resolver = "3"`), MSRV 1.87
@@ -72,7 +72,7 @@ When sweetGrass is **unavailable** in a composition:
 - **Unsafe code:** 0 blocks (`#![forbid(unsafe_code)]` on all crates)
 - **Lint policy:** `#[expect(...)]` only — zero `#[allow(...)]` in source
 - **Clippy:** pedantic + nursery, zero warnings
-- **Dependency audit:** `cargo-deny` clean (3 RUSTSEC dev-dep ignores); `ring` dev-only via testcontainers; `sled` eliminated; `hostname` eliminated (pure Rust `/etc/hostname` read); `chacha20poly1305`+`hkdf`+`zeroize` added for BTSP Phase 3 in-process AEAD
+- **Dependency audit:** `cargo-deny` clean (zero advisory ignores); zero `ring`/`rustls`/`sled`/`testcontainers` in dep tree; pure Rust crypto only (`chacha20poly1305`+`hkdf`+`zeroize` for BTSP Phase 3 AEAD)
 - **Wire Standard:** L3 compliant, ecoBin static binary, Stadial parity
 
 ## Key Capabilities (JSON-RPC methods)

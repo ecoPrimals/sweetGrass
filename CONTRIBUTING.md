@@ -65,10 +65,9 @@ These are enforced at the workspace level and by CI:
 
 ## Architecture Principles
 
-- **Pure Rust**: Zero C/C++ dependencies in production. `cargo-deny` bans
-  `openssl`, `tonic`, `prost`, `reqwest`, and `provenance-trio-types`. `ring`
-  is allowed only as a dev-dependency (via `testcontainers` → `bollard` →
-  `rustls` chain) and wrapped in `deny.toml`.
+- **Pure Rust**: Zero C/C++ dependencies in production or dev. `cargo-deny`
+  bans `openssl`, `tonic`, `prost`, `reqwest`, `ring`, `rustls`, and
+  `provenance-trio-types`. Zero exceptions — fully pure Rust crypto stack.
 
 - **Primal Sovereignty**: SweetGrass knows only itself. Other primals are
   discovered at runtime via capability-based discovery. No shared type crates.
