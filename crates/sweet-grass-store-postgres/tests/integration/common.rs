@@ -15,7 +15,7 @@ use sweet_grass_core::{
 };
 use sweet_grass_store_postgres::{PostgresConfig, PostgresStore};
 
-/// Connect to an external PostgreSQL instance and return a store.
+/// Connect to an external `PostgreSQL` instance and return a store.
 ///
 /// Reads `DATABASE_URL` from the environment (set by CI or Docker Compose).
 /// Start Postgres externally before running integration tests:

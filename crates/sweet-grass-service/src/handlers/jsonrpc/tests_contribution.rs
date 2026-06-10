@@ -146,14 +146,14 @@ async fn test_record_provenance_with_vertices() {
                 "vertex_id": "v001",
                 "event_type": "dag.event.append",
                 "agent": "did:key:z6MkRhizoAgent",
-                "timestamp": 1717300000000000000_u64
+                "timestamp": 1_717_300_000_000_000_000_u64
             },
             {
                 "session_id": "dag-session-1",
                 "vertex_id": "v002",
                 "event_type": "dag.event.append",
                 "agent": "did:key:z6MkRhizoAgent2",
-                "timestamp": 1717300001000000000_u64
+                "timestamp": 1_717_300_001_000_000_000_u64
             }
         ],
         "agent_count": 2

@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.55] - 2026-06-10
+
+### PRIMAL-SOCKET-CLEANUP (Wave 107)
+
+#### Fixed
+- **Socket resolution tier 5 fallback** — final-resort socket path now
+  resolves to `$TMPDIR/biomeos/sweetgrass.sock` instead of bare
+  `$TMPDIR/sweetgrass.sock`. All five tiers consistently land in a
+  `biomeos/` subdirectory, eliminating stale `/tmp/sweetgrass.sock` and
+  `/tmp/provenance.sock` symlink artifacts
+- **Clippy pedantic** — `items_after_statements` in cross-gate test
+  (import moved before first statement), `unreadable_literal` in
+  contribution test timestamps (added separators), `unwrap_used` in
+  transport tests (added `#[expect]` attribute), `doc_markdown` backtick
+  for `PostgreSQL` in integration common
+
+#### Changed
+- Socket resolution doc updated: tier 5 description now reads
+  `$TMPDIR/biomeos/sweetgrass-{family_id}.sock`; notes that all tiers
+  use a `biomeos/` subdirectory for `ProtectSystem=strict` compatibility
+
+#### Tests
+- Resolution tests `di_temp_fallback` and `di_family_id_in_temp_fallback`
+  strengthened with exact path assertions (verify `biomeos/` subdirectory)
+
 ## [0.7.54] - 2026-06-08
 
 ### Deep Debt Audit + Transport Roundtrip Coverage (Wave 101)

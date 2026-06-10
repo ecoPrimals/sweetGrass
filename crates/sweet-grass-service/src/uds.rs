@@ -12,7 +12,10 @@
 //! 2. `BIOMEOS_SOCKET_DIR` + `/sweetgrass-{family_id}.sock`
 //! 3. `$XDG_RUNTIME_DIR/biomeos/sweetgrass-{family_id}.sock`
 //! 4. `$TMPDIR/biomeos-{user}/sweetgrass-{family_id}.sock`
-//! 5. `$TMPDIR/sweetgrass-{family_id}.sock`
+//! 5. `$TMPDIR/biomeos/sweetgrass-{family_id}.sock`
+//!
+//! All tiers resolve into a `biomeos/` subdirectory — never directly into
+//! `/tmp/`. This supports `ProtectSystem=strict` systemd hardening.
 
 use std::path::PathBuf;
 
@@ -184,7 +187,9 @@ pub fn resolve_socket_path_with(config: &SocketConfig) -> PathBuf {
             .join(&sock_name);
     }
 
-    std::env::temp_dir().join(&sock_name)
+    std::env::temp_dir()
+        .join(sweet_grass_core::primal_names::paths::BIOMEOS_DIR)
+        .join(&sock_name)
 }
 
 /// Start the Unix domain socket JSON-RPC listener with coordinated shutdown.

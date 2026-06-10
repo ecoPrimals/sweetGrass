@@ -360,9 +360,9 @@ async fn test_trust_event_roundtrip_via_get() {
 
 #[tokio::test]
 async fn test_provenance_chain_beardog_to_sweetgrass() {
-    let state = test_state();
-
     use base64::Engine as _;
+
+    let state = test_state();
 
     let trust_event = serde_json::json!({
         "cross_gate": {

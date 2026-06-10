@@ -72,7 +72,10 @@ fn di_user_fallback() {
 fn di_temp_fallback() {
     let config = SocketConfig::default();
     let path = resolve_socket_path_with(&config);
-    assert!(path.to_string_lossy().contains("sweetgrass.sock"));
+    let expected = std::env::temp_dir()
+        .join("biomeos")
+        .join("sweetgrass.sock");
+    assert_eq!(path, expected, "final fallback must use biomeos/ subdirectory");
 }
 
 #[test]
@@ -94,8 +97,14 @@ fn di_family_id_in_temp_fallback() {
         family_id: Some("beta".to_string()),
         ..Default::default()
     };
-    let path = resolve_socket_path_with(&config);
-    assert!(path.to_string_lossy().contains("sweetgrass-beta.sock"));
+    let expected = std::env::temp_dir()
+        .join("biomeos")
+        .join("sweetgrass-beta.sock");
+    assert_eq!(
+        resolve_socket_path_with(&config),
+        expected,
+        "family-ID fallback must use biomeos/ subdirectory"
+    );
 }
 
 #[test]

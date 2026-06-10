@@ -133,6 +133,8 @@ pub const TRANSPORT_ENDPOINT_ENV: &str = "TRANSPORT_ENDPOINT";
 
 #[cfg(test)]
 mod tests {
+    #![expect(clippy::unwrap_used, reason = "test module")]
+
     use super::*;
 
     #[test]

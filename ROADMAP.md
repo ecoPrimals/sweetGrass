@@ -1,10 +1,18 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.54 (June 2026)
+**Current Version**: v0.7.55 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.55 — PRIMAL-SOCKET-CLEANUP (Wave 107, June 2026)
+
+- [x] **Socket resolution tier 5 fixed** — final fallback now resolves to `$TMPDIR/biomeos/sweetgrass.sock` instead of bare `$TMPDIR/sweetgrass.sock`; all 5 tiers consistently use a `biomeos/` subdirectory
+- [x] **`/tmp` artifacts eliminated** — no more stale `/tmp/sweetgrass.sock` or `/tmp/provenance.sock` symlink; supports `ProtectSystem=strict` systemd hardening
+- [x] **4 clippy pedantic warnings fixed** — `items_after_statements`, `unreadable_literal` (×2), `doc_markdown`, `unwrap_used` in transport tests
+- [x] **Resolution tests hardened** — `di_temp_fallback` and `di_family_id_in_temp_fallback` now assert exact `biomeos/` subdirectory paths
+- [x] 1,634 tests, 0 clippy warnings
 
 ### v0.7.54 — Deep Debt Audit + Transport Roundtrip Coverage (Wave 101, June 2026)
 
