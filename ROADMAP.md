@@ -1,10 +1,17 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.55 (June 2026)
+**Current Version**: v0.7.56 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.56 — BTSP E2E Readiness + HEALTH-01 Convergence (Wave 109, June 2026)
+
+- [x] **`BEARDOG_SOCKET` in BTSP resolution** — tier 2 in security socket chain; deployments using `BEARDOG_SOCKET` for `crypto.sign` now also get BTSP handshake
+- [x] **`"health"` method alias** — bare `{"method":"health"}` → `health.check` (HEALTH-01 convergence)
+- [x] **`health.check` enriched** — `primal` + `uptime_secs` fields added to response
+- [x] 1,636 tests, 0 clippy warnings
 
 ### v0.7.55 — PRIMAL-SOCKET-CLEANUP (Wave 107, June 2026)
 

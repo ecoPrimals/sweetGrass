@@ -31,9 +31,12 @@ const DEFAULT_SECURITY_SOCKET: &str = "security.sock";
 ///
 /// Resolution order:
 /// 1. `SECURITY_PROVIDER_SOCKET` — explicit override for any crypto provider
-/// 2. `BIOMEOS_SOCKET_DIR/security.sock` — capability-domain symlink
-/// 3. `$XDG_RUNTIME_DIR/biomeos/security.sock`
-/// 4. `$TMPDIR/biomeos/security.sock`
+/// 2. `BEARDOG_SOCKET` — explicit `BearDog` socket (deployments that set
+///    this for `crypto.sign` also get BTSP handshake without needing a
+///    separate `SECURITY_PROVIDER_SOCKET`)
+/// 3. `BIOMEOS_SOCKET_DIR/security.sock` — capability-domain symlink
+/// 4. `$XDG_RUNTIME_DIR/biomeos/security.sock`
+/// 5. `$TMPDIR/biomeos/security.sock`
 ///
 /// Public for `AppState` startup snapshot; prefer the snapshotted
 /// `AppState.security_socket_path` over calling this at runtime.
@@ -41,6 +44,10 @@ pub fn resolve_security_socket_from_env() -> std::path::PathBuf {
     use sweet_grass_core::primal_names::{env_vars, paths};
 
     if let Ok(path) = std::env::var(env_vars::SECURITY_PROVIDER_SOCKET) {
+        return std::path::PathBuf::from(path);
+    }
+
+    if let Ok(path) = std::env::var(env_vars::BEARDOG_SOCKET) {
         return std::path::PathBuf::from(path);
     }
 
@@ -606,6 +613,25 @@ mod tests {
                 assert_eq!(
                     resolve_security_socket_from_env(),
                     std::path::PathBuf::from("/custom/path.sock")
+                );
+            },
+        );
+    }
+
+    #[test]
+    fn resolve_security_socket_beardog_env() {
+        temp_env::with_vars(
+            [
+                ("SECURITY_PROVIDER_SOCKET", None::<&str>),
+                ("BEARDOG_SOCKET", Some("/run/biomeos/beardog.sock")),
+                ("BIOMEOS_SOCKET_DIR", Some("/run/biomeos")),
+                ("XDG_RUNTIME_DIR", None::<&str>),
+            ],
+            || {
+                assert_eq!(
+                    resolve_security_socket_from_env(),
+                    std::path::PathBuf::from("/run/biomeos/beardog.sock"),
+                    "BEARDOG_SOCKET should take precedence over BIOMEOS_SOCKET_DIR"
                 );
             },
         );

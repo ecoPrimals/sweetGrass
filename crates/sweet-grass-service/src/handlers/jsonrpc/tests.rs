@@ -73,6 +73,22 @@ async fn test_health_method() {
     let value = result.unwrap();
     assert_eq!(value["status"], "healthy");
     assert_eq!(value["braid_count"], 0);
+    assert!(value["primal"].is_string(), "health.check must include primal");
+    assert!(
+        value["uptime_secs"].is_number(),
+        "health.check must include uptime_secs"
+    );
+    assert!(value["version"].is_string(), "health.check must include version");
+}
+
+#[tokio::test]
+async fn test_bare_health_alias() {
+    let state = test_state();
+    let result = dispatch(&state, "health", serde_json::json!({})).await;
+    assert!(result.is_ok(), "bare 'health' should resolve via alias");
+    let value = result.unwrap();
+    assert_eq!(value["status"], "healthy");
+    assert!(value["primal"].is_string());
 }
 
 #[tokio::test]
@@ -312,6 +328,7 @@ fn test_alias_resolution_maps_all_downstream_names() {
         ("attribution.export_prov", "provenance.export_provo"),
         ("provenance.lineage", "attribution.chain"),
         ("attribution.anchor", "anchoring.anchor"),
+        ("health", "health.check"),
     ];
     for (alias, canonical) in aliases {
         let handler = find_handler(alias);

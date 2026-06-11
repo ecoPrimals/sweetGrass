@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.56] - 2026-06-11
+
+### BTSP E2E Readiness + HEALTH-01 Convergence (Wave 109)
+
+#### Added
+- **`BEARDOG_SOCKET` in BTSP resolution** — security socket resolution now
+  checks `BEARDOG_SOCKET` as tier 2 (after `SECURITY_PROVIDER_SOCKET`,
+  before `BIOMEOS_SOCKET_DIR`). Deployments that set `BEARDOG_SOCKET` for
+  `crypto.sign` now also get BTSP handshake without needing a separate
+  `SECURITY_PROVIDER_SOCKET` env var
+- **`"health"` method alias** — bare `{"method":"health"}` now resolves to
+  `health.check` via alias table (HEALTH-01 convergence for E2E harnesses)
+- **`health.check` enriched** — response now includes `primal` and
+  `uptime_secs` fields alongside existing `status`, `version`,
+  `store_status`, `braid_count` — aligns with HEALTH-01 probe schema
+  `{status, primal, version, uptime_s}`
+
+#### Tests
+- `resolve_security_socket_beardog_env` — verifies `BEARDOG_SOCKET` tier 2
+  precedence over `BIOMEOS_SOCKET_DIR`
+- `test_bare_health_alias` — verifies bare `"health"` dispatches to
+  `health.check`
+- `test_health_method` enriched — asserts `primal`, `uptime_secs`, `version`
+  fields present in `health.check` response
+
 ## [0.7.55] - 2026-06-10
 
 ### PRIMAL-SOCKET-CLEANUP (Wave 107)

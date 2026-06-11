@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.55 | 1,634+ tests | 91.7% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin A++ | BTSP enforced on TCP | Wire L3 | Stadial ready | 40 methods + 10 aliases | JH-0 method gate | BearDog crypto delegation | JH-5 audit pipeline | DH-1 clean | Privacy-enforced | PROV-O complete | Zero bare env var strings | Transport Phase 2 ready | Localhost-only defaults | Zero C/ASM crypto | TRANSPORT_ENDPOINT | SOCKET-CLEANUP done
+v0.7.56 | 1,636+ tests | 91.7% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin A++ | BTSP enforced on TCP | Wire L3 | Stadial ready | 40 methods + 11 aliases | JH-0 method gate | BearDog crypto delegation | JH-5 audit pipeline | DH-1 clean | Privacy-enforced | PROV-O complete | Zero bare env var strings | Transport Phase 2 ready | Localhost-only defaults | Zero C/ASM crypto | TRANSPORT_ENDPOINT | HEALTH-01 ready | BTSP E2E ready
 
 ---
 
@@ -203,7 +203,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.55 |
+| Version | v0.7.56 |
 | Tests | 1,605+ local + 56 Docker CI |
 | Coverage | 90%+ line (91.7% with Postgres Docker) |
 | Edition | 2024 (MSRV 1.87) |

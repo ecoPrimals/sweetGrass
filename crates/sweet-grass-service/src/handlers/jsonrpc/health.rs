@@ -18,11 +18,21 @@ pub(super) async fn handle_health(state: &AppState, _params: serde_json::Value) 
         .count(&QueryFilter::default())
         .await
         .map_err(internal)?;
+    let primal = state
+        .self_knowledge
+        .as_ref()
+        .map_or("sweetgrass", |sk| sk.name.as_str());
+    let uptime_secs = state
+        .self_knowledge
+        .as_ref()
+        .map_or(0, |sk| sk.uptime().as_secs());
     to_value(&serde_json::json!({
         "status": "healthy",
+        "primal": primal,
+        "version": env!("CARGO_PKG_VERSION"),
+        "uptime_secs": uptime_secs,
         "store_status": "ok",
         "braid_count": count,
-        "version": env!("CARGO_PKG_VERSION"),
     }))
 }
 

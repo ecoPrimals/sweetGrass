@@ -221,6 +221,8 @@ static ALIASES: &[(&str, &str)] = &[
     ("attribution.export_prov", "provenance.export_provo"),
     ("provenance.lineage", "attribution.chain"),
     ("attribution.anchor", "anchoring.anchor"),
+    // HEALTH-01 convergence: bare "health" probes from E2E harnesses
+    ("health", "health.check"),
 ];
 
 pub(super) fn resolve_alias(method: &str) -> Option<&'static str> {
