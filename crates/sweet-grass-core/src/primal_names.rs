@@ -263,6 +263,12 @@ pub mod env_vars {
     ///
     /// See [`crate::transport::TransportEndpoint`] for the wire format.
     pub const TRANSPORT_ENDPOINT: &str = "TRANSPORT_ENDPOINT";
+
+    /// Test-only override for primal address in health tests.
+    pub const TEST_PRIMAL_ADDR: &str = "TEST_PRIMAL_ADDR";
+
+    /// Test-only Postgres URL override for integration tests.
+    pub const TEST_DATABASE_URL: &str = "TEST_DATABASE_URL";
 }
 
 #[cfg(test)]
@@ -308,6 +314,8 @@ mod tests {
             env_vars::USER,
             env_vars::SWEETGRASS_PORT,
             env_vars::SWEETGRASS_AUTH_MODE,
+            env_vars::TEST_PRIMAL_ADDR,
+            env_vars::TEST_DATABASE_URL,
         ];
         for var in &all {
             assert_eq!(

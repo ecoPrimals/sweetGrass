@@ -58,7 +58,8 @@ pub const TEST_DB_URL_SECONDARY: &str = "postgresql://localhost/secondary";
 /// (migrations, CRUD). Prefer constants for unit tests that only need valid URLs.
 #[must_use]
 pub fn test_db_url() -> String {
-    std::env::var("TEST_DATABASE_URL").unwrap_or_else(|_| TEST_DB_URL_FALLBACK.to_string())
+    std::env::var(sweet_grass_core::primal_names::env_vars::TEST_DATABASE_URL)
+        .unwrap_or_else(|_| TEST_DB_URL_FALLBACK.to_string())
 }
 
 

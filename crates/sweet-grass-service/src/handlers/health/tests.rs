@@ -104,7 +104,8 @@ fn test_primal_status_connected() {
     // Use environment variable or OS-allocated port (zero hardcoding)
     // Note: Using simplified test address since integration testing module not available here
     let test_address =
-        std::env::var("TEST_PRIMAL_ADDR").unwrap_or_else(|_| "localhost:0".to_string());
+        std::env::var(sweet_grass_core::primal_names::env_vars::TEST_PRIMAL_ADDR)
+            .unwrap_or_else(|_| "localhost:0".to_string());
 
     let status = PrimalStatus::connected(Some(test_address));
     assert!(status.connected);

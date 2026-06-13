@@ -29,7 +29,7 @@ use sweet_grass_store_postgres::{PostgresConfig, PostgresStore};
 ///   --features integration-tests -- --ignored
 /// ```
 pub async fn setup_postgres() -> PostgresStore {
-    let url = std::env::var("DATABASE_URL")
+    let url = std::env::var(sweet_grass_core::primal_names::env_vars::DATABASE_URL)
         .expect("DATABASE_URL must be set for integration tests");
 
     let config = PostgresConfig::new(&url)

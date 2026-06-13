@@ -57,13 +57,17 @@ fn resolve_neural_api_socket_with(reader: &dyn Fn(&str) -> Option<String>) -> Op
     }
 
     if let Some(xdg) = reader(env_vars::XDG_RUNTIME_DIR) {
-        let path = PathBuf::from(xdg).join("biomeos").join(&socket_name);
+        let path = PathBuf::from(xdg)
+            .join(sweet_grass_core::primal_names::paths::BIOMEOS_DIR)
+            .join(&socket_name);
         if path.exists() {
             return Some(path);
         }
     }
 
-    let fallback = std::env::temp_dir().join("biomeos").join(&socket_name);
+    let fallback = std::env::temp_dir()
+        .join(sweet_grass_core::primal_names::paths::BIOMEOS_DIR)
+        .join(&socket_name);
     if fallback.exists() {
         return Some(fallback);
     }
