@@ -1,10 +1,17 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.56 (June 2026)
+**Current Version**: v0.7.57 (June 2026)
 
 ---
 
 ## Completed
+
+### v0.7.57 — riboCipher Transport Signal Convergence (Wave 111, Stream 7, June 2026)
+
+- [x] **riboCipher reference implementation in `peek.rs`** — signal detection for `0xEC`/`0xED`/`0xEE` before legacy peek logic; canonical pattern per `RIBOCIPHER_TRANSPORT_SIGNAL_STANDARD.md`
+- [x] **Tier 1 clear signal routing** — `[0xEC, protocol_type]` routes probe, JSON-RPC, BTSP binary, BTSP JSON-line on UDS and TCP
+- [x] **Legacy WARN deprecation logging** — unsignalled connections logged at WARN (Wave 111-112), scheduled for ERROR (112), REJECT (113), REMOVE (114)
+- [x] 1,647 tests, 0 clippy warnings
 
 ### v0.7.56 — BTSP E2E Readiness + HEALTH-01 Convergence (Wave 109, June 2026)
 

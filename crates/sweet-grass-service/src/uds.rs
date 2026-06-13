@@ -279,14 +279,20 @@ pub async fn start_uds_listener_at(
     Ok(())
 }
 
-/// First-line protocol auto-detection for BTSP-required UDS connections.
+/// riboCipher-aware protocol detection for UDS connections.
 ///
-/// Reads the first line to determine the protocol:
-/// - First byte not `{` → length-prefixed BTSP handshake (canonical wire format)
-/// - `{"protocol":"btsp",...}` → JSON-line BTSP handshake (primalSpring-compatible)
-/// - `{"jsonrpc":"2.0",...}` → raw JSON-RPC (health probes, biomeOS, springs)
+/// Checks for riboCipher signal prefix bytes (`0xEC`/`0xED`/`0xEE`) first,
+/// then falls back to legacy peek logic for unsignalled connections (WARN).
 ///
-/// Aligns with Phase 45b wire-format guidance, `BearDog` (PG-35) / `Squirrel` (PG-30).
+/// ## riboCipher Tier 1 (clear signal) routing
+///
+/// | Protocol type | Route |
+/// |---------------|-------|
+/// | 0x00 (Probe)  | Lightweight health response |
+/// | 0x01 (NDJSON) | Raw JSON-RPC handler |
+/// | 0x02 (BTSP binary) | Length-prefixed BTSP handshake |
+/// | 0x03 (BTSP JSON-line) | JSON-line BTSP handshake |
+/// | other | Reject with `-32002` |
 pub(crate) async fn handle_uds_with_autodetect(
     mut stream: tokio::net::UnixStream,
     state: crate::state::AppState,
@@ -309,23 +315,28 @@ pub(crate) async fn handle_uds_with_autodetect(
     };
 
     match protocol {
+        DetectedProtocol::RiboCipherClear {
+            protocol_type: pt,
+        } => {
+            handle_ribocipher_clear_uds(stream, state, pt).await;
+        }
         DetectedProtocol::LengthPrefixedBtsp(byte) => {
             let peeked = crate::peek::PeekedStream::new(byte, stream);
             if let Err(e) = handle_uds_connection_btsp(peeked, state).await {
                 warn!("UDS BTSP connection error: {e}");
             }
-        },
+        }
         DetectedProtocol::JsonLineBtsp(client_hello) => {
-            debug!("UDS: first-line auto-detect → JSON-line BTSP");
+            debug!("UDS: legacy auto-detect → JSON-line BTSP");
             handle_uds_connection_btsp_jsonline(stream, state, client_hello).await;
-        },
+        }
         DetectedProtocol::JsonRpc(first_request) => {
-            debug!("UDS: first-line auto-detect → raw JSON-RPC");
+            debug!("UDS: legacy auto-detect → raw JSON-RPC");
             if let Err(e) = handle_uds_connection_raw_with_first(stream, state, first_request).await
             {
                 warn!("UDS raw connection error (auto-detected): {e}");
             }
-        },
+        }
         DetectedProtocol::Unknown(obj) => {
             warn!("UDS: unrecognized first-line protocol (no 'protocol' or 'jsonrpc' key): {obj}");
             let _ = write_jsonrpc_error(
@@ -335,8 +346,91 @@ pub(crate) async fn handle_uds_with_autodetect(
                 "Unrecognized protocol: first line must contain \"jsonrpc\" or \"protocol\" key",
             )
             .await;
-        },
+        }
     }
+}
+
+/// Route a riboCipher Tier 1 (clear signal) connection on UDS.
+async fn handle_ribocipher_clear_uds(
+    mut stream: tokio::net::UnixStream,
+    state: crate::state::AppState,
+    pt: u8,
+) {
+    use crate::peek::protocol_type;
+
+    match pt {
+        protocol_type::PROBE => {
+            debug!("UDS riboCipher: probe (0x00)");
+            let resp = serde_json::json!({
+                "jsonrpc": "2.0",
+                "result": { "status": "healthy" },
+                "id": null,
+            });
+            let _ = write_jsonrpc_response(&mut stream, &resp).await;
+        }
+        protocol_type::NDJSON_JSONRPC => {
+            debug!("UDS riboCipher: NDJSON JSON-RPC (0x01)");
+            if let Err(e) = handle_uds_connection_raw(stream, state).await {
+                warn!("UDS raw connection error (riboCipher): {e}");
+            }
+        }
+        protocol_type::BTSP_BINARY => {
+            debug!("UDS riboCipher: BTSP binary (0x02)");
+            if let Err(e) = handle_uds_connection_btsp(stream, state).await {
+                warn!("UDS BTSP connection error (riboCipher): {e}");
+            }
+        }
+        protocol_type::BTSP_JSONLINE => {
+            debug!("UDS riboCipher: BTSP JSON-line (0x03) — reading ClientHello");
+            match read_jsonline_client_hello(&mut stream).await {
+                Ok(hello) => {
+                    handle_uds_connection_btsp_jsonline(stream, state, hello).await;
+                }
+                Err(e) => {
+                    warn!("UDS riboCipher BTSP JSON-line: failed to read ClientHello: {e}");
+                }
+            }
+        }
+        unknown => {
+            warn!(
+                protocol_type = unknown,
+                "UDS riboCipher: unsupported protocol type"
+            );
+            let _ = write_jsonrpc_error(
+                &mut stream,
+                serde_json::Value::Null,
+                -32002,
+                format!("Unsupported riboCipher protocol type: 0x{unknown:02X}"),
+            )
+            .await;
+        }
+    }
+}
+
+/// Read a JSON-line `ClientHello` from the stream (for riboCipher BTSP JSON-line).
+async fn read_jsonline_client_hello<S: tokio::io::AsyncRead + Unpin>(
+    stream: &mut S,
+) -> std::io::Result<crate::btsp::protocol::ClientHello> {
+    use tokio::io::AsyncBufReadExt;
+
+    let mut reader = tokio::io::BufReader::new(stream);
+    let mut line = String::new();
+    reader.read_line(&mut line).await?;
+    serde_json::from_str(&line)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+}
+
+/// Write a JSON-RPC response object and a trailing newline.
+async fn write_jsonrpc_response(
+    stream: &mut tokio::net::UnixStream,
+    value: &serde_json::Value,
+) -> std::io::Result<()> {
+    use tokio::io::AsyncWriteExt;
+    let mut buf = serde_json::to_string(value)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+    buf.push('\n');
+    stream.write_all(buf.as_bytes()).await?;
+    stream.flush().await
 }
 
 /// Handle a UDS connection with BTSP handshake then length-prefixed JSON-RPC.

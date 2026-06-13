@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.57] - 2026-06-13
+
+### riboCipher Transport Signal Convergence (Wave 111, Stream 7)
+
+#### Added
+- **riboCipher reference implementation in `peek.rs`** — signal detection checks
+  for `0xEC` (clear), `0xED` (mito), `0xEE` (nuclear) prefix bytes BEFORE any
+  legacy peek logic. This is the canonical pattern for the ecosystem per
+  `RIBOCIPHER_TRANSPORT_SIGNAL_STANDARD.md`
+- **Tier 1 clear signal routing** — `[0xEC, protocol_type]` decodes and routes
+  to the correct handler: probe (0x00), NDJSON JSON-RPC (0x01), BTSP binary
+  (0x02), BTSP JSON-line (0x03). Unsupported protocol types return `-32002`
+- **Legacy WARN logging** — unsignalled connections (no riboCipher prefix) log
+  a `DEPRECATED` warning at WARN level before falling through to legacy peek
+  detection. Per deprecation schedule: WARN (111-112) → ERROR (112) →
+  REJECT (113) → REMOVE (114)
+- **UDS riboCipher handler** — `handle_ribocipher_clear_uds()` routes probe,
+  JSON-RPC, BTSP binary, and BTSP JSON-line protocol types on Unix sockets
+- **TCP riboCipher handler** — `handle_ribocipher_clear_tcp()` routes probe
+  and BTSP types on TCP; raw JSON-RPC (0x01) rejected on TCP per security
+  posture (BTSP required)
+- **Signal constants and protocol type module** — `RIBOCIPHER_CLEAR` (0xEC),
+  `RIBOCIPHER_MITO` (0xED), `RIBOCIPHER_NUCLEAR` (0xEE) constants, plus
+  `protocol_type` module with `PROBE`, `NDJSON_JSONRPC`, `BTSP_BINARY`,
+  `BTSP_JSONLINE`, `HTTP`, `ENCRYPTED_RESUME`
+
+#### Tests
+- 10 new `peek.rs` unit tests: clear signal for all 6 protocol types, mito/
+  nuclear unsupported errors, riboCipher-first precedence over legacy
+- 2 new `autodetect.rs` integration tests: riboCipher clear JSON-RPC
+  end-to-end via live UDS, riboCipher probe response
+- 1,647 tests total, 0 clippy warnings
+
 ## [0.7.56] - 2026-06-11
 
 ### BTSP E2E Readiness + HEALTH-01 Convergence (Wave 109)
