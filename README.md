@@ -203,15 +203,15 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.56 |
-| Tests | 1,605+ local + 56 Docker CI |
+| Version | v0.7.57 |
+| Tests | 1,647 local + 56 Docker CI |
 | Coverage | 90%+ line (91.7% with Postgres Docker) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
-| Max file size | 783 lines (limit: 1000) |
-| .rs files | 209 (60,624 LOC) |
+| Max file size | 796 lines (limit: 1000) |
+| .rs files | 210+ |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |
@@ -220,7 +220,8 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | JSON-RPC methods | 40 (batch + notification + MCP tool exposure + Wire Standard L3 + composition health + auth + trust + lifecycle) |
 | Property-based tests | proptest (25 strategies across 7 crates) |
 | Chaos/fault tests | 11 attribution chaos + 17 service chaos + 9 fault injection |
-| BTSP | Phase 3 — `btsp.negotiate` + ChaCha20-Poly1305 AEAD framing; `detect_protocol` three-way multiplexer (EOF-resilient, PG-52) when `FAMILY_ID` set |
+| BTSP | Phase 3 — `btsp.negotiate` + ChaCha20-Poly1305 AEAD framing; riboCipher signal detection (0xEC/0xED/0xEE) before legacy peek; `BEARDOG_SOCKET` in resolution |
+| riboCipher | Reference implementation — Tier 1 clear signal routing (probe, JSON-RPC, BTSP binary/JSON-line); legacy WARN deprecation |
 
 ### ecoBin Compliance
 
