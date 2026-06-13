@@ -27,17 +27,19 @@
 //! ## Legacy Fallback (deprecation period)
 //!
 //! Connections not starting with `0xEC`/`0xED`/`0xEE` are classified via
-//! the legacy peek path with a WARN log. This will become ERROR (Wave 112),
-//! REJECT (Wave 113), and REMOVED (Wave 114).
+//! the legacy peek path with an ERROR log. Deprecation timeline:
+//! - Wave 111: WARN (shipped)
+//! - Wave 112: **ERROR** (current)
+//! - Wave 113: REJECT (`-32002`)
+//! - Wave 114: REMOVE legacy peek code
 //!
-//! This module is the **reference implementation** for the ecosystem per
-//! Wave 111 blurb.
+//! This module is the **reference implementation** for the ecosystem.
 
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, ReadBuf};
-use tracing::warn;
+use tracing::error;
 
 use crate::btsp::protocol::ClientHello;
 
@@ -140,13 +142,14 @@ pub async fn detect_protocol<S: AsyncRead + Unpin>(
         _ => {}
     }
 
-    // --- Legacy fallback (deprecated — Wave 111 WARN) ---
+    // --- Legacy fallback (deprecated — Wave 112 ERROR) ---
 
-    warn!(
+    error!(
         first_byte = first[0],
         "DEPRECATED: unsignalled connection (no riboCipher prefix). \
          Falling back to legacy peek detection. \
-         Clients should send [0xEC, protocol_type] prefix."
+         Clients MUST send [0xEC, protocol_type] prefix. \
+         Wave 113: connections without signal will be REJECTED."
     );
 
     if first[0] != JSON_FIRST_BYTE {
