@@ -245,8 +245,7 @@ pub async fn start_uds_listener_at(
     lifecycle::write_pid_file(path);
     create_capability_symlink(path);
 
-    let btsp_required = state.btsp_required;
-    if btsp_required {
+    if state.btsp_required {
         info!("BTSP handshake required on UDS (FAMILY_ID set)");
     }
 
@@ -257,11 +256,7 @@ pub async fn start_uds_listener_at(
                     Ok((stream, _addr)) => {
                         let state = state.clone();
                         tokio::spawn(async move {
-                            if btsp_required {
-                                handle_uds_with_autodetect(stream, state).await;
-                            } else if let Err(e) = handle_uds_connection_raw(stream, state).await {
-                                warn!("UDS connection error: {e}");
-                            }
+                            handle_uds_with_autodetect(stream, state).await;
                         });
                     },
                     Err(e) => {
@@ -320,30 +315,17 @@ pub(crate) async fn handle_uds_with_autodetect(
         } => {
             handle_ribocipher_clear_uds(stream, state, pt).await;
         }
-        DetectedProtocol::LengthPrefixedBtsp(byte) => {
-            let peeked = crate::peek::PeekedStream::new(byte, stream);
-            if let Err(e) = handle_uds_connection_btsp(peeked, state).await {
-                warn!("UDS BTSP connection error: {e}");
-            }
-        }
-        DetectedProtocol::JsonLineBtsp(client_hello) => {
-            debug!("UDS: legacy auto-detect → JSON-line BTSP");
-            handle_uds_connection_btsp_jsonline(stream, state, client_hello).await;
-        }
-        DetectedProtocol::JsonRpc(first_request) => {
-            debug!("UDS: legacy auto-detect → raw JSON-RPC");
-            if let Err(e) = handle_uds_connection_raw_with_first(stream, state, first_request).await
-            {
-                warn!("UDS raw connection error (auto-detected): {e}");
-            }
-        }
-        DetectedProtocol::Unknown(obj) => {
-            warn!("UDS: unrecognized first-line protocol (no 'protocol' or 'jsonrpc' key): {obj}");
+        DetectedProtocol::Rejected { first_byte } => {
+            warn!(
+                first_byte,
+                "UDS: rejected unsignalled connection (riboCipher signal required)"
+            );
             let _ = write_jsonrpc_error(
                 &mut stream,
                 serde_json::Value::Null,
-                crate::handlers::jsonrpc::error_code::INVALID_REQUEST,
-                "Unrecognized protocol: first line must contain \"jsonrpc\" or \"protocol\" key",
+                -32002,
+                "riboCipher signal required. Send [0xEC, protocol_type] prefix. \
+                 See RIBOCIPHER_TRANSPORT_SIGNAL_STANDARD.md.",
             )
             .await;
         }
@@ -441,8 +423,7 @@ async fn write_jsonrpc_response(
 /// client negotiates ChaCha20-Poly1305, subsequent frames use encrypted
 /// AEAD framing; otherwise plaintext length-prefixed JSON-RPC continues.
 ///
-/// Generic over stream type to support [`PeekedStream`](crate::peek::PeekedStream)
-/// wrapping for first-byte auto-detection.
+/// Generic over stream type for riboCipher protocol routing.
 async fn handle_uds_connection_btsp(
     mut stream: impl tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send,
     state: crate::state::AppState,
@@ -645,61 +626,6 @@ async fn handle_post_jsonline_handshake(
     handle_uds_connection_raw(stream, state).await
 }
 
-/// Handle a UDS connection where the first JSON-RPC request has already been
-/// consumed by the auto-detect layer.
-///
-/// Processes `first_request` immediately, then enters the normal line-reading
-/// loop for subsequent requests.
-async fn handle_uds_connection_raw_with_first(
-    stream: tokio::net::UnixStream,
-    state: crate::state::AppState,
-    first_request: serde_json::Value,
-) -> std::result::Result<(), crate::ServiceError> {
-    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-
-    let (reader, mut writer) = tokio::io::split(stream);
-
-    if let Some(response) = crate::handlers::jsonrpc::process_single(&state, first_request).await {
-        let mut resp = serde_json::to_string(&response)?;
-        resp.push('\n');
-        writer.write_all(resp.as_bytes()).await?;
-        writer.flush().await?;
-    }
-
-    let mut lines = BufReader::new(reader).lines();
-
-    while let Some(line) = lines.next_line().await? {
-        if line.trim().is_empty() {
-            continue;
-        }
-
-        let request: serde_json::Value = match serde_json::from_str(&line) {
-            Ok(v) => v,
-            Err(e) => {
-                let err_response = serde_json::json!({
-                    "jsonrpc": "2.0",
-                    "error": {"code": crate::handlers::jsonrpc::error_code::PARSE_ERROR, "message": format!("Parse error: {e}")},
-                    "id": null
-                });
-                let mut resp = serde_json::to_string(&err_response)?;
-                resp.push('\n');
-                writer.write_all(resp.as_bytes()).await?;
-                writer.flush().await?;
-                continue;
-            },
-        };
-
-        if let Some(response) = crate::handlers::jsonrpc::process_single(&state, request).await {
-            let mut resp = serde_json::to_string(&response)?;
-            resp.push('\n');
-            writer.write_all(resp.as_bytes()).await?;
-            writer.flush().await?;
-        }
-    }
-
-    Ok(())
-}
-
 /// Handle a single UDS connection with raw newline-delimited JSON-RPC.
 ///
 /// Development mode (no `FAMILY_ID`): no handshake, newline framing.
@@ -707,8 +633,7 @@ async fn handle_uds_connection_raw_with_first(
 /// required but the client sent `{` as the first byte (health probes),
 /// and as the post-handshake mode for JSON-line BTSP.
 ///
-/// Generic over stream type to support [`PeekedStream`](crate::peek::PeekedStream)
-/// wrapping for first-byte auto-detection.
+/// Generic over stream type for riboCipher protocol routing.
 async fn handle_uds_connection_raw(
     stream: impl tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send,
     state: crate::state::AppState,

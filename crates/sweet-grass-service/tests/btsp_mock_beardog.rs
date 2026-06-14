@@ -346,6 +346,7 @@ mod btsp_tests {
         };
         use sweet_grass_service::btsp::{read_frame, write_frame};
         use sweet_grass_service::uds::start_uds_listener_at;
+        use tokio::io::AsyncWriteExt as _;
 
         let dir = tempfile::tempdir().expect("tempdir");
         let security_sock = dir.path().join("beardog-uds-full.sock");
@@ -388,6 +389,11 @@ mod btsp_tests {
                     let mut stream = tokio::net::UnixStream::connect(&uds_path)
                         .await
                         .expect("connect UDS");
+
+                    stream
+                        .write_all(&[0xEC, 0x02])
+                        .await
+                        .expect("write riboCipher BTSP binary signal");
 
                     let client_hello = ClientHello {
                         version: 1,
@@ -461,6 +467,7 @@ mod btsp_tests {
         };
         use sweet_grass_service::btsp::{read_frame, write_frame};
         use sweet_grass_service::tcp_jsonrpc::run_tcp_jsonrpc_listener;
+        use tokio::io::AsyncWriteExt as _;
 
         let dir = tempfile::tempdir().expect("tempdir");
         let security_sock = dir.path().join("beardog-tcp-full.sock");
@@ -505,6 +512,11 @@ mod btsp_tests {
                     let mut stream = tokio::net::TcpStream::connect(addr)
                         .await
                         .expect("connect TCP");
+
+                    stream
+                        .write_all(&[0xEC, 0x02])
+                        .await
+                        .expect("write riboCipher BTSP binary signal");
 
                     let client_hello = ClientHello {
                         version: 1,

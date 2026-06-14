@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! UDS roundtrip, protocol, and concurrent-load tests.
+//!
+//! All connections use riboCipher `[0xEC, 0x01]` signal prefix per Wave 113.
 
 use std::sync::Arc;
 
@@ -12,6 +14,15 @@ use sweet_grass_store::MemoryStore;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 use super::super::*;
+
+/// Prepend riboCipher clear + NDJSON signal and serialize a JSON-RPC request.
+fn ribocipher_payload(request: &serde_json::Value) -> Vec<u8> {
+    let mut payload = vec![0xEC, 0x01];
+    let mut req_str = serde_json::to_string(request).unwrap();
+    req_str.push('\n');
+    payload.extend_from_slice(req_str.as_bytes());
+    payload
+}
 
 #[tokio::test]
 async fn test_uds_roundtrip() {
@@ -40,9 +51,10 @@ async fn test_uds_roundtrip() {
         "params": {},
         "id": 1
     });
-    let mut req_str = serde_json::to_string(&request).unwrap();
-    req_str.push('\n');
-    writer.write_all(req_str.as_bytes()).await.unwrap();
+    writer
+        .write_all(&ribocipher_payload(&request))
+        .await
+        .unwrap();
 
     let mut lines = BufReader::new(reader).lines();
     let response_line = lines.next_line().await.unwrap().expect("response");
@@ -76,10 +88,9 @@ async fn test_uds_parse_error_returns_jsonrpc_error() {
         .expect("connect");
     let (reader, mut writer) = stream.into_split();
 
-    writer
-        .write_all(b"{ invalid json }\n")
-        .await
-        .expect("write");
+    let mut payload = vec![0xEC, 0x01];
+    payload.extend_from_slice(b"{ invalid json }\n");
+    writer.write_all(&payload).await.expect("write");
     writer.flush().await.expect("flush");
 
     let mut lines = BufReader::new(reader).lines();
@@ -117,7 +128,8 @@ async fn test_uds_empty_lines_skipped() {
         .expect("connect");
     let (reader, mut writer) = stream.into_split();
 
-    writer.write_all(b"\n").await.expect("write");
+    let mut payload = vec![0xEC, 0x01];
+    payload.extend_from_slice(b"\n");
     let request = serde_json::json!({
         "jsonrpc": "2.0",
         "method": "health.check",
@@ -126,7 +138,8 @@ async fn test_uds_empty_lines_skipped() {
     });
     let mut req_str = serde_json::to_string(&request).unwrap();
     req_str.push('\n');
-    writer.write_all(req_str.as_bytes()).await.unwrap();
+    payload.extend_from_slice(req_str.as_bytes());
+    writer.write_all(&payload).await.unwrap();
     writer.flush().await.expect("flush");
 
     let mut lines = BufReader::new(reader).lines();
@@ -176,9 +189,16 @@ async fn test_uds_concurrent_clients() {
                     "params": {},
                     "id": id
                 });
-                let mut req_str = serde_json::to_string(&request).unwrap();
-                req_str.push('\n');
-                writer.write_all(req_str.as_bytes()).await.unwrap();
+                if req_id == 0 {
+                    writer
+                        .write_all(&ribocipher_payload(&request))
+                        .await
+                        .unwrap();
+                } else {
+                    let mut req_str = serde_json::to_string(&request).unwrap();
+                    req_str.push('\n');
+                    writer.write_all(req_str.as_bytes()).await.unwrap();
+                }
                 writer.flush().await.unwrap();
 
                 let response_line = lines.next_line().await.unwrap().expect("response");
@@ -223,9 +243,11 @@ async fn test_uds_notification_no_response_then_request_ok() {
         "method": "health.check",
         "params": {},
     });
+    let mut payload = vec![0xEC, 0x01];
     let mut note_str = serde_json::to_string(&notification).unwrap();
     note_str.push('\n');
-    writer.write_all(note_str.as_bytes()).await.unwrap();
+    payload.extend_from_slice(note_str.as_bytes());
+    writer.write_all(&payload).await.unwrap();
 
     let follow_up = serde_json::json!({
         "jsonrpc": "2.0",
@@ -281,16 +303,23 @@ async fn test_uds_sequential_methods_on_one_connection() {
         (3_i64, "capabilities.list", "capabilities"),
     ];
 
-    for (id, method, key) in steps {
+    for (i, (id, method, key)) in steps.iter().enumerate() {
         let request = serde_json::json!({
             "jsonrpc": "2.0",
             "method": method,
             "params": {},
             "id": id
         });
-        let mut req_str = serde_json::to_string(&request).unwrap();
-        req_str.push('\n');
-        writer.write_all(req_str.as_bytes()).await.unwrap();
+        if i == 0 {
+            writer
+                .write_all(&ribocipher_payload(&request))
+                .await
+                .unwrap();
+        } else {
+            let mut req_str = serde_json::to_string(&request).unwrap();
+            req_str.push('\n');
+            writer.write_all(req_str.as_bytes()).await.unwrap();
+        }
         writer.flush().await.unwrap();
 
         let response_line = lines.next_line().await.unwrap().expect("response line");
@@ -298,7 +327,7 @@ async fn test_uds_sequential_methods_on_one_connection() {
             serde_json::from_str(&response_line).expect("parse response");
 
         assert_eq!(response["jsonrpc"], "2.0");
-        assert_eq!(response["id"], id);
+        assert_eq!(response["id"], *id);
         assert!(
             response["result"].get(key).is_some(),
             "result should contain {key}: {response}"
@@ -345,18 +374,6 @@ fn test_start_uds_listener_resolves_path_from_self_knowledge() {
     let primal_name = "uds-from-self-knowledge";
     let sock_path = dir.path().join(format!("{primal_name}.sock"));
 
-    let sk = SelfKnowledge {
-        name: primal_name.to_string(),
-        ..Default::default()
-    };
-    let store = Arc::new(BraidBackend::Memory(MemoryStore::new()));
-    let state = crate::state::AppState::with_self_knowledge(
-        store,
-        Did::new("did:key:z6MkUdsSelfKnowledge"),
-        sk,
-        "memory",
-    );
-
     temp_env::with_vars(
         [
             ("SWEETGRASS_SOCKET", None::<&str>),
@@ -366,6 +383,18 @@ fn test_start_uds_listener_resolves_path_from_self_knowledge() {
             (env_vars::BIOMEOS_SOCKET_DIR, Some(biome_dir.as_str())),
         ],
         || {
+            let sk = SelfKnowledge {
+                name: primal_name.to_string(),
+                ..Default::default()
+            };
+            let store = Arc::new(BraidBackend::Memory(MemoryStore::new()));
+            let state = crate::state::AppState::with_self_knowledge(
+                store,
+                Did::new("did:key:z6MkUdsSelfKnowledge"),
+                sk,
+                "memory",
+            );
+
             assert_eq!(
                 resolve_socket_path(Some(primal_name)),
                 sock_path,
@@ -396,9 +425,10 @@ fn test_start_uds_listener_resolves_path_from_self_knowledge() {
                     "params": {},
                     "id": 1
                 });
-                let mut req_str = serde_json::to_string(&request).unwrap();
-                req_str.push('\n');
-                writer.write_all(req_str.as_bytes()).await.unwrap();
+                writer
+                    .write_all(&ribocipher_payload(&request))
+                    .await
+                    .unwrap();
                 writer.flush().await.expect("flush");
 
                 let mut lines = BufReader::new(reader).lines();
@@ -446,9 +476,10 @@ async fn test_uds_stale_socket_file_removed_before_bind() {
         "params": {},
         "id": 42
     });
-    let mut req_str = serde_json::to_string(&request).unwrap();
-    req_str.push('\n');
-    writer.write_all(req_str.as_bytes()).await.unwrap();
+    writer
+        .write_all(&ribocipher_payload(&request))
+        .await
+        .unwrap();
     writer.flush().await.expect("flush");
 
     let mut lines = BufReader::new(reader).lines();
@@ -491,9 +522,10 @@ async fn test_uds_listener_creates_parent_directories() {
         "params": {},
         "id": 0
     });
-    let mut req_str = serde_json::to_string(&request).unwrap();
-    req_str.push('\n');
-    writer.write_all(req_str.as_bytes()).await.unwrap();
+    writer
+        .write_all(&ribocipher_payload(&request))
+        .await
+        .unwrap();
     writer.flush().await.expect("flush");
 
     let mut lines = BufReader::new(reader).lines();

@@ -134,67 +134,25 @@ async fn handle_tcp_with_autodetect(
         } => {
             handle_ribocipher_clear_tcp(stream, peer, state, pt).await;
         }
-        DetectedProtocol::LengthPrefixedBtsp(byte) => {
-            let peeked = crate::peek::PeekedStream::new(byte, stream);
-            if let Err(e) = handle_tcp_connection_btsp(peeked, state).await {
-                warn!("TCP BTSP connection from {peer}: {e}");
-            }
-        }
-        DetectedProtocol::JsonLineBtsp(client_hello) => {
-            debug!("TCP from {peer}: legacy auto-detect → JSON-line BTSP");
-            match crate::btsp::perform_server_handshake_jsonline_with(
-                &mut stream,
-                client_hello,
-                &state.security_socket_path,
-            )
-            .await
-            {
-                Ok(outcome) => {
-                    debug!(
-                        session = %outcome.complete.session_id,
-                        cipher = %outcome.complete.cipher,
-                        has_phase3_key = outcome.handshake_key.is_some(),
-                        "TCP BTSP JSON-line handshake from {peer} succeeded"
-                    );
-                    if let Err(e) =
-                        handle_tcp_post_jsonline(stream, state, outcome.handshake_key).await
-                    {
-                        warn!("TCP JSON-RPC from {peer} (post BTSP JSON-line): {e}");
-                    }
-                }
-                Err(e) => {
-                    warn!("TCP BTSP JSON-line handshake from {peer} failed: {e}");
-                }
-            }
-        }
-        DetectedProtocol::JsonRpc(rejected_request) => {
+        DetectedProtocol::Rejected { first_byte } => {
             use tokio::io::AsyncWriteExt;
             warn!(
-                "TCP from {peer}: raw JSON-RPC rejected — BTSP handshake required \
-                 (FAMILY_ID set). Use UDS for unauthenticated access or initiate \
-                 BTSP handshake on TCP."
+                first_byte,
+                "TCP from {peer}: rejected unsignalled connection (riboCipher signal required)"
             );
-            let id = rejected_request
-                .get("id")
-                .cloned()
-                .unwrap_or(serde_json::Value::Null);
             let err = serde_json::json!({
                 "jsonrpc": "2.0",
                 "error": {
-                    "code": -32001,
-                    "message": "BTSP handshake required on TCP when FAMILY_ID is set. \
-                                Use UDS for unauthenticated access.",
+                    "code": -32002,
+                    "message": "riboCipher signal required. Send [0xEC, protocol_type] prefix.",
                 },
-                "id": id,
+                "id": null,
             });
             if let Ok(mut resp) = serde_json::to_string(&err) {
                 resp.push('\n');
                 let _ = stream.write_all(resp.as_bytes()).await;
                 let _ = stream.flush().await;
             }
-        }
-        DetectedProtocol::Unknown(obj) => {
-            warn!("TCP from {peer}: unrecognized first-line protocol: {obj}");
         }
     }
 }
@@ -314,8 +272,7 @@ async fn handle_ribocipher_clear_tcp(
 /// handshake before exposing any JSON-RPC methods.  After the handshake,
 /// checks for Phase 3 `btsp.negotiate` to upgrade to encrypted framing.
 ///
-/// Generic over stream type to support [`PeekedStream`](crate::peek::PeekedStream)
-/// wrapping for first-byte auto-detection.
+/// Generic over stream type for riboCipher protocol routing.
 #[cfg(unix)]
 async fn handle_tcp_connection_btsp(
     mut stream: impl tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send,
@@ -480,8 +437,7 @@ async fn handle_tcp_post_jsonline(
 /// Also used for auto-detected plain JSON-RPC connections when BTSP is
 /// required but the client sent `{` as the first byte (health probes).
 ///
-/// Generic over stream type to support both `TcpStream` and
-/// [`PeekedStream`](crate::peek::PeekedStream).
+/// Generic over stream type for riboCipher protocol routing.
 async fn handle_tcp_connection_raw(
     stream: impl tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin + Send,
     state: crate::state::AppState,

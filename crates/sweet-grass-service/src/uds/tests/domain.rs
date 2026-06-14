@@ -3,14 +3,22 @@
 //! PG-52 domain method verification over UDS.
 //!
 //! Validates that `braid.create`, `braid.query`, and `provenance.graph`
-//! return well-formed JSON-RPC responses over UDS, covering both raw
-//! and auto-detected connection paths. Also exercises the composition
-//! single-shot pattern (one connection per method call).
+//! return well-formed JSON-RPC responses over UDS. All connections use
+//! riboCipher `[0xEC, 0x01]` signal prefix per Wave 113.
 
 use sweet_grass_core::agent::Did;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 use super::super::*;
+
+/// Prepend riboCipher clear + NDJSON signal and serialize a JSON-RPC request.
+fn ribocipher_payload(request: &serde_json::Value) -> Vec<u8> {
+    let mut payload = vec![0xEC, 0x01];
+    let mut req_str = serde_json::to_string(request).unwrap();
+    req_str.push('\n');
+    payload.extend_from_slice(req_str.as_bytes());
+    payload
+}
 
 #[tokio::test]
 async fn test_uds_braid_create_roundtrip() {
@@ -43,9 +51,7 @@ async fn test_uds_braid_create_roundtrip() {
         },
         "id": 1
     });
-    let mut req_str = serde_json::to_string(&request).unwrap();
-    req_str.push('\n');
-    writer.write_all(req_str.as_bytes()).await.unwrap();
+    writer.write_all(&ribocipher_payload(&request)).await.unwrap();
     writer.flush().await.expect("flush");
 
     let mut lines = BufReader::new(reader).lines();
@@ -104,9 +110,7 @@ async fn test_uds_braid_query_roundtrip() {
         },
         "id": 1
     });
-    let mut req_str = serde_json::to_string(&create_req).unwrap();
-    req_str.push('\n');
-    writer.write_all(req_str.as_bytes()).await.unwrap();
+    writer.write_all(&ribocipher_payload(&create_req)).await.unwrap();
     writer.flush().await.expect("flush");
 
     let create_resp = lines.next_line().await.unwrap().expect("create response");
@@ -188,9 +192,7 @@ async fn test_uds_provenance_graph_roundtrip() {
         },
         "id": 1
     });
-    let mut req_str = serde_json::to_string(&create_req).unwrap();
-    req_str.push('\n');
-    writer.write_all(req_str.as_bytes()).await.unwrap();
+    writer.write_all(&ribocipher_payload(&create_req)).await.unwrap();
     writer.flush().await.expect("flush");
 
     let create_resp = lines.next_line().await.unwrap().expect("create response");
@@ -231,7 +233,7 @@ async fn test_uds_provenance_graph_roundtrip() {
 /// Composition-like single-shot: create + query on separate connections.
 ///
 /// Simulates how shell compositions call sweetGrass: one connection per
-/// method call, send request, read response, disconnect.
+/// method call, send riboCipher signal + request, read response, disconnect.
 #[tokio::test]
 async fn test_uds_composition_pattern_single_shot() {
     let dir = tempfile::tempdir().expect("tempdir");
@@ -258,9 +260,7 @@ async fn test_uds_composition_pattern_single_shot() {
                     .expect("connect");
                 let (reader, mut writer) = stream.into_split();
 
-                let mut req_str = serde_json::to_string(&request).unwrap();
-                req_str.push('\n');
-                writer.write_all(req_str.as_bytes()).await.unwrap();
+                writer.write_all(&ribocipher_payload(&request)).await.unwrap();
                 writer.flush().await.expect("flush");
 
                 let mut lines = BufReader::new(reader).lines();
@@ -391,9 +391,7 @@ async fn test_uds_braid_create_tower_signed() {
         },
         "id": 42
     });
-    let mut req_str = serde_json::to_string(&request).unwrap();
-    req_str.push('\n');
-    writer.write_all(req_str.as_bytes()).await.unwrap();
+    writer.write_all(&ribocipher_payload(&request)).await.unwrap();
     writer.flush().await.expect("flush");
 
     let mut lines = BufReader::new(reader).lines();
@@ -508,9 +506,7 @@ async fn test_uds_anchoring_anchor_tower_signed() {
         },
         "id": 1
     });
-    let mut req_str = serde_json::to_string(&create_req).unwrap();
-    req_str.push('\n');
-    writer.write_all(req_str.as_bytes()).await.unwrap();
+    writer.write_all(&ribocipher_payload(&create_req)).await.unwrap();
     writer.flush().await.expect("flush");
 
     let mut lines = BufReader::new(reader).lines();
@@ -537,9 +533,7 @@ async fn test_uds_anchoring_anchor_tower_signed() {
         },
         "id": 2
     });
-    let mut req_str = serde_json::to_string(&anchor_req).unwrap();
-    req_str.push('\n');
-    writer2.write_all(req_str.as_bytes()).await.unwrap();
+    writer2.write_all(&ribocipher_payload(&anchor_req)).await.unwrap();
     writer2.flush().await.expect("flush anchor");
 
     let mut lines2 = BufReader::new(reader2).lines();

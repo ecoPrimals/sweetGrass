@@ -24,14 +24,16 @@
 //! | 0x03 | BTSP JSON-line  |
 //! | 0x04 | HTTP/1.1        |
 //!
-//! ## Legacy Fallback (deprecation period)
+//! ## Unsignalled Connection Policy (Wave 113)
 //!
-//! Connections not starting with `0xEC`/`0xED`/`0xEE` are classified via
-//! the legacy peek path with an ERROR log. Deprecation timeline:
+//! Connections not starting with `0xEC`/`0xED`/`0xEE` are **rejected**
+//! with JSON-RPC error code `-32002` ("riboCipher signal required").
+//!
+//! Deprecation timeline:
 //! - Wave 111: WARN (shipped)
-//! - Wave 112: **ERROR** (current)
-//! - Wave 113: REJECT (`-32002`)
-//! - Wave 114: REMOVE legacy peek code
+//! - Wave 112: ERROR (shipped)
+//! - Wave 113: **REJECT** (`-32002`) (current)
+//! - Wave 114: REMOVE legacy peek code entirely
 //!
 //! This module is the **reference implementation** for the ecosystem.
 
@@ -40,14 +42,6 @@ use std::task::{Context, Poll};
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, ReadBuf};
 use tracing::error;
-
-use crate::btsp::protocol::ClientHello;
-
-/// First byte of any JSON object (opening brace).
-pub const JSON_FIRST_BYTE: u8 = b'{';
-
-/// Maximum size for the first line during auto-detection (64 KiB).
-const MAX_FIRST_LINE: usize = 64 * 1024;
 
 /// riboCipher signal prefix: clear (local, trusted wire).
 pub const RIBOCIPHER_CLEAR: u8 = 0xEC;
@@ -81,32 +75,23 @@ pub enum DetectedProtocol {
         protocol_type: u8,
     },
 
-    /// Length-prefixed BTSP — legacy unsignalled connection.
-    /// The byte is stored for re-presentation via [`PeekedStream`].
-    LengthPrefixedBtsp(u8),
-
-    /// JSON-line BTSP — first line contained `"protocol":"btsp"`.
-    /// The `ClientHello` was extracted from the parsed line.
-    JsonLineBtsp(ClientHello),
-
-    /// JSON-RPC 2.0 — first line contained `"jsonrpc":"2.0"`.
-    /// The parsed request is carried for immediate processing.
-    JsonRpc(serde_json::Value),
-
-    /// Unrecognized first line (valid JSON but no protocol marker).
-    Unknown(serde_json::Value),
+    /// Unsignalled connection rejected per Wave 113 deprecation policy.
+    /// The first byte is preserved for error reporting.
+    Rejected {
+        /// The first non-whitespace byte that was not a riboCipher signal.
+        first_byte: u8,
+    },
 }
 
 /// Read the first bytes from `stream` and determine the protocol.
 ///
-/// **riboCipher-first**: checks for signal prefix bytes (`0xEC`/`0xED`/`0xEE`)
-/// before falling back to legacy peek logic. Unsignalled connections log a
-/// WARN per the Wave 111 deprecation schedule.
+/// **riboCipher-only**: checks for signal prefix bytes (`0xEC`/`0xED`/`0xEE`).
+/// Unsignalled connections are **rejected** per the Wave 113 deprecation
+/// policy — no legacy peek fallback.
 ///
 /// # Errors
 ///
-/// Returns `Err` on I/O failure, unsupported riboCipher tiers (mito/nuclear),
-/// or if the first line exceeds 64 KiB.
+/// Returns `Err` on I/O failure or unsupported riboCipher tiers (mito/nuclear).
 pub async fn detect_protocol<S: AsyncRead + Unpin>(
     stream: &mut S,
 ) -> std::io::Result<DetectedProtocol> {
@@ -117,81 +102,32 @@ pub async fn detect_protocol<S: AsyncRead + Unpin>(
         stream.read_exact(&mut first).await?;
     }
 
-    // --- riboCipher signal detection (check BEFORE legacy peek) ---
-
     match first[0] {
         RIBOCIPHER_CLEAR => {
             let mut pt = [0u8; 1];
             stream.read_exact(&mut pt).await?;
-            return Ok(DetectedProtocol::RiboCipherClear {
+            Ok(DetectedProtocol::RiboCipherClear {
                 protocol_type: pt[0],
-            });
+            })
         }
-        RIBOCIPHER_MITO => {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Unsupported,
-                "riboCipher mito-obfuscated tier not yet implemented",
-            ));
-        }
-        RIBOCIPHER_NUCLEAR => {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Unsupported,
-                "riboCipher nuclear-sealed tier not yet implemented",
-            ));
-        }
-        _ => {}
-    }
-
-    // --- Legacy fallback (deprecated — Wave 112 ERROR) ---
-
-    error!(
-        first_byte = first[0],
-        "DEPRECATED: unsignalled connection (no riboCipher prefix). \
-         Falling back to legacy peek detection. \
-         Clients MUST send [0xEC, protocol_type] prefix. \
-         Wave 113: connections without signal will be REJECTED."
-    );
-
-    if first[0] != JSON_FIRST_BYTE {
-        return Ok(DetectedProtocol::LengthPrefixedBtsp(first[0]));
-    }
-
-    let mut line_buf = vec![b'{'];
-    loop {
-        let mut byte = [0u8; 1];
-        match stream.read_exact(&mut byte).await {
-            Ok(_) => {}
-            Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
-                break;
-            }
-            Err(e) => return Err(e),
-        }
-        if byte[0] == b'\n' {
-            break;
-        }
-        line_buf.push(byte[0]);
-        if line_buf.len() > MAX_FIRST_LINE {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "first line exceeds 64 KiB during protocol detection",
-            ));
+        RIBOCIPHER_MITO => Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "riboCipher mito-obfuscated tier not yet implemented",
+        )),
+        RIBOCIPHER_NUCLEAR => Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "riboCipher nuclear-sealed tier not yet implemented",
+        )),
+        byte => {
+            error!(
+                first_byte = byte,
+                "REJECTED: unsignalled connection (no riboCipher prefix). \
+                 Clients MUST send [0xEC, protocol_type] prefix. \
+                 See RIBOCIPHER_TRANSPORT_SIGNAL_STANDARD.md."
+            );
+            Ok(DetectedProtocol::Rejected { first_byte: byte })
         }
     }
-
-    let parsed: serde_json::Value = serde_json::from_slice(&line_buf)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-
-    if parsed.get("protocol").and_then(serde_json::Value::as_str) == Some("btsp") {
-        let hello: ClientHello = serde_json::from_value(parsed)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-        return Ok(DetectedProtocol::JsonLineBtsp(hello));
-    }
-
-    if parsed.get("jsonrpc").is_some() {
-        return Ok(DetectedProtocol::JsonRpc(parsed));
-    }
-
-    Ok(DetectedProtocol::Unknown(parsed))
 }
 
 /// A stream wrapper that re-yields a single consumed byte before delegating
@@ -263,7 +199,7 @@ mod tests {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::NDJSON_JSONRPC);
             }
-            other => panic!("expected RiboCipherClear, got {}", variant_name(&other)),
+            DetectedProtocol::Rejected { .. } => panic!("expected RiboCipherClear, got Rejected"),
         }
     }
 
@@ -276,7 +212,7 @@ mod tests {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::PROBE);
             }
-            other => panic!("expected RiboCipherClear, got {}", variant_name(&other)),
+            DetectedProtocol::Rejected { .. } => panic!("expected RiboCipherClear, got Rejected"),
         }
     }
 
@@ -289,7 +225,7 @@ mod tests {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::BTSP_BINARY);
             }
-            other => panic!("expected RiboCipherClear, got {}", variant_name(&other)),
+            DetectedProtocol::Rejected { .. } => panic!("expected RiboCipherClear, got Rejected"),
         }
     }
 
@@ -302,7 +238,7 @@ mod tests {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::BTSP_JSONLINE);
             }
-            other => panic!("expected RiboCipherClear, got {}", variant_name(&other)),
+            DetectedProtocol::Rejected { .. } => panic!("expected RiboCipherClear, got Rejected"),
         }
     }
 
@@ -315,7 +251,7 @@ mod tests {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::HTTP);
             }
-            other => panic!("expected RiboCipherClear, got {}", variant_name(&other)),
+            DetectedProtocol::Rejected { .. } => panic!("expected RiboCipherClear, got Rejected"),
         }
     }
 
@@ -328,7 +264,7 @@ mod tests {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::ENCRYPTED_RESUME);
             }
-            other => panic!("expected RiboCipherClear, got {}", variant_name(&other)),
+            DetectedProtocol::Rejected { .. } => panic!("expected RiboCipherClear, got Rejected"),
         }
     }
 
@@ -376,7 +312,54 @@ mod tests {
         );
     }
 
-    // --- Legacy fallback tests (unsignalled connections) ---
+    // --- Unsignalled connection rejection tests (Wave 113) ---
+
+    #[tokio::test]
+    async fn unsignalled_json_rejected() {
+        let line = b"{\"jsonrpc\":\"2.0\",\"method\":\"health.check\",\"params\":{},\"id\":1}\n";
+        let mut cursor = std::io::Cursor::new(line.to_vec());
+        let result = detect_protocol(&mut cursor).await.unwrap();
+        assert!(
+            matches!(result, DetectedProtocol::Rejected { first_byte: b'{' }),
+            "unsignalled JSON should be rejected, not parsed"
+        );
+    }
+
+    #[tokio::test]
+    async fn unsignalled_binary_rejected() {
+        let data = vec![0x00, 0x00, 0x00, 0x10];
+        let mut cursor = std::io::Cursor::new(data);
+        let result = detect_protocol(&mut cursor).await.unwrap();
+        assert!(
+            matches!(result, DetectedProtocol::Rejected { first_byte: 0x00 }),
+            "unsignalled binary should be rejected"
+        );
+    }
+
+    #[tokio::test]
+    async fn unsignalled_http_verb_rejected() {
+        let data = b"GET / HTTP/1.1\r\n\r\n";
+        let mut cursor = std::io::Cursor::new(data.to_vec());
+        let result = detect_protocol(&mut cursor).await.unwrap();
+        assert!(
+            matches!(result, DetectedProtocol::Rejected { first_byte: b'G' }),
+            "unsignalled HTTP should be rejected"
+        );
+    }
+
+    #[tokio::test]
+    async fn unsignalled_with_leading_whitespace_rejected() {
+        let line =
+            b"\n \t{\"jsonrpc\":\"2.0\",\"method\":\"health.check\",\"params\":{},\"id\":1}\n";
+        let mut cursor = std::io::Cursor::new(line.to_vec());
+        let result = detect_protocol(&mut cursor).await.unwrap();
+        assert!(
+            matches!(result, DetectedProtocol::Rejected { first_byte: b'{' }),
+            "unsignalled JSON after whitespace should still be rejected"
+        );
+    }
+
+    // --- PeekedStream tests (retained for Wave 114 removal) ---
 
     #[tokio::test]
     async fn peeked_stream_prepends_byte() {
@@ -394,17 +377,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn peeked_stream_read_exact() {
-        let data = b"world";
-        let cursor = std::io::Cursor::new(data.to_vec());
-        let mut peeked = PeekedStream::new(b'W', cursor);
-
-        let mut buf = vec![0u8; 6];
-        peeked.read_exact(&mut buf).await.unwrap();
-        assert_eq!(&buf, b"Wworld");
-    }
-
-    #[tokio::test]
     async fn peeked_stream_write_passes_through() {
         let inner = Vec::<u8>::new();
         let mut peeked = PeekedStream::new(b'x', inner);
@@ -413,119 +385,4 @@ mod tests {
         assert_eq!(&peeked.inner, b"test");
     }
 
-    #[tokio::test]
-    async fn detect_length_prefixed_btsp() {
-        let data = vec![0x00, 0x00, 0x00, 0x10];
-        let mut cursor = std::io::Cursor::new(data);
-        let result = detect_protocol(&mut cursor).await.unwrap();
-        assert!(
-            matches!(result, DetectedProtocol::LengthPrefixedBtsp(0x00)),
-            "first byte 0x00 should route to length-prefixed BTSP"
-        );
-    }
-
-    #[tokio::test]
-    async fn detect_jsonline_btsp() {
-        let line = b"{\"protocol\":\"btsp\",\"version\":1,\"client_ephemeral_pub\":\"dGVzdA==\"}\n";
-        let mut cursor = std::io::Cursor::new(line.to_vec());
-        let result = detect_protocol(&mut cursor).await.unwrap();
-        match result {
-            DetectedProtocol::JsonLineBtsp(hello) => {
-                assert_eq!(hello.version, 1);
-                assert_eq!(hello.client_ephemeral_pub, "dGVzdA==");
-            }
-            other => panic!("expected JsonLineBtsp, got {}", variant_name(&other)),
-        }
-    }
-
-    #[tokio::test]
-    async fn detect_jsonrpc() {
-        let line = b"{\"jsonrpc\":\"2.0\",\"method\":\"health.check\",\"params\":{},\"id\":1}\n";
-        let mut cursor = std::io::Cursor::new(line.to_vec());
-        let result = detect_protocol(&mut cursor).await.unwrap();
-        match result {
-            DetectedProtocol::JsonRpc(val) => {
-                assert_eq!(val["method"], "health.check");
-            }
-            other => panic!("expected JsonRpc, got {}", variant_name(&other)),
-        }
-    }
-
-    #[tokio::test]
-    async fn detect_unknown_json() {
-        let line = b"{\"type\":\"something_else\"}\n";
-        let mut cursor = std::io::Cursor::new(line.to_vec());
-        let result = detect_protocol(&mut cursor).await.unwrap();
-        assert!(
-            matches!(result, DetectedProtocol::Unknown(_)),
-            "JSON without protocol or jsonrpc should be Unknown"
-        );
-    }
-
-    #[tokio::test]
-    async fn detect_jsonrpc_eof_terminated() {
-        let line = b"{\"jsonrpc\":\"2.0\",\"method\":\"braid.create\",\"params\":{},\"id\":1}";
-        let mut cursor = std::io::Cursor::new(line.to_vec());
-        let result = detect_protocol(&mut cursor).await.unwrap();
-        match result {
-            DetectedProtocol::JsonRpc(val) => {
-                assert_eq!(val["method"], "braid.create");
-                assert_eq!(val["id"], 1);
-            }
-            other => panic!(
-                "expected JsonRpc for EOF-terminated line, got {}",
-                variant_name(&other)
-            ),
-        }
-    }
-
-    #[tokio::test]
-    async fn detect_btsp_eof_terminated() {
-        let line = b"{\"protocol\":\"btsp\",\"version\":1,\"client_ephemeral_pub\":\"dGVzdA==\"}";
-        let mut cursor = std::io::Cursor::new(line.to_vec());
-        let result = detect_protocol(&mut cursor).await.unwrap();
-        assert!(
-            matches!(result, DetectedProtocol::JsonLineBtsp(_)),
-            "EOF-terminated BTSP line should still be detected"
-        );
-    }
-
-    #[tokio::test]
-    async fn detect_jsonrpc_with_leading_whitespace() {
-        let line =
-            b"\n \t{\"jsonrpc\":\"2.0\",\"method\":\"health.check\",\"params\":{},\"id\":1}\n";
-        let mut cursor = std::io::Cursor::new(line.to_vec());
-        let result = detect_protocol(&mut cursor).await.unwrap();
-        match result {
-            DetectedProtocol::JsonRpc(val) => {
-                assert_eq!(val["method"], "health.check");
-            }
-            other => panic!(
-                "leading whitespace should not misroute to BTSP, got {}",
-                variant_name(&other)
-            ),
-        }
-    }
-
-    #[tokio::test]
-    async fn detect_btsp_with_leading_newline() {
-        let line =
-            b"\r\n{\"protocol\":\"btsp\",\"version\":1,\"client_ephemeral_pub\":\"dGVzdA==\"}\n";
-        let mut cursor = std::io::Cursor::new(line.to_vec());
-        let result = detect_protocol(&mut cursor).await.unwrap();
-        assert!(
-            matches!(result, DetectedProtocol::JsonLineBtsp(_)),
-            "leading CRLF should still detect BTSP handshake"
-        );
-    }
-
-    fn variant_name(d: &DetectedProtocol) -> &'static str {
-        match d {
-            DetectedProtocol::RiboCipherClear { .. } => "RiboCipherClear",
-            DetectedProtocol::LengthPrefixedBtsp(_) => "LengthPrefixedBtsp",
-            DetectedProtocol::JsonLineBtsp(_) => "JsonLineBtsp",
-            DetectedProtocol::JsonRpc(_) => "JsonRpc",
-            DetectedProtocol::Unknown(_) => "Unknown",
-        }
-    }
 }

@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.58] - 2026-06-14
+
+### riboCipher REJECT — Legacy Peek Removal (Wave 113)
+
+#### Changed
+- **Unsignalled connections now REJECTED with `-32002`** — connections without
+  `[0xEC, protocol_type]` riboCipher prefix are immediately rejected instead
+  of falling through to legacy peek detection. Error message directs clients
+  to use riboCipher signal prefix per `RIBOCIPHER_TRANSPORT_SIGNAL_STANDARD.md`
+- **UDS listener always uses protocol detection** — `start_uds_listener_at`
+  now routes ALL connections through `handle_uds_with_autodetect` regardless
+  of `btsp_required` flag, since riboCipher is mandatory
+- **`DetectedProtocol` simplified** — removed `LengthPrefixedBtsp`,
+  `JsonLineBtsp`, `JsonRpc`, `Unknown` variants; only `RiboCipherClear` and
+  `Rejected` remain
+
+#### Removed
+- **Legacy peek fallback code** — the first-line JSON parsing loop, BTSP
+  JSON-line detection, and raw JSON-RPC auto-detection in `detect_protocol`
+  are removed. All protocol routing now goes through riboCipher signals
+- **`handle_uds_connection_raw_with_first`** — dead code after legacy
+  `JsonRpc` variant removal
+- **`JSON_FIRST_BYTE` / `MAX_FIRST_LINE` constants** — unused after legacy
+  peek removal
+- **`ClientHello` import in `peek.rs`** — no longer needed
+
+#### Tests
+- All UDS roundtrip, domain, and BTSP integration tests updated to send
+  `[0xEC, 0x01]` (NDJSON) or `[0xEC, 0x02]` (BTSP binary) riboCipher prefix
+- Added `test_uds_unsignalled_json_rejected` to verify `-32002` rejection
+- Legacy auto-detect tests replaced with riboCipher-aware equivalents
+- 1,640 tests pass, 0 failures
+
 ## [0.7.57] - 2026-06-13
 
 ### riboCipher Transport Signal Convergence (Wave 111, Stream 7)
