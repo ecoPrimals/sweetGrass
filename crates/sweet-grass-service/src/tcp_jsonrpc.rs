@@ -131,6 +131,9 @@ async fn handle_tcp_with_autodetect(
     match protocol {
         DetectedProtocol::RiboCipherClear {
             protocol_type: pt,
+        }
+        | DetectedProtocol::RiboCipherMito {
+            protocol_type: pt,
         } => {
             handle_ribocipher_clear_tcp(stream, peer, state, pt).await;
         }
@@ -144,7 +147,7 @@ async fn handle_tcp_with_autodetect(
                 "jsonrpc": "2.0",
                 "error": {
                     "code": -32002,
-                    "message": "riboCipher signal required. Send [0xEC, protocol_type] prefix.",
+                    "message": "riboCipher signal required. Send [0xEC/0xED, protocol_type] prefix.",
                 },
                 "id": null,
             });

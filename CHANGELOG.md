@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.59] - 2026-06-16
+
+### Genetics-Layer Wiring: Mito-Beacon Acceptance (Wave 114)
+
+#### Added
+- **Mito-beacon (`0xED`) signal acceptance** — `detect_protocol` now accepts
+  both `0xEC` (clear) and `0xED` (mito-obfuscated) riboCipher tiers, reading
+  the protocol type byte and routing to the same handlers. This enables ABG
+  relay/mesh transport via mito-beacon group membership keys
+- **`DetectedProtocol::RiboCipherMito` variant** — captures mito-beacon
+  detection distinctly from clear signal for future obfuscation layer support
+- **Mito-beacon unit tests** — `ribocipher_mito_probe`, `ribocipher_mito_jsonrpc`,
+  `ribocipher_mito_btsp_binary` verify protocol detection
+- **Mito-beacon integration tests** — `test_uds_mito_beacon_jsonrpc` and
+  `test_uds_mito_beacon_probe` verify end-to-end UDS routing via `0xED` prefix
+
+#### Changed
+- UDS and TCP handlers use `|` pattern matching to route both `RiboCipherClear`
+  and `RiboCipherMito` through the same dispatch logic
+- Error messages updated to reference `[0xEC/0xED, protocol_type]` prefix
+
+#### Tests
+- 1,644 tests pass, 0 failures
+
 ## [0.7.58] - 2026-06-14
 
 ### riboCipher REJECT — Legacy Peek Removal (Wave 113)

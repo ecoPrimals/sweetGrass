@@ -24,16 +24,16 @@
 //! | 0x03 | BTSP JSON-line  |
 //! | 0x04 | HTTP/1.1        |
 //!
-//! ## Unsignalled Connection Policy (Wave 113)
+//! ## Genetics-Layer Acceptance (Wave 114)
 //!
-//! Connections not starting with `0xEC`/`0xED`/`0xEE` are **rejected**
-//! with JSON-RPC error code `-32002` ("riboCipher signal required").
+//! Both mito-beacon tiers are accepted:
+//! - `0xEC` (clear) — local/trusted wire, plaintext protocol
+//! - `0xED` (mito-obfuscated) — relay/mesh, group membership transport
 //!
-//! Deprecation timeline:
-//! - Wave 111: WARN (shipped)
-//! - Wave 112: ERROR (shipped)
-//! - Wave 113: **REJECT** (`-32002`) (current)
-//! - Wave 114: REMOVE legacy peek code entirely
+//! Nuclear tier (`0xEE`) is deferred to Wave 115+.
+//!
+//! Unsignalled connections (no riboCipher prefix) are **rejected** with
+//! JSON-RPC error code `-32002`.
 //!
 //! This module is the **reference implementation** for the ecosystem.
 
@@ -75,6 +75,14 @@ pub enum DetectedProtocol {
         protocol_type: u8,
     },
 
+    /// riboCipher mito-beacon signal — group membership transport.
+    /// Routes identically to clear for now; obfuscation layer is
+    /// handled at the relay/transport level, not application level.
+    RiboCipherMito {
+        /// The protocol type byte from the signal envelope.
+        protocol_type: u8,
+    },
+
     /// Unsignalled connection rejected per Wave 113 deprecation policy.
     /// The first byte is preserved for error reporting.
     Rejected {
@@ -91,7 +99,7 @@ pub enum DetectedProtocol {
 ///
 /// # Errors
 ///
-/// Returns `Err` on I/O failure or unsupported riboCipher tiers (mito/nuclear).
+/// Returns `Err` on I/O failure or unsupported riboCipher tiers (nuclear).
 pub async fn detect_protocol<S: AsyncRead + Unpin>(
     stream: &mut S,
 ) -> std::io::Result<DetectedProtocol> {
@@ -110,10 +118,13 @@ pub async fn detect_protocol<S: AsyncRead + Unpin>(
                 protocol_type: pt[0],
             })
         }
-        RIBOCIPHER_MITO => Err(std::io::Error::new(
-            std::io::ErrorKind::Unsupported,
-            "riboCipher mito-obfuscated tier not yet implemented",
-        )),
+        RIBOCIPHER_MITO => {
+            let mut pt = [0u8; 1];
+            stream.read_exact(&mut pt).await?;
+            Ok(DetectedProtocol::RiboCipherMito {
+                protocol_type: pt[0],
+            })
+        }
         RIBOCIPHER_NUCLEAR => Err(std::io::Error::new(
             std::io::ErrorKind::Unsupported,
             "riboCipher nuclear-sealed tier not yet implemented",
@@ -122,7 +133,7 @@ pub async fn detect_protocol<S: AsyncRead + Unpin>(
             error!(
                 first_byte = byte,
                 "REJECTED: unsignalled connection (no riboCipher prefix). \
-                 Clients MUST send [0xEC, protocol_type] prefix. \
+                 Clients MUST send [0xEC/0xED, protocol_type] prefix. \
                  See RIBOCIPHER_TRANSPORT_SIGNAL_STANDARD.md."
             );
             Ok(DetectedProtocol::Rejected { first_byte: byte })
@@ -199,7 +210,7 @@ mod tests {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::NDJSON_JSONRPC);
             }
-            DetectedProtocol::Rejected { .. } => panic!("expected RiboCipherClear, got Rejected"),
+            other => panic!("expected RiboCipherClear, got {other:?}"),
         }
     }
 
@@ -212,7 +223,7 @@ mod tests {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::PROBE);
             }
-            DetectedProtocol::Rejected { .. } => panic!("expected RiboCipherClear, got Rejected"),
+            other => panic!("expected RiboCipherClear, got {other:?}"),
         }
     }
 
@@ -225,7 +236,7 @@ mod tests {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::BTSP_BINARY);
             }
-            DetectedProtocol::Rejected { .. } => panic!("expected RiboCipherClear, got Rejected"),
+            other => panic!("expected RiboCipherClear, got {other:?}"),
         }
     }
 
@@ -238,7 +249,7 @@ mod tests {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::BTSP_JSONLINE);
             }
-            DetectedProtocol::Rejected { .. } => panic!("expected RiboCipherClear, got Rejected"),
+            other => panic!("expected RiboCipherClear, got {other:?}"),
         }
     }
 
@@ -251,7 +262,7 @@ mod tests {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::HTTP);
             }
-            DetectedProtocol::Rejected { .. } => panic!("expected RiboCipherClear, got Rejected"),
+            other => panic!("expected RiboCipherClear, got {other:?}"),
         }
     }
 
@@ -264,21 +275,55 @@ mod tests {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::ENCRYPTED_RESUME);
             }
-            DetectedProtocol::Rejected { .. } => panic!("expected RiboCipherClear, got Rejected"),
+            other => panic!("expected RiboCipherClear, got {other:?}"),
         }
     }
 
     #[tokio::test]
-    async fn ribocipher_mito_returns_unsupported() {
-        let data = vec![RIBOCIPHER_MITO, 0x00, 0x00, 0x00, 0x00];
+    async fn ribocipher_mito_probe() {
+        let data = vec![RIBOCIPHER_MITO, protocol_type::PROBE];
         let mut cursor = std::io::Cursor::new(data);
-        let result = detect_protocol(&mut cursor).await;
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert_eq!(err.kind(), std::io::ErrorKind::Unsupported);
+        let result = detect_protocol(&mut cursor).await.unwrap();
         assert!(
-            err.to_string().contains("mito-obfuscated"),
-            "error should mention mito tier"
+            matches!(
+                result,
+                DetectedProtocol::RiboCipherMito {
+                    protocol_type: protocol_type::PROBE
+                }
+            ),
+            "mito probe should be accepted"
+        );
+    }
+
+    #[tokio::test]
+    async fn ribocipher_mito_jsonrpc() {
+        let data = vec![RIBOCIPHER_MITO, protocol_type::NDJSON_JSONRPC];
+        let mut cursor = std::io::Cursor::new(data);
+        let result = detect_protocol(&mut cursor).await.unwrap();
+        assert!(
+            matches!(
+                result,
+                DetectedProtocol::RiboCipherMito {
+                    protocol_type: protocol_type::NDJSON_JSONRPC
+                }
+            ),
+            "mito JSON-RPC should be accepted"
+        );
+    }
+
+    #[tokio::test]
+    async fn ribocipher_mito_btsp_binary() {
+        let data = vec![RIBOCIPHER_MITO, protocol_type::BTSP_BINARY];
+        let mut cursor = std::io::Cursor::new(data);
+        let result = detect_protocol(&mut cursor).await.unwrap();
+        assert!(
+            matches!(
+                result,
+                DetectedProtocol::RiboCipherMito {
+                    protocol_type: protocol_type::BTSP_BINARY
+                }
+            ),
+            "mito BTSP binary should be accepted"
         );
     }
 

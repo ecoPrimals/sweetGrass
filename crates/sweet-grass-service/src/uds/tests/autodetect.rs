@@ -308,3 +308,102 @@ async fn test_uds_unsignalled_json_rejected() {
 
     listener_handle.abort();
 }
+
+// ==================== Mito-beacon (0xED) signal tests (Wave 114) ====================
+
+/// Mito-beacon signal (0xED 0x01) routes to NDJSON JSON-RPC handler.
+#[tokio::test]
+async fn test_uds_mito_beacon_jsonrpc() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let sock_path = dir.path().join("mito-jsonrpc.sock");
+
+    let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkMitoBeacon"));
+
+    let listener = tokio::net::UnixListener::bind(&sock_path).expect("bind");
+    let state_clone = state.clone();
+
+    let listener_handle = tokio::spawn(async move {
+        if let Ok((stream, _)) = listener.accept().await {
+            crate::uds::handle_uds_with_autodetect(stream, state_clone).await;
+        }
+    });
+
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+    let stream = tokio::net::UnixStream::connect(&sock_path)
+        .await
+        .expect("connect");
+    let (reader, mut writer) = stream.into_split();
+
+    let mut payload = vec![0xED, 0x01];
+    let request = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "health.check",
+        "params": {},
+        "id": 1
+    });
+    let mut req_str = serde_json::to_string(&request).unwrap();
+    req_str.push('\n');
+    payload.extend_from_slice(req_str.as_bytes());
+
+    writer.write_all(&payload).await.unwrap();
+    writer.flush().await.expect("flush");
+
+    let mut lines = BufReader::new(reader).lines();
+    let response_line = tokio::time::timeout(std::time::Duration::from_secs(2), lines.next_line())
+        .await
+        .expect("timeout waiting for mito-beacon response")
+        .unwrap()
+        .expect("response");
+
+    let response: serde_json::Value =
+        serde_json::from_str(&response_line).expect("parse response");
+
+    assert_eq!(response["jsonrpc"], "2.0");
+    assert_eq!(response["id"], 1);
+    assert_eq!(response["result"]["status"], "healthy");
+
+    listener_handle.abort();
+}
+
+/// Mito-beacon probe (0xED 0x00) returns lightweight health.
+#[tokio::test]
+async fn test_uds_mito_beacon_probe() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let sock_path = dir.path().join("mito-probe.sock");
+
+    let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkMitoProbe"));
+
+    let listener = tokio::net::UnixListener::bind(&sock_path).expect("bind");
+    let state_clone = state.clone();
+
+    let listener_handle = tokio::spawn(async move {
+        if let Ok((stream, _)) = listener.accept().await {
+            crate::uds::handle_uds_with_autodetect(stream, state_clone).await;
+        }
+    });
+
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+    let stream = tokio::net::UnixStream::connect(&sock_path)
+        .await
+        .expect("connect");
+    let (reader, mut writer) = stream.into_split();
+
+    writer.write_all(&[0xED, 0x00]).await.unwrap();
+    writer.flush().await.expect("flush");
+
+    let mut lines = BufReader::new(reader).lines();
+    let response_line = tokio::time::timeout(std::time::Duration::from_secs(2), lines.next_line())
+        .await
+        .expect("timeout waiting for mito probe response")
+        .unwrap()
+        .expect("response");
+
+    let response: serde_json::Value =
+        serde_json::from_str(&response_line).expect("parse response");
+
+    assert_eq!(response["result"]["status"], "healthy");
+
+    listener_handle.abort();
+}

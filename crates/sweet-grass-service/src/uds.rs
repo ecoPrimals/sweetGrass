@@ -312,6 +312,9 @@ pub(crate) async fn handle_uds_with_autodetect(
     match protocol {
         DetectedProtocol::RiboCipherClear {
             protocol_type: pt,
+        }
+        | DetectedProtocol::RiboCipherMito {
+            protocol_type: pt,
         } => {
             handle_ribocipher_clear_uds(stream, state, pt).await;
         }
@@ -324,7 +327,7 @@ pub(crate) async fn handle_uds_with_autodetect(
                 &mut stream,
                 serde_json::Value::Null,
                 -32002,
-                "riboCipher signal required. Send [0xEC, protocol_type] prefix. \
+                "riboCipher signal required. Send [0xEC/0xED, protocol_type] prefix. \
                  See RIBOCIPHER_TRANSPORT_SIGNAL_STANDARD.md.",
             )
             .await;
