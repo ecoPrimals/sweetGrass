@@ -101,9 +101,7 @@ pub fn resolve_family_id_from_env() -> Option<String> {
 /// detected.
 pub fn validate_insecure_guard() -> Result<(), BtspGuardViolation> {
     let family_id = resolve_family_id_from_env();
-    let insecure = std::env::var(env_vars::BIOMEOS_INSECURE)
-        .map(|v| v == "1")
-        .unwrap_or(false);
+    let insecure = std::env::var(env_vars::BIOMEOS_INSECURE).is_ok_and(|v| v == "1");
 
     validate_insecure_guard_with(family_id.as_deref(), insecure)
 }
@@ -310,14 +308,10 @@ pub(crate) async fn handle_uds_with_autodetect(
     };
 
     match protocol {
-        DetectedProtocol::RiboCipherClear {
-            protocol_type: pt,
-        }
-        | DetectedProtocol::RiboCipherMito {
-            protocol_type: pt,
-        } => {
+        DetectedProtocol::RiboCipherClear { protocol_type: pt }
+        | DetectedProtocol::RiboCipherMito { protocol_type: pt } => {
             handle_ribocipher_clear_uds(stream, state, pt).await;
-        }
+        },
         DetectedProtocol::Rejected { first_byte } => {
             warn!(
                 first_byte,
@@ -331,7 +325,7 @@ pub(crate) async fn handle_uds_with_autodetect(
                  See RIBOCIPHER_TRANSPORT_SIGNAL_STANDARD.md.",
             )
             .await;
-        }
+        },
     }
 }
 
@@ -352,30 +346,30 @@ async fn handle_ribocipher_clear_uds(
                 "id": null,
             });
             let _ = write_jsonrpc_response(&mut stream, &resp).await;
-        }
+        },
         protocol_type::NDJSON_JSONRPC => {
             debug!("UDS riboCipher: NDJSON JSON-RPC (0x01)");
             if let Err(e) = handle_uds_connection_raw(stream, state).await {
                 warn!("UDS raw connection error (riboCipher): {e}");
             }
-        }
+        },
         protocol_type::BTSP_BINARY => {
             debug!("UDS riboCipher: BTSP binary (0x02)");
             if let Err(e) = handle_uds_connection_btsp(stream, state).await {
                 warn!("UDS BTSP connection error (riboCipher): {e}");
             }
-        }
+        },
         protocol_type::BTSP_JSONLINE => {
             debug!("UDS riboCipher: BTSP JSON-line (0x03) — reading ClientHello");
             match read_jsonline_client_hello(&mut stream).await {
                 Ok(hello) => {
                     handle_uds_connection_btsp_jsonline(stream, state, hello).await;
-                }
+                },
                 Err(e) => {
                     warn!("UDS riboCipher BTSP JSON-line: failed to read ClientHello: {e}");
-                }
+                },
             }
-        }
+        },
         unknown => {
             warn!(
                 protocol_type = unknown,
@@ -388,7 +382,7 @@ async fn handle_ribocipher_clear_uds(
                 format!("Unsupported riboCipher protocol type: 0x{unknown:02X}"),
             )
             .await;
-        }
+        },
     }
 }
 
@@ -401,8 +395,7 @@ async fn read_jsonline_client_hello<S: tokio::io::AsyncRead + Unpin>(
     let mut reader = tokio::io::BufReader::new(stream);
     let mut line = String::new();
     reader.read_line(&mut line).await?;
-    serde_json::from_str(&line)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+    serde_json::from_str(&line).map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
 }
 
 /// Write a JSON-RPC response object and a trailing newline.

@@ -117,14 +117,14 @@ pub async fn detect_protocol<S: AsyncRead + Unpin>(
             Ok(DetectedProtocol::RiboCipherClear {
                 protocol_type: pt[0],
             })
-        }
+        },
         RIBOCIPHER_MITO => {
             let mut pt = [0u8; 1];
             stream.read_exact(&mut pt).await?;
             Ok(DetectedProtocol::RiboCipherMito {
                 protocol_type: pt[0],
             })
-        }
+        },
         RIBOCIPHER_NUCLEAR => Err(std::io::Error::new(
             std::io::ErrorKind::Unsupported,
             "riboCipher nuclear-sealed tier not yet implemented",
@@ -137,7 +137,7 @@ pub async fn detect_protocol<S: AsyncRead + Unpin>(
                  See RIBOCIPHER_TRANSPORT_SIGNAL_STANDARD.md."
             );
             Ok(DetectedProtocol::Rejected { first_byte: byte })
-        }
+        },
     }
 }
 
@@ -209,7 +209,7 @@ mod tests {
         match result {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::NDJSON_JSONRPC);
-            }
+            },
             other => panic!("expected RiboCipherClear, got {other:?}"),
         }
     }
@@ -222,7 +222,7 @@ mod tests {
         match result {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::PROBE);
-            }
+            },
             other => panic!("expected RiboCipherClear, got {other:?}"),
         }
     }
@@ -235,7 +235,7 @@ mod tests {
         match result {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::BTSP_BINARY);
-            }
+            },
             other => panic!("expected RiboCipherClear, got {other:?}"),
         }
     }
@@ -248,7 +248,7 @@ mod tests {
         match result {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::BTSP_JSONLINE);
-            }
+            },
             other => panic!("expected RiboCipherClear, got {other:?}"),
         }
     }
@@ -261,7 +261,7 @@ mod tests {
         match result {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::HTTP);
-            }
+            },
             other => panic!("expected RiboCipherClear, got {other:?}"),
         }
     }
@@ -274,7 +274,7 @@ mod tests {
         match result {
             DetectedProtocol::RiboCipherClear { protocol_type: pt } => {
                 assert_eq!(pt, protocol_type::ENCRYPTED_RESUME);
-            }
+            },
             other => panic!("expected RiboCipherClear, got {other:?}"),
         }
     }
@@ -429,5 +429,4 @@ mod tests {
         peeked.write_all(b"test").await.unwrap();
         assert_eq!(&peeked.inner, b"test");
     }
-
 }

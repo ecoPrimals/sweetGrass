@@ -51,7 +51,10 @@ async fn test_uds_braid_create_roundtrip() {
         },
         "id": 1
     });
-    writer.write_all(&ribocipher_payload(&request)).await.unwrap();
+    writer
+        .write_all(&ribocipher_payload(&request))
+        .await
+        .unwrap();
     writer.flush().await.expect("flush");
 
     let mut lines = BufReader::new(reader).lines();
@@ -110,7 +113,10 @@ async fn test_uds_braid_query_roundtrip() {
         },
         "id": 1
     });
-    writer.write_all(&ribocipher_payload(&create_req)).await.unwrap();
+    writer
+        .write_all(&ribocipher_payload(&create_req))
+        .await
+        .unwrap();
     writer.flush().await.expect("flush");
 
     let create_resp = lines.next_line().await.unwrap().expect("create response");
@@ -192,7 +198,10 @@ async fn test_uds_provenance_graph_roundtrip() {
         },
         "id": 1
     });
-    writer.write_all(&ribocipher_payload(&create_req)).await.unwrap();
+    writer
+        .write_all(&ribocipher_payload(&create_req))
+        .await
+        .unwrap();
     writer.flush().await.expect("flush");
 
     let create_resp = lines.next_line().await.unwrap().expect("create response");
@@ -260,7 +269,10 @@ async fn test_uds_composition_pattern_single_shot() {
                     .expect("connect");
                 let (reader, mut writer) = stream.into_split();
 
-                writer.write_all(&ribocipher_payload(&request)).await.unwrap();
+                writer
+                    .write_all(&ribocipher_payload(&request))
+                    .await
+                    .unwrap();
                 writer.flush().await.expect("flush");
 
                 let mut lines = BufReader::new(reader).lines();
@@ -391,7 +403,10 @@ async fn test_uds_braid_create_tower_signed() {
         },
         "id": 42
     });
-    writer.write_all(&ribocipher_payload(&request)).await.unwrap();
+    writer
+        .write_all(&ribocipher_payload(&request))
+        .await
+        .unwrap();
     writer.flush().await.expect("flush");
 
     let mut lines = BufReader::new(reader).lines();
@@ -506,7 +521,10 @@ async fn test_uds_anchoring_anchor_tower_signed() {
         },
         "id": 1
     });
-    writer.write_all(&ribocipher_payload(&create_req)).await.unwrap();
+    writer
+        .write_all(&ribocipher_payload(&create_req))
+        .await
+        .unwrap();
     writer.flush().await.expect("flush");
 
     let mut lines = BufReader::new(reader).lines();
@@ -533,7 +551,10 @@ async fn test_uds_anchoring_anchor_tower_signed() {
         },
         "id": 2
     });
-    writer2.write_all(&ribocipher_payload(&anchor_req)).await.unwrap();
+    writer2
+        .write_all(&ribocipher_payload(&anchor_req))
+        .await
+        .unwrap();
     writer2.flush().await.expect("flush anchor");
 
     let mut lines2 = BufReader::new(reader2).lines();

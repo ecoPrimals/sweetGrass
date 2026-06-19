@@ -1,7 +1,7 @@
 +++
 title = "sweetGrass Validation Summary"
-description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,647 tests, 40 methods, zero production debt. riboCipher reference impl, BTSP E2E ready, HEALTH-01, zero bare env vars."
-date = 2026-06-13
+description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,658 tests, 40 methods, zero production debt. riboCipher reference impl, BTSP E2E ready, HEALTH-01, mito-beacon 0xED, zero bare env vars."
+date = 2026-06-19
 
 [taxonomies]
 primals = ["sweetgrass", "beardog", "rhizocrypt", "loamspine", "nestgate"]
@@ -10,10 +10,10 @@ springs = []
 
 ## Status
 
-- **Version**: v0.7.57
-- **1,647 tests** (all passed, 0 failed, 56 Docker CI integration tests)
+- **Version**: v0.7.60
+- **1,658 tests** (all passed, 0 failed, 56 Docker CI integration tests)
 - **40 registered capability methods** across 13 domains
-- **210+ source files**, max 796 lines per file
+- **215+ source files**, max 795 lines per file
 - **riboCipher**: Reference implementation in `peek.rs` — signal detection for `0xEC`/`0xED`/`0xEE` before legacy peek (Wave 111, Stream 7)
 - **HEALTH-01**: Bare `health` method alias, enriched `health.check` with `primal` + `uptime_secs`
 - **BTSP E2E ready**: `BEARDOG_SOCKET` in security socket resolution tier 2

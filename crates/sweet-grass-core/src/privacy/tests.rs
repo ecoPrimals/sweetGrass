@@ -109,7 +109,7 @@ fn test_erasure_request() {
 
 #[test]
 fn test_duration_secs_conversion() {
-    let duration = Duration::from_secs(3600);
+    let duration = Duration::from_hours(1);
     let secs: DurationSecs = duration.into();
     assert_eq!(secs.0, 3600);
 

@@ -15,7 +15,7 @@ fn circuit_breaker_starts_closed() {
 
 #[test]
 fn circuit_opens_after_threshold() {
-    let cb = CircuitBreaker::new(3, Duration::from_secs(60));
+    let cb = CircuitBreaker::new(3, Duration::from_mins(1));
     cb.record_failure();
     cb.record_failure();
     assert!(cb.allow_request());
@@ -26,7 +26,7 @@ fn circuit_opens_after_threshold() {
 
 #[test]
 fn circuit_closes_on_success() {
-    let cb = CircuitBreaker::new(2, Duration::from_secs(60));
+    let cb = CircuitBreaker::new(2, Duration::from_mins(1));
     cb.record_failure();
     cb.record_failure();
     assert!(cb.is_open());
@@ -47,7 +47,7 @@ fn circuit_breaker_half_open_after_cooldown() {
 
 #[test]
 fn circuit_breaker_reset() {
-    let cb = CircuitBreaker::new(1, Duration::from_secs(60));
+    let cb = CircuitBreaker::new(1, Duration::from_mins(1));
     cb.record_failure();
     assert!(cb.is_open());
     cb.reset();
@@ -118,7 +118,7 @@ async fn with_resilience_succeeds_first_try() {
 
 #[tokio::test]
 async fn with_resilience_retries_on_failure() {
-    let breaker = CircuitBreaker::new(10, Duration::from_secs(60));
+    let breaker = CircuitBreaker::new(10, Duration::from_mins(1));
     let policy = RetryPolicy {
         max_retries: 2,
         initial_delay: Duration::from_millis(1),
@@ -147,7 +147,7 @@ async fn with_resilience_retries_on_failure() {
 
 #[tokio::test]
 async fn with_resilience_exhausts_retries() {
-    let breaker = CircuitBreaker::new(10, Duration::from_secs(60));
+    let breaker = CircuitBreaker::new(10, Duration::from_mins(1));
     let policy = RetryPolicy {
         max_retries: 2,
         initial_delay: Duration::from_millis(1),
@@ -165,7 +165,7 @@ async fn with_resilience_exhausts_retries() {
 
 #[tokio::test]
 async fn with_resilience_respects_open_circuit() {
-    let breaker = CircuitBreaker::new(1, Duration::from_secs(60));
+    let breaker = CircuitBreaker::new(1, Duration::from_mins(1));
     let policy = RetryPolicy {
         max_retries: 5,
         initial_delay: Duration::from_millis(1),

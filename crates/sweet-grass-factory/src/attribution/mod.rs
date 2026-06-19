@@ -244,7 +244,7 @@ impl AttributionCalculator {
             }
 
             if let Some(compute) = activity.ecop.compute_units {
-                chain.total_compute += compute * effective_weight;
+                chain.total_compute = compute.mul_add(effective_weight, chain.total_compute);
             }
         }
 

@@ -96,12 +96,7 @@ impl PrimalDiscovery for CachedDiscovery {
             if let Some(cached) = cache.get(capability) {
                 let valid: Vec<_> = cached
                     .iter()
-                    .filter(|p| {
-                        p.last_seen
-                            .elapsed()
-                            .map(|e| e < self.cache_ttl)
-                            .unwrap_or(false)
-                    })
+                    .filter(|p| p.last_seen.elapsed().is_ok_and(|e| e < self.cache_ttl))
                     .cloned()
                     .collect();
 
@@ -131,7 +126,7 @@ impl PrimalDiscovery for CachedDiscovery {
 
     async fn find_one(&self, capability: &Capability) -> Result<DiscoveredPrimal, DiscoveryError> {
         let mut primals = self.find_by_capability(capability).await?;
-        primals.sort_by(|a, b| b.last_seen.cmp(&a.last_seen));
+        primals.sort_by_key(|p| std::cmp::Reverse(p.last_seen));
         primals
             .into_iter()
             .find(|p| p.healthy)

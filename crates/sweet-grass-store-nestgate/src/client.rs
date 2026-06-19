@@ -59,7 +59,7 @@ impl NestGateClient {
         trace!(method, id, socket = %self.socket_path.display(), "NestGate RPC call");
 
         let stream = UnixStream::connect(&self.socket_path).await.map_err(|e| {
-            NestGateStoreError::ConnectionFailed(format!("{}: {}", self.socket_path.display(), e,))
+            NestGateStoreError::ConnectionFailed(format!("{}: {}", self.socket_path.display(), e))
         })?;
 
         let (reader, mut writer) = stream.into_split();

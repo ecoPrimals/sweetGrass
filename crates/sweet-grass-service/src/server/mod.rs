@@ -274,11 +274,7 @@ impl SweetGrassRpc for SweetGrassServer {
             })
             .collect();
 
-        contributors.sort_by(|a, b| {
-            b.share
-                .partial_cmp(&a.share)
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+        contributors.sort_by(|a, b| b.share.total_cmp(&a.share));
         contributors.truncate(limit as usize);
         Ok(contributors)
     }

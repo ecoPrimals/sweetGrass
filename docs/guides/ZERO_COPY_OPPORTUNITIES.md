@@ -330,15 +330,21 @@ builder.with_name(string_var)  // No clone!
 - **Complexity** — Lifetimes and Cow can be tricky
 - **Testing** — Need to verify async safety
 
-### Decision
+### Decision (Fossil Record)
 
-**NOT IMPLEMENTED YET** because:
-1. Current performance is already excellent (8x speedup from parallelism)
+**NOTE**: The text below is retained as a fossil record of the decision
+that was made *before* Phases 1–3 were implemented (v0.7.21–v0.7.27).
+All items listed above have since been completed — see the file header.
+
+Original rationale that was superseded:
+1. Current performance was already excellent (8x speedup from parallelism)
 2. Would require API changes (breaking)
 3. Complexity vs benefit trade-off
 4. Better to profile real workloads first
 
-**Recommendation**: Implement after production profiling in v0.8.0+
+All phases were implemented; `Arc<str>` newtypes, shared indexes, and
+`bytes::Bytes` for IPC eliminated the hot-path allocations. Further
+optimization (e.g., arena allocators) deferred to post-production profiling.
 
 ---
 

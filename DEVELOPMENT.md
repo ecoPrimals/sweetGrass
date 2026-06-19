@@ -1,7 +1,7 @@
 # 🌾 SweetGrass — Development Guide
 
 **Last Updated**: June 2026  
-**Version**: v0.7.57
+**Version**: v0.7.59
 
 ---
 
@@ -92,7 +92,7 @@ docker compose down -v
 
 ```
 crates/
-├── Unit Tests          (1,647 tests)  - src/ modules across all 10 crates
+├── Unit Tests          (1,658 tests)  - src/ modules across all 10 crates
 ├── Integration Tests   (21 tests)     - sweet-grass-service/tests/integration.rs
 ├── Chaos Tests         (17 tests)     - sweet-grass-service/tests/chaos.rs
 ├── Fault Injection     (9 tests)      - sweet-grass-service/tests/fault_injection.rs
@@ -190,7 +190,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 1,647 local tests + 56 Docker CI, 90%+ line coverage via llvm-cov
+- **Overall**: 1,658 local tests + 56 Docker CI, 88% line coverage via llvm-cov (91%+ with Postgres Docker)
 - **Target**: 90%+ coverage on core crates (achieved)
 
 ### Per-Crate Coverage

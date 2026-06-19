@@ -302,4 +302,157 @@ mod tests {
     async fn test_announce_to_neural_api_graceful_when_no_socket() {
         announce_to_neural_api("/tmp/nonexistent.sock", "0.7.37").await;
     }
+
+    #[test]
+    fn test_resolve_neural_api_socket_biomeos_socket_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        let sock = dir.path().join("neural-api-myFamily.sock");
+        std::fs::write(&sock, "").unwrap();
+        let dir_str = dir.path().to_string_lossy().to_string();
+
+        let reader = move |key: &str| -> Option<String> {
+            match key {
+                env_vars::BIOMEOS_SOCKET_DIR => Some(dir_str.clone()),
+                env_vars::ECOPRIMALS_FAMILY_ID => Some("myFamily".to_string()),
+                _ => None,
+            }
+        };
+
+        let result = resolve_neural_api_socket_with(&reader);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), sock);
+    }
+
+    #[test]
+    fn test_resolve_neural_api_socket_explicit_missing_falls_through_to_xdg() {
+        let dir = tempfile::tempdir().unwrap();
+        let biomeos_dir = dir.path().join("biomeos");
+        std::fs::create_dir(&biomeos_dir).unwrap();
+        let sock = biomeos_dir.join("neural-api-ecoPrimal.sock");
+        std::fs::write(&sock, "").unwrap();
+        let xdg = dir.path().to_string_lossy().to_string();
+
+        let reader = move |key: &str| -> Option<String> {
+            match key {
+                env_vars::NEURAL_API_SOCKET => Some("/tmp/nonexistent-fake.sock".to_string()),
+                env_vars::XDG_RUNTIME_DIR => Some(xdg.clone()),
+                _ => None,
+            }
+        };
+
+        let result = resolve_neural_api_socket_with(&reader);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), sock);
+    }
+
+    #[test]
+    fn test_resolve_neural_api_socket_biomeos_family_fallback() {
+        let dir = tempfile::tempdir().unwrap();
+        let biomeos_dir = dir.path().join("biomeos");
+        std::fs::create_dir(&biomeos_dir).unwrap();
+        let sock = biomeos_dir.join("neural-api-altFamily.sock");
+        std::fs::write(&sock, "").unwrap();
+        let xdg = dir.path().to_string_lossy().to_string();
+
+        let reader = move |key: &str| -> Option<String> {
+            match key {
+                env_vars::BIOMEOS_FAMILY_ID => Some("altFamily".to_string()),
+                env_vars::XDG_RUNTIME_DIR => Some(xdg.clone()),
+                _ => None,
+            }
+        };
+
+        let result = resolve_neural_api_socket_with(&reader);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), sock);
+    }
+
+    #[test]
+    fn test_resolve_neural_api_socket_default_family() {
+        let dir = tempfile::tempdir().unwrap();
+        let biomeos_dir = dir.path().join("biomeos");
+        std::fs::create_dir(&biomeos_dir).unwrap();
+        let sock = biomeos_dir.join("neural-api-ecoPrimal.sock");
+        std::fs::write(&sock, "").unwrap();
+        let xdg = dir.path().to_string_lossy().to_string();
+
+        let reader = move |key: &str| -> Option<String> {
+            match key {
+                env_vars::XDG_RUNTIME_DIR => Some(xdg.clone()),
+                _ => None,
+            }
+        };
+
+        let result = resolve_neural_api_socket_with(&reader);
+        assert!(result.is_some());
+        assert_eq!(result.unwrap(), sock);
+    }
+
+    #[tokio::test]
+    async fn test_send_jsonrpc_uds_mock_success() {
+        use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+
+        let dir = tempfile::tempdir().unwrap();
+        let sock_path = dir.path().join("mock-neural.sock");
+
+        let listener = tokio::net::UnixListener::bind(&sock_path).unwrap();
+        let sock_path_clone = sock_path.clone();
+
+        let server = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.unwrap();
+            let (reader, mut writer) = stream.into_split();
+            let mut lines = BufReader::new(reader).lines();
+            let request_line = lines.next_line().await.unwrap().unwrap();
+            let request: serde_json::Value = serde_json::from_str(&request_line).unwrap();
+            assert_eq!(request["method"], "primal.announce");
+
+            let response = serde_json::json!({
+                "jsonrpc": "2.0",
+                "result": {"capabilities_registered": 3, "methods_registered": 40},
+                "id": 1
+            });
+            let mut resp_str = serde_json::to_string(&response).unwrap();
+            resp_str.push('\n');
+            writer.write_all(resp_str.as_bytes()).await.unwrap();
+            writer.flush().await.unwrap();
+        });
+
+        let payload = build_announce_payload("/tmp/test.sock", "0.7.59");
+        let result = send_jsonrpc_uds(&sock_path_clone, &payload).await;
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert_eq!(response["result"]["capabilities_registered"], 3);
+
+        server.await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_send_jsonrpc_uds_connection_refused() {
+        let result = send_jsonrpc_uds(
+            std::path::Path::new("/tmp/totally-nonexistent-socket-path.sock"),
+            &serde_json::json!({"jsonrpc": "2.0", "method": "test", "id": 1}),
+        )
+        .await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_send_jsonrpc_uds_eof_response() {
+        let dir = tempfile::tempdir().unwrap();
+        let sock_path = dir.path().join("eof-neural.sock");
+
+        let listener = tokio::net::UnixListener::bind(&sock_path).unwrap();
+        let sock_path_clone = sock_path.clone();
+
+        let server = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.unwrap();
+            drop(stream);
+        });
+
+        let payload = serde_json::json!({"jsonrpc": "2.0", "method": "test", "id": 1});
+        let result = send_jsonrpc_uds(&sock_path_clone, &payload).await;
+        assert!(result.is_err());
+
+        server.await.unwrap();
+    }
 }

@@ -73,19 +73,17 @@ pub async fn connect_transport(endpoint: &TransportEndpoint) -> std::io::Result<
         TransportEndpoint::Uds { path } => {
             let stream = tokio::net::UnixStream::connect(path).await?;
             Ok(TransportStream::Uds(stream))
-        }
+        },
         TransportEndpoint::Tcp { host, port } => {
             let stream = tokio::net::TcpStream::connect((host.as_str(), *port)).await?;
             Ok(TransportStream::Tcp(stream))
-        }
+        },
         TransportEndpoint::MeshRelay {
             peer_id,
             capability,
         } => Err(std::io::Error::new(
             std::io::ErrorKind::Unsupported,
-            format!(
-                "mesh_relay transport not yet implemented (peer={peer_id}, cap={capability})"
-            ),
+            format!("mesh_relay transport not yet implemented (peer={peer_id}, cap={capability})"),
         )),
     }
 }

@@ -72,10 +72,11 @@ fn di_user_fallback() {
 fn di_temp_fallback() {
     let config = SocketConfig::default();
     let path = resolve_socket_path_with(&config);
-    let expected = std::env::temp_dir()
-        .join("biomeos")
-        .join("sweetgrass.sock");
-    assert_eq!(path, expected, "final fallback must use biomeos/ subdirectory");
+    let expected = std::env::temp_dir().join("biomeos").join("sweetgrass.sock");
+    assert_eq!(
+        path, expected,
+        "final fallback must use biomeos/ subdirectory"
+    );
 }
 
 #[test]

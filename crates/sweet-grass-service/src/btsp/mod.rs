@@ -50,9 +50,7 @@ pub fn is_btsp_required() -> bool {
     let family_id = crate::uds::resolve_family_id_from_env();
     is_btsp_required_with(
         family_id.as_deref(),
-        std::env::var(env_vars::BIOMEOS_INSECURE)
-            .map(|v| v == "1")
-            .unwrap_or(false),
+        std::env::var(env_vars::BIOMEOS_INSECURE).is_ok_and(|v| v == "1"),
     )
 }
 

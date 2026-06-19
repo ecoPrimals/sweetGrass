@@ -73,12 +73,18 @@ async fn test_health_method() {
     let value = result.unwrap();
     assert_eq!(value["status"], "healthy");
     assert_eq!(value["braid_count"], 0);
-    assert!(value["primal"].is_string(), "health.check must include primal");
+    assert!(
+        value["primal"].is_string(),
+        "health.check must include primal"
+    );
     assert!(
         value["uptime_secs"].is_number(),
         "health.check must include uptime_secs"
     );
-    assert!(value["version"].is_string(), "health.check must include version");
+    assert!(
+        value["version"].is_string(),
+        "health.check must include version"
+    );
 }
 
 #[tokio::test]

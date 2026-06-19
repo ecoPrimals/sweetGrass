@@ -130,10 +130,9 @@ pub(super) async fn handle_top_contributors(
         })
         .collect();
     contributors.sort_by(|a, b| {
-        b["share"]
-            .as_f64()
-            .partial_cmp(&a["share"].as_f64())
-            .unwrap_or(std::cmp::Ordering::Equal)
+        let b_share = b["share"].as_f64().unwrap_or(0.0);
+        let a_share = a["share"].as_f64().unwrap_or(0.0);
+        b_share.total_cmp(&a_share)
     });
     contributors.truncate(p.limit as usize);
     to_value(&contributors)

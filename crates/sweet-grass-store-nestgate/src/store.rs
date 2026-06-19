@@ -382,13 +382,13 @@ impl BraidStore for NestGateStore {
 
         match order {
             QueryOrder::NewestFirst => {
-                braids.sort_by(|a, b| b.generated_at_time.cmp(&a.generated_at_time));
+                braids.sort_by_key(|b| std::cmp::Reverse(b.generated_at_time));
             },
             QueryOrder::OldestFirst => {
-                braids.sort_by(|a, b| a.generated_at_time.cmp(&b.generated_at_time));
+                braids.sort_by_key(|a| a.generated_at_time);
             },
-            QueryOrder::LargestFirst => braids.sort_by(|a, b| b.size.cmp(&a.size)),
-            QueryOrder::SmallestFirst => braids.sort_by(|a, b| a.size.cmp(&b.size)),
+            QueryOrder::LargestFirst => braids.sort_by_key(|b| std::cmp::Reverse(b.size)),
+            QueryOrder::SmallestFirst => braids.sort_by_key(|a| a.size),
             _ => {},
         }
 

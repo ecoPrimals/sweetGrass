@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.57 | 1,647 tests | 91.7% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin A++ | BTSP enforced on TCP | Wire L3 | Stadial ready | 40 methods + 11 aliases | JH-0 method gate | BearDog crypto delegation | JH-5 audit pipeline | DH-1 clean | Privacy-enforced | PROV-O complete | Zero bare env var strings | Transport Phase 2 ready | Localhost-only defaults | Zero C/ASM crypto | TRANSPORT_ENDPOINT | HEALTH-01 ready | BTSP E2E ready | riboCipher reference impl
+v0.7.59 | 1,658 tests | 88% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin A++ | BTSP enforced on TCP | Wire L3 | Stadial ready | 40 methods + 11 aliases | JH-0 method gate | BearDog crypto delegation | JH-5 audit pipeline | DH-1 clean | Privacy-enforced | PROV-O complete | Zero bare env var strings | Transport Phase 2 ready | Localhost-only defaults | Zero C/ASM crypto | TRANSPORT_ENDPOINT | HEALTH-01 ready | BTSP E2E ready | riboCipher reference impl | Mito-beacon 0xED accepted | Zero clippy warnings
 
 ---
 
@@ -203,15 +203,15 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.57 |
-| Tests | 1,647 local + 56 Docker CI |
-| Coverage | 90%+ line (91.7% with Postgres Docker) |
+| Version | v0.7.59 |
+| Tests | 1,658 local + 56 Docker CI |
+| Coverage | 88% line (91%+ with Postgres Docker) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
-| Max file size | 796 lines (limit: 1000) |
-| .rs files | 210+ |
+| Max file size | 795 lines (limit: 1000) |
+| .rs files | 215+ |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |

@@ -125,10 +125,10 @@ impl SessionAnalyzer {
                 CompressionHint::Ephemeral => {
                     return CompressionStrategy::Discard(DiscardReason::Ephemeral);
                 },
-                CompressionHint::Single | CompressionHint::Atomic => {
-                    if analysis.committed_count > 0 {
-                        return CompressionStrategy::Single;
-                    }
+                CompressionHint::Single | CompressionHint::Atomic
+                    if analysis.committed_count > 0 =>
+                {
+                    return CompressionStrategy::Single;
                 },
                 _ => {},
             }

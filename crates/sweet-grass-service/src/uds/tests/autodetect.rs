@@ -58,8 +58,7 @@ async fn test_uds_ribocipher_clear_jsonrpc() {
         .unwrap()
         .expect("response");
 
-    let response: serde_json::Value =
-        serde_json::from_str(&response_line).expect("parse response");
+    let response: serde_json::Value = serde_json::from_str(&response_line).expect("parse response");
 
     assert_eq!(response["jsonrpc"], "2.0");
     assert_eq!(response["id"], 1);
@@ -102,8 +101,7 @@ async fn test_uds_ribocipher_clear_probe() {
         .unwrap()
         .expect("response");
 
-    let response: serde_json::Value =
-        serde_json::from_str(&response_line).expect("parse response");
+    let response: serde_json::Value = serde_json::from_str(&response_line).expect("parse response");
 
     assert_eq!(response["result"]["status"], "healthy");
 
@@ -290,8 +288,7 @@ async fn test_uds_unsignalled_json_rejected() {
         .unwrap()
         .expect("response");
 
-    let response: serde_json::Value =
-        serde_json::from_str(&response_line).expect("parse response");
+    let response: serde_json::Value = serde_json::from_str(&response_line).expect("parse response");
 
     assert_eq!(response["jsonrpc"], "2.0");
     assert_eq!(
@@ -356,8 +353,7 @@ async fn test_uds_mito_beacon_jsonrpc() {
         .unwrap()
         .expect("response");
 
-    let response: serde_json::Value =
-        serde_json::from_str(&response_line).expect("parse response");
+    let response: serde_json::Value = serde_json::from_str(&response_line).expect("parse response");
 
     assert_eq!(response["jsonrpc"], "2.0");
     assert_eq!(response["id"], 1);
@@ -400,8 +396,7 @@ async fn test_uds_mito_beacon_probe() {
         .unwrap()
         .expect("response");
 
-    let response: serde_json::Value =
-        serde_json::from_str(&response_line).expect("parse response");
+    let response: serde_json::Value = serde_json::from_str(&response_line).expect("parse response");
 
     assert_eq!(response["result"]["status"], "healthy");
 

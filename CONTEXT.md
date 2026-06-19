@@ -27,7 +27,7 @@ attribution before distributing rewards.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 (required) + tarpc (optional high-perf) + REST + UDS
 - **License:** scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0)
-- **Tests:** 1,647 local + 56 Docker CI (cargo test --all-features)
+- **Tests:** 1,658 local + 56 Docker CI (cargo test --all-features)
 
 ## Degradation Behavior
 
@@ -53,7 +53,7 @@ When sweetGrass is **unavailable** in a composition:
 - **UDS contract:** Newline-delimited JSON-RPC 2.0; compositions should use `\n`-terminated requests and >=10s read timeout (`braid.create`/`provenance.graph` may touch storage)
 - **Transport ports:** `--port` = TCP JSON-RPC (opt-in, newline-delimited; accepts `host:port` or bare port number — bare port binds `127.0.0.1` localhost-only per PG-55; use `0.0.0.0:PORT` for all-interfaces in Docker/production), `--http-port` / `--http-address host:port` = HTTP REST+JSON-RPC (primary integration surface, default `127.0.0.1:0`), `--tarpc-address` = tarpc (default `127.0.0.1:0`), `--transport-endpoint` = launcher-injected transport (JSON `TransportEndpoint`). Recommended TCP allocation: **9850** (avoids biomeOS TCP fallback range at 9800)
 - **Discovery tiers supported:** Tier 3 (UDS filesystem convention: `sweetgrass.sock` / `sweetgrass-{family}.sock` + `provenance.sock` capability symlink), Tier 4 (registry announce via `DISCOVERY_ADDRESS` / `DISCOVERY_BOOTSTRAP`), and partial Tier 5 (`primal.announce` Neural API self-registration with biomeOS). Tiers 1/2 (Songbird `ipc.resolve`, TCP probing) not yet implemented — sweetGrass is UDS-primary
-- **Version:** 0.7.57
+- **Version:** 0.7.59
 - **Method gate:** JH-0 pre-dispatch capability gate with token extraction — `auth.mode`, `auth.check` (enriched: `authenticated`, `verified`, `enforcement`, `scopes`, `subject`, `expires_in`), `auth.peer_info` methods; `_bearer_token` extracted from JSON-RPC params and threaded through gate; `SWEETGRASS_AUTH_MODE=permissive|enforced` env var; public whitelist (`health.*`, `auth.*`, `identity.get`, `capabilities.list`, `capability.list`, `lifecycle.status`, `tools.list`); all other methods protected; starts permissive
 - **Audit pipeline:** `attribution.witness` method for JH-5 Phase 3 (`defense.log` -> `dag.event.append` -> `attribution.witness`)
 - **Composition path:** `braid.create` accepts flattened convenience fields (`name`, `description`, `tags`, `source_session`, `source_merkle_root`) for provenance trio pipeline callers — merged into `BraidMetadata`; structured `metadata` takes precedence
@@ -66,7 +66,7 @@ When sweetGrass is **unavailable** in a composition:
 - **Neural API `primal.announce`:** Self-registers with biomeOS on startup — capabilities, cost hints, latency estimates, signal tier (nest). Graceful degradation when biomeOS unavailable.
 - **riboCipher:** Reference implementation in `peek.rs` — signal detection for `0xEC`/`0xED`/`0xEE` before legacy peek logic per `RIBOCIPHER_TRANSPORT_SIGNAL_STANDARD.md` (Wave 111, Stream 7)
 - **HEALTH-01:** Bare `{"method":"health"}` alias, enriched `health.check` with `primal` + `uptime_secs` fields
-- **Source files:** 210+ `.rs` files, max 796 lines (all files under 800-line threshold)
+- **Source files:** 215+ `.rs` files, max 795 lines (all files under 800-line threshold)
 - **Property testing:** 25 proptest strategies across 7 crates
 - **Chaos/fault:** 11 attribution chaos + 17 service chaos + 9 fault injection
 - **Edition:** 2024 (`resolver = "3"`), MSRV 1.87

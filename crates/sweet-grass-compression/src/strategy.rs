@@ -308,7 +308,7 @@ mod tests {
 
     #[test]
     fn test_grouping_strategy_temporal() {
-        let g = GroupingStrategy::temporal(std::time::Duration::from_secs(3600));
+        let g = GroupingStrategy::temporal(std::time::Duration::from_hours(1));
         match &g {
             GroupingStrategy::Temporal { window_secs } => assert_eq!(*window_secs, 3600),
             _ => panic!("expected Temporal"),

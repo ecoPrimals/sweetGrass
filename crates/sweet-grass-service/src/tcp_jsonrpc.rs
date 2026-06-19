@@ -129,14 +129,10 @@ async fn handle_tcp_with_autodetect(
     };
 
     match protocol {
-        DetectedProtocol::RiboCipherClear {
-            protocol_type: pt,
-        }
-        | DetectedProtocol::RiboCipherMito {
-            protocol_type: pt,
-        } => {
+        DetectedProtocol::RiboCipherClear { protocol_type: pt }
+        | DetectedProtocol::RiboCipherMito { protocol_type: pt } => {
             handle_ribocipher_clear_tcp(stream, peer, state, pt).await;
-        }
+        },
         DetectedProtocol::Rejected { first_byte } => {
             use tokio::io::AsyncWriteExt;
             warn!(
@@ -156,7 +152,7 @@ async fn handle_tcp_with_autodetect(
                 let _ = stream.write_all(resp.as_bytes()).await;
                 let _ = stream.flush().await;
             }
-        }
+        },
     }
 }
 
@@ -188,13 +184,13 @@ async fn handle_ribocipher_clear_tcp(
                 let _ = stream.write_all(buf.as_bytes()).await;
                 let _ = stream.flush().await;
             }
-        }
+        },
         protocol_type::BTSP_BINARY => {
             debug!("TCP from {peer} riboCipher: BTSP binary (0x02)");
             if let Err(e) = handle_tcp_connection_btsp(stream, state).await {
                 warn!("TCP BTSP connection from {peer} (riboCipher): {e}");
             }
-        }
+        },
         protocol_type::BTSP_JSONLINE => {
             debug!("TCP from {peer} riboCipher: BTSP JSON-line (0x03) — reading ClientHello");
             let mut buf_reader = tokio::io::BufReader::new(&mut stream);
@@ -216,30 +212,27 @@ async fn handle_ribocipher_clear_tcp(
                                     cipher = %outcome.complete.cipher,
                                     "TCP BTSP JSON-line from {peer} (riboCipher) succeeded"
                                 );
-                                if let Err(e) = handle_tcp_post_jsonline(
-                                    stream,
-                                    state,
-                                    outcome.handshake_key,
-                                )
-                                .await
+                                if let Err(e) =
+                                    handle_tcp_post_jsonline(stream, state, outcome.handshake_key)
+                                        .await
                                 {
                                     warn!("TCP JSON-RPC from {peer} (post riboCipher BTSP): {e}");
                                 }
-                            }
+                            },
                             Err(e) => {
                                 warn!("TCP BTSP JSON-line from {peer} (riboCipher) failed: {e}");
-                            }
+                            },
                         }
-                    }
+                    },
                     Err(e) => {
                         warn!("TCP from {peer} riboCipher: invalid ClientHello JSON: {e}");
-                    }
+                    },
                 },
                 Err(e) => {
                     warn!("TCP from {peer} riboCipher: failed to read ClientHello line: {e}");
-                }
+                },
             }
-        }
+        },
         protocol_type::NDJSON_JSONRPC => {
             warn!(
                 "TCP from {peer} riboCipher: raw JSON-RPC (0x01) rejected — \
@@ -259,13 +252,13 @@ async fn handle_ribocipher_clear_tcp(
                 let _ = stream.write_all(resp.as_bytes()).await;
                 let _ = stream.flush().await;
             }
-        }
+        },
         unknown => {
             warn!(
                 protocol_type = unknown,
                 "TCP from {peer} riboCipher: unsupported protocol type"
             );
-        }
+        },
     }
 }
 

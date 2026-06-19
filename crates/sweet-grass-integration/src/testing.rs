@@ -62,7 +62,6 @@ pub fn test_db_url() -> String {
         .unwrap_or_else(|_| TEST_DB_URL_FALLBACK.to_string())
 }
 
-
 /// Allocate a random port from the operating system.
 ///
 /// This avoids port conflicts in CI/CD pipelines and follows the

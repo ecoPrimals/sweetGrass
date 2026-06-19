@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.60] - 2026-06-19
+
+### Deep Debt Resolution + Idiomatic Evolution (Wave 115)
+
+#### Changed
+- **`agent.rs` decomposed into module** — 743-line monolith split into
+  `agent/mod.rs`, `agent/did.rs`, `agent/agent_type.rs`, `agent/role.rs`,
+  `agent/association.rs`, `agent/tests.rs` (public API unchanged)
+- **All `sort_by` upgraded to `sort_by_key`** — idiomatic `Reverse()` pattern
+  across 6 files (cached discovery, nestgate, redb, memory filter)
+- **`partial_cmp(..).unwrap_or(Equal)` → `total_cmp()`** — f64 sorting in
+  attribution handlers uses modern `f64::total_cmp` (no panics possible)
+- **`map(..).unwrap_or(false)` → `is_ok_and(..)`** — 2 instances in btsp/uds
+- **`Duration::from_secs(60)` → `Duration::from_mins(1)`** — 15 instances
+
+#### Added
+- **TCP riboCipher coverage tests** — probe (0x00), reject raw JSON-RPC (-32001),
+  reject unsignalled (-32002), mito-beacon (0xED), unknown protocol type
+- **Neural announce coverage tests** — BIOMEOS_SOCKET_DIR tier, family fallback,
+  default family, mock UDS roundtrip, connection refused, EOF handling
+- **TCP bind failure test** — `start_tcp_jsonrpc_listener` error path
+- **TCP client disconnect test** — graceful handling + reconnect
+
+#### Fixed
+- **`cargo fmt` compliance** — trailing comma style in `uds.rs` and analyzer
+- **17 clippy pedantic+nursery warnings** — all resolved (zero warnings)
+- **Stale ZERO_COPY_OPPORTUNITIES.md** — "NOT IMPLEMENTED" section properly
+  marked as fossil record (Phases 1–3 were completed in v0.7.21–v0.7.27)
+- **Root docs version drift** — README/CONTEXT/DEVELOPMENT/ROADMAP updated
+  from v0.7.57 to v0.7.59 metrics
+
+#### Quality
+- 1,658 tests pass, 0 failures (+24 new tests)
+- Zero clippy warnings (pedantic + nursery)
+- Zero `cargo fmt` diffs
+- Zero `cargo doc` warnings
+- All files under 795 lines (from 743 max after agent.rs split)
+
 ## [0.7.59] - 2026-06-16
 
 ### Genetics-Layer Wiring: Mito-Beacon Acceptance (Wave 114)

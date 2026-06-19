@@ -185,7 +185,7 @@ async fn main() {
             let effective_socket = match &resolved_endpoint {
                 Some(sweet_grass_core::transport::TransportEndpoint::Uds { path }) => {
                     Some(path.clone())
-                }
+                },
                 _ => socket,
             };
 

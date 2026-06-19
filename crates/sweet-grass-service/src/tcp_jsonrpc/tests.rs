@@ -336,3 +336,210 @@ async fn tcp_jsonrpc_invalid_jsonrpc_version() {
 
     let _ = shutdown_tx.send(true);
 }
+
+#[tokio::test]
+async fn tcp_jsonrpc_start_listener_bind_failure() {
+    let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTcpBindFail"));
+    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+
+    let first = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("first bind");
+    let occupied_addr = first.local_addr().expect("addr");
+
+    let result = start_tcp_jsonrpc_listener(state, occupied_addr, shutdown_rx).await;
+    assert!(result.is_err(), "should fail to bind occupied port");
+
+    let _ = shutdown_tx.send(true);
+    drop(first);
+}
+
+#[tokio::test]
+async fn tcp_jsonrpc_client_disconnect_graceful() {
+    let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTcpDrop"));
+    let (listener, addr) = bind_ephemeral().await;
+    let (_handle, shutdown_tx) = spawn_listener(state, listener);
+
+    {
+        let stream = tokio::net::TcpStream::connect(addr).await.expect("connect");
+        drop(stream);
+    }
+
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+    {
+        use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+        let stream = tokio::net::TcpStream::connect(addr)
+            .await
+            .expect("reconnect");
+        let (reader, mut writer) = stream.into_split();
+        let request = serde_json::json!({
+            "jsonrpc": "2.0",
+            "method": "health.check",
+            "params": {},
+            "id": 99
+        });
+        let mut req_str = serde_json::to_string(&request).unwrap();
+        req_str.push('\n');
+        writer.write_all(req_str.as_bytes()).await.unwrap();
+
+        let mut lines = BufReader::new(reader).lines();
+        let response_line = lines.next_line().await.unwrap().expect("response");
+        let response: serde_json::Value =
+            serde_json::from_str(&response_line).expect("parse response");
+        assert_eq!(response["result"]["status"], "healthy");
+    }
+
+    let _ = shutdown_tx.send(true);
+}
+
+/// Spawn the TCP listener with BTSP required.
+#[cfg(unix)]
+fn spawn_listener_btsp(
+    state: crate::state::AppState,
+    listener: tokio::net::TcpListener,
+) -> (
+    tokio::task::JoinHandle<crate::Result<()>>,
+    tokio::sync::watch::Sender<bool>,
+) {
+    let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
+    let handle =
+        tokio::spawn(
+            async move { run_tcp_jsonrpc_listener(state, listener, shutdown_rx, true).await },
+        );
+    (handle, shutdown_tx)
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn tcp_ribocipher_probe_returns_health() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTcpProbe"));
+    let (listener, addr) = bind_ephemeral().await;
+    let (_handle, shutdown_tx) = spawn_listener_btsp(state, listener);
+
+    let mut stream = tokio::net::TcpStream::connect(addr).await.expect("connect");
+    stream.write_all(&[0xEC, 0x00]).await.expect("write signal");
+    stream.flush().await.expect("flush");
+
+    let mut buf = Vec::new();
+    stream.read_to_end(&mut buf).await.expect("read response");
+    let response_str = String::from_utf8_lossy(&buf);
+    let response: serde_json::Value =
+        serde_json::from_str(response_str.trim()).expect("parse response");
+
+    assert_eq!(response["result"]["status"], "healthy");
+
+    let _ = shutdown_tx.send(true);
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn tcp_ribocipher_rejects_raw_jsonrpc() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTcpRejectRaw"));
+    let (listener, addr) = bind_ephemeral().await;
+    let (_handle, shutdown_tx) = spawn_listener_btsp(state, listener);
+
+    let mut stream = tokio::net::TcpStream::connect(addr).await.expect("connect");
+    stream.write_all(&[0xEC, 0x01]).await.expect("write signal");
+    stream.flush().await.expect("flush");
+
+    let mut buf = Vec::new();
+    stream.read_to_end(&mut buf).await.expect("read response");
+    let response_str = String::from_utf8_lossy(&buf);
+    let response: serde_json::Value =
+        serde_json::from_str(response_str.trim()).expect("parse response");
+
+    assert_eq!(response["error"]["code"], -32001);
+
+    let _ = shutdown_tx.send(true);
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn tcp_rejects_unsignalled_connection() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTcpUnsig"));
+    let (listener, addr) = bind_ephemeral().await;
+    let (_handle, shutdown_tx) = spawn_listener_btsp(state, listener);
+
+    let mut stream = tokio::net::TcpStream::connect(addr).await.expect("connect");
+    stream
+        .write_all(b"{\"jsonrpc\":\"2.0\"}\n")
+        .await
+        .expect("write raw json");
+    stream.flush().await.expect("flush");
+
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+    let mut buf = Vec::new();
+    match stream.read_to_end(&mut buf).await {
+        Ok(_) => {
+            let response_str = String::from_utf8_lossy(&buf);
+            let response: serde_json::Value =
+                serde_json::from_str(response_str.trim()).expect("parse response");
+            assert_eq!(response["error"]["code"], -32002);
+        },
+        Err(e) if e.kind() == std::io::ErrorKind::ConnectionReset => {
+            // Server rejected the connection — this is acceptable behavior
+            // for unsignalled traffic on BTSP-required TCP.
+        },
+        Err(e) => panic!("unexpected error: {e}"),
+    }
+
+    let _ = shutdown_tx.send(true);
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn tcp_ribocipher_unknown_protocol_type_no_crash() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTcpUnknown"));
+    let (listener, addr) = bind_ephemeral().await;
+    let (_handle, shutdown_tx) = spawn_listener_btsp(state, listener);
+
+    let mut stream = tokio::net::TcpStream::connect(addr).await.expect("connect");
+    stream.write_all(&[0xEC, 0xFF]).await.expect("write signal");
+    stream.flush().await.expect("flush");
+
+    let mut buf = Vec::new();
+    let _ = tokio::time::timeout(
+        std::time::Duration::from_millis(200),
+        stream.read_to_end(&mut buf),
+    )
+    .await;
+
+    let _ = shutdown_tx.send(true);
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn tcp_ribocipher_mito_beacon_probe() {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    let state = crate::state::AppState::new_memory(Did::new("did:key:z6MkTcpMito"));
+    let (listener, addr) = bind_ephemeral().await;
+    let (_handle, shutdown_tx) = spawn_listener_btsp(state, listener);
+
+    let mut stream = tokio::net::TcpStream::connect(addr).await.expect("connect");
+    stream
+        .write_all(&[0xED, 0x00])
+        .await
+        .expect("write mito signal");
+    stream.flush().await.expect("flush");
+
+    let mut buf = Vec::new();
+    stream.read_to_end(&mut buf).await.expect("read response");
+    let response_str = String::from_utf8_lossy(&buf);
+    let response: serde_json::Value =
+        serde_json::from_str(response_str.trim()).expect("parse response");
+
+    assert_eq!(response["result"]["status"], "healthy");
+
+    let _ = shutdown_tx.send(true);
+}
