@@ -1,6 +1,6 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.59 (June 2026)
+**Current Version**: v0.7.60 (June 2026)
 
 ---
 
