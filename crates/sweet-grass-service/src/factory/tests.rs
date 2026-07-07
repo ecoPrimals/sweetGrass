@@ -9,8 +9,6 @@
 
 use std::collections::HashMap;
 
-use sweet_grass_integration::testing::{TEST_DB_URL, TEST_DB_URL_PRIMARY, TEST_DB_URL_SECONDARY};
-
 use super::*;
 
 use crate::backend::BraidBackend;
@@ -73,138 +71,8 @@ async fn test_unknown_backend_specific_message() {
         let msg = err.to_string();
         assert!(msg.contains("Unknown storage backend"));
         assert!(msg.contains("unknown_backend"));
-        assert!(msg.contains("memory, postgres, redb"));
+        assert!(msg.contains("memory, redb"));
     }
-}
-
-// PostgreSQL Backend Tests
-
-#[tokio::test]
-async fn test_postgres_backend_missing_url() {
-    let reader = mock_reader(&[("STORAGE_BACKEND", "postgres")]);
-    let result = BraidStoreFactory::from_reader_with_name(reader).await;
-    assert!(result.is_err());
-    if let Err(err) = result {
-        let msg = err.to_string();
-        assert!(
-            msg.contains("database_url") || msg.contains("DATABASE_URL"),
-            "Error should mention database URL, got: {msg}"
-        );
-    }
-}
-
-#[tokio::test]
-async fn test_postgres_config_missing_url_via_reader() {
-    let reader = mock_reader(&[("STORAGE_BACKEND", "postgres")]);
-    let result = BraidStoreFactory::from_reader_with_name(reader).await;
-    assert!(result.is_err());
-    if let Err(err) = result {
-        assert!(err.to_string().contains("database_url"));
-    }
-}
-
-#[tokio::test]
-async fn test_postgres_config_with_database_url_via_config() {
-    let config = StorageConfig {
-        backend: "postgres".to_string(),
-        database_url: Some(TEST_DB_URL.to_string()),
-        ..StorageConfig::default()
-    };
-    // Can't connect to test DB, but config parsing should succeed up to connection attempt
-    let _result = BraidStoreFactory::from_config(&config).await;
-}
-
-#[tokio::test]
-async fn test_postgres_config_with_storage_url_via_reader() {
-    let reader = mock_reader(&[
-        ("STORAGE_BACKEND", "postgres"),
-        ("STORAGE_URL", TEST_DB_URL),
-    ]);
-    let _result = BraidStoreFactory::from_reader_with_name(reader).await;
-}
-
-#[tokio::test]
-async fn test_postgres_config_prefers_database_url_via_reader() {
-    let reader = mock_reader(&[
-        ("STORAGE_BACKEND", "postgres"),
-        ("DATABASE_URL", TEST_DB_URL_PRIMARY),
-        ("STORAGE_URL", TEST_DB_URL_SECONDARY),
-    ]);
-    let _result = BraidStoreFactory::from_reader_with_name(reader).await;
-}
-
-#[test]
-fn test_config_from_reader_postgres_max_connections() {
-    let reader = mock_reader(&[
-        ("STORAGE_BACKEND", "postgres"),
-        ("DATABASE_URL", TEST_DB_URL),
-        ("PG_MAX_CONNECTIONS", "20"),
-    ]);
-    let config = BraidStoreFactory::config_from_reader(&reader);
-    assert_eq!(config.backend, "postgres");
-    assert_eq!(config.database_url.as_deref(), Some(TEST_DB_URL));
-    assert_eq!(config.pg_max_connections, Some(20));
-}
-
-#[test]
-fn test_config_from_reader_postgres_min_connections() {
-    let reader = mock_reader(&[
-        ("STORAGE_BACKEND", "postgres"),
-        ("DATABASE_URL", TEST_DB_URL),
-        ("PG_MIN_CONNECTIONS", "5"),
-    ]);
-    let config = BraidStoreFactory::config_from_reader(&reader);
-    assert_eq!(config.pg_min_connections, Some(5));
-}
-
-#[test]
-fn test_config_from_reader_invalid_max_connections_ignored() {
-    let reader = mock_reader(&[
-        ("STORAGE_BACKEND", "postgres"),
-        ("DATABASE_URL", TEST_DB_URL),
-        ("PG_MAX_CONNECTIONS", "not_a_number"),
-    ]);
-    let config = BraidStoreFactory::config_from_reader(&reader);
-    assert_eq!(config.pg_max_connections, None);
-}
-
-// Helper Function Tests
-
-#[test]
-fn test_parse_reader_var_success() {
-    let reader = mock_reader(&[("TEST_VAR", "42")]);
-    let result: Option<u32> = BraidStoreFactory::parse_reader_var(&reader, "TEST_VAR");
-    assert_eq!(result, Some(42));
-}
-
-#[test]
-fn test_parse_reader_var_missing() {
-    let result: Option<u32> = BraidStoreFactory::parse_reader_var(&empty_reader(), "MISSING_VAR");
-    assert_eq!(result, None);
-}
-
-#[test]
-fn test_parse_reader_var_invalid_parse() {
-    let reader = mock_reader(&[("INVALID_VAR", "not_a_number")]);
-    let result: Option<u32> = BraidStoreFactory::parse_reader_var(&reader, "INVALID_VAR");
-    assert_eq!(result, None);
-}
-
-#[test]
-fn test_parse_reader_var_different_types() {
-    let reader = mock_reader(&[
-        ("STRING_VAR", "hello"),
-        ("BOOL_VAR", "true"),
-        ("FLOAT_VAR", "42.5"),
-    ]);
-    let result: Option<String> = BraidStoreFactory::parse_reader_var(&reader, "STRING_VAR");
-    assert_eq!(result, Some("hello".to_string()));
-
-    let result: Option<bool> = BraidStoreFactory::parse_reader_var(&reader, "BOOL_VAR");
-    assert_eq!(result, Some(true));
-
-    let result: Option<f64> = BraidStoreFactory::parse_reader_var(&reader, "FLOAT_VAR");
-    assert_eq!(result, Some(42.5));
 }
 
 // ==================== Config-based factory ====================
@@ -241,19 +109,6 @@ async fn test_from_config_unknown_backend() {
         let msg = err.to_string();
         assert!(msg.contains("Unknown storage backend"));
         assert!(msg.contains("redis"));
-    }
-}
-
-#[tokio::test]
-async fn test_from_config_postgres_missing_url() {
-    let config = StorageConfig {
-        backend: "postgres".to_string(),
-        ..StorageConfig::default()
-    };
-    let result = BraidStoreFactory::from_config(&config).await;
-    assert!(result.is_err());
-    if let Err(err) = result {
-        assert!(err.to_string().contains("database_url"));
     }
 }
 
@@ -385,23 +240,18 @@ fn test_nestgate_config_from_reader() {
 fn test_storage_config_default() {
     let config = StorageConfig::default();
     assert!(config.backend.is_empty());
-    assert!(config.database_url.is_none());
     assert!(config.redb_path.is_none());
-    assert!(config.pg_max_connections.is_none());
-    assert!(config.pg_min_connections.is_none());
 }
 
 #[test]
 fn test_storage_config_clone() {
     let original = StorageConfig {
-        backend: "postgres".to_string(),
-        database_url: Some(TEST_DB_URL.to_string()),
-        pg_max_connections: Some(20),
+        backend: "redb".to_string(),
+        redb_path: Some("/tmp/test.redb".to_string()),
         ..StorageConfig::default()
     };
     let cloned = original.clone();
-    assert_eq!(cloned.backend, "postgres");
-    assert_eq!(cloned.database_url, Some(TEST_DB_URL.to_string()));
-    assert_eq!(cloned.pg_max_connections, Some(20));
+    assert_eq!(cloned.backend, "redb");
+    assert_eq!(cloned.redb_path, Some("/tmp/test.redb".to_string()));
     assert_eq!(original.backend, cloned.backend);
 }

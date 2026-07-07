@@ -20,8 +20,6 @@ workspace = true
 # Internal crates
 sweet-grass-core = { path = "../sweet-grass-core" }
 sweet-grass-store = { path = "../sweet-grass-store" }
-sweet-grass-store-postgres = { path = "../sweet-grass-store-postgres" }
-
 sweet-grass-store-redb = { path = "../sweet-grass-store-redb" }
 sweet-grass-store-nestgate = { path = "../sweet-grass-store-nestgate", optional = true }
 sweet-grass-factory = { path = "../sweet-grass-factory" }

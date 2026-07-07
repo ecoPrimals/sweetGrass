@@ -48,7 +48,7 @@ cargo clean
 ## ✅ TEST COMMANDS
 
 ```bash
-# All tests (1,658 local + 56 Docker CI)
+# All tests (pure Rust — no Docker required)
 cargo test --all-features
 
 # Unit tests only
@@ -70,9 +70,6 @@ cargo test test_name
 cargo test --test chaos
 cargo test --package sweet-grass-factory -- chaos
 cargo test --test fault_injection
-
-# PostgreSQL tests (requires Docker)
-cargo test --package sweet-grass-store-postgres --test integration -- --ignored
 
 # Watch mode (requires cargo-watch)
 cargo watch -x test
@@ -218,45 +215,15 @@ curl http://localhost:8080/api/v1/braids | jq
 
 ---
 
-## 🐳 DOCKER COMMANDS
-
-```bash
-# PostgreSQL for integration tests
-docker compose up -d postgres
-
-# PostgreSQL + pgAdmin
-docker compose --profile admin up -d
-
-# View logs
-docker compose logs -f
-
-# Stop
-docker compose down
-
-# Clean slate (remove volumes)
-docker compose down -v
-```
-
----
-
 ## 🔧 ENVIRONMENT VARIABLES
 
 ```bash
 # Memory storage (default)
 sweetgrass server
 
-# PostgreSQL
-DATABASE_URL=postgresql://user:pass@localhost:5432/sweetgrass \
-sweetgrass server
-
-# redb (recommended embedded)
+# redb (recommended embedded, production)
 STORAGE_BACKEND=redb \
 STORAGE_PATH=/var/lib/sweetgrass/data.redb \
-sweetgrass server
-
-# With discovery
-DISCOVERY_ADDRESS=discovery.example.com:9090 \
-DATABASE_URL=postgresql://user:pass@localhost:5432/sweetgrass \
 sweetgrass server
 
 # Custom ports
@@ -389,31 +356,6 @@ git tag -a vX.Y.Z -m "Release vX.Y.Z"
 
 # 9. Push
 git push && git push --tags
-```
-
----
-
-## 🧪 INTEGRATION TESTING
-
-```bash
-# Start PostgreSQL with Docker
-docker run -d \
-  --name sweetgrass-postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=sweetgrass \
-  -p 5432:5432 \
-  postgres:16
-
-# Run service with PostgreSQL
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/sweetgrass \
-sweetgrass server
-
-# Run integration tests
-cargo test --workspace --test '*' -- --ignored
-
-# Stop PostgreSQL
-docker stop sweetgrass-postgres
-docker rm sweetgrass-postgres
 ```
 
 ---

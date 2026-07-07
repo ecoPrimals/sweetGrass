@@ -5,8 +5,6 @@ resolver = "3"
 members = [
     "crates/sweet-grass-core",
     "crates/sweet-grass-store",
-    "crates/sweet-grass-store-postgres",
-
     "crates/sweet-grass-store-redb",
     "crates/sweet-grass-store-nestgate",
     "crates/sweet-grass-factory",
@@ -17,7 +15,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.7.60"
+version = "0.7.61"
 edition = "2024"
 rust-version = "1.87"
 license = "AGPL-3.0-or-later"
@@ -63,9 +61,6 @@ bytes = { version = "1", features = ["serde"] }
 
 # Synchronization (Pure Rust, no poisoning, better perf than std)
 parking_lot = "0.12"
-
-# Database (Pure Rust - no OpenSSL, no SQLite)
-sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "postgres", "chrono", "uuid", "json", "migrate"] }
 
 # Embedded key-value store (Pure Rust - no C dependencies)
 redb = "2.4"

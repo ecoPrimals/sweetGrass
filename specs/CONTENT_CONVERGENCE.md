@@ -16,8 +16,8 @@ content hashes (same data, different provenance paths), the earlier index entry
 was silently overwritten.
 
 **Implemented (v0.7.43):** memory uses `HashMap<ContentHash, HashSet<BraidId>>`;
-redb uses `MultimapTableDefinition`; PostgreSQL uses a non-unique `data_hash`
-index with `get_all_by_hash`.
+redb uses `MultimapTableDefinition`. (PostgreSQL backend removed in v0.7.61 —
+pure Rust dogma.)
 
 This "collision" is not a bug in the hash function — it is **provenance convergence**:
 independent paths arriving at the same content. The convergence itself carries
@@ -224,26 +224,7 @@ biological systems where linear growth (hyphae extension) and branching
 
 Direct evolution of `Indexes` as described in Section 3.
 
-### 5.2 PostgreSQL
-
-```sql
--- New table for convergence tracking
-CREATE TABLE IF NOT EXISTS content_convergence (
-    content_hash TEXT NOT NULL,
-    braid_id TEXT NOT NULL,
-    agent_did TEXT NOT NULL,
-    arrived_at BIGINT NOT NULL,
-    is_primary BOOLEAN NOT NULL DEFAULT FALSE,
-    derivation_path JSONB,
-    PRIMARY KEY (content_hash, braid_id)
-);
-
-CREATE INDEX idx_convergence_hash ON content_convergence (content_hash);
-CREATE INDEX idx_convergence_primary ON content_convergence (content_hash)
-    WHERE is_primary = TRUE;
-```
-
-### 5.3 redb
+### 5.2 redb
 
 ```rust
 const CONVERGENCE_TABLE: TableDefinition<&str, &[u8]> =
@@ -306,7 +287,6 @@ Springs that can contribute:
 - Unit and integration tests
 
 ### Phase 2: Storage Backends
-- PostgreSQL `content_convergence` table and migrations
 - redb convergence table
 - Query filter extensions
 

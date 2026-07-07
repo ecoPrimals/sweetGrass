@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.60 | 1,658 tests | 88% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin A++ | BTSP enforced on TCP | Wire L3 | Stadial ready | 40 methods + 11 aliases | JH-0 method gate | BearDog crypto delegation | JH-5 audit pipeline | DH-1 clean | Privacy-enforced | PROV-O complete | Zero bare env var strings | Transport Phase 2 ready | Localhost-only defaults | Zero C/ASM crypto | TRANSPORT_ENDPOINT | HEALTH-01 ready | BTSP E2E ready | riboCipher reference impl | Mito-beacon 0xED accepted | Zero clippy warnings | cargo-deny clean
+v0.7.61 | 1,600+ tests | 88% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin A++ | BTSP enforced on TCP | Wire L3 | Stadial ready | 40 methods + 11 aliases | JH-0 method gate | BearDog crypto delegation | JH-5 audit pipeline | DH-1 clean | Privacy-enforced | PROV-O complete | Zero bare env var strings | Transport Phase 2 ready | Localhost-only defaults | Zero C/ASM crypto | TRANSPORT_ENDPOINT | HEALTH-01 ready | BTSP E2E ready | riboCipher reference impl | Mito-beacon 0xED accepted | Zero clippy warnings | cargo-deny clean | sqlx banned
 
 ---
 
@@ -72,7 +72,6 @@ sweetgrass socket        # Print UDS socket path
 |-------|---------|
 | `sweet-grass-core` | Braid, Agent, Activity, Entity, Contribution, DehydrationSummary, Config, niche.rs self-knowledge |
 | `sweet-grass-store` | BraidStore trait + MemoryStore |
-| `sweet-grass-store-postgres` | PostgreSQL backend |
 | `sweet-grass-store-redb` | Embedded Pure Rust backend (redb, recommended) |
 | `sweet-grass-factory` | Braid creation + attribution engine |
 | `sweet-grass-query` | Graph traversal, PROV-O export |
@@ -132,8 +131,7 @@ Single binary with subcommands (`sweetgrass server`, `sweetgrass status`, `sweet
 
 ### Storage Flexibility
 - **Memory**: Testing and development
-- **PostgreSQL**: Production scale with migrations
-- **redb**: Embedded Pure Rust, ACID transactions, actively maintained (recommended)
+- **redb**: Embedded Pure Rust, ACID transactions, actively maintained (production recommended)
 - **NestGate**: Ecosystem-delegated storage via JSON-RPC over UDS (feature-gated, `--features nestgate`)
 - Runtime selection via environment
 
@@ -149,7 +147,6 @@ Single binary with subcommands (`sweetgrass server`, `sweetgrass status`, `sweet
 
 ### Prerequisites
 - Rust 1.87+ (stable, Edition 2024)
-- Docker (optional, for PostgreSQL)
 
 ### From Source
 
@@ -173,8 +170,7 @@ cargo llvm-cov --workspace
 ### Configuration
 
 ```bash
-STORAGE_BACKEND=redb                     # or: memory, postgres
-DATABASE_URL=postgresql://...            # for postgres backend
+STORAGE_BACKEND=redb                     # or: memory
 SWEETGRASS_HTTP_ADDRESS=0.0.0.0:8080    # REST + HTTP JSON-RPC endpoint
 SWEETGRASS_PORT=9100                     # TCP JSON-RPC (UniBin --port)
 SWEETGRASS_TARPC_ADDRESS=0.0.0.0:8091   # Binary RPC endpoint
@@ -203,9 +199,9 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 
 | Metric | Value |
 |--------|-------|
-| Version | v0.7.60 |
-| Tests | 1,658 local + 56 Docker CI |
-| Coverage | 88% line (91%+ with Postgres Docker) |
+| Version | v0.7.61 |
+| Tests | 1,600+ (pure Rust, no Docker) |
+| Coverage | 88%+ line (llvm-cov) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |

@@ -377,8 +377,7 @@ sweetGrass/
 │   │       ├── error.rs
 │   │       └── memory/           # In-memory backend (mod, indexes, filter)
 │   │
-│   ├── sweet-grass-store-postgres/ # PostgreSQL backend
-│   │   └── src/
+│   │
 │   │       ├── lib.rs
 │   │       ├── migrations.rs
 │   │       ├── error.rs

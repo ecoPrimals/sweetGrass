@@ -36,32 +36,6 @@ pub const TEST_TARPC_URI: &str = "tcp://localhost:9000";
 /// Invalid address for testing connection failure (reserved port).
 pub const TEST_INVALID_ADDR: &str = "127.0.0.1:1";
 
-// ---------------------------------------------------------------------------
-// PostgreSQL test database URLs
-// ---------------------------------------------------------------------------
-
-/// Fallback `PostgreSQL` URL when `TEST_DATABASE_URL` is not set (e.g. local dev).
-pub const TEST_DB_URL_FALLBACK: &str = "postgresql://postgres:postgres@localhost/sweetgrass_test";
-
-/// `PostgreSQL` URL for generic test database (factory/config tests).
-pub const TEST_DB_URL: &str = "postgresql://localhost/test";
-
-/// `PostgreSQL` URL for primary database (preference tests).
-pub const TEST_DB_URL_PRIMARY: &str = "postgresql://localhost/primary";
-
-/// `PostgreSQL` URL for secondary database (preference tests).
-pub const TEST_DB_URL_SECONDARY: &str = "postgresql://localhost/secondary";
-
-/// Get test database URL from `TEST_DATABASE_URL` env var or fallback.
-///
-/// Use this for integration tests that need a real `PostgreSQL` connection
-/// (migrations, CRUD). Prefer constants for unit tests that only need valid URLs.
-#[must_use]
-pub fn test_db_url() -> String {
-    std::env::var(sweet_grass_core::primal_names::env_vars::TEST_DATABASE_URL)
-        .unwrap_or_else(|_| TEST_DB_URL_FALLBACK.to_string())
-}
-
 /// Allocate a random port from the operating system.
 ///
 /// This avoids port conflicts in CI/CD pipelines and follows the
@@ -141,22 +115,12 @@ mod tests {
     }
 
     #[test]
-    fn test_db_url_returns_string() {
-        let url = test_db_url();
-        assert!(url.starts_with("postgresql://"));
-    }
-
-    #[test]
     fn test_constants_are_valid() {
         assert!(TEST_BIND_ADDR.contains("127.0.0.1"));
         assert!(TEST_HTTP_BASE.starts_with("http://"));
         assert!(TEST_REST_URL.starts_with("http://"));
         assert!(!TEST_TARPC_ADDR.is_empty());
         assert!(!TEST_TARPC_URI.is_empty());
-        assert!(TEST_DB_URL.starts_with("postgresql://"));
-        assert!(TEST_DB_URL_PRIMARY.starts_with("postgresql://"));
-        assert!(TEST_DB_URL_SECONDARY.starts_with("postgresql://"));
-        assert!(TEST_DB_URL_FALLBACK.starts_with("postgresql://"));
     }
 
     #[test]

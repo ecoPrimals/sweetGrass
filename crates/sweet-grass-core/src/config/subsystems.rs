@@ -44,10 +44,8 @@ impl Default for StorageConfig {
 pub enum StorageBackend {
     /// In-memory storage (for testing/development).
     Memory,
-    /// `redb` embedded key-value store.
+    /// `redb` embedded key-value store (production recommended).
     Redb,
-    /// `PostgreSQL` relational store.
-    Postgres,
     /// `NestGate` IPC store (via UDS to `NestGate` primal).
     NestGate,
     /// Custom backend.

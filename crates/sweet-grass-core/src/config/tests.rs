@@ -36,12 +36,12 @@ fn test_default_config() {
 
 #[test]
 fn test_storage_backend_serialization() {
-    let backend = StorageBackend::Postgres;
+    let backend = StorageBackend::Redb;
     let json = serde_json::to_string(&backend).expect("should serialize");
-    assert_eq!(json, "\"postgres\"");
+    assert_eq!(json, "\"redb\"");
 
     let parsed: StorageBackend = serde_json::from_str(&json).expect("should deserialize");
-    assert_eq!(parsed, StorageBackend::Postgres);
+    assert_eq!(parsed, StorageBackend::Redb);
 }
 
 #[test]
@@ -281,14 +281,14 @@ fn test_env_overrides_all_fields() {
 fn test_builder_rest_listen_and_storage() {
     let config = SweetGrassConfig::builder()
         .rest_listen("127.0.0.1:3000")
-        .storage_backend(StorageBackend::Postgres)
+        .storage_backend(StorageBackend::Redb)
         .build();
 
     assert_eq!(
         config.network.rest_listen.as_deref(),
         Some("127.0.0.1:3000")
     );
-    assert_eq!(config.storage.backend, StorageBackend::Postgres);
+    assert_eq!(config.storage.backend, StorageBackend::Redb);
 }
 
 #[test]
@@ -308,7 +308,6 @@ fn test_storage_backend_variants() {
     for (variant, expected) in [
         (StorageBackend::Memory, "\"memory\""),
         (StorageBackend::Redb, "\"redb\""),
-        (StorageBackend::Postgres, "\"postgres\""),
         (StorageBackend::NestGate, "\"nestgate\""),
     ] {
         let json = serde_json::to_string(&variant).expect("serialize");

@@ -78,9 +78,8 @@ pub struct BootstrapResult {
 /// - `REST_PORT`: REST endpoint port (default: 0 - dynamic allocation)
 ///
 /// ### Storage
-/// - `STORAGE_BACKEND`: Backend type (`memory`, `redb`, `postgres`, `nestgate`)
+/// - `STORAGE_BACKEND`: Backend type (`memory`, `redb`, `nestgate`)
 /// - `STORAGE_PATH`: Path for file-backed stores (`redb`)
-/// - `DATABASE_URL`: `PostgreSQL` connection string
 /// - `NESTGATE_SOCKET`: `NestGate` UDS socket path
 /// - (default: in-memory)
 ///
@@ -97,7 +96,7 @@ pub struct BootstrapResult {
 /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ///     // Environment:
 ///     // PRIMAL_NAME=sweetgrass-prod
-///     // DATABASE_URL=postgres://...
+///     // STORAGE_BACKEND=redb
 ///
 ///     let result = infant_bootstrap().await?;
 ///     println!("Primal: {}", result.self_knowledge.name);

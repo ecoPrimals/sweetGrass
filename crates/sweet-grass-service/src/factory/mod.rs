@@ -17,20 +17,11 @@ type Result<T> = std::result::Result<T, StoreError>;
 /// mutating process environment variables. Safe for multi-threaded contexts.
 #[derive(Clone, Debug, Default)]
 pub struct StorageConfig {
-    /// Backend type: "memory", "postgres", "redb", "nestgate".
+    /// Backend type: "memory", "redb", "nestgate".
     pub backend: String,
-
-    /// `PostgreSQL` connection URL.
-    pub database_url: Option<String>,
 
     /// redb database path.
     pub redb_path: Option<String>,
-
-    /// `PostgreSQL` max connections.
-    pub pg_max_connections: Option<u32>,
-
-    /// `PostgreSQL` min connections.
-    pub pg_min_connections: Option<u32>,
 
     /// `NestGate` socket path (explicit override; uses discovery if absent).
     pub nestgate_socket: Option<String>,
@@ -50,8 +41,7 @@ pub struct StorageConfig {
 ///
 /// ## Environment Variables
 ///
-/// - `STORAGE_BACKEND`: Backend type (`memory`, `postgres`, `redb`)
-/// - `DATABASE_URL` or `STORAGE_URL`: Connection string (postgres)
+/// - `STORAGE_BACKEND`: Backend type (`memory`, `redb`)
 /// - `STORAGE_PATH`: File path (redb)
 pub struct BraidStoreFactory;
 
@@ -97,10 +87,7 @@ impl BraidStoreFactory {
         StorageConfig {
             backend: reader("STORAGE_BACKEND")
                 .unwrap_or_else(|| sweet_grass_core::identity::DEFAULT_STORAGE_BACKEND.to_string()),
-            database_url: reader("DATABASE_URL").or_else(|| reader("STORAGE_URL")),
             redb_path: reader("STORAGE_PATH"),
-            pg_max_connections: Self::parse_reader_var(reader, "PG_MAX_CONNECTIONS"),
-            pg_min_connections: Self::parse_reader_var(reader, "PG_MIN_CONNECTIONS"),
             nestgate_socket: reader(sweet_grass_core::primal_names::env_vars::NESTGATE_SOCKET),
             nestgate_family_id: reader(sweet_grass_core::primal_names::env_vars::FAMILY_ID),
         }
@@ -127,6 +114,10 @@ impl BraidStoreFactory {
     /// # Errors
     ///
     /// Returns error if backend initialization fails.
+    #[expect(
+        clippy::unused_async,
+        reason = "async retained for API stability with callers"
+    )]
     pub async fn from_config_with_name(
         config: &StorageConfig,
     ) -> Result<(BraidBackend, &'static str)> {
@@ -143,9 +134,6 @@ impl BraidStoreFactory {
                 tracing::info!("Using in-memory storage backend");
                 Ok((BraidBackend::Memory(MemoryStore::new()), "memory"))
             },
-            "postgres" => Self::create_postgres_from_config(config)
-                .await
-                .map(|s| (s, "postgres")),
             "redb" => Self::create_redb_from_config(config).map(|s| (s, "redb")),
             #[cfg(feature = "nestgate")]
             "nestgate" => Self::create_nestgate_from_config(config).map(|s| (s, "nestgate")),
@@ -154,30 +142,6 @@ impl BraidStoreFactory {
                 Self::valid_backends()
             ))),
         }
-    }
-
-    /// Create `PostgreSQL` backend from explicit config.
-    async fn create_postgres_from_config(config: &StorageConfig) -> Result<BraidBackend> {
-        use sweet_grass_store_postgres::PostgresStore;
-
-        let url = config.database_url.as_deref().ok_or_else(|| {
-            StoreError::Internal("PostgreSQL backend requires database_url".to_string())
-        })?;
-
-        let mut pg_config = sweet_grass_store_postgres::PostgresConfig::new(url);
-        if let Some(max) = config.pg_max_connections {
-            pg_config = pg_config.max_connections(max);
-        }
-        if let Some(min) = config.pg_min_connections {
-            pg_config = pg_config.min_connections(min);
-        }
-
-        tracing::info!("Connecting to PostgreSQL database");
-        let store = PostgresStore::connect(&pg_config).await?;
-        tracing::info!("Running database migrations");
-        store.run_migrations().await?;
-        tracing::info!("PostgreSQL backend initialized");
-        Ok(BraidBackend::Postgres(store))
     }
 
     /// Create redb backend from explicit config.
@@ -213,24 +177,15 @@ impl BraidStoreFactory {
         Ok(BraidBackend::NestGate(store))
     }
 
-    /// Parse a key from a reader as a specific type.
-    #[doc(hidden)]
-    pub(crate) fn parse_reader_var<T: std::str::FromStr>(
-        reader: &impl Fn(&str) -> Option<String>,
-        key: &str,
-    ) -> Option<T> {
-        reader(key)?.parse().ok()
-    }
-
     /// List valid backend names (varies by enabled features).
     const fn valid_backends() -> &'static str {
         #[cfg(feature = "nestgate")]
         {
-            "memory, postgres, redb, nestgate"
+            "memory, redb, nestgate"
         }
         #[cfg(not(feature = "nestgate"))]
         {
-            "memory, postgres, redb"
+            "memory, redb"
         }
     }
 }

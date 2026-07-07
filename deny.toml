@@ -61,21 +61,16 @@ deny = [
     # Shared cross-primal types — sovereignty violation (each primal owns its own types)
     { name = "provenance-trio-types", wrappers = [], reason = "Boundary violation — primals communicate via JSON-RPC, not shared crates" },
 
-    # SQLite/MySQL — sweetGrass is postgres-only + redb; no other SQL backends
-    { name = "libsqlite3-sys", wrappers = [], reason = "C library — use redb or postgres-only sqlx" },
-    { name = "sqlx-sqlite", wrappers = [], reason = "postgres-only — no SQLite backend" },
-    { name = "sqlx-mysql", wrappers = [], reason = "postgres-only — no MySQL backend" },
+    # SQL databases — sweetGrass is pure Rust (redb only); no external DB dependencies
+    { name = "sqlx", wrappers = [], reason = "Pure Rust dogma — redb is the sole persistent backend" },
+    { name = "sqlx-core", wrappers = [], reason = "Pure Rust dogma — no SQL" },
+    { name = "sqlx-postgres", wrappers = [], reason = "Pure Rust dogma — no SQL" },
+    { name = "sqlx-sqlite", wrappers = [], reason = "Pure Rust dogma — no SQL" },
+    { name = "sqlx-mysql", wrappers = [], reason = "Pure Rust dogma — no SQL" },
+    { name = "libsqlite3-sys", wrappers = [], reason = "C library — pure Rust only" },
 ]
 
-skip = [
-    # sqlx 0.8 → hashlink → hashbrown 0.15; indexmap 2 → hashbrown 0.16
-    { name = "hashbrown", version = "=0.15.5" },
-    # parking_lot → parking_lot_core → redox_syscall 0.5;
-    # sqlx-postgres → whoami → libredox → redox_syscall 0.8
-    # Both are Redox OS syscall wrappers (dead code on Linux) — cannot unify
-    # until parking_lot bumps to libredox.
-    { name = "redox_syscall", version = "=0.5.18" },
-]
+skip = []
 skip-tree = [
     # Dev-only: criterion benchmarks pull in older rand/getrandom chains
     { name = "criterion" },

@@ -1,6 +1,6 @@
 +++
 title = "sweetGrass Validation Summary"
-description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,658 tests, 40 methods, zero production debt. riboCipher reference impl, BTSP E2E ready, HEALTH-01, mito-beacon 0xED, zero bare env vars."
+description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,600+ tests, 40 methods, zero production debt. Pure Rust (sqlx banned), riboCipher reference impl, BTSP E2E ready, HEALTH-01, mito-beacon 0xED."
 date = 2026-06-19
 
 [taxonomies]
@@ -10,8 +10,8 @@ springs = []
 
 ## Status
 
-- **Version**: v0.7.60
-- **1,658 tests** (all passed, 0 failed, 56 Docker CI integration tests)
+- **Version**: v0.7.61
+- **1,600+ tests** (all passed, 0 failed, pure Rust — no Docker required)
 - **40 registered capability methods** across 13 domains
 - **215+ source files**, max 795 lines per file
 - **riboCipher**: Reference implementation in `peek.rs` — signal detection for `0xEC`/`0xED`/`0xEE` before legacy peek (Wave 111, Stream 7)
@@ -20,7 +20,7 @@ springs = []
 - **Zero bare env var strings**: All `env::var()` calls use `primal_names::env_vars` constants
 - **Zero production debt**: 0 unsafe, 0 `#[allow]`, 0 TODO/FIXME, 0 `println!`, 0 production `unwrap()`, 0 `std::sync::Mutex`, 0 `Box<dyn Error>`, 0 `async_trait`, 0 `Rc<`, 0 missing SPDX
 - **Clippy**: 0 warnings (pedantic + nursery)
-- **`#![forbid(unsafe_code)]`** on all 10 crate roots
+- **`#![forbid(unsafe_code)]`** on all 9 crate roots
 - **BTSP enforced** on TCP when `FAMILY_ID` set (v0.7.36+)
 - **JH-0 Method Gate** adopted — permissive mode, `auth.check`/`auth.mode`/`auth.peer_info` registered
 - **GAP-36 resolved** — 11 wire-name aliases for downstream compatibility
@@ -88,7 +88,6 @@ rhizoCrypt (DAG sessions) → loamSpine (ledger commits) → sweetGrass (braids)
 | Memory | Development, tests |
 | redb | Local persistent (single-node) |
 | NestGate | Distributed (IPC to nestGate primal) |
-| Postgres | CI integration tests (Docker) |
 
 ## Downstream Dependents
 

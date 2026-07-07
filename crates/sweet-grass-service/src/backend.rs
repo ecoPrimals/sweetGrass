@@ -213,9 +213,6 @@ pub enum BraidBackend {
     /// `redb` embedded Pure Rust store (recommended production).
     Redb(sweet_grass_store_redb::RedbStore),
 
-    /// `PostgreSQL` store (multi-node production).
-    Postgres(sweet_grass_store_postgres::PostgresStore),
-
     /// `NestGate` delegated store (ecosystem storage).
     #[cfg(feature = "nestgate")]
     NestGate(sweet_grass_store_nestgate::NestGateStore),
@@ -234,7 +231,6 @@ macro_rules! delegate_store {
         match $self {
             Self::Memory(s) => s.$method($($arg),*).await,
             Self::Redb(s) => s.$method($($arg),*).await,
-            Self::Postgres(s) => s.$method($($arg),*).await,
             #[cfg(feature = "nestgate")]
             Self::NestGate(s) => s.$method($($arg),*).await,
             #[cfg(any(test, feature = "test"))]

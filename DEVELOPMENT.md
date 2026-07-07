@@ -10,7 +10,6 @@
 ### Prerequisites
 
 - Rust 1.87+ (Edition 2024)
-- Docker & Docker Compose (for PostgreSQL tests)
 - cargo-llvm-cov (for coverage)
 
 ### Installation
@@ -31,57 +30,18 @@ cargo build --all-features
 ### Run Tests
 
 ```bash
-# Unit tests only (no Docker needed)
+# All tests (pure Rust — no Docker required)
 cargo test --all-features
-
-# All tests including PostgreSQL (requires Docker)
-docker compose up -d
-cargo test --all-features
-docker compose down
 ```
 
 ### Coverage Report
 
 ```bash
-# Start PostgreSQL
-docker compose up -d
-
 # Generate coverage
 cargo llvm-cov --all-features --workspace --html
 
 # View report
 open target/llvm-cov/html/index.html
-
-# Stop PostgreSQL
-docker compose down
-```
-
----
-
-## 🐳 Docker Development Environment
-
-### Start Services
-
-```bash
-# PostgreSQL only
-docker compose up -d postgres
-
-# PostgreSQL + pgAdmin (for database management)
-docker compose --profile admin up -d
-```
-
-### Access Services
-
-- **PostgreSQL**: `postgresql://postgres:postgres@localhost:5432/sweetgrass_test`
-- **pgAdmin**: http://localhost:5050 (admin@sweetgrass.local / admin)
-
-### Stop Services
-
-```bash
-docker compose down
-
-# Remove volumes (clean slate)
-docker compose down -v
 ```
 
 ---
@@ -92,15 +52,14 @@ docker compose down -v
 
 ```
 crates/
-├── Unit Tests          (1,658 tests)  - src/ modules across all 10 crates
+├── Unit Tests          (1,600+ tests)  - src/ modules across all 9 crates
 ├── Integration Tests   (21 tests)     - sweet-grass-service/tests/integration.rs
 ├── Chaos Tests         (17 tests)     - sweet-grass-service/tests/chaos.rs
 ├── Fault Injection     (9 tests)      - sweet-grass-service/tests/fault_injection.rs
 ├── E2E HTTP            (19 tests)     - sweet-grass-service/tests/e2e_http.rs
 ├── BTSP Mock           (6 tests)      - sweet-grass-service/tests/btsp_mock_beardog.rs
 ├── CLI                 (6 tests)      - sweet-grass-service/tests/cli_bin.rs
-├── Property Tests      (25 strategies) - proptest across 7 crates
-└── PostgreSQL          (41 tests)     - sweet-grass-store-postgres/tests/
+└── Property Tests      (25 strategies) - proptest across 7 crates
 ```
 
 ### Run Specific Tests
@@ -115,11 +74,6 @@ cargo test --test integration
 # Chaos tests
 cargo test --test chaos
 
-# PostgreSQL tests (requires Docker)
-docker compose up -d
-cargo test --package sweet-grass-store-postgres
-docker compose down
-
 # Single test
 cargo test test_name
 
@@ -129,17 +83,13 @@ cargo test -- --nocapture
 
 ### Test Categories
 
-**Fast Tests** (no Docker):
+**Fast Tests** (all pure Rust, no external deps):
 - Core data structures
 - Factory & attribution
 - Compression logic
 - Query engine
 - Memory store
-
-**Slow Tests** (requires Docker):
-- PostgreSQL store (41 tests)
-- Migration tests
-- Schema validation
+- redb store
 
 **Ignored Tests** (requires live services):
 - Multi-primal integration
@@ -190,7 +140,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 1,658 local tests + 56 Docker CI, 88% line coverage via llvm-cov (91%+ with Postgres Docker)
+- **Overall**: 1,600+ tests (pure Rust, no Docker), 88%+ line coverage via llvm-cov
 - **Target**: 90%+ coverage on core crates (achieved)
 
 ### Per-Crate Coverage
@@ -205,16 +155,9 @@ cargo audit
 | sweet-grass-store | 96% | 90% | ✅ Excellent |
 | sweet-grass-store-redb | 90%+ | 90% | ✅ Above target |
 | sweet-grass-store-nestgate | 89% | 80% | ✅ Above target |
-| sweet-grass-store-postgres | 5% | 80% | ❌ Needs CI/Docker |
 | sweet-grass-integration | 81% | 80% | ✅ Above target |
 
 ### Improving Coverage
-
-**PostgreSQL**: Run with Docker
-```bash
-docker compose up -d
-cargo test --package sweet-grass-store-postgres
-```
 
 **Integration**: Requires live primals (future work)
 
@@ -321,9 +264,7 @@ cargo test --all-features
 ### 4. Check Coverage
 
 ```bash
-docker compose up -d
 cargo llvm-cov --all-features --workspace
-docker compose down
 ```
 
 ### 5. Commit
@@ -404,21 +345,6 @@ RUST_LOG=trace cargo test test_name
 
 See [docs/guides/TOKIO_CONSOLE_GUIDE.md](./docs/guides/TOKIO_CONSOLE_GUIDE.md)
 
-### Database Debugging
-
-```bash
-# Connect to PostgreSQL
-docker compose up -d
-psql postgresql://postgres:postgres@localhost:5432/sweetgrass_test
-
-# View schema
-\dt
-\d+ braids
-
-# Query data
-SELECT * FROM braids LIMIT 10;
-```
-
 ---
 
 ## 🚀 Release Process
@@ -434,7 +360,6 @@ SELECT * FROM braids LIMIT 10;
 
 ```bash
 # All tests pass
-docker compose up -d
 cargo test --all-features
 
 # Coverage meets target
@@ -534,27 +459,12 @@ See [docs/guides/ZERO_COPY_OPPORTUNITIES.md](./docs/guides/ZERO_COPY_OPPORTUNITI
 
 ## 🆘 Troubleshooting
 
-### PostgreSQL Won't Start
-
-```bash
-# Check if port 5432 is in use
-lsof -i :5432
-
-# Remove old containers
-docker compose down -v
-docker compose up -d
-```
-
 ### Tests Failing Randomly
 
 ```bash
 # Clean build
 cargo clean
 cargo build --all-features
-
-# Reset database
-docker compose down -v
-docker compose up -d
 cargo test --all-features
 ```
 

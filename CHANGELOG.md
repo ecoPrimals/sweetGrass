@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.61] - 2026-07-07
+
+### Removed — Pure Rust Dogma (Wave 133b)
+
+#### Removed
+- **`sweet-grass-store-postgres` crate** — entire crate deleted. PostgreSQL/sqlx
+  violated pure Rust dogma: compile-time proc macros that connect to live external
+  databases, 130+ transitive dependencies, and the only primal in the ecosystem
+  with an external database requirement. `redb` is the sole persistent backend.
+- **`sqlx` workspace dependency** — removed from `[workspace.dependencies]`.
+  `sqlx`, `sqlx-core`, `sqlx-postgres` now explicitly banned in `deny.toml`.
+- **`docker-compose.yml`** — existed only for PostgreSQL dev/test; no longer needed.
+- **`DATABASE_URL` env var** — removed from CLI args, `primal_names`, factory config,
+  bootstrap docs. Storage requires only `STORAGE_BACKEND` and `STORAGE_PATH`.
+- **`StorageConfig` postgres fields** — `database_url`, `pg_max_connections`,
+  `pg_min_connections` removed from the config struct.
+- **`BraidBackend::Postgres` variant** — removed from enum dispatch.
+- **All postgres-related tests** — factory tests, integration test URLs, Docker
+  compose instructions removed from docs.
+
+#### Changed
+- **`deny.toml` hardened** — `sqlx`, `sqlx-core`, `sqlx-postgres`, `sqlx-sqlite`,
+  `sqlx-mysql`, `libsqlite3-sys` all explicitly banned with "pure Rust dogma" rationale.
+- **Lockfile reduced** — ~130 fewer transitive dependencies (313 packages, was ~443).
+- **`crossbeam-epoch`** — updated 0.9.18 → 0.9.20 (RUSTSEC-2026-0204 fix).
+- **Root docs updated** — README, DEVELOPMENT, QUICK_COMMANDS, ROADMAP, ARCHITECTURE
+  all purged of PostgreSQL/Docker references.
+
 ## [0.7.60] - 2026-06-19
 
 ### Deep Debt Resolution + Idiomatic Evolution (Wave 115)

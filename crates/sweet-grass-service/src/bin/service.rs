@@ -75,13 +75,9 @@ enum Commands {
         #[arg(long, env = "SWEETGRASS_TARPC_ADDRESS", default_value = "127.0.0.1:0")]
         tarpc_address: String,
 
-        /// Storage backend: memory, postgres, redb.
+        /// Storage backend: memory, redb.
         #[arg(short, long, env = "STORAGE_BACKEND", default_value = "memory")]
         storage: String,
-
-        /// `PostgreSQL` connection string (if storage=postgres).
-        #[arg(long, env = "DATABASE_URL")]
-        database_url: Option<String>,
 
         /// Storage path (if storage=redb).
         #[arg(long, env = "STORAGE_PATH")]
@@ -149,7 +145,6 @@ async fn main() {
             http_address,
             tarpc_address,
             storage,
-            database_url,
             storage_path,
             log_level,
             no_tarpc,
@@ -198,7 +193,6 @@ async fn main() {
                 http_address: effective_http_address,
                 tarpc_address,
                 storage,
-                database_url,
                 storage_path,
                 log_level,
                 no_tarpc,
@@ -221,7 +215,6 @@ struct ServerConfig {
     http_address: String,
     tarpc_address: String,
     storage: String,
-    database_url: Option<String>,
     storage_path: Option<String>,
     log_level: String,
     no_tarpc: bool,
@@ -254,7 +247,6 @@ async fn run_server(config: ServerConfig) -> i32 {
 
     let storage_config = StorageConfig {
         backend: config.storage.clone(),
-        database_url: config.database_url.clone(),
         redb_path: config.storage_path.clone(),
         ..Default::default()
     };

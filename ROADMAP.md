@@ -698,7 +698,6 @@
 - [ ] `ContentConvergence` and `ConvergentArrival` types in `sweet-grass-core`
 - [ ] Evolved `MemoryStore` indexes (collision-preserving)
 - [ ] `convergence.query` JSON-RPC method
-- [ ] PostgreSQL `content_convergence` table and migrations
 - [x] Coverage target: 90%+ with llvm-cov *(91.7% line coverage, 1,602 tests)*
 
 ### v0.9.0 — sunCloud Integration (Q3 2026)
@@ -736,7 +735,6 @@
 - [x] Zero-copy: integration tarpc clients use `bytes::Bytes` for wire payloads (signer, anchor, listener)
 - [x] Zero-copy: evolve `Braid.mime_type` from `String` to `Arc<str>` *(done in v0.7.21 — cross-crate migration across 7 crates)*
 - [ ] Query performance benchmarks
-- [ ] PostgreSQL index tuning
 - [ ] Lazy loading for large provenance graphs
 
 ### Infrastructure

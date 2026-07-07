@@ -144,11 +144,6 @@ pub mod env_vars {
     /// as a fallback before `DEFAULT_SOCKET_DIR`.
     pub const TMPDIR: &str = "TMPDIR";
 
-    /// `DATABASE_URL` — Postgres connection string.
-    ///
-    /// Used by `sweet-grass-store-postgres` for database connectivity.
-    pub const DATABASE_URL: &str = "DATABASE_URL";
-
     /// `TARPC_MAX_CONCURRENT_REQUESTS` — tarpc server concurrency limit.
     ///
     /// Configures max in-flight requests for the tarpc server.
@@ -263,7 +258,7 @@ pub mod env_vars {
     /// tarpc listen address override.
     pub const SWEETGRASS_TARPC_ADDRESS: &str = "SWEETGRASS_TARPC_ADDRESS";
 
-    /// Storage backend selector (e.g. `memory`, `redb`, `postgres`).
+    /// Storage backend selector (e.g. `memory`, `redb`).
     pub const STORAGE_BACKEND: &str = "STORAGE_BACKEND";
 
     /// Transport endpoint injection (launcher-provided, JSON-encoded).
@@ -273,9 +268,6 @@ pub mod env_vars {
 
     /// Test-only override for primal address in health tests.
     pub const TEST_PRIMAL_ADDR: &str = "TEST_PRIMAL_ADDR";
-
-    /// Test-only Postgres URL override for integration tests.
-    pub const TEST_DATABASE_URL: &str = "TEST_DATABASE_URL";
 }
 
 #[cfg(test)]
@@ -314,7 +306,6 @@ mod tests {
             env_vars::SWEETGRASS_SOCKET,
             env_vars::PRIMAL_NAME,
             env_vars::TMPDIR,
-            env_vars::DATABASE_URL,
             env_vars::TARPC_MAX_CONCURRENT_REQUESTS,
             env_vars::BEARDOG_SOCKET,
             env_vars::DISCOVERY_SOCKET,
@@ -322,7 +313,6 @@ mod tests {
             env_vars::SWEETGRASS_PORT,
             env_vars::SWEETGRASS_AUTH_MODE,
             env_vars::TEST_PRIMAL_ADDR,
-            env_vars::TEST_DATABASE_URL,
         ];
         for var in &all {
             assert_eq!(

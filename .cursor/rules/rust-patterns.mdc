@@ -21,7 +21,7 @@ alwaysApply: false
 ## Async Traits
 - Use RPITIT (`impl Future` in trait return position) — `async-trait` crate eliminated v0.7.27
 - `BraidStore` and other core traits use concrete backend enums, not `dyn` dispatch
-- `BraidBackend` enum dispatches to `MemoryStore`, `RedbStore`, `PostgresStore`, `NestGateStore`
+- `BraidBackend` enum dispatches to `MemoryStore`, `RedbStore`, `NestGateStore`
 
 ## Module Structure
 - `mod.rs` + `tests.rs` pattern for modules with tests
