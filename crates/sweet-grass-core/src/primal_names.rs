@@ -121,6 +121,13 @@ pub mod env_vars {
     /// `btsp/server.rs` for handshake delegation.
     pub const SECURITY_PROVIDER_SOCKET: &str = "SECURITY_PROVIDER_SOCKET";
 
+    /// Bind mode override for platforms without UDS (e.g. Android).
+    ///
+    /// When set to `"tcp_only"`, the primal skips UDS listener startup and
+    /// neural API announce (which requires UDS). The primal binds HTTP + TCP
+    /// JSON-RPC only. All 13 NUCLEUS primals must honor this for grapheneGate.
+    pub const PRIMAL_BIND_MODE: &str = "PRIMAL_BIND_MODE";
+
     /// Explicit sweetGrass UDS socket path override.
     ///
     /// When set, bypasses all socket discovery logic in `uds.rs`.

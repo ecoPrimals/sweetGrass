@@ -30,5 +30,5 @@ rustflags = [
 coverage = "llvm-cov --all-features --workspace"
 coverage-html = "llvm-cov --all-features --workspace --html"
 coverage-json = "llvm-cov --all-features --workspace --json --output-path lcov.json"
-build-x64 = "build --release --target x86_64-unknown-linux-musl -p sweet-grass-service"
-build-arm64 = "build --release --target aarch64-unknown-linux-musl -p sweet-grass-service"
+build-x64 = "build --release --target x86_64-unknown-linux-musl --bin sweetgrass"
+build-arm64 = "build --release --target aarch64-unknown-linux-musl --bin sweetgrass"

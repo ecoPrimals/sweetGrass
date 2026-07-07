@@ -156,6 +156,10 @@ async fn main() {
             socket,
             transport_endpoint,
         } => {
+            let tcp_only =
+                std::env::var(sweet_grass_core::primal_names::env_vars::PRIMAL_BIND_MODE)
+                    .is_ok_and(|v| v.eq_ignore_ascii_case("tcp_only"));
+
             let effective_http_address =
                 http_port.map_or(http_address, |p| format!("127.0.0.1:{p}"));
             let tcp_address = port.map(|p| parse_tcp_port_arg(&p)).transpose();
@@ -200,6 +204,7 @@ async fn main() {
                 no_tarpc,
                 socket: effective_socket,
                 transport_endpoint: resolved_endpoint,
+                tcp_only,
             })
             .await
         },
@@ -221,6 +226,7 @@ struct ServerConfig {
     log_level: String,
     no_tarpc: bool,
     socket: Option<String>,
+    tcp_only: bool,
     transport_endpoint: Option<sweet_grass_core::transport::TransportEndpoint>,
 }
 
@@ -235,8 +241,8 @@ async fn run_server(config: ServerConfig) -> i32 {
         .init();
 
     #[cfg(unix)]
-    if let Err(e) = sweet_grass_service::uds::validate_insecure_guard() {
-        tracing::error!("{e}");
+    if !config.tcp_only && sweet_grass_service::uds::validate_insecure_guard().is_err() {
+        tracing::error!("BIOMEOS_INSECURE not set with FAMILY_ID — refusing to start");
         return exit_code::CONFIG_ERROR;
     }
 
@@ -300,6 +306,29 @@ async fn run_server(config: ServerConfig) -> i32 {
     serve_all(config, state, app, http_listener).await
 }
 
+#[cfg(unix)]
+fn spawn_uds_listener(
+    state: sweet_grass_service::AppState,
+    socket: Option<&String>,
+    shutdown_tx: &tokio::sync::watch::Sender<bool>,
+) -> (Option<std::path::PathBuf>, tokio::task::JoinHandle<()>) {
+    let uds_socket_path = socket.map(std::path::PathBuf::from);
+    let uds_state = state;
+    let shutdown_rx = shutdown_tx.subscribe();
+    let explicit_path = uds_socket_path.clone();
+    let handle = tokio::spawn(async move {
+        let result = if let Some(ref path) = explicit_path {
+            sweet_grass_service::uds::start_uds_listener_at(uds_state, path, shutdown_rx).await
+        } else {
+            sweet_grass_service::uds::start_uds_listener(uds_state, shutdown_rx).await
+        };
+        if let Err(e) = result {
+            tracing::warn!("UDS listener error: {e}");
+        }
+    });
+    (uds_socket_path, handle)
+}
+
 async fn serve_all(
     config: ServerConfig,
     state: sweet_grass_service::AppState,
@@ -332,32 +361,21 @@ async fn serve_all(
             }
         })
     });
-    if config.tcp_address.is_none() {
+    if config.tcp_address.is_none() && !config.tcp_only {
         tracing::info!("TCP JSON-RPC disabled (UDS-only mode — pass --port to enable)");
     }
 
     #[cfg(unix)]
-    let uds_socket_path = config.socket.as_ref().map(std::path::PathBuf::from);
-
-    #[cfg(unix)]
-    let uds_handle = {
-        let uds_state = state.clone();
-        let shutdown_rx = shutdown_tx.subscribe();
-        let explicit_path = uds_socket_path.clone();
-        Some(tokio::spawn(async move {
-            let result = if let Some(ref path) = explicit_path {
-                sweet_grass_service::uds::start_uds_listener_at(uds_state, path, shutdown_rx).await
-            } else {
-                sweet_grass_service::uds::start_uds_listener(uds_state, shutdown_rx).await
-            };
-            if let Err(e) = result {
-                tracing::warn!("UDS listener error: {e}");
-            }
-        }))
+    let (uds_socket_path, uds_handle) = if config.tcp_only {
+        tracing::info!("PRIMAL_BIND_MODE=tcp_only — UDS listener disabled");
+        (None, None)
+    } else {
+        let (path, h) = spawn_uds_listener(state.clone(), config.socket.as_ref(), &shutdown_tx);
+        (path, Some(h))
     };
 
     #[cfg(unix)]
-    {
+    if !config.tcp_only {
         let announce_socket = uds_socket_path.as_ref().map_or_else(
             || {
                 sweet_grass_service::uds::resolve_socket_path(None)
@@ -395,10 +413,12 @@ async fn serve_all(
     }
 
     #[cfg(unix)]
-    if let Some(ref path) = uds_socket_path {
-        sweet_grass_service::uds::cleanup_socket_at(path);
-    } else {
-        sweet_grass_service::uds::cleanup_socket();
+    if !config.tcp_only {
+        if let Some(ref path) = uds_socket_path {
+            sweet_grass_service::uds::cleanup_socket_at(path);
+        } else {
+            sweet_grass_service::uds::cleanup_socket();
+        }
     }
 
     result.map_or_else(
