@@ -8,11 +8,14 @@
 //! - **nest**: tower + storage
 //! - **nucleus**: all subsystems including provenance trio
 
+#[cfg(unix)]
 use std::time::Duration;
 
 use serde_json::json;
 use sweet_grass_store::BraidStore;
+#[cfg(unix)]
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+#[cfg(unix)]
 use tokio::net::UnixStream;
 use tracing::debug;
 
@@ -20,12 +23,13 @@ use crate::state::AppState;
 
 use super::{DispatchResult, to_value};
 
+#[cfg(unix)]
 const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
 
 /// Resolve the `biomeOS` socket directory from a reader closure.
 ///
 /// Test-only: production code snapshots the socket dir into `AppState`.
-#[cfg(test)]
+#[cfg(all(test, unix))]
 fn resolve_socket_dir(reader: &impl Fn(&str) -> Option<String>) -> std::path::PathBuf {
     use sweet_grass_core::primal_names::{env_vars, paths};
     if let Some(dir) = reader(env_vars::BIOMEOS_SOCKET_DIR) {
@@ -42,6 +46,14 @@ fn resolve_socket_dir(reader: &impl Fn(&str) -> Option<String>) -> std::path::Pa
 
 /// Probe a capability socket with `health.liveness` using a snapshotted
 /// socket directory (avoids env reads at handler call time).
+#[cfg(not(unix))]
+async fn probe_capability_in_dir(_domain: &str, _socket_dir: &std::path::Path) -> &'static str {
+    "unavailable"
+}
+
+/// Probe a capability socket with `health.liveness` using a snapshotted
+/// socket directory (avoids env reads at handler call time).
+#[cfg(unix)]
 async fn probe_capability_in_dir(domain: &str, socket_dir: &std::path::Path) -> &'static str {
     let socket = socket_dir.join(format!("{domain}.sock"));
     if !socket.exists() {
@@ -57,7 +69,7 @@ async fn probe_capability_in_dir(domain: &str, socket_dir: &std::path::Path) -> 
 }
 
 /// DI-friendly probe for testing without real env vars.
-#[cfg(test)]
+#[cfg(all(test, unix))]
 async fn probe_capability_with_reader(
     domain: &str,
     reader: &(impl Fn(&str) -> Option<String> + Sync),
@@ -76,6 +88,7 @@ async fn probe_capability_with_reader(
 }
 
 /// Attempt a single `health.liveness` JSON-RPC call over UDS.
+#[cfg(unix)]
 async fn try_liveness_probe(socket: &std::path::Path) -> std::io::Result<()> {
     let stream = UnixStream::connect(socket).await?;
     let (reader, mut writer) = stream.into_split();
@@ -112,7 +125,7 @@ async fn try_liveness_probe(socket: &std::path::Path) -> std::io::Result<()> {
 /// Discover a capability socket following ecosystem conventions.
 ///
 /// Test-only: production code uses `state.socket_dir` directly.
-#[cfg(test)]
+#[cfg(all(test, unix))]
 fn discover_capability_socket_with_reader(
     domain: &str,
     reader: &impl Fn(&str) -> Option<String>,
@@ -252,7 +265,7 @@ pub(super) async fn handle_nucleus_health(
     }))
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 #[expect(clippy::expect_used, reason = "test code: expect is standard in tests")]
 mod tests {
     use std::path::PathBuf;

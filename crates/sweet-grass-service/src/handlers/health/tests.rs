@@ -217,6 +217,7 @@ async fn test_integrations_probe_missing_socket() {
     assert!(discovery.error.is_some());
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn test_integrations_probe_live_socket() {
     let dir = tempfile::tempdir().expect("tempdir");

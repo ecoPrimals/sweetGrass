@@ -16,7 +16,9 @@
 
 use std::net::SocketAddr;
 
-use tracing::{debug, info, warn};
+#[cfg(unix)]
+use tracing::debug;
+use tracing::{info, warn};
 
 /// Start a TCP newline-delimited JSON-RPC 2.0 listener.
 ///

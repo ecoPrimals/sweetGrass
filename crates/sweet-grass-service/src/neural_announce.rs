@@ -13,14 +13,21 @@
 //!
 //! Wire schema per `WAVE42_NEURAL_API_DEPLOYMENT_GUIDE.md`.
 
+#[cfg(any(unix, test))]
 use std::path::PathBuf;
 
-use tracing::{debug, info, warn};
+#[cfg(unix)]
+use tracing::{info, warn};
+#[cfg(any(unix, test))]
+use tracing::debug;
 
+#[cfg(any(unix, test))]
 use sweet_grass_core::niche;
+#[cfg(any(unix, test))]
 use sweet_grass_core::primal_names::env_vars;
 
 /// Default family for neural-api socket resolution.
+#[cfg(any(unix, test))]
 const DEFAULT_FAMILY: &str = "ecoPrimal";
 
 /// Resolve the biomeOS neural-api socket path via tiered lookup.
@@ -29,11 +36,13 @@ const DEFAULT_FAMILY: &str = "ecoPrimal";
 /// 2. `$BIOMEOS_SOCKET_DIR/neural-api-{family}.sock`
 /// 3. `$XDG_RUNTIME_DIR/biomeos/neural-api-{family}.sock`
 /// 4. `{temp_dir}/biomeos/neural-api-{family}.sock`
+#[cfg(any(unix, test))]
 fn resolve_neural_api_socket() -> Option<PathBuf> {
     resolve_neural_api_socket_with(&|key| std::env::var(key).ok())
 }
 
 /// DI-friendly variant for testing.
+#[cfg(any(unix, test))]
 fn resolve_neural_api_socket_with(reader: &dyn Fn(&str) -> Option<String>) -> Option<PathBuf> {
     if let Some(explicit) = reader(env_vars::NEURAL_API_SOCKET) {
         let path = PathBuf::from(&explicit);
@@ -79,6 +88,7 @@ fn resolve_neural_api_socket_with(reader: &dyn Fn(&str) -> Option<String>) -> Op
 ///
 /// Includes all registered methods, capability domains, signal tier,
 /// cost hints, and latency estimates per Wave 43 blurb.
+#[cfg(any(unix, test))]
 fn build_announce_payload(socket_path: &str, version: &str) -> serde_json::Value {
     let methods: Vec<&str> = niche::CAPABILITIES.to_vec();
 
@@ -114,6 +124,7 @@ fn build_announce_payload(socket_path: &str, version: &str) -> serde_json::Value
 /// Called after the UDS socket is bound. Resolves the neural-api socket,
 /// builds the payload, and sends a single JSON-RPC request. Gracefully
 /// degrades if biomeOS is unavailable.
+#[cfg(unix)]
 pub async fn announce_to_neural_api(own_socket_path: &str, version: &str) {
     let Some(neural_socket) = resolve_neural_api_socket() else {
         debug!(
@@ -153,6 +164,7 @@ pub async fn announce_to_neural_api(own_socket_path: &str, version: &str) {
 }
 
 /// Send a JSON-RPC request over UDS and read the response.
+#[cfg(unix)]
 async fn send_jsonrpc_uds(
     socket_path: &std::path::Path,
     request: &serde_json::Value,
@@ -298,6 +310,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[tokio::test]
     async fn test_announce_to_neural_api_graceful_when_no_socket() {
         announce_to_neural_api("/tmp/nonexistent.sock", "0.7.37").await;
@@ -388,6 +401,7 @@ mod tests {
         assert_eq!(result.unwrap(), sock);
     }
 
+    #[cfg(unix)]
     #[tokio::test]
     async fn test_send_jsonrpc_uds_mock_success() {
         use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -426,6 +440,7 @@ mod tests {
         server.await.unwrap();
     }
 
+    #[cfg(unix)]
     #[tokio::test]
     async fn test_send_jsonrpc_uds_connection_refused() {
         let result = send_jsonrpc_uds(
@@ -436,6 +451,7 @@ mod tests {
         assert!(result.is_err());
     }
 
+    #[cfg(unix)]
     #[tokio::test]
     async fn test_send_jsonrpc_uds_eof_response() {
         let dir = tempfile::tempdir().unwrap();

@@ -218,6 +218,7 @@ struct ServerConfig {
     storage_path: Option<String>,
     log_level: String,
     no_tarpc: bool,
+    #[cfg_attr(not(unix), allow(dead_code))]
     socket: Option<String>,
     tcp_only: bool,
     transport_endpoint: Option<sweet_grass_core::transport::TransportEndpoint>,

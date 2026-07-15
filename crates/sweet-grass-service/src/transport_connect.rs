@@ -13,7 +13,8 @@ use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 /// A transport-agnostic stream returned by [`connect_transport`].
 #[derive(Debug)]
 pub enum TransportStream {
-    /// UDS connection.
+    /// UDS connection (Unix only).
+    #[cfg(unix)]
     Uds(tokio::net::UnixStream),
     /// TCP connection.
     Tcp(tokio::net::TcpStream),
@@ -26,6 +27,7 @@ impl AsyncRead for TransportStream {
         buf: &mut ReadBuf<'_>,
     ) -> Poll<std::io::Result<()>> {
         match self.get_mut() {
+            #[cfg(unix)]
             Self::Uds(s) => Pin::new(s).poll_read(cx, buf),
             Self::Tcp(s) => Pin::new(s).poll_read(cx, buf),
         }
@@ -39,6 +41,7 @@ impl AsyncWrite for TransportStream {
         buf: &[u8],
     ) -> Poll<std::io::Result<usize>> {
         match self.get_mut() {
+            #[cfg(unix)]
             Self::Uds(s) => Pin::new(s).poll_write(cx, buf),
             Self::Tcp(s) => Pin::new(s).poll_write(cx, buf),
         }
@@ -46,6 +49,7 @@ impl AsyncWrite for TransportStream {
 
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         match self.get_mut() {
+            #[cfg(unix)]
             Self::Uds(s) => Pin::new(s).poll_flush(cx),
             Self::Tcp(s) => Pin::new(s).poll_flush(cx),
         }
@@ -53,6 +57,7 @@ impl AsyncWrite for TransportStream {
 
     fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         match self.get_mut() {
+            #[cfg(unix)]
             Self::Uds(s) => Pin::new(s).poll_shutdown(cx),
             Self::Tcp(s) => Pin::new(s).poll_shutdown(cx),
         }
@@ -70,10 +75,16 @@ impl AsyncWrite for TransportStream {
 /// refused, etc.). `MeshRelay` is not yet supported.
 pub async fn connect_transport(endpoint: &TransportEndpoint) -> std::io::Result<TransportStream> {
     match endpoint {
+        #[cfg(unix)]
         TransportEndpoint::Uds { path } => {
             let stream = tokio::net::UnixStream::connect(path).await?;
             Ok(TransportStream::Uds(stream))
         },
+        #[cfg(not(unix))]
+        TransportEndpoint::Uds { path } => Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            format!("UDS transport not available on this platform: {path}"),
+        )),
         TransportEndpoint::Tcp { host, port } => {
             let stream = tokio::net::TcpStream::connect((host.as_str(), *port)).await?;
             Ok(TransportStream::Tcp(stream))
@@ -95,6 +106,7 @@ mod tests {
     use super::*;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+    #[cfg(unix)]
     #[tokio::test]
     async fn connect_uds_nonexistent_fails() {
         let ep = TransportEndpoint::uds("/tmp/sweetgrass-transport-test-nonexistent.sock");
@@ -118,6 +130,7 @@ mod tests {
         assert_eq!(err.kind(), std::io::ErrorKind::Unsupported);
     }
 
+    #[cfg(unix)]
     #[tokio::test]
     async fn connect_uds_roundtrip() {
         let dir = tempfile::tempdir().unwrap();

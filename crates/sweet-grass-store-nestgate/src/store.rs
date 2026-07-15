@@ -489,6 +489,6 @@ impl BraidStore for NestGateStore {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 #[expect(clippy::expect_used, clippy::unwrap_used, reason = "test code")]
 mod tests;

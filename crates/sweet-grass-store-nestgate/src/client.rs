@@ -6,9 +6,13 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use serde_json::Value;
+#[cfg(unix)]
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+#[cfg(unix)]
 use tokio::net::UnixStream;
-use tracing::{debug, trace};
+#[cfg(unix)]
+use tracing::debug;
+use tracing::trace;
 
 use crate::error::NestGateStoreError;
 
@@ -43,6 +47,7 @@ impl NestGateClient {
     /// # Errors
     ///
     /// Returns an error if connection, write, read, or JSON-RPC error occurs.
+    /// On non-Unix platforms, returns `ConnectionFailed` (UDS not available).
     pub async fn call(&self, method: &str, params: Value) -> Result<Value, NestGateStoreError> {
         let id = self.request_id.fetch_add(1, Ordering::Relaxed);
 
@@ -58,39 +63,54 @@ impl NestGateClient {
 
         trace!(method, id, socket = %self.socket_path.display(), "NestGate RPC call");
 
-        let stream = UnixStream::connect(&self.socket_path).await.map_err(|e| {
-            NestGateStoreError::ConnectionFailed(format!("{}: {}", self.socket_path.display(), e))
-        })?;
-
-        let (reader, mut writer) = stream.into_split();
-        writer.write_all(request_line.as_bytes()).await?;
-        writer.flush().await?;
-
-        let mut buf_reader = BufReader::new(reader);
-        let mut response_line = String::new();
-        buf_reader.read_line(&mut response_line).await?;
-
-        if response_line.is_empty() {
-            return Err(NestGateStoreError::Rpc(
-                "NestGate closed connection without response".to_string(),
+        #[cfg(not(unix))]
+        {
+            let _ = request_line;
+            return Err(NestGateStoreError::ConnectionFailed(
+                "UDS transport not available on this platform".to_string(),
             ));
         }
 
-        let response: Value = serde_json::from_str(&response_line)?;
+        #[cfg(unix)]
+        {
+            let stream = UnixStream::connect(&self.socket_path).await.map_err(|e| {
+                NestGateStoreError::ConnectionFailed(format!(
+                    "{}: {}",
+                    self.socket_path.display(),
+                    e
+                ))
+            })?;
 
-        debug!(method, id, "NestGate RPC response received");
+            let (reader, mut writer) = stream.into_split();
+            writer.write_all(request_line.as_bytes()).await?;
+            writer.flush().await?;
 
-        if let Some(error) = response.get("error") {
-            let code = error.get("code").and_then(Value::as_i64).unwrap_or(-1);
-            let message = error
-                .get("message")
-                .and_then(Value::as_str)
-                .unwrap_or("unknown error")
-                .to_string();
-            return Err(NestGateStoreError::JsonRpcError { code, message });
+            let mut buf_reader = BufReader::new(reader);
+            let mut response_line = String::new();
+            buf_reader.read_line(&mut response_line).await?;
+
+            if response_line.is_empty() {
+                return Err(NestGateStoreError::Rpc(
+                    "NestGate closed connection without response".to_string(),
+                ));
+            }
+
+            let response: Value = serde_json::from_str(&response_line)?;
+
+            debug!(method, id, "NestGate RPC response received");
+
+            if let Some(error) = response.get("error") {
+                let code = error.get("code").and_then(Value::as_i64).unwrap_or(-1);
+                let message = error
+                    .get("message")
+                    .and_then(Value::as_str)
+                    .unwrap_or("unknown error")
+                    .to_string();
+                return Err(NestGateStoreError::JsonRpcError { code, message });
+            }
+
+            Ok(response.get("result").cloned().unwrap_or(Value::Null))
         }
-
-        Ok(response.get("result").cloned().unwrap_or(Value::Null))
     }
 
     /// Build params with automatic `family_id` injection.

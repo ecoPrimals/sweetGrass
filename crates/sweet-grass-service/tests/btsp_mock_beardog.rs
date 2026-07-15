@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
+#![cfg(unix)]
 //! BTSP integration test with a mock `BearDog` security provider.
 //!
 //! Spins up a fake `BearDog` UDS that responds to the 3 BTSP JSON-RPC

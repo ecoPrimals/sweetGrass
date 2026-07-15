@@ -7,18 +7,22 @@
 //! - Detailed component status for debugging
 //! - Integration status for connected primals
 
+#[cfg(unix)]
 use std::time::Duration;
 
 use axum::{Json, extract::State, http::StatusCode};
 use serde::Serialize;
 use sweet_grass_store::{BraidStore, QueryFilter};
+#[cfg(unix)]
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+#[cfg(unix)]
 use tokio::net::UnixStream;
 
 use sweet_grass_core::identity;
 
 use crate::state::AppState;
 
+#[cfg(unix)]
 const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
 
 /// Health check response.
@@ -255,23 +259,38 @@ pub async fn health_detailed(
 /// Uses capability-based discovery to check integration status.
 /// No primal names are hardcoded — only capabilities.
 async fn check_integrations(state: &AppState) -> IntegrationStatus {
-    let dir = &state.socket_dir;
-    let (signing, anchoring, discovery, compute) = tokio::join!(
-        probe_integration("security", dir),
-        probe_integration("provenance", dir),
-        probe_integration("discovery", dir),
-        probe_integration("compute", dir),
-    );
+    #[cfg(unix)]
+    {
+        let dir = &state.socket_dir;
+        let (signing, anchoring, discovery, compute) = tokio::join!(
+            probe_integration("security", dir),
+            probe_integration("provenance", dir),
+            probe_integration("discovery", dir),
+            probe_integration("compute", dir),
+        );
 
-    IntegrationStatus {
-        signing: Some(signing),
-        session_events: None,
-        anchoring: Some(anchoring),
-        discovery: Some(discovery),
-        compute: Some(compute),
+        IntegrationStatus {
+            signing: Some(signing),
+            session_events: None,
+            anchoring: Some(anchoring),
+            discovery: Some(discovery),
+            compute: Some(compute),
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = &state;
+        IntegrationStatus {
+            signing: None,
+            session_events: None,
+            anchoring: None,
+            discovery: None,
+            compute: None,
+        }
     }
 }
 
+#[cfg(unix)]
 async fn probe_integration(domain: &str, socket_dir: &std::path::Path) -> PrimalStatus {
     let socket = socket_dir.join(format!("{domain}.sock"));
     let address = socket.to_string_lossy().into_owned();
@@ -302,6 +321,7 @@ async fn probe_integration(domain: &str, socket_dir: &std::path::Path) -> Primal
     }
 }
 
+#[cfg(unix)]
 async fn try_liveness_probe(socket: &std::path::Path) -> std::io::Result<()> {
     let stream = UnixStream::connect(socket).await?;
     let (reader, mut writer) = stream.into_split();
