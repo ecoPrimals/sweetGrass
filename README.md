@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.7.61 | 1,600+ tests | 88% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin A++ | BTSP enforced on TCP | Wire L3 | Stadial ready | 40 methods + 11 aliases | JH-0 method gate | BearDog crypto delegation | JH-5 audit pipeline | DH-1 clean | Privacy-enforced | PROV-O complete | Zero bare env var strings | Transport Phase 2 ready | Localhost-only defaults | Zero C/ASM crypto | TRANSPORT_ENDPOINT | HEALTH-01 ready | BTSP E2E ready | riboCipher reference impl | Mito-beacon 0xED accepted | Zero clippy warnings | cargo-deny clean | sqlx banned
+v0.7.61 | 1,604 tests | 88% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin A++ | BTSP enforced on TCP | Wire L3 | Stadial ready | 40 methods + 11 aliases | JH-0 method gate | BearDog crypto delegation | JH-5 audit pipeline | DH-1 clean | Privacy-enforced | PROV-O complete | Zero bare env var strings | Transport Phase 2 ready | Localhost-only defaults | Zero C/ASM crypto | TRANSPORT_ENDPOINT | HEALTH-01 ready | BTSP E2E ready | riboCipher reference impl | Mito-beacon 0xED accepted | Zero clippy warnings | cargo-deny clean | sqlx banned | Cross-arch (x86_64-pc-windows-gnu) clean
 
 ---
 
@@ -66,7 +66,7 @@ sweetgrass socket        # Print UDS socket path
        LoamSpine (permanent record)
 ```
 
-### 10 Crates
+### 9 Crates
 
 | Crate | Purpose |
 |-------|---------|
@@ -200,7 +200,7 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Metric | Value |
 |--------|-------|
 | Version | v0.7.61 |
-| Tests | 1,600+ (pure Rust, no Docker) |
+| Tests | 1,604 (pure Rust, no Docker) |
 | Coverage | 88%+ line (llvm-cov) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |

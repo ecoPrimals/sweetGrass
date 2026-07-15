@@ -1,7 +1,7 @@
 +++
 title = "sweetGrass Validation Summary"
-description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,600+ tests, 40 methods, zero production debt. Pure Rust (sqlx banned), riboCipher reference impl, BTSP E2E ready, HEALTH-01, mito-beacon 0xED."
-date = 2026-06-19
+description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,604 tests, 40 methods, zero production debt. Pure Rust (sqlx banned), riboCipher reference impl, BTSP E2E ready, HEALTH-01, mito-beacon 0xED, cross-arch (Windows GNU) clean."
+date = 2026-07-15
 
 [taxonomies]
 primals = ["sweetgrass", "beardog", "rhizocrypt", "loamspine", "nestgate"]
@@ -11,7 +11,7 @@ springs = []
 ## Status
 
 - **Version**: v0.7.61
-- **1,600+ tests** (all passed, 0 failed, pure Rust — no Docker required)
+- **1,604 tests** (all passed, 0 failed, pure Rust — no Docker required)
 - **40 registered capability methods** across 13 domains
 - **215+ source files**, max 795 lines per file
 - **riboCipher**: Reference implementation in `peek.rs` — signal detection for `0xEC`/`0xED`/`0xEE` before legacy peek (Wave 111, Stream 7)

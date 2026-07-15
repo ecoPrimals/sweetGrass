@@ -1,10 +1,18 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.60 (June 2026)
+**Current Version**: v0.7.61 (July 2026)
 
 ---
 
 ## Completed
+
+### v0.7.61 — Pure Rust Dogma + Cross-Architecture (Wave 133b–141a, July 2026)
+
+- [x] **PostgreSQL/sqlx hard-removed** — entire `sweet-grass-store-postgres` crate deleted, `sqlx` banned in `deny.toml`
+- [x] **Cross-architecture adoption (Wave 141a)** — all UDS transport behind `#[cfg(unix)]`; `cargo check --target x86_64-pc-windows-gnu` clean with 0 warnings
+- [x] **Platform-conditional annotations** — `#[cfg_attr(not(unix), allow(unused_mut))]` for variables mutated only in `#[cfg(unix)]` blocks
+- [x] **Zero clippy warnings** on both native and Windows targets (`-D warnings`)
+- [x] 1,604 tests, 0 failures, 0 clippy warnings, cargo-deny clean
 
 ### v0.7.57 — riboCipher Transport Signal Convergence (Wave 111, Stream 7, June 2026)
 

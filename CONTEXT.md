@@ -27,7 +27,7 @@ attribution before distributing rewards.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 (required) + tarpc (optional high-perf) + REST + UDS
 - **License:** scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0)
-- **Tests:** 1,600+ (cargo test --all-features, pure Rust — no Docker required)
+- **Tests:** 1,604 (cargo test --all-features, pure Rust — no Docker required)
 
 ## Degradation Behavior
 
@@ -75,6 +75,7 @@ When sweetGrass is **unavailable** in a composition:
 - **Lint policy:** `#[expect(...)]` only — zero `#[allow(...)]` in source
 - **Clippy:** pedantic + nursery, zero warnings
 - **Dependency audit:** `cargo-deny` clean; `sqlx`/`ring`/`rustls`/`sled`/`testcontainers` banned; pure Rust crypto only (`chacha20poly1305`+`hkdf`+`zeroize` for BTSP Phase 3 AEAD)
+- **Cross-architecture:** `cargo check --target x86_64-pc-windows-gnu` clean (Wave 141a); all UDS code behind `#[cfg(unix)]`, TCP cross-platform
 - **Wire Standard:** L3 compliant, ecoBin static binary, Stadial parity
 
 ## Key Capabilities (JSON-RPC methods)
