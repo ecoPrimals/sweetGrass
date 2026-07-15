@@ -143,6 +143,7 @@ pub async fn infant_bootstrap() -> Result<BootstrapResult, BootstrapError> {
 
     // Phase 4: Create application state with self-knowledge
     debug!("Phase 4: Creating application state");
+    #[cfg_attr(not(unix), allow(unused_mut))]
     let mut app_state = AppState::with_self_knowledge(
         Arc::new(store),
         default_agent.clone(),
@@ -221,6 +222,7 @@ pub async fn infant_bootstrap_with_config_and_reader(
     let default_agent = Did::new(format!("did:primal:{}", self_knowledge.instance_id));
 
     debug!("Phase 4: Creating application state");
+    #[cfg_attr(not(unix), allow(unused_mut))]
     let mut app_state = AppState::with_self_knowledge(
         Arc::new(store),
         default_agent.clone(),

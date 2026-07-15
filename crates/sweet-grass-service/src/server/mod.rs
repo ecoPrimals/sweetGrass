@@ -452,6 +452,7 @@ impl SweetGrassRpc for SweetGrassServer {
             .strip_prefix("urn:braid:")
             .unwrap_or(braid_id.as_str());
 
+        #[cfg_attr(not(unix), allow(unused_mut))]
         let mut response = serde_json::json!({
             "braid_id": uuid_str,
             "spine_id": spine_id,

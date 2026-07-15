@@ -61,6 +61,7 @@ pub(super) async fn handle_anchor_braid(
         .strip_prefix("urn:braid:")
         .unwrap_or(p.braid_id.as_str());
 
+    #[cfg_attr(not(unix), allow(unused_mut))]
     let mut response = serde_json::json!({
         "braid_id": uuid_str,
         "spine_id": p.spine_id,

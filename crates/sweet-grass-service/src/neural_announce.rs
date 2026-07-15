@@ -16,10 +16,10 @@
 #[cfg(any(unix, test))]
 use std::path::PathBuf;
 
-#[cfg(unix)]
-use tracing::{info, warn};
 #[cfg(any(unix, test))]
 use tracing::debug;
+#[cfg(unix)]
+use tracing::{info, warn};
 
 #[cfg(any(unix, test))]
 use sweet_grass_core::niche;

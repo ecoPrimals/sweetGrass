@@ -177,6 +177,7 @@ pub(super) async fn handle_braid_create(
 ) -> DispatchResult {
     let mut p: CreateBraidParams = parse_params(params)?;
     let source_gate = p.source_gate.clone();
+    #[cfg_attr(not(unix), allow(unused_variables))]
     let use_auto_sign = p.witness.is_none();
     let was_generated_by = p.was_generated_by.take();
     let witness = p.witness.take();
@@ -376,6 +377,7 @@ pub(super) async fn handle_braid_anchor(
 
     let preimage = braid.compute_anchor_preimage(&p.branch_id);
 
+    #[cfg_attr(not(unix), allow(unused_mut))]
     let mut response = serde_json::json!({
         "braid_id": braid.id.as_str(),
         "branch_id": p.branch_id,
