@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.62] - 2026-07-16
+
+### Phase 2: TransportEndpoint Abstraction (Wave 142b)
+
+#### Changed
+- **`NestGateClient` evolved** — accepts `TransportEndpoint` (UDS/TCP/mesh_relay)
+  instead of raw `PathBuf`. `from_socket_path()` retained for backward compat.
+- **`neural_announce` evolved** — `announce_to_neural_api` accepts `&TransportEndpoint`;
+  payload now includes structured `endpoint` field. Supports `NEURAL_API_ENDPOINT`
+  env var (JSON) for TCP-based neural-api on non-Unix platforms.
+- **Health/composition probes platform-agnostic** — no more `#[cfg(unix)]`/`#[cfg(not(unix))]`
+  branches in probe logic. All dispatch via `resolve_capability_endpoint` + `try_liveness_probe`.
+
+#### Added
+- **`transport_connect::send_jsonrpc`** — transport-agnostic JSON-RPC utility (replaces
+  3 duplicated raw UDS implementations).
+- **`transport_connect::try_liveness_probe`** — shared liveness probe over any transport.
+- **`transport_connect::resolve_capability_endpoint`** — discovery: checks
+  `CAPABILITY_{DOMAIN}_ENDPOINT` env (JSON) first, then UDS socket dir fallback.
+- **`transport_connect::PROBE_TIMEOUT`** — 3-second shared constant.
+- **`NestGateClient::endpoint()`** — exposes structured endpoint for diagnostics.
+- **TCP mock tests in neural_announce** — verifies platform-agnostic announce path.
+
+#### Removed
+- **`deny.toml` Zlib license** — removed unused allow entry (no deps use Zlib).
+
 ## [0.7.61] - 2026-07-07
 
 ### Removed — Pure Rust Dogma (Wave 133b)
