@@ -2,13 +2,18 @@
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Transport-aware connection — opens a stream from a [`TransportEndpoint`].
 //!
+//! Provides platform-agnostic connection and JSON-RPC utilities. All transport
+//! dispatch happens via [`TransportEndpoint`] — callers never need `#[cfg]`
+//! gates for UDS vs TCP.
+//!
 //! [`TransportEndpoint`]: sweet_grass_core::transport::TransportEndpoint
 
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use std::time::Duration;
 
 use sweet_grass_core::transport::TransportEndpoint;
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader, ReadBuf};
 
 /// A transport-agnostic stream returned by [`connect_transport`].
 #[derive(Debug)]
@@ -97,6 +102,116 @@ pub async fn connect_transport(endpoint: &TransportEndpoint) -> std::io::Result<
             format!("mesh_relay transport not yet implemented (peer={peer_id}, cap={capability})"),
         )),
     }
+}
+
+/// Default timeout for JSON-RPC probes.
+pub const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
+
+/// Send a JSON-RPC request via a [`TransportEndpoint`] and return the response.
+///
+/// Opens a fresh connection, sends the newline-delimited JSON-RPC request,
+/// reads one response line, and parses it. Transport-agnostic — works over
+/// UDS (Unix), TCP (all platforms), or any future transport variant.
+///
+/// # Errors
+///
+/// Returns an error if connection fails, write/read fails, response times out,
+/// or the response is not valid JSON.
+pub async fn send_jsonrpc(
+    endpoint: &TransportEndpoint,
+    request: &serde_json::Value,
+    timeout: Duration,
+) -> std::io::Result<serde_json::Value> {
+    let stream = connect_transport(endpoint).await?;
+    let (reader, mut writer) = tokio::io::split(stream);
+
+    let mut payload = serde_json::to_string(request).map_err(std::io::Error::other)?;
+    payload.push('\n');
+    writer.write_all(payload.as_bytes()).await?;
+    writer.flush().await?;
+
+    let mut buf_reader = BufReader::new(reader);
+    let mut response_line = String::new();
+    let bytes_read = tokio::time::timeout(timeout, buf_reader.read_line(&mut response_line))
+        .await
+        .map_err(|_| {
+            std::io::Error::new(std::io::ErrorKind::TimedOut, "JSON-RPC response timeout")
+        })??;
+
+    if bytes_read == 0 {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::UnexpectedEof,
+            "remote closed connection without response",
+        ));
+    }
+
+    serde_json::from_str(response_line.trim()).map_err(std::io::Error::other)
+}
+
+/// Send a `health.liveness` JSON-RPC probe to a capability endpoint.
+///
+/// Transport-agnostic: resolves via [`connect_transport`] internally.
+/// Returns `Ok(())` if the endpoint responds with a valid `result` field,
+/// or an error otherwise.
+///
+/// # Errors
+///
+/// Returns an error on connection failure, timeout, malformed response,
+/// or if the response contains no `result` field.
+pub async fn try_liveness_probe(endpoint: &TransportEndpoint) -> std::io::Result<()> {
+    let request = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "health.liveness",
+        "params": {},
+        "id": 1,
+    });
+
+    let response = send_jsonrpc(endpoint, &request, PROBE_TIMEOUT).await?;
+
+    if response.get("result").is_some() {
+        Ok(())
+    } else {
+        Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            "no result in liveness response",
+        ))
+    }
+}
+
+/// Resolve a capability domain to a [`TransportEndpoint`].
+///
+/// Discovery order:
+/// 1. Check env var `CAPABILITY_{DOMAIN}_ENDPOINT` for explicit JSON endpoint
+/// 2. On Unix: check `{socket_dir}/{domain}.sock` existence → UDS endpoint
+/// 3. Returns `None` if no endpoint is discoverable
+pub fn resolve_capability_endpoint(
+    domain: &str,
+    socket_dir: &std::path::Path,
+) -> Option<TransportEndpoint> {
+    let env_key = format!(
+        "CAPABILITY_{}_ENDPOINT",
+        domain.to_uppercase().replace('-', "_")
+    );
+    if let Ok(json) = std::env::var(&env_key)
+        && let Ok(ep) = sweet_grass_core::transport::parse_transport_endpoint(&json)
+    {
+        return Some(ep);
+    }
+
+    #[cfg(unix)]
+    {
+        let socket = socket_dir.join(format!("{domain}.sock"));
+        if socket.exists() {
+            return Some(TransportEndpoint::uds(socket.to_string_lossy()));
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        let _ = socket_dir;
+    }
+
+    None
 }
 
 #[cfg(test)]

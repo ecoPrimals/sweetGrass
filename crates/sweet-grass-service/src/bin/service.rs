@@ -322,6 +322,48 @@ fn spawn_uds_listener(
     (uds_socket_path, handle)
 }
 
+fn spawn_neural_announce(config: &ServerConfig, uds_socket_path: Option<&std::path::PathBuf>) {
+    let own_endpoint = if config.tcp_only {
+        config.tcp_address.map(|addr| {
+            sweet_grass_core::transport::TransportEndpoint::tcp(addr.ip().to_string(), addr.port())
+        })
+    } else {
+        #[cfg(unix)]
+        {
+            let sock = uds_socket_path.map_or_else(
+                || {
+                    sweet_grass_service::uds::resolve_socket_path(None)
+                        .to_string_lossy()
+                        .to_string()
+                },
+                |path| path.to_string_lossy().to_string(),
+            );
+            Some(sweet_grass_core::transport::TransportEndpoint::uds(sock))
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = uds_socket_path;
+            config.tcp_address.map(|addr| {
+                sweet_grass_core::transport::TransportEndpoint::tcp(
+                    addr.ip().to_string(),
+                    addr.port(),
+                )
+            })
+        }
+    };
+
+    if let Some(endpoint) = own_endpoint {
+        tokio::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            sweet_grass_service::neural_announce::announce_to_neural_api(
+                &endpoint,
+                env!("CARGO_PKG_VERSION"),
+            )
+            .await;
+        });
+    }
+}
+
 async fn serve_all(
     config: ServerConfig,
     state: sweet_grass_service::AppState,
@@ -368,24 +410,9 @@ async fn serve_all(
     };
 
     #[cfg(unix)]
-    if !config.tcp_only {
-        let announce_socket = uds_socket_path.as_ref().map_or_else(
-            || {
-                sweet_grass_service::uds::resolve_socket_path(None)
-                    .to_string_lossy()
-                    .to_string()
-            },
-            |path| path.to_string_lossy().to_string(),
-        );
-        tokio::spawn(async move {
-            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-            sweet_grass_service::neural_announce::announce_to_neural_api(
-                &announce_socket,
-                env!("CARGO_PKG_VERSION"),
-            )
-            .await;
-        });
-    }
+    spawn_neural_announce(&config, uds_socket_path.as_ref());
+    #[cfg(not(unix))]
+    spawn_neural_announce(&config, None);
 
     let result = axum::serve(http_listener, app)
         .with_graceful_shutdown(async move {

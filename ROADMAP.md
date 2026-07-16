@@ -1,10 +1,20 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.61 (July 2026)
+**Current Version**: v0.7.62 (July 2026)
 
 ---
 
 ## Completed
+
+### v0.7.62 — Phase 2: TransportEndpoint Abstraction (Wave 142b, July 2026)
+
+- [x] **Transport abstraction over gating** — raw UDS callsites evolved to `TransportEndpoint` dispatch; no `#[cfg(unix)]` needed in connection logic
+- [x] **`NestGateClient` evolved** — accepts `TransportEndpoint` (UDS/TCP/mesh); `from_socket_path()` convenience retained for backward compat
+- [x] **Shared `send_jsonrpc` + `try_liveness_probe`** — transport-agnostic utilities in `transport_connect.rs`; deduplicates health/composition/neural_announce
+- [x] **`resolve_capability_endpoint` discovery** — checks `CAPABILITY_{DOMAIN}_ENDPOINT` env (JSON) then UDS socket dir; TCP endpoints now first-class
+- [x] **`announce_to_neural_api` evolved** — accepts `TransportEndpoint`; payload now emits structured `endpoint` field (wire-compatible); `NEURAL_API_ENDPOINT` env var for TCP path
+- [x] **Health/composition probes platform-agnostic** — no more `#[cfg(not(unix))]` fallback returning empty; all platforms probe via `TransportEndpoint`
+- [x] 1,608 tests, 0 failures, 0 clippy warnings, cross-arch clean
 
 ### v0.7.61 — Pure Rust Dogma + Cross-Architecture (Wave 133b–141a, July 2026)
 

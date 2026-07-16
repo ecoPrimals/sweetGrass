@@ -403,7 +403,7 @@ async fn client_handles_jsonrpc_error_response() {
 
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-    let client = crate::client::NestGateClient::new(socket_path, None);
+    let client = crate::client::NestGateClient::from_socket_path(&socket_path, None);
     let result = client.call("nonexistent.method", json!({})).await;
     assert!(result.is_err());
     let err = result.unwrap_err();
@@ -426,7 +426,7 @@ async fn client_handles_empty_response() {
 
     tokio::time::sleep(std::time::Duration::from_millis(50)).await;
 
-    let client = crate::client::NestGateClient::new(socket_path, None);
+    let client = crate::client::NestGateClient::from_socket_path(&socket_path, None);
     let result = client.call("storage.retrieve", json!({})).await;
     assert!(
         result.is_err(),

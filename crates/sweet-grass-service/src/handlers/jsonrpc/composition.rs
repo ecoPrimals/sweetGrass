@@ -7,24 +7,18 @@
 //! - **node**: tower + compute
 //! - **nest**: tower + storage
 //! - **nucleus**: all subsystems including provenance trio
-
-#[cfg(unix)]
-use std::time::Duration;
+//!
+//! All probes use transport-agnostic [`TransportEndpoint`] dispatch via
+//! [`resolve_capability_endpoint`] + [`try_liveness_probe`].
 
 use serde_json::json;
 use sweet_grass_store::BraidStore;
-#[cfg(unix)]
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-#[cfg(unix)]
-use tokio::net::UnixStream;
 use tracing::debug;
 
 use crate::state::AppState;
+use crate::transport_connect::{PROBE_TIMEOUT, resolve_capability_endpoint, try_liveness_probe};
 
 use super::{DispatchResult, to_value};
-
-#[cfg(unix)]
-const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
 
 /// Resolve the `biomeOS` socket directory from a reader closure.
 ///
@@ -44,23 +38,16 @@ fn resolve_socket_dir(reader: &impl Fn(&str) -> Option<String>) -> std::path::Pa
     paths::default_socket_dir()
 }
 
-/// Probe a capability socket with `health.liveness` using a snapshotted
-/// socket directory (avoids env reads at handler call time).
-#[cfg(not(unix))]
-async fn probe_capability_in_dir(_domain: &str, _socket_dir: &std::path::Path) -> &'static str {
-    "unavailable"
-}
-
-/// Probe a capability socket with `health.liveness` using a snapshotted
-/// socket directory (avoids env reads at handler call time).
-#[cfg(unix)]
+/// Probe a capability endpoint with `health.liveness`.
+///
+/// Resolves via `TransportEndpoint` — works over UDS (Unix) or TCP
+/// (if `CAPABILITY_{DOMAIN}_ENDPOINT` env var is set).
 async fn probe_capability_in_dir(domain: &str, socket_dir: &std::path::Path) -> &'static str {
-    let socket = socket_dir.join(format!("{domain}.sock"));
-    if !socket.exists() {
+    let Some(endpoint) = resolve_capability_endpoint(domain, socket_dir) else {
         return "unavailable";
-    }
+    };
 
-    let result = tokio::time::timeout(PROBE_TIMEOUT, try_liveness_probe(&socket)).await;
+    let result = tokio::time::timeout(PROBE_TIMEOUT, try_liveness_probe(&endpoint)).await;
 
     match result {
         Ok(Ok(())) => "ok",
@@ -74,51 +61,16 @@ async fn probe_capability_with_reader(
     domain: &str,
     reader: &(impl Fn(&str) -> Option<String> + Sync),
 ) -> &'static str {
-    let socket = discover_capability_socket_with_reader(domain, reader);
-    if !socket.exists() {
+    let socket_dir = resolve_socket_dir(reader);
+    let Some(endpoint) = resolve_capability_endpoint(domain, &socket_dir) else {
         return "unavailable";
-    }
+    };
 
-    let result = tokio::time::timeout(PROBE_TIMEOUT, try_liveness_probe(&socket)).await;
+    let result = tokio::time::timeout(PROBE_TIMEOUT, try_liveness_probe(&endpoint)).await;
 
     match result {
         Ok(Ok(())) => "ok",
         _ => "degraded",
-    }
-}
-
-/// Attempt a single `health.liveness` JSON-RPC call over UDS.
-#[cfg(unix)]
-async fn try_liveness_probe(socket: &std::path::Path) -> std::io::Result<()> {
-    let stream = UnixStream::connect(socket).await?;
-    let (reader, mut writer) = stream.into_split();
-
-    let request = serde_json::json!({
-        "jsonrpc": "2.0",
-        "method": "health.liveness",
-        "params": {},
-        "id": 1,
-    });
-    let mut line = serde_json::to_string(&request)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-    line.push('\n');
-    writer.write_all(line.as_bytes()).await?;
-    writer.flush().await?;
-
-    let mut buf = BufReader::new(reader);
-    let mut response = String::new();
-    buf.read_line(&mut response).await?;
-
-    let parsed: serde_json::Value = serde_json::from_str(&response)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-
-    if parsed.get("result").is_some() {
-        Ok(())
-    } else {
-        Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            "no result in liveness response",
-        ))
     }
 }
 
@@ -269,6 +221,8 @@ pub(super) async fn handle_nucleus_health(
 #[expect(clippy::expect_used, reason = "test code: expect is standard in tests")]
 mod tests {
     use std::path::PathBuf;
+
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
     use super::*;
 
@@ -427,7 +381,9 @@ mod tests {
             }
         });
 
-        let result = try_liveness_probe(&socket_path).await;
+        let endpoint =
+            sweet_grass_core::transport::TransportEndpoint::uds(socket_path.to_string_lossy());
+        let result = try_liveness_probe(&endpoint).await;
         assert!(result.is_err());
 
         server_handle.abort();

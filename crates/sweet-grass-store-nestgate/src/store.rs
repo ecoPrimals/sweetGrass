@@ -63,13 +63,16 @@ impl NestGateStore {
             std::path::PathBuf::from,
         );
 
+        let client = Arc::new(NestGateClient::from_socket_path(
+            &socket_path,
+            config.family_id.clone(),
+        ));
+
         debug!(
-            socket = %socket_path.display(),
+            endpoint = %client.endpoint(),
             prefix = %config.key_prefix,
             "NestGate store configured"
         );
-
-        let client = Arc::new(NestGateClient::new(socket_path, config.family_id.clone()));
 
         Ok(Self {
             client,

@@ -11,6 +11,7 @@ use axum::extract::State;
 use std::sync::Arc;
 use sweet_grass_core::agent::Did;
 use sweet_grass_store::{BraidStore, MemoryStore};
+#[cfg(unix)]
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
 
 use crate::backend::{BraidBackend, CountFailingStore};
@@ -213,8 +214,11 @@ async fn test_integrations_probe_missing_socket() {
         .as_ref()
         .expect("should have discovery");
     assert!(!discovery.connected);
-    assert!(discovery.address.is_some());
     assert!(discovery.error.is_some());
+    assert!(
+        discovery.error.as_ref().unwrap().contains("no endpoint"),
+        "should report no endpoint discoverable"
+    );
 }
 
 #[cfg(unix)]
