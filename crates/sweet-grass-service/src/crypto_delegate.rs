@@ -167,11 +167,19 @@ impl CryptoDelegate {
         method: &str,
         params: serde_json::Value,
     ) -> Result<serde_json::Value, CryptoDelegateError> {
-        let stream = tokio::net::UnixStream::connect(&self.socket_path)
+        let mut stream = tokio::net::UnixStream::connect(&self.socket_path)
             .await
             .map_err(|e| {
                 CryptoDelegateError::Unavailable(format!("{}: {e}", self.socket_path.display()))
             })?;
+
+        // Perform BTSP handshake when strict mode is active
+        if crate::btsp_client::btsp_strict_mode_expected() {
+            crate::btsp_client::perform_client_handshake(&mut stream)
+                .await
+                .map_err(|e| CryptoDelegateError::Unavailable(format!("BTSP handshake: {e}")))?;
+            debug!("BTSP handshake complete, sending JSON-RPC");
+        }
 
         let (reader, mut writer) = stream.into_split();
 

@@ -57,6 +57,8 @@ pub mod backend;
 pub mod bootstrap;
 #[cfg(unix)]
 pub mod btsp;
+#[cfg(unix)]
+pub mod btsp_client;
 pub mod cli;
 #[cfg(unix)]
 pub mod crypto_delegate;

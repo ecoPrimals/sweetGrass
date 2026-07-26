@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.63] - 2026-07-26
+
+### BTSP Client Handshake (Wave 151b)
+
+#### Added
+- **`btsp_client` module** — consumer-side BTSP 4-step handshake implementation
+  (ClientHello → ServerHello → ChallengeResponse → HandshakeComplete).
+  HMAC-SHA256 challenge-response using local `FAMILY_SEED`.
+- **`CryptoDelegate` BTSP integration** — when `BEARDOG_UDS_REQUIRE_BTSP=1`,
+  performs handshake before sending `crypto.sign` JSON-RPC. Transparent
+  fallback to legacy plaintext when strict mode is not active.
+- **`btsp_strict_mode_expected()`** — checks `BEARDOG_UDS_REQUIRE_BTSP` or
+  `BTSP_STRICT_MODE` env vars.
+- **10 new tests** — full roundtrip handshake, rejection handling, family seed
+  resolution, HMAC computation, serialization.
+- **`hmac` + `getrandom` dependencies** — pure Rust HMAC-SHA256 and secure
+  random for ephemeral key generation.
+
 ## [0.7.62] - 2026-07-16
 
 ### Phase 2: TransportEndpoint Abstraction (Wave 142b)

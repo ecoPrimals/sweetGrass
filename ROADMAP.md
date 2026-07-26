@@ -1,10 +1,18 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.62 (July 2026)
+**Current Version**: v0.7.63 (July 2026)
 
 ---
 
 ## Completed
+
+### v0.7.63 — BTSP Client Handshake (Wave 151b, July 2026)
+
+- [x] **BTSP ClientHello handshake** — 4-step challenge-response authentication with bearDog (HMAC-SHA256 over `FAMILY_SEED`)
+- [x] **`CryptoDelegate` evolved** — transparent BTSP handshake before `crypto.sign` when `BEARDOG_UDS_REQUIRE_BTSP=1`
+- [x] **`btsp_strict_mode_expected()`** — runtime detection of strict-mode requirement
+- [x] **Pure Rust crypto** — `hmac` + `getrandom` deps (no C/ASM)
+- [x] 1,618 tests, 0 failures, 0 clippy warnings, cross-arch clean
 
 ### v0.7.62 — Phase 2: TransportEndpoint Abstraction (Wave 142b, July 2026)
 
