@@ -1,7 +1,7 @@
 +++
 title = "sweetGrass Validation Summary"
-description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,608 tests, 40 methods, zero production debt. Pure Rust (sqlx banned), riboCipher reference impl, BTSP E2E ready, HEALTH-01, mito-beacon 0xED, cross-arch clean, TransportEndpoint Phase 2 shipped."
-date = 2026-07-16
+description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,618 tests, 40 methods, zero production debt. Pure Rust (sqlx banned), riboCipher reference impl, BTSP ClientHello handshake, HEALTH-01, mito-beacon 0xED, cross-arch clean, TransportEndpoint Phase 2 shipped."
+date = 2026-07-26
 
 [taxonomies]
 primals = ["sweetgrass", "beardog", "rhizocrypt", "loamspine", "nestgate"]
@@ -10,8 +10,9 @@ springs = []
 
 ## Status
 
-- **Version**: v0.7.62
-- **1,608 tests** (all passed, 0 failed, pure Rust — no Docker required)
+- **Version**: v0.7.63
+- **1,618 tests** (all passed, 0 failed, pure Rust — no Docker required)
+- **BTSP ClientHello handshake**: 4-step challenge-response authentication with bearDog crypto provider
 - **TransportEndpoint Phase 2**: All transport dispatch via `TransportEndpoint` abstraction (UDS/TCP/mesh)
 - **40 registered capability methods** across 13 domains
 - **215+ source files**, max 795 lines per file
