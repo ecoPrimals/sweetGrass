@@ -12,8 +12,8 @@ use sweet_grass_core::{
     activity::{Activity, ActivityType, UsedEntity},
     agent::{AgentAssociation, AgentRole, Did},
     braid::{
-        Braid, BraidId, BraidMetadata, BraidType, CompressionMeta, EcoPrimalsAttributes,
-        LedgerCommitRef, SummaryType,
+        Braid, BraidId, BraidMetadata, BraidType, CertificateRef, CompressionMeta,
+        EcoPrimalsAttributes, LedgerCommitRef, SummaryType,
     },
     entity::EntityReference,
     hash::hex_encode,
@@ -417,7 +417,7 @@ impl BraidFactory {
         recipient: Did,
         metadata: Option<BraidMetadata>,
     ) -> Result<Braid> {
-        let certificate_id = certificate_id.into();
+        let cert_ref = CertificateRef::new(certificate_id.into());
 
         let activity = Activity::builder(ActivityType::CertificateMint)
             .associated_with(AgentAssociation::new(
@@ -430,7 +430,7 @@ impl BraidFactory {
         let ecop = EcoPrimalsAttributes {
             source_primal: Some(Arc::clone(&self.source_primal)),
             niche: self.niche.clone(),
-            certificate: Some(certificate_id),
+            certificate: Some(cert_ref),
             ..Default::default()
         };
 

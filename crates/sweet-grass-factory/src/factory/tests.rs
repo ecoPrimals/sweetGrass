@@ -168,7 +168,13 @@ mod factory_tests {
             )
             .expect("should create");
 
-        assert_eq!(braid.ecop.certificate, Some("cert-001".to_string()));
+        let cert = braid
+            .ecop
+            .certificate
+            .as_ref()
+            .expect("should have certificate");
+        assert_eq!(cert.id(), "cert-001");
+        assert!(!cert.sealed);
         assert_eq!(braid.was_attributed_to, recipient);
     }
 

@@ -26,7 +26,7 @@ pub mod types;
 pub use builder::BraidBuilder;
 pub use cross_gate::{CrossGateAttribution, CrossGateTrustEvent};
 pub use types::{
-    BraidContext, BraidId, BraidMetadata, BraidType, CompressionMeta, ContentHash,
+    BraidContext, BraidId, BraidMetadata, BraidType, CertificateRef, CompressionMeta, ContentHash,
     DEFAULT_ECOP_BASE_URI, DEFAULT_ECOP_VOCAB_URI, EcoPrimalsAttributes, JsonLdVersion,
     LedgerCommitRef, LoamAnchor, LoamCommitRef, PROV_VOCAB_URI, RDFS_VOCAB_URI, SCHEMA_VOCAB_URI,
     SummaryType, Timestamp, XSD_VOCAB_URI, current_timestamp_nanos, ecop_base_uri,

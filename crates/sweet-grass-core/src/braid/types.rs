@@ -279,8 +279,12 @@ pub struct EcoPrimalsAttributes {
     #[serde(alias = "loam_commit")]
     pub ledger_commit: Option<LedgerCommitRef>,
 
-    /// Certificate reference.
-    pub certificate: Option<String>,
+    /// Certificate reference linking this braid to a loamSpine certificate.
+    ///
+    /// Structured as `CertificateRef` for cross-gate provenance chains.
+    /// Deserializes from a plain string (legacy) or structured object.
+    #[serde(default)]
+    pub certificate: Option<CertificateRef>,
 
     /// Compression metadata.
     pub compression: Option<CompressionMeta>,
@@ -307,6 +311,124 @@ pub struct LedgerCommitRef {
 
 /// Backward-compatible type alias.
 pub type LoamCommitRef = LedgerCommitRef;
+
+/// Certificate reference linking a braid to a loamSpine certificate.
+///
+/// Provides the structured linkage between attribution braids and the
+/// certificate lifecycle (Nest Atomic G3 convergence gap #2).
+///
+/// Deserializes from either:
+/// - A plain string (`"cert-001"`) → `CertificateRef { id, .. defaults }`
+/// - A structured object with full metadata
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(from = "CertificateRefWire")]
+pub struct CertificateRef {
+    /// Unique certificate identifier (loamSpine-issued).
+    pub id: Arc<str>,
+    /// Gate that issued/minted this certificate.
+    #[serde(default)]
+    pub issuing_gate: Option<Arc<str>>,
+    /// Whether the certificate has been sealed in the ledger.
+    #[serde(default)]
+    pub sealed: bool,
+    /// DID of the minting authority.
+    #[serde(default)]
+    pub minting_authority: Option<Arc<str>>,
+    /// Content hash of the certificate body (for CAS lookup).
+    #[serde(default)]
+    pub content_hash: Option<ContentHash>,
+}
+
+impl CertificateRef {
+    /// Create a simple certificate reference from an ID string.
+    #[must_use]
+    pub fn new(id: impl AsRef<str>) -> Self {
+        Self {
+            id: Arc::from(id.as_ref()),
+            issuing_gate: None,
+            sealed: false,
+            minting_authority: None,
+            content_hash: None,
+        }
+    }
+
+    /// Create a fully-specified certificate reference for cross-gate attestation.
+    #[must_use]
+    pub fn cross_gate(
+        id: impl AsRef<str>,
+        issuing_gate: impl AsRef<str>,
+        minting_authority: impl AsRef<str>,
+    ) -> Self {
+        Self {
+            id: Arc::from(id.as_ref()),
+            issuing_gate: Some(Arc::from(issuing_gate.as_ref())),
+            sealed: false,
+            minting_authority: Some(Arc::from(minting_authority.as_ref())),
+            content_hash: None,
+        }
+    }
+
+    /// Mark the certificate as sealed (ledger-committed).
+    #[must_use]
+    pub const fn with_sealed(mut self) -> Self {
+        self.sealed = true;
+        self
+    }
+
+    /// Attach a CAS content hash for the certificate body.
+    #[must_use]
+    pub fn with_content_hash(mut self, hash: ContentHash) -> Self {
+        self.content_hash = Some(hash);
+        self
+    }
+
+    /// The certificate identifier.
+    #[must_use]
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+}
+
+/// Wire format for backward-compatible deserialization.
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum CertificateRefWire {
+    /// Plain string (legacy format).
+    Plain(String),
+    /// Structured object (G3 format).
+    Structured {
+        id: Arc<str>,
+        #[serde(default)]
+        issuing_gate: Option<Arc<str>>,
+        #[serde(default)]
+        sealed: bool,
+        #[serde(default)]
+        minting_authority: Option<Arc<str>>,
+        #[serde(default)]
+        content_hash: Option<ContentHash>,
+    },
+}
+
+impl From<CertificateRefWire> for CertificateRef {
+    fn from(wire: CertificateRefWire) -> Self {
+        match wire {
+            CertificateRefWire::Plain(id) => Self::new(id),
+            CertificateRefWire::Structured {
+                id,
+                issuing_gate,
+                sealed,
+                minting_authority,
+                content_hash,
+            } => Self {
+                id,
+                issuing_gate,
+                sealed,
+                minting_authority,
+                content_hash,
+            },
+        }
+    }
+}
 
 /// Compression metadata for summarized Braids.
 #[derive(Clone, Debug, Serialize, Deserialize)]

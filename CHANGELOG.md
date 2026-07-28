@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.64] - 2026-07-28
+
+### G3 Preparatory: CertificateRef Type (Wave 155d)
+
+#### Added
+- **`CertificateRef` structured type** — replaces bare `String` on
+  `EcoPrimalsAttributes.certificate`. Carries `id`, `issuing_gate`,
+  `sealed`, `minting_authority`, `content_hash` for cross-gate attestation.
+- **Backward-compatible deserialization** — plain string `"cert-001"` still
+  deserializes into `CertificateRef { id: "cert-001", .. defaults }`.
+- **`CertificateRef::cross_gate()`** — constructor for cross-gate attestation
+  braids linking to loamSpine certificates with gate + authority context.
+- **`CertificateRef::with_sealed()`** — marks ledger-committed status.
+- **`CertificateRef::with_content_hash()`** — CAS linkage for nestGate verify.
+
+#### Changed
+- **`BraidFactory::certificate_mint`** — now creates `CertificateRef` instead
+  of bare `String`. API unchanged (still accepts `impl Into<String>`).
+
 ## [0.7.63] - 2026-07-26
 
 ### BTSP Client Handshake (Wave 151b)
