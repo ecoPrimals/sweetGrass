@@ -212,6 +212,21 @@ impl BraidId {
             .strip_prefix("urn:braid:uuid:")
             .and_then(|s| s.parse::<Uuid>().ok())
     }
+
+    /// Return a UUID for this braid — either the embedded UUID (for UUID-based
+    /// IDs) or a deterministic v5 UUID derived from the `braid_id` string (for
+    /// hash-based IDs). Always returns a valid UUID suitable for cross-primal
+    /// correlation (loamSpine ledger entries, nestGate CAS keys, etc.).
+    #[must_use]
+    pub fn to_uuid(&self) -> Uuid {
+        self.extract_uuid()
+            .unwrap_or_else(|| Uuid::new_v5(&namespace_braid(), self.0.as_bytes()))
+    }
+}
+
+/// UUID v5 namespace for deterministic `braid_id` → UUID derivation.
+fn namespace_braid() -> Uuid {
+    Uuid::new_v5(&Uuid::NAMESPACE_URL, b"urn:ecoPrimals:braid")
 }
 
 impl<'de> Deserialize<'de> for BraidId {
@@ -530,7 +545,7 @@ pub fn current_timestamp_nanos() -> Timestamp {
 }
 
 #[cfg(test)]
-#[expect(clippy::expect_used, reason = "bincode roundtrip test setup")]
+#[expect(clippy::expect_used, clippy::unwrap_used, reason = "test module")]
 mod tests {
     use std::borrow::Borrow;
     use std::sync::Arc;
@@ -764,5 +779,28 @@ mod tests {
 
         let hash_id = BraidId::from_hash(&ContentHash::new("sha256:test"));
         assert!(hash_id.extract_uuid().is_none());
+    }
+
+    #[test]
+    fn braid_id_to_uuid_returns_embedded_for_uuid_ids() {
+        let id = BraidId::new();
+        let extracted = id.extract_uuid().unwrap();
+        assert_eq!(id.to_uuid(), extracted);
+    }
+
+    #[test]
+    fn braid_id_to_uuid_derives_deterministic_v5_for_hash_ids() {
+        let hash_id = BraidId::from_hash(&ContentHash::new("sha256:abc123"));
+        let uuid1 = hash_id.to_uuid();
+        let uuid2 = hash_id.to_uuid();
+        assert_eq!(uuid1, uuid2, "derivation must be deterministic");
+        assert_eq!(uuid1.get_version_num(), 5);
+    }
+
+    #[test]
+    fn braid_id_to_uuid_different_hashes_produce_different_uuids() {
+        let id_a = BraidId::from_hash(&ContentHash::new("sha256:aaa"));
+        let id_b = BraidId::from_hash(&ContentHash::new("sha256:bbb"));
+        assert_ne!(id_a.to_uuid(), id_b.to_uuid());
     }
 }

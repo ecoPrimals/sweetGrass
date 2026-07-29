@@ -495,6 +495,11 @@ async fn test_braid_commit() {
     assert_eq!(commit["spine_id"], "default");
     assert!(commit["data_hash_bytes"].is_string());
     assert_eq!(commit["is_signed"], false);
+    let uuid_str = commit["uuid"].as_str().unwrap();
+    assert!(
+        uuid_str.len() == 36 && uuid_str.chars().filter(|c| *c == '-').count() == 4,
+        "uuid field must be a valid UUID, got: {uuid_str}"
+    );
 }
 
 #[tokio::test]

@@ -310,10 +310,7 @@ pub(super) async fn handle_braid_commit(
             source_detail: None,
         })?;
 
-    let uuid = braid
-        .id
-        .extract_uuid()
-        .map_or_else(|| braid.id.as_str().to_string(), |u| u.to_string());
+    let uuid = braid.id.to_uuid();
 
     let hash_bytes = braid
         .data_hash
