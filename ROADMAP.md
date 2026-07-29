@@ -14,7 +14,7 @@
 - [x] **`braid.commit` → loamSpine** — outbound forwarding with `committed` flag and `ledger_commit` reference in response
 - [x] **`anchoring.verify` ledger proof** — cross-primal `certificate.verify` via loamSpine; `ledger_verified` status
 - [x] **Provenance Trio triangle CLOSED** — content → DAG → certificate → attribution braid end-to-end
-- [x] 1,625 tests, 0 failures, 0 clippy warnings, cross-arch clean
+- [x] 1,636 tests (incl. 11 E2E mock loamSpine), 0 failures, 0 clippy warnings, cross-arch clean
 
 ### v0.7.63 — BTSP Client Handshake (Wave 151b, July 2026)
 

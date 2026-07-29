@@ -1,6 +1,6 @@
 +++
 title = "sweetGrass Validation Summary"
-description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,625 tests, 40 methods, zero production debt. Pure Rust (sqlx banned), riboCipher reference impl, BTSP ClientHello handshake, HEALTH-01, mito-beacon 0xED, cross-arch clean, TransportEndpoint Phase 2 shipped. Provenance Trio G3 WIRED: sweetGrass→loamSpine via LedgerClient."
+description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,636 tests, 40 methods, zero production debt. Pure Rust (sqlx banned), riboCipher reference impl, BTSP ClientHello handshake, HEALTH-01, mito-beacon 0xED, cross-arch clean, TransportEndpoint Phase 2 shipped. Provenance Trio G3 WIRED: sweetGrass→loamSpine via LedgerClient. E2E validated."
 date = 2026-07-29
 
 [taxonomies]
@@ -11,7 +11,7 @@ springs = []
 ## Status
 
 - **Version**: v0.8.0
-- **1,625 tests** (all passed, 0 failed, pure Rust — no Docker required)
+- **1,636 tests** (all passed, 0 failed, pure Rust — no Docker required)
 - **Provenance Trio G3 WIRED**: `LedgerClient` closes sweetGrass→loamSpine triangle (`braid.commit` + `certificate.verify`)
 - **BTSP ClientHello handshake**: 4-step challenge-response authentication with bearDog crypto provider
 - **TransportEndpoint Phase 2**: All transport dispatch via `TransportEndpoint` abstraction (UDS/TCP/mesh)
