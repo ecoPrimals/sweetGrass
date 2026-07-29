@@ -66,6 +66,7 @@ pub mod error;
 pub mod exit;
 pub mod factory;
 pub mod handlers;
+pub mod ledger_client;
 pub mod method_gate;
 pub mod neural_announce;
 pub mod peek;

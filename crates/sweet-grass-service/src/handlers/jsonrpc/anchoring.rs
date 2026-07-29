@@ -101,8 +101,9 @@ pub(super) async fn handle_anchor_braid(
 /// Returns `"signed"` when a witness signature is present, or
 /// `"unanchored"` when the braid exists but has no witness.
 ///
-/// Full loamSpine ledger verification (cross-primal anchor proof) will
-/// be wired in v0.8.0 via outbound trio clients.
+/// When a loamSpine `LedgerClient` is available, also performs cross-primal
+/// ledger verification via `certificate.verify`. Returns `"ledger_verified"`
+/// when the ledger confirms the anchor proof.
 pub(super) async fn handle_verify_anchor(
     state: &AppState,
     params: serde_json::Value,
@@ -122,7 +123,7 @@ pub(super) async fn handle_verify_anchor(
 
     let has_witness = braid.witness.is_signed();
 
-    let verification_status = if has_witness { "signed" } else { "unanchored" };
+    let mut verification_status = if has_witness { "signed" } else { "unanchored" };
 
     let mut response = serde_json::json!({
         "braid_id": p.braid_id.as_str(),
@@ -134,6 +135,30 @@ pub(super) async fn handle_verify_anchor(
 
     if has_witness && let Ok(w) = serde_json::to_value(&braid.witness) {
         response["witness"] = w;
+    }
+
+    if let Some(ref client) = state.ledger_client {
+        let braid_id_str = p
+            .braid_id
+            .as_str()
+            .strip_prefix("urn:braid:")
+            .unwrap_or(p.braid_id.as_str());
+
+        match client.verify_certificate(braid_id_str).await {
+            Ok(result) => {
+                response["ledger_verified"] = result.valid.into();
+                if result.valid {
+                    verification_status = "ledger_verified";
+                    response["verification_status"] = verification_status.into();
+                }
+                if let Some(detail) = result.detail {
+                    response["ledger_detail"] = detail.into();
+                }
+            },
+            Err(e) => {
+                tracing::debug!("loamSpine verify unavailable: {e}");
+            },
+        }
     }
 
     to_value(&response)

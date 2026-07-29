@@ -17,6 +17,7 @@ use std::path::PathBuf;
 use crate::backend::BraidBackend;
 #[cfg(unix)]
 use crate::crypto_delegate::CryptoDelegate;
+use crate::ledger_client::LedgerClient;
 use crate::method_gate::MethodGate;
 use sweet_grass_core::primal_names::env_vars;
 
@@ -44,6 +45,9 @@ pub struct AppState {
     /// Crypto delegation to `BearDog` Tower for braid signing.
     #[cfg(unix)]
     pub crypto: Option<Arc<CryptoDelegate>>,
+
+    /// Ledger client for loamSpine commit/verify (Provenance Trio G3).
+    pub ledger_client: Option<Arc<LedgerClient>>,
 
     /// Pre-dispatch method gate (JH-0).
     pub method_gate: Arc<MethodGate>,
@@ -107,6 +111,7 @@ impl AppState {
             store_backend: "memory",
             #[cfg(unix)]
             crypto: None,
+            ledger_client: None,
             method_gate: Arc::new(MethodGate::from_env()),
             tcp_transport_active: false,
             btsp_required: Self::snapshot_btsp_required(),
@@ -138,6 +143,7 @@ impl AppState {
             store_backend: "unknown",
             #[cfg(unix)]
             crypto: None,
+            ledger_client: None,
             method_gate: Arc::new(MethodGate::from_env()),
             tcp_transport_active: std::env::var(env_vars::SWEETGRASS_PORT).is_ok(),
             btsp_required: Self::snapshot_btsp_required(),
@@ -181,6 +187,7 @@ impl AppState {
             store_backend,
             #[cfg(unix)]
             crypto: None,
+            ledger_client: None,
             method_gate: Arc::new(MethodGate::from_env()),
             tcp_transport_active: std::env::var(env_vars::SWEETGRASS_PORT).is_ok(),
             btsp_required: Self::snapshot_btsp_required(),
@@ -282,6 +289,13 @@ impl AppState {
     #[must_use]
     pub fn with_crypto(mut self, crypto: CryptoDelegate) -> Self {
         self.crypto = Some(Arc::new(crypto));
+        self
+    }
+
+    /// Attach a ledger client for loamSpine commit/verify.
+    #[must_use]
+    pub fn with_ledger_client(mut self, client: LedgerClient) -> Self {
+        self.ledger_client = Some(Arc::new(client));
         self
     }
 }

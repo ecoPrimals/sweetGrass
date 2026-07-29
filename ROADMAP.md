@@ -1,10 +1,20 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.7.63 (July 2026)
+**Current Version**: v0.8.0 (July 2026)
 
 ---
 
 ## Completed
+
+### v0.8.0 — Provenance Trio G3 Wiring (Wave 155i, July 2026)
+
+- [x] **`LedgerClient` module** — JSON-RPC 2.0 client over UDS/TCP for loamSpine (`braid.commit`, `certificate.verify`)
+- [x] **Capability-based socket resolution** — env override → family-scoped → standalone fallback chain
+- [x] **Bootstrap Phase 4c** — automatic loamSpine discovery at startup; graceful local-only degradation
+- [x] **`braid.commit` → loamSpine** — outbound forwarding with `committed` flag and `ledger_commit` reference in response
+- [x] **`anchoring.verify` ledger proof** — cross-primal `certificate.verify` via loamSpine; `ledger_verified` status
+- [x] **Provenance Trio triangle CLOSED** — content → DAG → certificate → attribution braid end-to-end
+- [x] 1,625 tests, 0 failures, 0 clippy warnings, cross-arch clean
 
 ### v0.7.63 — BTSP Client Handshake (Wave 151b, July 2026)
 

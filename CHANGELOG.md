@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-07-29
+
+### Nest Atomic G3: Provenance Trio Wiring (Wave 155i)
+
+#### Added
+- **`LedgerClient` module** — JSON-RPC 2.0 client over UDS/TCP for loamSpine
+  ledger operations (`braid.commit`, `certificate.verify`). Capability-based
+  socket resolution with env override, family-scoped, and standalone fallbacks.
+- **`AppState::with_ledger_client()`** — builder method for attaching the ledger
+  client to application state.
+- **Bootstrap Phase 4c** — automatic loamSpine discovery at startup; graceful
+  degradation to local-only mode when unavailable.
+- **`braid.commit` → loamSpine forwarding** — payloads are forwarded to
+  loamSpine when ledger client is available; response includes `committed` flag
+  and `ledger_commit` reference.
+- **`anchoring.verify` ledger proof** — cross-primal certificate verification
+  via loamSpine; responses include `ledger_verified` status when loamSpine
+  confirms anchor proof.
+
+#### Changed
+- **`anchoring.verify` doc comment** — updated from "will be wired in v0.8.0"
+  to describe the now-active loamSpine ledger verification.
+
 ## [0.7.64] - 2026-07-28
 
 ### G3 Preparatory: CertificateRef Type (Wave 155d)

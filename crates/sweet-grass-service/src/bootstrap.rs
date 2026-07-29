@@ -157,6 +157,9 @@ pub async fn infant_bootstrap() -> Result<BootstrapResult, BootstrapError> {
         app_state = resolve_crypto_delegate(app_state);
     }
 
+    // Phase 4c: Resolve loamSpine ledger client for Provenance Trio G3
+    app_state = resolve_ledger_client(app_state);
+
     // Phase 5: Announce capabilities to discovery service (IPC v3.1)
     announce_capabilities(&self_knowledge, &app_state).await;
 
@@ -235,6 +238,9 @@ pub async fn infant_bootstrap_with_config_and_reader(
         app_state = resolve_crypto_delegate(app_state);
     }
 
+    // Phase 4c: Resolve loamSpine ledger client for Provenance Trio G3
+    app_state = resolve_ledger_client(app_state);
+
     // Phase 5: Announce capabilities to discovery service (IPC v3.1)
     announce_capabilities(&self_knowledge, &app_state).await;
 
@@ -266,6 +272,25 @@ fn resolve_crypto_delegate(app_state: AppState) -> AppState {
         app_state.with_crypto(crypto)
     } else {
         tracing::info!("crypto delegate: no BearDog socket found, braids will be unsigned");
+        app_state
+    }
+}
+
+/// Resolve the loamSpine ledger client and attach to `AppState`.
+///
+/// Discovers loamSpine via environment socket resolution chain. When
+/// found, `braid.commit` forwards payloads to loamSpine and
+/// `anchoring.verify` can cross-check ledger proofs. Falls back to
+/// local-only mode when loamSpine is unavailable.
+fn resolve_ledger_client(app_state: AppState) -> AppState {
+    if let Some(client) = crate::ledger_client::LedgerClient::resolve_from_env() {
+        tracing::info!(
+            endpoint = ?client.endpoint(),
+            "ledger client: loamSpine resolved (Provenance Trio active)"
+        );
+        app_state.with_ledger_client(client)
+    } else {
+        tracing::info!("ledger client: no loamSpine socket found, braids are local-only");
         app_state
     }
 }

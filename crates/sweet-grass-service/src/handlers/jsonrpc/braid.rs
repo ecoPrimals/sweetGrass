@@ -320,7 +320,7 @@ pub(super) async fn handle_braid_commit(
         .to_bytes32()
         .map(|b| base64::engine::general_purpose::STANDARD.encode(b));
 
-    to_value(&serde_json::json!({
+    let payload = serde_json::json!({
         "braid_id": braid.id.as_str(),
         "uuid": uuid,
         "data_hash": braid.data_hash.as_str(),
@@ -331,7 +331,26 @@ pub(super) async fn handle_braid_commit(
         "attributed_to": braid.was_attributed_to.as_str(),
         "generated_at": braid.generated_at_time,
         "is_signed": braid.is_signed(),
-    }))
+    });
+
+    let mut response = payload.clone();
+
+    if let Some(ref client) = state.ledger_client {
+        match client.commit_braid(payload).await {
+            Ok(commit_ref) => {
+                response["committed"] = true.into();
+                if let Ok(v) = serde_json::to_value(&commit_ref) {
+                    response["ledger_commit"] = v;
+                }
+            },
+            Err(e) => {
+                tracing::warn!("loamSpine commit unavailable, braid is local-only: {e}");
+                response["committed"] = false.into();
+            },
+        }
+    }
+
+    to_value(&response)
 }
 
 #[derive(Debug, Deserialize)]
