@@ -130,7 +130,7 @@ mod tests {
 
         let witness = client.sign(&braid).await.expect("sign");
         assert!(witness.is_signed());
-        assert_eq!(witness.kind, "signature");
+        assert_eq!(&*witness.kind, "signature");
     }
 
     #[tokio::test]
@@ -293,13 +293,13 @@ mod tests {
     async fn test_mock_client_custom_witness() {
         let custom_witness = sweet_grass_core::dehydration::Witness {
             agent: sweet_grass_core::agent::Did::new("did:key:test"),
-            kind: "hash".to_string(),
-            evidence: "sha256:abc".to_string(),
+            kind: Arc::from("hash"),
+            evidence: Arc::from("sha256:abc"),
             witnessed_at: sweet_grass_core::Timestamp::new(12345),
-            encoding: "utf8".to_string(),
+            encoding: Arc::from("utf8"),
             algorithm: None,
-            tier: Some("gateway".to_string()),
-            context: Some("custom-test".to_string()),
+            tier: Some(Arc::from("gateway")),
+            context: Some(Arc::from("custom-test")),
         };
 
         let client = testing::MockSigningClient::new().with_sign_result(custom_witness);
@@ -313,9 +313,9 @@ mod tests {
             .expect("build braid");
 
         let w = client.sign(&braid).await.expect("sign");
-        assert_eq!(w.kind, "hash");
-        assert_eq!(w.evidence, "sha256:abc");
-        assert_eq!(w.tier, Some("gateway".to_string()));
+        assert_eq!(&*w.kind, "hash");
+        assert_eq!(&*w.evidence, "sha256:abc");
+        assert_eq!(w.tier.as_deref(), Some("gateway"));
     }
 
     #[tokio::test]

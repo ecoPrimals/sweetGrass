@@ -23,6 +23,7 @@ use std::fmt;
 /// Wire-compatible with `sourdough_core::TransportEndpoint` and
 /// `songbird_types::TransportEndpoint`.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 #[serde(tag = "transport")]
 pub enum TransportEndpoint {
     /// Unix Domain Socket — local primal on same host.

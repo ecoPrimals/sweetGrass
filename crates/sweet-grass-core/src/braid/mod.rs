@@ -22,6 +22,8 @@ pub mod context;
 pub mod cross_gate;
 mod tests;
 pub mod types;
+#[cfg(test)]
+mod types_tests;
 
 pub use builder::BraidBuilder;
 pub use cross_gate::{CrossGateAttribution, CrossGateTrustEvent};

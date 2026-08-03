@@ -27,7 +27,7 @@ attribution before distributing rewards.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 (required) + tarpc (optional high-perf) + REST + UDS
 - **License:** scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0)
-- **Tests:** 1,644 (cargo test --all-features, pure Rust — no Docker required)
+- **Tests:** 1,645 (cargo test --all-features, pure Rust — no Docker required)
 
 ## Degradation Behavior
 
@@ -66,7 +66,7 @@ When sweetGrass is **unavailable** in a composition:
 - **Neural API `primal.announce`:** Self-registers with biomeOS on startup — capabilities, cost hints, latency estimates, signal tier (nest). Graceful degradation when biomeOS unavailable.
 - **riboCipher:** Reference implementation in `peek.rs` — signal detection for `0xEC`/`0xED`/`0xEE` before legacy peek logic per `RIBOCIPHER_TRANSPORT_SIGNAL_STANDARD.md` (Wave 111, Stream 7)
 - **HEALTH-01:** Bare `{"method":"health"}` alias, enriched `health.check` with `primal` + `uptime_secs` fields
-- **Source files:** 215+ `.rs` files, max 795 lines (all files under 800-line threshold)
+- **Source files:** 215+ `.rs` files, max 804 lines (production code ≤545 lines per module)
 - **Property testing:** 25 proptest strategies across 7 crates
 - **Chaos/fault:** 11 attribution chaos + 17 service chaos + 9 fault injection
 - **Edition:** 2024 (`resolver = "3"`), MSRV 1.87
@@ -80,9 +80,9 @@ When sweetGrass is **unavailable** in a composition:
 
 ## Key Capabilities (JSON-RPC methods)
 
-40 semantic methods across 13 domains:
+42 semantic methods across 13 domains:
 
-- `braid.create`, `braid.get`, `braid.get_by_hash`, `braid.query`, `braid.delete`, `braid.commit`, `braid.anchor` — provenance record CRUD + branch anchoring
+- `braid.create`, `braid.get`, `braid.get_by_hash`, `braid.query`, `braid.delete`, `braid.commit`, `braid.anchor`, `braid.batch_create`, `braid.batch_commit` — provenance record CRUD + branch anchoring + bulk pipeline
 - `contribution.record`, `contribution.record_session`, `contribution.record_dehydration`, `contribution.record_provenance` — inter-primal contribution tracking + provenance chain events
 - `attribution.chain`, `attribution.calculate_rewards`, `attribution.top_contributors`, `attribution.witness` — fair credit + audit attestation
 - `compression.compress_session`, `compression.create_meta_braid` — session compression (0/1/Many)

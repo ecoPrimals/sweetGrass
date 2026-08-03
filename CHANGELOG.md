@@ -22,6 +22,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **UUID v5 feature** added to workspace `uuid` dependency.
 - Dispatch table: 40 → 42 methods.
 
+### Debt Zero: Deep Evolution (Wave 155n+)
+
+#### Changed
+- **`braid/types.rs` refactored** — extracted 260-line test module to
+  `braid/types_tests.rs`. Production code: 806 → 545 lines.
+- **Hardcoded primal names eliminated** — `ledger_client.rs`, `btsp_client.rs`,
+  `discovery.rs` now use `primal_names::names::*` constants and
+  `primal_names::env_vars::*` instead of string literals.
+- **`primal_names::names` module** — canonical lowercase primal identifiers
+  (`LOAMSPINE`, `NESTGATE`, `BEARDOG`, `SONGBIRD`) for socket filename
+  construction without hardcoding.
+- **New env var constants** — `LOAMSPINE_SOCKET`, `BEARDOG_UDS_REQUIRE_BTSP`,
+  `BTSP_STRICT_MODE` added to `primal_names::env_vars`.
+- **BTSP dead_code consumed** — `ServerHello.version` now validated (protocol
+  version mismatch rejected), `server_ephemeral_pub` traced,
+  `HandshakeError.error` included in rejection messages. All three
+  `#[expect(dead_code)]` annotations removed.
+- **BTSP server test isolation** — `resolve_security_socket_default` wrapped
+  with `temp_env` to prevent cross-test env pollution.
+- **Zero-copy `Arc<str>` evolution** — `Witness` fields (`kind`, `evidence`,
+  `encoding`, `algorithm`, `tier`, `context`), `LoamAnchor.spine_id`, and
+  `EcoPrimalsAttributes.session_ref` evolved from `String` to `Arc<str>`.
+  Eliminates per-clone allocations on every braid copy/serialization path.
+- **`#[non_exhaustive]` added** — `TransportEndpoint` and
+  `CrossGateTrustEvent` enums now forward-compatible (new variants won't
+  break downstream match arms).
+
 ## [0.8.0] - 2026-07-29
 
 ### Nest Atomic G3: Provenance Trio Wiring (Wave 155i)

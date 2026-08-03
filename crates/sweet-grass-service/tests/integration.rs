@@ -597,13 +597,13 @@ fn witness_audit_dehydration_summary() -> DehydrationSummary {
     let w_signed = Witness::from_ed25519(&alice, b"primalSpring-audit-sig");
     let w_hash = Witness {
         agent: bob.clone(),
-        kind: "hash".to_string(),
-        evidence: "sha256:checkpoint-observation".to_string(),
+        kind: Arc::from("hash"),
+        evidence: Arc::from("sha256:checkpoint-observation"),
         witnessed_at: Timestamp::new(9_001),
-        encoding: sweet_grass_core::dehydration::WITNESS_ENCODING_HEX.to_string(),
+        encoding: Arc::from(sweet_grass_core::dehydration::WITNESS_ENCODING_HEX),
         algorithm: None,
-        tier: Some("gateway".to_string()),
-        context: Some("audit:witness_chain".to_string()),
+        tier: Some(Arc::from("gateway")),
+        context: Some(Arc::from("audit:witness_chain")),
     };
     DehydrationSummary {
         source_primal: TEST_SOURCE_PRIMAL.to_string(),

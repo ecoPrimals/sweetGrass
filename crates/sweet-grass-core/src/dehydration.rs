@@ -12,6 +12,8 @@
 //!                        → JSON-RPC → loamSpine.commit.session
 //! ```
 
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 use crate::agent::Did;
@@ -91,13 +93,13 @@ pub struct Witness {
     /// `"hash"` = hash observation, `"checkpoint"` = state snapshot,
     /// `"marker"` = boundary/event marker, `"timestamp"` = bare time witness.
     #[serde(default = "default_witness_kind")]
-    pub kind: String,
+    pub kind: Arc<str>,
 
     /// Evidence payload (opaque). For signatures this is the encoded
     /// signature bytes; for non-crypto witnesses this may be empty or
     /// carry a hash, checkpoint token, or other payload.
     #[serde(default)]
-    pub evidence: String,
+    pub evidence: Arc<str>,
 
     /// When the witness was created (defaults to 0 when omitted by callers).
     #[serde(default)]
@@ -107,24 +109,24 @@ pub struct Witness {
     /// is non-empty. Values: `"hex"`, `"base64"`, `"base64url"`, `"multibase"`,
     /// `"utf8"` (plain text), `"none"` (no encoding / empty payload).
     #[serde(default = "default_witness_encoding")]
-    pub encoding: String,
+    pub encoding: Arc<str>,
 
     /// Cryptographic algorithm (when `kind` = `"signature"`).
     /// `None` for non-crypto witnesses.
     #[serde(default)]
-    pub algorithm: Option<String>,
+    pub algorithm: Option<Arc<str>>,
 
     /// Provenance tier.
     /// `"local"` = same gate, `"gateway"` = remote gate,
     /// `"anchor"` = public chain, `"external"` = third-party,
     /// `"open"` = unsigned / no cryptographic backing.
     #[serde(default)]
-    pub tier: Option<String>,
+    pub tier: Option<Arc<str>>,
 
     /// Freeform context for the witness.
     /// `"game:tick:42"`, `"conversation:thread:abc"`, `"experiment:run:7"`.
     #[serde(default)]
-    pub context: Option<String>,
+    pub context: Option<Arc<str>>,
 }
 
 /// Well-known witness kind for cryptographic signatures.
@@ -158,12 +160,12 @@ impl Witness {
     pub fn unsigned() -> Self {
         Self {
             agent: Did::new(""),
-            kind: WITNESS_KIND_MARKER.to_owned(),
-            evidence: String::new(),
+            kind: Arc::from(WITNESS_KIND_MARKER),
+            evidence: Arc::from(""),
             witnessed_at: super::braid::types::current_timestamp_nanos(),
-            encoding: WITNESS_ENCODING_NONE.to_owned(),
+            encoding: Arc::from(WITNESS_ENCODING_NONE),
             algorithm: None,
-            tier: Some(WITNESS_TIER_OPEN.to_owned()),
+            tier: Some(Arc::from(WITNESS_TIER_OPEN)),
             context: None,
         }
     }
@@ -174,12 +176,12 @@ impl Witness {
         use base64::Engine;
         Self {
             agent: agent.clone(),
-            kind: WITNESS_KIND_SIGNATURE.to_owned(),
-            evidence: base64::engine::general_purpose::STANDARD.encode(signature_bytes),
+            kind: Arc::from(WITNESS_KIND_SIGNATURE),
+            evidence: Arc::from(base64::engine::general_purpose::STANDARD.encode(signature_bytes)),
             witnessed_at: super::braid::types::current_timestamp_nanos(),
-            encoding: WITNESS_ENCODING_BASE64.to_owned(),
-            algorithm: Some(WITNESS_ALGORITHM_ED25519.to_owned()),
-            tier: Some(WITNESS_TIER_LOCAL.to_owned()),
+            encoding: Arc::from(WITNESS_ENCODING_BASE64),
+            algorithm: Some(Arc::from(WITNESS_ALGORITHM_ED25519)),
+            tier: Some(Arc::from(WITNESS_TIER_LOCAL)),
             context: None,
         }
     }
@@ -193,12 +195,12 @@ impl Witness {
         use base64::Engine;
         Self {
             agent: agent.clone(),
-            kind: WITNESS_KIND_SIGNATURE.to_owned(),
-            evidence: base64::engine::general_purpose::STANDARD.encode(signature_bytes),
+            kind: Arc::from(WITNESS_KIND_SIGNATURE),
+            evidence: Arc::from(base64::engine::general_purpose::STANDARD.encode(signature_bytes)),
             witnessed_at: super::braid::types::current_timestamp_nanos(),
-            encoding: WITNESS_ENCODING_BASE64.to_owned(),
-            algorithm: Some(WITNESS_ALGORITHM_ED25519.to_owned()),
-            tier: Some(WITNESS_TIER_TOWER.to_owned()),
+            encoding: Arc::from(WITNESS_ENCODING_BASE64),
+            algorithm: Some(Arc::from(WITNESS_ALGORITHM_ED25519)),
+            tier: Some(Arc::from(WITNESS_TIER_TOWER)),
             context: None,
         }
     }
@@ -209,29 +211,29 @@ impl Witness {
         use base64::Engine;
         Self {
             agent: agent.clone(),
-            kind: WITNESS_KIND_SIGNATURE.to_owned(),
-            evidence: base64::engine::general_purpose::STANDARD.encode(signature),
+            kind: Arc::from(WITNESS_KIND_SIGNATURE),
+            evidence: Arc::from(base64::engine::general_purpose::STANDARD.encode(signature)),
             witnessed_at: Timestamp::now(),
-            encoding: WITNESS_ENCODING_BASE64.to_owned(),
-            algorithm: Some(WITNESS_ALGORITHM_ED25519.to_owned()),
-            tier: Some(WITNESS_TIER_GATEWAY.to_owned()),
-            context: Some(gate_context.to_owned()),
+            encoding: Arc::from(WITNESS_ENCODING_BASE64),
+            algorithm: Some(Arc::from(WITNESS_ALGORITHM_ED25519)),
+            tier: Some(Arc::from(WITNESS_TIER_GATEWAY)),
+            context: Some(Arc::from(gate_context)),
         }
     }
 
     /// Whether this witness carries a cryptographic signature.
     #[must_use]
     pub fn is_signed(&self) -> bool {
-        self.kind == WITNESS_KIND_SIGNATURE && !self.evidence.is_empty()
+        &*self.kind == WITNESS_KIND_SIGNATURE && !self.evidence.is_empty()
     }
 }
 
-fn default_witness_kind() -> String {
-    WITNESS_KIND_SIGNATURE.to_owned()
+fn default_witness_kind() -> Arc<str> {
+    Arc::from(WITNESS_KIND_SIGNATURE)
 }
 
-fn default_witness_encoding() -> String {
-    WITNESS_ENCODING_HEX.to_owned()
+fn default_witness_encoding() -> Arc<str> {
+    Arc::from(WITNESS_ENCODING_HEX)
 }
 
 /// A high-level operation recorded during a session.
@@ -266,6 +268,7 @@ mod tests {
     use crate::agent::Did;
     use crate::test_fixtures::TEST_SOURCE_PRIMAL;
     use base64::Engine;
+    use std::sync::Arc;
 
     fn sample_summary() -> DehydrationSummary {
         DehydrationSummary {
@@ -277,12 +280,12 @@ mod tests {
             agents: vec![Did::new("did:key:z6MkAlice"), Did::new("did:key:z6MkBob")],
             witnesses: vec![Witness {
                 agent: Did::new("did:key:z6MkAlice"),
-                kind: "signature".to_string(),
-                evidence: "deadbeef01234567".to_string(),
+                kind: Arc::from("signature"),
+                evidence: Arc::from("deadbeef01234567"),
                 witnessed_at: Timestamp::new(1_000_000),
-                encoding: "hex".to_string(),
-                algorithm: Some("ed25519".to_string()),
-                tier: Some("local".to_string()),
+                encoding: Arc::from("hex"),
+                algorithm: Some(Arc::from("ed25519")),
+                tier: Some(Arc::from("local")),
                 context: None,
             }],
             operations: vec![SessionOperation {
@@ -341,11 +344,11 @@ mod tests {
     fn test_witness_roundtrip() {
         let w = Witness {
             agent: Did::new("did:key:z6MkTest"),
-            kind: "signature".to_string(),
-            evidence: "dGVzdA==".to_string(),
+            kind: Arc::from("signature"),
+            evidence: Arc::from("dGVzdA=="),
             witnessed_at: Timestamp::new(42),
-            encoding: "base64".to_string(),
-            algorithm: Some("ed25519".to_string()),
+            encoding: Arc::from("base64"),
+            algorithm: Some(Arc::from("ed25519")),
             tier: None,
             context: None,
         };
@@ -420,9 +423,9 @@ mod tests {
     fn test_witness_unsigned() {
         let w = Witness::unsigned();
         assert_eq!(w.agent.as_str(), "");
-        assert_eq!(w.kind, WITNESS_KIND_MARKER);
+        assert_eq!(&*w.kind, WITNESS_KIND_MARKER);
         assert!(w.evidence.is_empty());
-        assert_eq!(w.encoding, WITNESS_ENCODING_NONE);
+        assert_eq!(&*w.encoding, WITNESS_ENCODING_NONE);
         assert_eq!(w.algorithm, None);
         assert_eq!(w.tier.as_deref(), Some(WITNESS_TIER_OPEN));
         assert_eq!(w.context, None);
@@ -434,12 +437,12 @@ mod tests {
         let agent = Did::new("did:key:z6MkGatewaySigner");
         let w = Witness::from_gateway_ed25519(&agent, b"gateway-sig", "strandGate->ironGate");
         assert_eq!(w.agent, agent);
-        assert_eq!(w.kind, WITNESS_KIND_SIGNATURE);
+        assert_eq!(&*w.kind, WITNESS_KIND_SIGNATURE);
         assert_eq!(
-            w.evidence,
+            &*w.evidence,
             base64::engine::general_purpose::STANDARD.encode(b"gateway-sig")
         );
-        assert_eq!(w.encoding, WITNESS_ENCODING_BASE64);
+        assert_eq!(&*w.encoding, WITNESS_ENCODING_BASE64);
         assert_eq!(w.algorithm.as_deref(), Some(WITNESS_ALGORITHM_ED25519));
         assert_eq!(w.tier.as_deref(), Some(WITNESS_TIER_GATEWAY));
         assert_eq!(w.context.as_deref(), Some("strandGate->ironGate"));
@@ -451,12 +454,12 @@ mod tests {
         let agent = Did::new("did:key:z6MkSigner");
         let w = Witness::from_ed25519(&agent, b"test-sig-bytes");
         assert_eq!(w.agent, agent);
-        assert_eq!(w.kind, WITNESS_KIND_SIGNATURE);
+        assert_eq!(&*w.kind, WITNESS_KIND_SIGNATURE);
         assert_eq!(
-            w.evidence,
+            &*w.evidence,
             base64::engine::general_purpose::STANDARD.encode(b"test-sig-bytes")
         );
-        assert_eq!(w.encoding, WITNESS_ENCODING_BASE64);
+        assert_eq!(&*w.encoding, WITNESS_ENCODING_BASE64);
         assert_eq!(w.algorithm.as_deref(), Some(WITNESS_ALGORITHM_ED25519));
         assert_eq!(w.tier.as_deref(), Some(WITNESS_TIER_LOCAL));
         assert_eq!(w.context, None);
@@ -467,10 +470,10 @@ mod tests {
     fn test_witness_is_signed_edge_cases() {
         let signature_empty = Witness {
             agent: Did::new("did:key:z6MkA"),
-            kind: WITNESS_KIND_SIGNATURE.to_string(),
-            evidence: String::new(),
+            kind: Arc::from(WITNESS_KIND_SIGNATURE),
+            evidence: Arc::from(""),
             witnessed_at: Timestamp::ZERO,
-            encoding: WITNESS_ENCODING_HEX.to_string(),
+            encoding: Arc::from(WITNESS_ENCODING_HEX),
             algorithm: None,
             tier: None,
             context: None,
@@ -479,10 +482,10 @@ mod tests {
 
         let hash_with_evidence = Witness {
             agent: Did::new("did:key:z6MkB"),
-            kind: "hash".to_string(),
-            evidence: "deadbeef".to_string(),
+            kind: Arc::from("hash"),
+            evidence: Arc::from("deadbeef"),
             witnessed_at: Timestamp::ZERO,
-            encoding: WITNESS_ENCODING_HEX.to_string(),
+            encoding: Arc::from(WITNESS_ENCODING_HEX),
             algorithm: None,
             tier: None,
             context: None,
@@ -491,10 +494,10 @@ mod tests {
 
         let signature_nonempty = Witness {
             agent: Did::new("did:key:z6MkC"),
-            kind: WITNESS_KIND_SIGNATURE.to_string(),
-            evidence: "not-empty".to_string(),
+            kind: Arc::from(WITNESS_KIND_SIGNATURE),
+            evidence: Arc::from("not-empty"),
             witnessed_at: Timestamp::ZERO,
-            encoding: WITNESS_ENCODING_HEX.to_string(),
+            encoding: Arc::from(WITNESS_ENCODING_HEX),
             algorithm: None,
             tier: None,
             context: None,
@@ -506,8 +509,8 @@ mod tests {
     fn test_witness_serde_defaults() {
         let json = r#"{"agent": "did:key:z6MkDefaultOnly"}"#;
         let w: Witness = serde_json::from_str(json).expect("deserialize witness with defaults");
-        assert_eq!(w.kind, WITNESS_KIND_SIGNATURE);
-        assert_eq!(w.encoding, WITNESS_ENCODING_HEX);
+        assert_eq!(&*w.kind, WITNESS_KIND_SIGNATURE);
+        assert_eq!(&*w.encoding, WITNESS_ENCODING_HEX);
         assert!(w.evidence.is_empty());
         assert_eq!(w.witnessed_at, Timestamp::ZERO);
         assert_eq!(w.agent.as_str(), "did:key:z6MkDefaultOnly");
@@ -519,13 +522,13 @@ mod tests {
         let hash_agent = Did::new("did:key:z6MkHasher");
         let hash_witness = Witness {
             agent: hash_agent.clone(),
-            kind: "hash".to_string(),
-            evidence: "sha256:observedcontent".to_string(),
+            kind: Arc::from("hash"),
+            evidence: Arc::from("sha256:observedcontent"),
             witnessed_at: Timestamp::new(9_001),
-            encoding: WITNESS_ENCODING_HEX.to_string(),
+            encoding: Arc::from(WITNESS_ENCODING_HEX),
             algorithm: None,
-            tier: Some("gateway".to_string()),
-            context: Some("experiment:run:3".to_string()),
+            tier: Some(Arc::from("gateway")),
+            context: Some(Arc::from("experiment:run:3")),
         };
 
         let summary = DehydrationSummary {
@@ -554,9 +557,9 @@ mod tests {
 
         let w0 = &parsed.witnesses[0];
         assert_eq!(w0.agent.as_str(), "");
-        assert_eq!(w0.kind, WITNESS_KIND_MARKER);
+        assert_eq!(&*w0.kind, WITNESS_KIND_MARKER);
         assert!(w0.evidence.is_empty());
-        assert_eq!(w0.encoding, WITNESS_ENCODING_NONE);
+        assert_eq!(&*w0.encoding, WITNESS_ENCODING_NONE);
         assert_eq!(w0.algorithm, None);
         assert_eq!(w0.tier.as_deref(), Some(WITNESS_TIER_OPEN));
         assert_eq!(w0.context, None);
@@ -564,22 +567,22 @@ mod tests {
 
         let w1 = &parsed.witnesses[1];
         assert_eq!(w1.agent, signer);
-        assert_eq!(w1.kind, WITNESS_KIND_SIGNATURE);
+        assert_eq!(&*w1.kind, WITNESS_KIND_SIGNATURE);
         assert_eq!(
-            w1.evidence,
+            &*w1.evidence,
             base64::engine::general_purpose::STANDARD.encode(b"chain-sig")
         );
-        assert_eq!(w1.encoding, WITNESS_ENCODING_BASE64);
+        assert_eq!(&*w1.encoding, WITNESS_ENCODING_BASE64);
         assert_eq!(w1.algorithm.as_deref(), Some(WITNESS_ALGORITHM_ED25519));
         assert_eq!(w1.tier.as_deref(), Some(WITNESS_TIER_LOCAL));
         assert_eq!(w1.witnessed_at, summary.witnesses[1].witnessed_at);
 
         let w2 = &parsed.witnesses[2];
         assert_eq!(w2.agent, hash_witness.agent);
-        assert_eq!(w2.kind, "hash");
+        assert_eq!(&*w2.kind, "hash");
         assert_eq!(w2.evidence, hash_witness.evidence);
         assert_eq!(w2.witnessed_at, hash_witness.witnessed_at);
-        assert_eq!(w2.encoding, WITNESS_ENCODING_HEX);
+        assert_eq!(&*w2.encoding, WITNESS_ENCODING_HEX);
         assert_eq!(w2.algorithm, None);
         assert_eq!(w2.tier, hash_witness.tier);
         assert_eq!(w2.context, hash_witness.context);

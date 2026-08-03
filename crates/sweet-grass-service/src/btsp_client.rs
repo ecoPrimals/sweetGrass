@@ -47,9 +47,7 @@ struct ClientHello {
 
 #[derive(Debug, Deserialize)]
 struct ServerHello {
-    #[expect(dead_code, reason = "validated implicitly by successful parse")]
     version: u8,
-    #[expect(dead_code, reason = "used by session key derivation in future phase")]
     server_ephemeral_pub: String,
     challenge: String,
     session_id: String,
@@ -71,7 +69,6 @@ struct HandshakeComplete {
 
 #[derive(Debug, Deserialize)]
 struct HandshakeError {
-    #[expect(dead_code, reason = "logged but not matched on")]
     pub error: String,
     pub reason: String,
 }
@@ -120,8 +117,8 @@ fn resolve_family_seed() -> Option<String> {
 /// Returns `true` if `BEARDOG_UDS_REQUIRE_BTSP=1` or `BTSP_STRICT_MODE=1`.
 #[must_use]
 pub fn btsp_strict_mode_expected() -> bool {
-    std::env::var("BEARDOG_UDS_REQUIRE_BTSP")
-        .or_else(|_| std::env::var("BTSP_STRICT_MODE"))
+    std::env::var(env_vars::BEARDOG_UDS_REQUIRE_BTSP)
+        .or_else(|_| std::env::var(env_vars::BTSP_STRICT_MODE))
         .is_ok_and(|v| v.trim() == "1")
 }
 
@@ -176,14 +173,25 @@ pub async fn perform_client_handshake(
     if line.contains("\"error\"") && line.contains("\"reason\"") {
         let err: HandshakeError = serde_json::from_str(line.trim())
             .map_err(|e| BtspClientError::Protocol(format!("parse error response: {e}")))?;
-        return Err(BtspClientError::Rejected(err.reason));
+        return Err(BtspClientError::Rejected(format!(
+            "{}: {}",
+            err.error, err.reason
+        )));
     }
 
     let server_hello: ServerHello = serde_json::from_str(line.trim())
         .map_err(|e| BtspClientError::Protocol(format!("parse ServerHello: {e}")))?;
 
+    if server_hello.version != BTSP_VERSION {
+        return Err(BtspClientError::Protocol(format!(
+            "version mismatch: expected {BTSP_VERSION}, got {}",
+            server_hello.version
+        )));
+    }
+
     debug!(
         session_id = %server_hello.session_id,
+        server_pub_len = server_hello.server_ephemeral_pub.len(),
         "BTSP client: received ServerHello"
     );
 

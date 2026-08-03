@@ -107,7 +107,7 @@ mod factory_tests {
             .session_summary("session-123", braids, None)
             .expect("should create");
 
-        assert_eq!(braid.ecop.session_ref, Some("session-123".to_string()));
+        assert_eq!(braid.ecop.session_ref.as_deref(), Some("session-123"));
     }
 
     #[test]
@@ -190,7 +190,7 @@ mod factory_tests {
         factory.sign_placeholder(&mut braid, "key-1");
 
         assert!(braid.is_signed());
-        assert_eq!(braid.witness.kind, "signature");
+        assert_eq!(&*braid.witness.kind, "signature");
         assert_eq!(
             braid.witness.agent,
             sweet_grass_core::agent::Did::new("did:key:z6MkTestFactory")
@@ -268,7 +268,7 @@ mod factory_tests {
             braid.ecop.source_primal.as_deref(),
             Some(TEST_SOURCE_PRIMAL)
         );
-        assert_eq!(braid.ecop.session_ref, Some("session-xyz".to_string()));
+        assert_eq!(braid.ecop.session_ref.as_deref(), Some("session-xyz"));
         assert!(braid.was_generated_by.is_some());
         let activity = braid.was_generated_by.as_ref().unwrap();
         assert!(matches!(
@@ -328,10 +328,7 @@ mod factory_tests {
         assert_eq!(braids[1].data_hash.as_str(), "sha256:hash2");
         assert_eq!(braids[0].ecop.niche.as_deref(), Some("chemistry"));
         assert_eq!(braids[1].ecop.niche.as_deref(), Some("chemistry"));
-        assert_eq!(
-            braids[0].ecop.session_ref,
-            Some("session-batch".to_string())
-        );
+        assert_eq!(braids[0].ecop.session_ref.as_deref(), Some("session-batch"));
     }
 
     #[test]

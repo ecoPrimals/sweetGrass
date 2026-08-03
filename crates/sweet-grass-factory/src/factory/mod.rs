@@ -327,7 +327,7 @@ impl BraidFactory {
 
         let mut braid = self.meta_braid(braids, summary_type, metadata)?;
 
-        braid.ecop.session_ref = Some(session_id);
+        braid.ecop.session_ref = Some(session_id.into());
 
         Ok(braid)
     }

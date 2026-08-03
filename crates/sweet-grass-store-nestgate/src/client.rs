@@ -148,6 +148,9 @@ impl NestGateClient {
             } => Err(NestGateStoreError::ConnectionFailed(format!(
                 "mesh_relay not yet implemented (peer={peer_id}, cap={capability})",
             ))),
+            _ => Err(NestGateStoreError::ConnectionFailed(String::from(
+                "unsupported transport endpoint variant",
+            ))),
         }
     }
 }

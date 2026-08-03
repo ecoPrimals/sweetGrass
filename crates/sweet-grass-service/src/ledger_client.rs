@@ -20,7 +20,7 @@ use thiserror::Error;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tracing::debug;
 
-use sweet_grass_core::primal_names::{env_vars, socket_env_var};
+use sweet_grass_core::primal_names::{env_vars, names, socket_env_var};
 
 use crate::transport_connect::{TransportStream, connect_transport};
 use sweet_grass_core::transport::TransportEndpoint;
@@ -149,7 +149,7 @@ impl LedgerClient {
     }
 
     fn resolve_socket_path() -> Option<PathBuf> {
-        let env_name = socket_env_var("loamspine");
+        let env_name = socket_env_var(names::LOAMSPINE);
         if let Ok(p) = std::env::var(&env_name) {
             let path = PathBuf::from(p);
             if path.exists() {
@@ -160,13 +160,13 @@ impl LedgerClient {
         let socket_dir = resolve_socket_dir()?;
 
         if let Ok(family_id) = std::env::var(env_vars::FAMILY_ID) {
-            let scoped = socket_dir.join(format!("loamspine-{family_id}.sock"));
+            let scoped = socket_dir.join(format!("{}-{family_id}.sock", names::LOAMSPINE));
             if scoped.exists() {
                 return Some(scoped);
             }
         }
 
-        let standalone = socket_dir.join("loamspine.sock");
+        let standalone = socket_dir.join(format!("{}.sock", names::LOAMSPINE));
         if standalone.exists() {
             return Some(standalone);
         }
@@ -254,7 +254,7 @@ mod tests {
     fn resolve_returns_none_without_env() {
         temp_env::with_vars(
             [
-                ("LOAMSPINE_SOCKET", None::<&str>),
+                (env_vars::LOAMSPINE_SOCKET, None::<&str>),
                 (env_vars::BIOMEOS_SOCKET_DIR, None::<&str>),
                 (env_vars::XDG_RUNTIME_DIR, None::<&str>),
                 (env_vars::FAMILY_ID, None::<&str>),
@@ -268,24 +268,31 @@ mod tests {
     #[test]
     fn resolve_explicit_env_override() {
         let dir = tempfile::tempdir().unwrap();
-        let sock = dir.path().join("loamspine-explicit.sock");
+        let sock = dir
+            .path()
+            .join(format!("{}-explicit.sock", names::LOAMSPINE));
         std::fs::write(&sock, "").unwrap();
 
-        temp_env::with_vars([("LOAMSPINE_SOCKET", Some(sock.to_str().unwrap()))], || {
-            let client = LedgerClient::resolve_from_env().unwrap();
-            assert!(matches!(client.endpoint(), TransportEndpoint::Uds { .. }));
-        });
+        temp_env::with_vars(
+            [(env_vars::LOAMSPINE_SOCKET, Some(sock.to_str().unwrap()))],
+            || {
+                let client = LedgerClient::resolve_from_env().unwrap();
+                assert!(matches!(client.endpoint(), TransportEndpoint::Uds { .. }));
+            },
+        );
     }
 
     #[test]
     fn resolve_family_scoped() {
         let dir = tempfile::tempdir().unwrap();
-        let sock = dir.path().join("loamspine-testfam.sock");
+        let sock = dir
+            .path()
+            .join(format!("{}-testfam.sock", names::LOAMSPINE));
         std::fs::write(&sock, "").unwrap();
 
         temp_env::with_vars(
             [
-                ("LOAMSPINE_SOCKET", None::<&str>),
+                (env_vars::LOAMSPINE_SOCKET, None::<&str>),
                 (
                     env_vars::BIOMEOS_SOCKET_DIR,
                     Some(dir.path().to_str().unwrap()),
@@ -302,12 +309,12 @@ mod tests {
     #[test]
     fn resolve_standalone_fallback() {
         let dir = tempfile::tempdir().unwrap();
-        let sock = dir.path().join("loamspine.sock");
+        let sock = dir.path().join(format!("{}.sock", names::LOAMSPINE));
         std::fs::write(&sock, "").unwrap();
 
         temp_env::with_vars(
             [
-                ("LOAMSPINE_SOCKET", None::<&str>),
+                (env_vars::LOAMSPINE_SOCKET, None::<&str>),
                 (
                     env_vars::BIOMEOS_SOCKET_DIR,
                     Some(dir.path().to_str().unwrap()),

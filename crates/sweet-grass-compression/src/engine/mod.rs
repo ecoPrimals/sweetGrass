@@ -249,7 +249,7 @@ impl CompressionEngine {
         // not hardcoded. "unknown" indicates discovery was not used.
         let ecop = EcoPrimalsAttributes {
             source_primal: Some(Arc::clone(&self.source_primal)),
-            session_ref: Some(session.id.clone()),
+            session_ref: Some(Arc::from(session.id.as_str())),
             compression: Some(CompressionMeta {
                 vertex_count: analysis.vertex_count as u64,
                 branch_count: analysis.branch_count as u64,

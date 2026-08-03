@@ -539,10 +539,7 @@ async fn e2e_batch_commit_with_loamspine() {
 
     let commit_resp = server
         .post("/jsonrpc")
-        .json(&jsonrpc(
-            "braid.batch_commit",
-            json!({ "braid_ids": ids }),
-        ))
+        .json(&jsonrpc("braid.batch_commit", json!({ "braid_ids": ids })))
         .await;
     commit_resp.assert_status_ok();
     let commit_body: serde_json::Value = commit_resp.json();
@@ -584,10 +581,7 @@ async fn e2e_batch_commit_without_loamspine() {
 
     let commit_resp = server
         .post("/jsonrpc")
-        .json(&jsonrpc(
-            "braid.batch_commit",
-            json!({ "braid_ids": ids }),
-        ))
+        .json(&jsonrpc("braid.batch_commit", json!({ "braid_ids": ids })))
         .await;
     commit_resp.assert_status_ok();
     let commit_body: serde_json::Value = commit_resp.json();
@@ -618,7 +612,10 @@ async fn e2e_batch_commit_mixed_found_and_missing() {
         .await;
     create_resp.assert_status_ok();
     let created: serde_json::Value = create_resp.json();
-    let real_id = created["result"]["results"][0]["id"].as_str().unwrap().to_string();
+    let real_id = created["result"]["results"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
 
     let commit_resp = server
         .post("/jsonrpc")

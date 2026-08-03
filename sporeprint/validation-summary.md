@@ -1,7 +1,7 @@
 +++
 title = "sweetGrass Validation Summary"
-description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,636 tests, 40 methods, zero production debt. Pure Rust (sqlx banned), riboCipher reference impl, BTSP ClientHello handshake, HEALTH-01, mito-beacon 0xED, cross-arch clean, TransportEndpoint Phase 2 shipped. Provenance Trio G3 WIRED: sweetGrass→loamSpine via LedgerClient. E2E validated."
-date = 2026-07-29
+description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,645 tests, 42 methods, DH-0 clean. Pure Rust (sqlx banned), riboCipher reference impl, BTSP ClientHello handshake, HEALTH-01, mito-beacon 0xED, cross-arch clean, TransportEndpoint Phase 2 shipped. Provenance Trio G3 WIRED. G31 batch pipeline. Zero-copy Arc<str> Witness/LoamAnchor. Zero hardcoded primal names."
+date = 2026-08-03
 
 [taxonomies]
 primals = ["sweetgrass", "beardog", "rhizocrypt", "loamspine", "nestgate"]
@@ -11,12 +11,15 @@ springs = []
 ## Status
 
 - **Version**: v0.8.0
-- **1,636 tests** (all passed, 0 failed, pure Rust — no Docker required)
-- **Provenance Trio G3 WIRED**: `LedgerClient` closes sweetGrass→loamSpine triangle (`braid.commit` + `certificate.verify`)
-- **BTSP ClientHello handshake**: 4-step challenge-response authentication with bearDog crypto provider
-- **TransportEndpoint Phase 2**: All transport dispatch via `TransportEndpoint` abstraction (UDS/TCP/mesh)
-- **40 registered capability methods** across 13 domains
-- **215+ source files**, max 795 lines per file
+- **1,645 tests** (all passed, 0 failed, pure Rust — no Docker required)
+- **DH-0 clean**: Zero debt, zero unsafe, zero hardcoded primal names, zero dead_code
+- **G31 batch pipeline**: `braid.batch_create` + `braid.batch_commit` for 10× throughput
+- **Zero-copy evolution**: `Witness`, `LoamAnchor.spine_id`, `EcoPrimalsAttributes.session_ref` → `Arc<str>`
+- **Provenance Trio G3 WIRED**: `LedgerClient` closes sweetGrass→loamSpine triangle
+- **BTSP ClientHello handshake**: 4-step challenge-response with protocol version validation
+- **TransportEndpoint Phase 2**: All transport via `TransportEndpoint` abstraction (UDS/TCP/mesh)
+- **42 registered capability methods** across 13 domains
+- **215+ source files**, max 804 lines per file (production code ≤545 lines)
 - **riboCipher**: Reference implementation in `peek.rs` — signal detection for `0xEC`/`0xED`/`0xEE` before legacy peek (Wave 111, Stream 7)
 - **HEALTH-01**: Bare `health` method alias, enriched `health.check` with `primal` + `uptime_secs`
 - **BTSP E2E ready**: `BEARDOG_SOCKET` in security socket resolution tier 2

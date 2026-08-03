@@ -13,6 +13,23 @@
 //! use [`socket_env_var`] to derive `{NAME}_SOCKET` from any primal name
 //! at runtime — no code change needed when new primals join the ecosystem.
 
+/// Canonical primal names for socket filename construction.
+///
+/// These are the lowercase canonical identifiers used in environment variable
+/// derivation and socket filenames — NOT used for runtime discovery (which
+/// happens via `capability.list`). These names follow the ecoPrimals naming
+/// convention established in the ecosystem.
+pub mod names {
+    /// Ledger provider primal.
+    pub const LOAMSPINE: &str = "loamspine";
+    /// Storage provider primal.
+    pub const NESTGATE: &str = "nestgate";
+    /// Crypto/security provider primal.
+    pub const BEARDOG: &str = "beardog";
+    /// Discovery service primal.
+    pub const SONGBIRD: &str = "songbird";
+}
+
 /// Derive the `{NAME}_SOCKET` environment variable name for any primal.
 ///
 /// This replaces per-primal constants (`RHIZOCRYPT_SOCKET`, etc.) with a
@@ -154,6 +171,22 @@ pub mod env_vars {
     /// Per `NUCLEUS_TWO_TIER_CRYPTO_MODEL`, all primals delegate signing and
     /// encryption to `BearDog` through this socket.
     pub const BEARDOG_SOCKET: &str = "BEARDOG_SOCKET";
+
+    /// `BEARDOG_UDS_REQUIRE_BTSP` — when `"1"`, enforces BTSP handshake for
+    /// all UDS connections to the crypto provider.
+    pub const BEARDOG_UDS_REQUIRE_BTSP: &str = "BEARDOG_UDS_REQUIRE_BTSP";
+
+    /// `BTSP_STRICT_MODE` — ecosystem-wide BTSP enforcement flag.
+    ///
+    /// When `"1"`, all inter-primal UDS connections must complete the BTSP
+    /// `ClientHello` handshake before sending JSON-RPC payloads.
+    pub const BTSP_STRICT_MODE: &str = "BTSP_STRICT_MODE";
+
+    /// `LOAMSPINE_SOCKET` — path to the loamSpine ledger provider socket.
+    ///
+    /// Per `socket_env_var("loamspine")`. Takes precedence over filesystem
+    /// discovery for the Provenance Trio ledger path.
+    pub const LOAMSPINE_SOCKET: &str = "LOAMSPINE_SOCKET";
 
     /// `DISCOVERY_SOCKET` — path to the Songbird discovery service socket.
     ///
@@ -300,8 +333,11 @@ mod tests {
             env_vars::PRIMAL_ADVERTISE_ADDRESS,
             env_vars::STORAGE_PROVIDER_SOCKET,
             env_vars::NESTGATE_SOCKET,
+            env_vars::LOAMSPINE_SOCKET,
             env_vars::FAMILY_SEED,
             env_vars::BEARDOG_FAMILY_SEED,
+            env_vars::BEARDOG_UDS_REQUIRE_BTSP,
+            env_vars::BTSP_STRICT_MODE,
             env_vars::SECURITY_PROVIDER_SOCKET,
             env_vars::SWEETGRASS_SOCKET,
             env_vars::PRIMAL_NAME,
@@ -320,6 +356,18 @@ mod tests {
                 var.to_uppercase(),
                 "env var should be uppercase: {var}"
             );
+        }
+    }
+
+    #[test]
+    fn names_are_lowercase() {
+        for name in [
+            names::LOAMSPINE,
+            names::NESTGATE,
+            names::BEARDOG,
+            names::SONGBIRD,
+        ] {
+            assert_eq!(name, name.to_lowercase(), "primal name should be lowercase");
         }
     }
 }

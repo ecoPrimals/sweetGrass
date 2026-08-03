@@ -6,7 +6,10 @@
 All types below now use `Arc<str>`: `BraidId`, `Did`, `ContentHash`, `ActivityId`,
 `Braid.mime_type`, `BraidMetadata.title`, `BraidMetadata.description`,
 `BraidMetadata.tags`, `EcoPrimalsAttributes.source_primal`,
-`EcoPrimalsAttributes.niche`, `LoamCommitRef.spine_id`,
+`EcoPrimalsAttributes.niche`, `EcoPrimalsAttributes.session_ref`,
+`LoamCommitRef.spine_id`, `LoamAnchor.spine_id`,
+`Witness.kind`, `Witness.evidence`, `Witness.encoding`,
+`Witness.algorithm`, `Witness.tier`, `Witness.context`,
 `BraidFactory.source_primal`, `CompressionEngine.source_primal`.
 
 Tag and MIME indexes share `Arc<str>` instances. Witness constructors use named

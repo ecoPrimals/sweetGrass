@@ -74,7 +74,7 @@ impl super::BraidFactory {
         let ecop = EcoPrimalsAttributes {
             source_primal: Some(source_primal),
             niche: self.niche.clone(),
-            session_ref: record.session_id.clone(),
+            session_ref: record.session_id.as_deref().map(Arc::from),
             ..EcoPrimalsAttributes::default()
         };
 

@@ -101,6 +101,10 @@ pub async fn connect_transport(endpoint: &TransportEndpoint) -> std::io::Result<
             std::io::ErrorKind::Unsupported,
             format!("mesh_relay transport not yet implemented (peer={peer_id}, cap={capability})"),
         )),
+        _ => Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "unsupported transport endpoint variant",
+        )),
     }
 }
 

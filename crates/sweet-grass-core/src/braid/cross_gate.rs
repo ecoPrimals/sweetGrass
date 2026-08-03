@@ -86,6 +86,7 @@ impl CrossGateAttribution {
 
 /// Cross-gate trust event types.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[non_exhaustive]
 #[serde(rename_all = "snake_case")]
 pub enum CrossGateTrustEvent {
     /// Ed25519 key exchange between gates.

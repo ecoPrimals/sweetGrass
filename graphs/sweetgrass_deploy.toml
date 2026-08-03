@@ -7,7 +7,7 @@
 
 [graph]
 name = "sweetgrass-attribution"
-version = "0.7.61"
+version = "0.8.0"
 description = "Semantic provenance and attribution layer"
 owner = "ecoPrimals"
 composition_model = "provenance-trio"
@@ -33,6 +33,7 @@ domain = "attribution"
 capabilities_provided = [
     "braid.create", "braid.get", "braid.get_by_hash", "braid.query",
     "braid.delete", "braid.commit", "braid.anchor",
+    "braid.batch_create", "braid.batch_commit",
     "attribution.chain", "attribution.calculate_rewards",
     "attribution.top_contributors", "attribution.witness",
     "provenance.graph", "provenance.export_provo", "provenance.export_graph_provo",

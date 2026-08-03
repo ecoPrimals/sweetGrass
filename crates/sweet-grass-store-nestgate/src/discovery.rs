@@ -11,10 +11,7 @@
 
 use std::path::PathBuf;
 
-use sweet_grass_core::primal_names::{env_vars, paths};
-
-/// Socket filename for `NestGate`.
-const NESTGATE_SOCK: &str = "nestgate.sock";
+use sweet_grass_core::primal_names::{env_vars, names, paths};
 
 /// Discover the `NestGate` UDS socket path.
 ///
@@ -29,17 +26,17 @@ pub fn discover_socket(reader: &impl Fn(&str) -> Option<String>) -> PathBuf {
         return PathBuf::from(path);
     }
 
+    let sock_name = format!("{}.sock", names::NESTGATE);
+
     if let Some(dir) = reader(env_vars::BIOMEOS_SOCKET_DIR) {
-        return PathBuf::from(dir).join(NESTGATE_SOCK);
+        return PathBuf::from(dir).join(&sock_name);
     }
 
     if let Some(xdg) = reader(env_vars::XDG_RUNTIME_DIR) {
-        return PathBuf::from(xdg)
-            .join(paths::BIOMEOS_DIR)
-            .join(NESTGATE_SOCK);
+        return PathBuf::from(xdg).join(paths::BIOMEOS_DIR).join(&sock_name);
     }
 
-    paths::default_socket_dir().join(NESTGATE_SOCK)
+    paths::default_socket_dir().join(&sock_name)
 }
 
 /// Discover with family-scoped socket naming.
@@ -53,7 +50,7 @@ pub fn discover_socket_with_family(
     if let Some(fid) = family_id
         && let Some(dir) = reader(env_vars::BIOMEOS_SOCKET_DIR)
     {
-        let family_sock = format!("nestgate-{fid}.sock");
+        let family_sock = format!("{}-{fid}.sock", names::NESTGATE);
         let path = PathBuf::from(&dir).join(&family_sock);
         if path.exists() {
             return path;
@@ -163,7 +160,7 @@ mod tests {
             },
             Some("missing-family"),
         );
-        assert_eq!(path, dir.path().join(NESTGATE_SOCK));
+        assert_eq!(path, dir.path().join(format!("{}.sock", names::NESTGATE)));
     }
 
     #[test]

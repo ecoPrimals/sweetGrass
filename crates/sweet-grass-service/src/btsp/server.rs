@@ -546,11 +546,20 @@ mod tests {
 
     #[test]
     fn resolve_security_socket_default() {
-        let path = resolve_security_socket_from_env();
-        let path_str = path.to_string_lossy();
-        assert!(
-            path_str.contains("security"),
-            "should resolve to security.sock: {path_str}"
+        temp_env::with_vars(
+            [
+                ("SECURITY_PROVIDER_SOCKET", None::<&str>),
+                ("BEARDOG_SOCKET", None::<&str>),
+                ("BIOMEOS_SOCKET_DIR", None::<&str>),
+            ],
+            || {
+                let path = resolve_security_socket_from_env();
+                let path_str = path.to_string_lossy();
+                assert!(
+                    path_str.contains("security"),
+                    "should resolve to security.sock: {path_str}"
+                );
+            },
         );
     }
 

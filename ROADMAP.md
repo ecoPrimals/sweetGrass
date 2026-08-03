@@ -6,7 +6,7 @@
 
 ## Completed
 
-### v0.8.0 — Provenance Trio G3 Wiring (Wave 155i, July 2026)
+### v0.8.0 — Provenance Trio G3 + Deep Evolution (Wave 155i–155n+, July–Aug 2026)
 
 - [x] **`LedgerClient` module** — JSON-RPC 2.0 client over UDS/TCP for loamSpine (`braid.commit`, `certificate.verify`)
 - [x] **Capability-based socket resolution** — env override → family-scoped → standalone fallback chain
@@ -14,7 +14,15 @@
 - [x] **`braid.commit` → loamSpine** — outbound forwarding with `committed` flag and `ledger_commit` reference in response
 - [x] **`anchoring.verify` ledger proof** — cross-primal `certificate.verify` via loamSpine; `ledger_verified` status
 - [x] **Provenance Trio triangle CLOSED** — content → DAG → certificate → attribution braid end-to-end
-- [x] 1,636 tests (incl. 11 E2E mock loamSpine), 0 failures, 0 clippy warnings, cross-arch clean
+- [x] **G31 batch pipeline** — `braid.batch_create` + `braid.batch_commit` for 10× throughput (bounded concurrency, pipelined loamSpine forwarding)
+- [x] **`BraidId::to_uuid()`** — deterministic UUID v5 derivation for hash-based braid IDs
+- [x] **Zero-copy evolution** — `Witness`, `LoamAnchor.spine_id`, `EcoPrimalsAttributes.session_ref` → `Arc<str>` (O(1) clone)
+- [x] **Hardcoded primal names eliminated** — `primal_names::names` module + `env_vars` constants replace all string literals
+- [x] **BTSP protocol validation** — `ServerHello.version` checked, dead_code consumed, `HandshakeError.error` surfaced
+- [x] **`#[non_exhaustive]`** — `TransportEndpoint` + `CrossGateTrustEvent` forward-compatible
+- [x] **File size compliance** — `braid/types.rs` refactored (806 → 545L), tests extracted to `types_tests.rs`
+- [x] **DH-0 clean** — zero debt, zero unsafe, zero hardcoded names, zero dead_code, zero clippy warnings
+- [x] 1,645 tests, 42 methods, 0 failures, 0 clippy warnings, cross-arch clean
 
 ### v0.7.63 — BTSP Client Handshake (Wave 151b, July 2026)
 
