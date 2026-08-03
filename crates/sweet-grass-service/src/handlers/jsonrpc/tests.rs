@@ -268,8 +268,8 @@ async fn test_record_session_dispatch() {
 fn test_dispatch_table_completeness() {
     assert_eq!(
         METHODS.len(),
-        40,
-        "dispatch table should have all 40 methods (36 domain + lifecycle + 3 auth)"
+        42,
+        "dispatch table should have all 42 methods (38 domain + lifecycle + 3 auth)"
     );
 
     let expected = [
@@ -280,6 +280,8 @@ fn test_dispatch_table_completeness() {
         "braid.delete",
         "braid.commit",
         "braid.anchor",
+        "braid.batch_create",
+        "braid.batch_commit",
         "anchoring.anchor",
         "anchoring.verify",
         "provenance.graph",

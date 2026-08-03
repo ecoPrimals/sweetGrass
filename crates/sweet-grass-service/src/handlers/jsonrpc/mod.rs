@@ -10,7 +10,7 @@
 //!
 //! | Domain | Operations |
 //! |--------|------------|
-//! | `braid` | `create`, `get`, `get_by_hash`, `query`, `delete`, `commit` |
+//! | `braid` | `create`, `get`, `get_by_hash`, `query`, `delete`, `commit`, `batch_create`, `batch_commit` |
 //! | `anchoring` | `anchor`, `verify` |
 //! | `provenance` | `graph`, `export_provo`, `export_graph_provo` |
 //! | `attribution` | `chain`, `calculate_rewards`, `top_contributors`, `witness` |

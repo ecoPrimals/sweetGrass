@@ -43,6 +43,14 @@ pub(super) static METHODS: &[MethodEntry] = &[
         handler: |s, p| Box::pin(super::braid::handle_braid_anchor(s, p)),
     },
     MethodEntry {
+        name: "braid.batch_create",
+        handler: |s, p| Box::pin(super::braid::handle_braid_batch_create(s, p)),
+    },
+    MethodEntry {
+        name: "braid.batch_commit",
+        handler: |s, p| Box::pin(super::braid::handle_braid_batch_commit(s, p)),
+    },
+    MethodEntry {
         name: "anchoring.anchor",
         handler: |s, p| Box::pin(super::anchoring::handle_anchor_braid(s, p)),
     },

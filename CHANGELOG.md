@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### G31: Batch Provenance Pipeline (Wave 155n)
+
+#### Added
+- **`braid.batch_create`** — bulk braid creation with bounded concurrency via
+  `put_batch`. Accepts array of braid specs, returns per-item results. Targets
+  10× throughput for PDB/dataset ingestion (~3ms/object vs ~30ms sequential).
+- **`braid.batch_commit`** — bulk loamSpine commit with `get_batch` retrieval
+  and pipelined forwarding. Mixed found/missing handling. Returns per-item
+  commit status with `ledger_commit` refs.
+- **`BraidId::to_uuid()`** — deterministic UUID v5 derivation for hash-based
+  braid IDs. Resolves P2 braid_id→UUID mismatch on `braid.commit`.
+- **`DEFAULT_BATCH_CONCURRENCY` re-export** from `sweet-grass-store`.
+- **UUID v5 feature** added to workspace `uuid` dependency.
+- Dispatch table: 40 → 42 methods.
+
 ## [0.8.0] - 2026-07-29
 
 ### Nest Atomic G3: Provenance Trio Wiring (Wave 155i)

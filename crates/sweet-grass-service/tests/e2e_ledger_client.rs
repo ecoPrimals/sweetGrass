@@ -455,3 +455,182 @@ async fn e2e_concurrent_commits() {
         h.await.unwrap();
     }
 }
+
+// ==================== Batch Operations (G31) ====================
+
+#[tokio::test]
+async fn e2e_batch_create_multiple_braids() {
+    let server = test_server_without_ledger();
+
+    let resp = server
+        .post("/jsonrpc")
+        .json(&jsonrpc(
+            "braid.batch_create",
+            json!({
+                "braids": [
+                    { "data_hash": "sha256:batch_001", "mime_type": "text/plain", "size": 100 },
+                    { "data_hash": "sha256:batch_002", "mime_type": "application/json", "size": 200 },
+                    { "data_hash": "sha256:batch_003", "mime_type": "application/octet-stream", "size": 300 },
+                    { "data_hash": "sha256:batch_004", "mime_type": "text/csv", "size": 400 },
+                    { "data_hash": "sha256:batch_005", "mime_type": "chemical/x-pdb", "size": 500 },
+                ]
+            }),
+        ))
+        .await;
+    resp.assert_status_ok();
+    let body: serde_json::Value = resp.json();
+    let result = &body["result"];
+
+    assert_eq!(result["created"], 5);
+    assert_eq!(result["total"], 5);
+    assert_eq!(result["errors"], 0);
+    let results = result["results"].as_array().unwrap();
+    assert_eq!(results.len(), 5);
+    for r in results {
+        assert_eq!(r["status"], "created");
+        assert!(r["id"].is_string());
+    }
+}
+
+#[tokio::test]
+async fn e2e_batch_create_empty() {
+    let server = test_server_without_ledger();
+
+    let resp = server
+        .post("/jsonrpc")
+        .json(&jsonrpc("braid.batch_create", json!({ "braids": [] })))
+        .await;
+    resp.assert_status_ok();
+    let body: serde_json::Value = resp.json();
+    assert_eq!(body["result"]["created"], 0);
+}
+
+#[tokio::test]
+async fn e2e_batch_commit_with_loamspine() {
+    let dir = tempfile::tempdir().unwrap();
+    let sock = dir.path().join("loamspine.sock");
+    let _mock = start_mock_loamspine(&sock);
+    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+    let client = LedgerClient::from_socket_path(&sock);
+    let server = test_server_with_ledger(client);
+
+    let create_resp = server
+        .post("/jsonrpc")
+        .json(&jsonrpc(
+            "braid.batch_create",
+            json!({
+                "braids": [
+                    { "data_hash": "sha256:commit_batch_a", "mime_type": "text/plain", "size": 10 },
+                    { "data_hash": "sha256:commit_batch_b", "mime_type": "text/plain", "size": 20 },
+                    { "data_hash": "sha256:commit_batch_c", "mime_type": "text/plain", "size": 30 },
+                ]
+            }),
+        ))
+        .await;
+    create_resp.assert_status_ok();
+    let created: serde_json::Value = create_resp.json();
+    let ids: Vec<String> = created["result"]["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| r["id"].as_str().unwrap().to_string())
+        .collect();
+
+    let commit_resp = server
+        .post("/jsonrpc")
+        .json(&jsonrpc(
+            "braid.batch_commit",
+            json!({ "braid_ids": ids }),
+        ))
+        .await;
+    commit_resp.assert_status_ok();
+    let commit_body: serde_json::Value = commit_resp.json();
+    let result = &commit_body["result"];
+
+    assert_eq!(result["committed"], 3);
+    assert_eq!(result["total"], 3);
+    let results = result["results"].as_array().unwrap();
+    for r in results {
+        assert_eq!(r["status"], "committed");
+        assert!(r["ledger_commit"].is_object());
+    }
+}
+
+#[tokio::test]
+async fn e2e_batch_commit_without_loamspine() {
+    let server = test_server_without_ledger();
+
+    let create_resp = server
+        .post("/jsonrpc")
+        .json(&jsonrpc(
+            "braid.batch_create",
+            json!({
+                "braids": [
+                    { "data_hash": "sha256:local_batch_1", "mime_type": "text/plain", "size": 10 },
+                    { "data_hash": "sha256:local_batch_2", "mime_type": "text/plain", "size": 20 },
+                ]
+            }),
+        ))
+        .await;
+    create_resp.assert_status_ok();
+    let created: serde_json::Value = create_resp.json();
+    let ids: Vec<String> = created["result"]["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|r| r["id"].as_str().unwrap().to_string())
+        .collect();
+
+    let commit_resp = server
+        .post("/jsonrpc")
+        .json(&jsonrpc(
+            "braid.batch_commit",
+            json!({ "braid_ids": ids }),
+        ))
+        .await;
+    commit_resp.assert_status_ok();
+    let commit_body: serde_json::Value = commit_resp.json();
+    let result = &commit_body["result"];
+
+    assert_eq!(result["committed"], 0);
+    assert_eq!(result["total"], 2);
+    let results = result["results"].as_array().unwrap();
+    for r in results {
+        assert_eq!(r["status"], "local_only");
+    }
+}
+
+#[tokio::test]
+async fn e2e_batch_commit_mixed_found_and_missing() {
+    let server = test_server_without_ledger();
+
+    let create_resp = server
+        .post("/jsonrpc")
+        .json(&jsonrpc(
+            "braid.batch_create",
+            json!({
+                "braids": [
+                    { "data_hash": "sha256:mixed_batch_1", "mime_type": "text/plain", "size": 10 },
+                ]
+            }),
+        ))
+        .await;
+    create_resp.assert_status_ok();
+    let created: serde_json::Value = create_resp.json();
+    let real_id = created["result"]["results"][0]["id"].as_str().unwrap().to_string();
+
+    let commit_resp = server
+        .post("/jsonrpc")
+        .json(&jsonrpc(
+            "braid.batch_commit",
+            json!({ "braid_ids": [real_id, "nonexistent_braid_id"] }),
+        ))
+        .await;
+    commit_resp.assert_status_ok();
+    let commit_body: serde_json::Value = commit_resp.json();
+    let results = commit_body["result"]["results"].as_array().unwrap();
+
+    assert_eq!(results[0]["status"], "local_only");
+    assert_eq!(results[1]["status"], "not_found");
+}
