@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Trailer Pattern Alignment (Wave 155u/156b)
+
+#### Changed
+- **`braid.batch_commit` concurrent dispatch** — loamSpine commits now fire
+  concurrently via `futures::future::join_all` instead of sequential iteration.
+  Addresses the 12× throughput divergence (74 files/s → 6 files/s) by
+  amortizing UDS RPC serialization across all payloads in parallel.
+- **Batch size guard** — both `braid.batch_create` and `braid.batch_commit`
+  now reject requests exceeding `MAX_BATCH_SIZE` (5,000) with a JSON-RPC
+  `-32602` (Invalid Params) error. Prevents unbounded memory usage on
+  large trailer-pattern ingestion runs; callers chunk into ≤5,000 batches.
+- **`dispatch_commits` helper** — extracted concurrent commit logic from
+  `handle_braid_batch_commit` to stay within clippy's 100-line function limit.
+
 ### G31: Batch Provenance Pipeline (Wave 155n)
 
 #### Added

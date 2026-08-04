@@ -453,6 +453,10 @@ const fn default_batch_concurrency() -> usize {
     sweet_grass_store::DEFAULT_BATCH_CONCURRENCY
 }
 
+const MAX_BATCH_SIZE: usize = 5_000;
+
+const JSONRPC_INVALID_PARAMS: i64 = -32_602;
+
 /// Batch-create multiple braids in a single request.
 ///
 /// Accepts an array of braid specs, creates each via the factory, then
@@ -472,6 +476,17 @@ pub(super) async fn handle_braid_batch_create(
             "created": 0,
             "results": [],
         }));
+    }
+
+    if p.braids.len() > MAX_BATCH_SIZE {
+        return Err(DispatchError {
+            code: JSONRPC_INVALID_PARAMS,
+            message: format!(
+                "batch size {} exceeds maximum {MAX_BATCH_SIZE}; split into smaller batches",
+                p.braids.len()
+            ),
+            source_detail: None,
+        });
     }
 
     let mut braids = Vec::with_capacity(p.braids.len());
@@ -532,10 +547,44 @@ pub(super) struct BatchCommitParams {
     concurrency: usize,
 }
 
+/// Dispatch commit payloads to loamSpine concurrently via `join_all`.
+async fn dispatch_commits(
+    client: &Arc<crate::ledger_client::LedgerClient>,
+    payloads: Vec<(String, Option<serde_json::Value>)>,
+) -> Vec<serde_json::Value> {
+    let futs: Vec<_> = payloads
+        .into_iter()
+        .map(|(braid_id, maybe_payload)| {
+            let client = Arc::clone(client);
+            async move {
+                let Some(payload) = maybe_payload else {
+                    return serde_json::json!({
+                        "braid_id": braid_id,
+                        "status": "not_found",
+                    });
+                };
+                match client.commit_braid(payload).await {
+                    Ok(commit_ref) => serde_json::json!({
+                        "braid_id": braid_id,
+                        "status": "committed",
+                        "ledger_commit": commit_ref,
+                    }),
+                    Err(e) => serde_json::json!({
+                        "braid_id": braid_id,
+                        "status": "local_only",
+                        "error": e.to_string(),
+                    }),
+                }
+            }
+        })
+        .collect();
+    futures::future::join_all(futs).await
+}
+
 /// Batch-commit multiple braids to loamSpine in a single request.
 ///
 /// Retrieves each braid, packages the commit payload, and forwards all to
-/// loamSpine's `braid.commit` concurrently (bounded by `concurrency`).
+/// loamSpine's `braid.commit` concurrently via `join_all`.
 /// Returns an array of commit results. When loamSpine is unavailable,
 /// returns the packaged payloads without `committed` status (local-only).
 ///
@@ -554,68 +603,75 @@ pub(super) async fn handle_braid_batch_commit(
         }));
     }
 
+    if p.braid_ids.len() > MAX_BATCH_SIZE {
+        return Err(DispatchError {
+            code: JSONRPC_INVALID_PARAMS,
+            message: format!(
+                "batch size {} exceeds maximum {MAX_BATCH_SIZE}; split into smaller batches",
+                p.braid_ids.len()
+            ),
+            source_detail: None,
+        });
+    }
+
     let (found_braids, _errors) = state
         .store
         .get_batch(&p.braid_ids, Some(p.concurrency))
         .await;
 
-    let mut results = Vec::with_capacity(p.braid_ids.len());
-    let mut committed_count = 0u64;
+    let payloads: Vec<_> = found_braids
+        .into_iter()
+        .enumerate()
+        .map(|(i, maybe_braid)| {
+            let Some(braid) = maybe_braid else {
+                return (p.braid_ids[i].as_str().to_owned(), None);
+            };
 
-    for (i, maybe_braid) in found_braids.into_iter().enumerate() {
-        let Some(braid) = maybe_braid else {
-            results.push(serde_json::json!({
-                "braid_id": p.braid_ids[i].as_str(),
-                "status": "not_found",
-            }));
-            continue;
-        };
+            let uuid = braid.id.to_uuid();
+            let hash_bytes = braid
+                .data_hash
+                .to_bytes32()
+                .map(|b| base64::engine::general_purpose::STANDARD.encode(b));
 
-        let uuid = braid.id.to_uuid();
-        let hash_bytes = braid
-            .data_hash
-            .to_bytes32()
-            .map(|b| base64::engine::general_purpose::STANDARD.encode(b));
-
-        let payload = serde_json::json!({
-            "braid_id": braid.id.as_str(),
-            "uuid": uuid,
-            "data_hash": braid.data_hash.as_str(),
-            "data_hash_bytes": hash_bytes,
-            "spine_id": p.spine_id,
-            "mime_type": braid.mime_type,
-            "size": braid.size,
-            "attributed_to": braid.was_attributed_to.as_str(),
-            "generated_at": braid.generated_at_time,
-            "is_signed": braid.is_signed(),
-        });
-
-        if let Some(ref client) = state.ledger_client {
-            match client.commit_braid(payload.clone()).await {
-                Ok(commit_ref) => {
-                    committed_count += 1;
-                    results.push(serde_json::json!({
-                        "braid_id": braid.id.as_str(),
-                        "status": "committed",
-                        "ledger_commit": commit_ref,
-                    }));
-                },
-                Err(e) => {
-                    results.push(serde_json::json!({
-                        "braid_id": braid.id.as_str(),
-                        "status": "local_only",
-                        "error": e.to_string(),
-                    }));
-                },
-            }
-        } else {
-            results.push(serde_json::json!({
+            let payload = serde_json::json!({
                 "braid_id": braid.id.as_str(),
-                "status": "local_only",
-                "payload": payload,
-            }));
-        }
-    }
+                "uuid": uuid,
+                "data_hash": braid.data_hash.as_str(),
+                "data_hash_bytes": hash_bytes,
+                "spine_id": p.spine_id,
+                "mime_type": braid.mime_type,
+                "size": braid.size,
+                "attributed_to": braid.was_attributed_to.as_str(),
+                "generated_at": braid.generated_at_time,
+                "is_signed": braid.is_signed(),
+            });
+
+            (braid.id.as_str().to_owned(), Some(payload))
+        })
+        .collect();
+
+    let results = if let Some(ref client) = state.ledger_client {
+        dispatch_commits(client, payloads).await
+    } else {
+        payloads
+            .into_iter()
+            .map(|(braid_id, maybe_payload)| {
+                maybe_payload.map_or_else(
+                    || serde_json::json!({ "braid_id": braid_id, "status": "not_found" }),
+                    |payload| serde_json::json!({
+                        "braid_id": braid_id,
+                        "status": "local_only",
+                        "payload": payload,
+                    }),
+                )
+            })
+            .collect()
+    };
+
+    let committed_count = results
+        .iter()
+        .filter(|r| r.get("status").and_then(|s| s.as_str()) == Some("committed"))
+        .count();
 
     to_value(&serde_json::json!({
         "committed": committed_count,
