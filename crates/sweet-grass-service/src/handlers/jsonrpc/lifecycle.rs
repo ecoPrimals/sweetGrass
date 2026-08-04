@@ -2,6 +2,7 @@
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! Lifecycle and auth introspection JSON-RPC handlers (JH-0 method gate).
 
+use sweet_grass_core::identity::PRIMAL_NAME;
 use sweet_grass_core::niche;
 
 use crate::state::AppState;
@@ -17,7 +18,7 @@ pub(super) fn handle_lifecycle_status(
     let name = state
         .self_knowledge
         .as_ref()
-        .map_or("sweetgrass", |sk| sk.name.as_str());
+        .map_or(PRIMAL_NAME, |sk| sk.name.as_str());
     let uptime_secs = state
         .self_knowledge
         .as_ref()

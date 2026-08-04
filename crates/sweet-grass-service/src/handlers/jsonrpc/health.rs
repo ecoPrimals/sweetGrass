@@ -6,6 +6,7 @@
 //! `PRIMAL_IPC_PROTOCOL` v3.0 health methods aligned with coralReef's
 //! and healthSpring's implementations.
 
+use sweet_grass_core::identity::PRIMAL_NAME;
 use sweet_grass_store::{BraidStore, QueryFilter};
 
 use crate::state::AppState;
@@ -21,7 +22,7 @@ pub(super) async fn handle_health(state: &AppState, _params: serde_json::Value) 
     let primal = state
         .self_knowledge
         .as_ref()
-        .map_or("sweetgrass", |sk| sk.name.as_str());
+        .map_or(PRIMAL_NAME, |sk| sk.name.as_str());
     let uptime_secs = state
         .self_knowledge
         .as_ref()

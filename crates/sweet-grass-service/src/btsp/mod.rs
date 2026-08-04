@@ -27,6 +27,8 @@
 pub mod phase3;
 pub mod protocol;
 pub mod server;
+#[cfg(test)]
+mod server_tests;
 pub mod transport;
 
 pub use protocol::{
