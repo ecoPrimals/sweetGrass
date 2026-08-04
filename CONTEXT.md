@@ -61,12 +61,12 @@ When sweetGrass is **unavailable** in a composition:
 - **Wire-name aliases (GAP-36):** 11 downstream wire-name variants resolved transparently — `braid.attribution.create`, `attribution.create_braid`, `provenance.create_braid`, bare `health`, etc. all route to canonical handlers
 - **Lifecycle:** `lifecycle.status` returns running state, version, gate mode (classified public in method gate)
 - **TCP BTSP enforcement:** Raw JSON-RPC rejected on TCP when `FAMILY_ID` is set — BTSP handshake mandatory. UDS permits unauthenticated access for health probes and local composition
-- **DH-1 compliant:** Zero hardcoded `/tmp` in production code — all socket fallbacks resolve into `biomeos/` subdirectory (respects `$TMPDIR`), enabling `ProtectSystem=strict` systemd hardening
+- **DH-0 compliant:** Zero debt, zero unsafe, zero hardcoded names, zero dead_code, zero clippy warnings, zero `/tmp` hardcodes — all socket fallbacks resolve into `biomeos/` subdirectory (respects `$TMPDIR`), enabling `ProtectSystem=strict` systemd hardening
 - **PID file:** Written alongside UDS socket (`sweetgrass.pid`) for instant liveness checks (`kill(pid, 0)`) — eliminates 100ms connect-probe overhead for downstream discovery
 - **Neural API `primal.announce`:** Self-registers with biomeOS on startup — capabilities, cost hints, latency estimates, signal tier (nest). Graceful degradation when biomeOS unavailable.
 - **riboCipher:** Reference implementation in `peek.rs` — signal detection for `0xEC`/`0xED`/`0xEE` before legacy peek logic per `RIBOCIPHER_TRANSPORT_SIGNAL_STANDARD.md` (Wave 111, Stream 7)
 - **HEALTH-01:** Bare `{"method":"health"}` alias, enriched `health.check` with `primal` + `uptime_secs` fields
-- **Source files:** 215+ `.rs` files, max 804 lines (production code ≤545 lines per module)
+- **Source files:** 215+ `.rs` files, max 743 lines (production code ≤545 lines per module)
 - **Property testing:** 25 proptest strategies across 7 crates
 - **Chaos/fault:** 11 attribution chaos + 17 service chaos + 9 fault injection
 - **Edition:** 2024 (`resolver = "3"`), MSRV 1.87

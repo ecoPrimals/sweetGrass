@@ -1,7 +1,7 @@
 +++
 title = "sweetGrass Validation Summary"
-description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,645 tests, 42 methods, DH-0 clean. Pure Rust (sqlx banned), riboCipher reference impl, BTSP ClientHello handshake, HEALTH-01, mito-beacon 0xED, cross-arch clean, TransportEndpoint Phase 2 shipped. Provenance Trio G3 WIRED. G31 batch pipeline. Zero-copy Arc<str> Witness/LoamAnchor. Zero hardcoded primal names."
-date = 2026-08-03
+description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,645 tests, 42 methods, DH-0 clean. Pure Rust (sqlx banned), riboCipher reference impl, BTSP ClientHello handshake, HEALTH-01, mito-beacon 0xED, cross-arch clean, TransportEndpoint Phase 2 shipped. Provenance Trio G3 WIRED. G31 batch pipeline + trailer pattern alignment. Zero-copy Arc<str>. Zero hardcoded primal names. All files ≤743L."
+date = 2026-08-04
 
 [taxonomies]
 primals = ["sweetgrass", "beardog", "rhizocrypt", "loamspine", "nestgate"]
@@ -13,7 +13,7 @@ springs = []
 - **Version**: v0.8.0
 - **1,645 tests** (all passed, 0 failed, pure Rust — no Docker required)
 - **DH-0 clean**: Zero debt, zero unsafe, zero hardcoded primal names, zero dead_code
-- **G31 batch pipeline**: `braid.batch_create` + `braid.batch_commit` for 10× throughput
+- **G31 batch pipeline**: `braid.batch_create` + `braid.batch_commit` for 10× throughput; concurrent dispatch via `join_all`; `MAX_BATCH_SIZE` (5,000) guard
 - **Zero-copy evolution**: `Witness`, `LoamAnchor.spine_id`, `EcoPrimalsAttributes.session_ref` → `Arc<str>`
 - **Provenance Trio G3 WIRED**: `LedgerClient` closes sweetGrass→loamSpine triangle
 - **BTSP ClientHello handshake**: 4-step challenge-response with protocol version validation

@@ -206,14 +206,14 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
-| Max file size | 795 lines (limit: 1000) |
+| Max file size | 743 lines (limit: 1000) |
 | .rs files | 215+ |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |
 | cargo deny | advisories ok, bans ok, licenses ok, sources ok |
 | Benchmarks | 7 criterion groups |
-| JSON-RPC methods | 40 (batch + notification + MCP tool exposure + Wire Standard L3 + composition health + auth + trust + lifecycle) |
+| JSON-RPC methods | 42 (batch + notification + MCP tool exposure + Wire Standard L3 + composition health + auth + trust + lifecycle) |
 | Property-based tests | proptest (25 strategies across 7 crates) |
 | Chaos/fault tests | 11 attribution chaos + 17 service chaos + 9 fault injection |
 | BTSP | Phase 3 — `btsp.negotiate` + ChaCha20-Poly1305 AEAD framing; riboCipher signal detection (0xEC/0xED/0xEE) before legacy peek; `BEARDOG_SOCKET` in resolution |

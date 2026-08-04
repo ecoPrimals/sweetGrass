@@ -1,12 +1,12 @@
 # SweetGrass Roadmap
 
-**Current Version**: v0.8.0 (July 2026)
+**Current Version**: v0.8.0 (August 2026)
 
 ---
 
 ## Completed
 
-### v0.8.0 — Provenance Trio G3 + Deep Evolution (Wave 155i–155n+, July–Aug 2026)
+### v0.8.0 — Provenance Trio G3 + Deep Evolution + Trailer Pattern (Wave 155i–156b, July–Aug 2026)
 
 - [x] **`LedgerClient` module** — JSON-RPC 2.0 client over UDS/TCP for loamSpine (`braid.commit`, `certificate.verify`)
 - [x] **Capability-based socket resolution** — env override → family-scoped → standalone fallback chain
@@ -22,7 +22,10 @@
 - [x] **`#[non_exhaustive]`** — `TransportEndpoint` + `CrossGateTrustEvent` forward-compatible
 - [x] **File size compliance** — `braid/types.rs` refactored (806 → 545L), tests extracted to `types_tests.rs`
 - [x] **DH-0 clean** — zero debt, zero unsafe, zero hardcoded names, zero dead_code, zero clippy warnings
-- [x] 1,645 tests, 42 methods, 0 failures, 0 clippy warnings, cross-arch clean
+- [x] **Trailer pattern alignment (Wave 155u/156b)** — `batch_commit` concurrent dispatch via `join_all` (addresses 12× throughput divergence); `MAX_BATCH_SIZE` (5,000) guard; `dispatch_commits` helper extraction
+- [x] **`btsp/server.rs` refactored** — 804L → 540L, test module extracted to `server_tests.rs`
+- [x] **Last hardcoded fallbacks eliminated** — `health.rs` and `lifecycle.rs` use `identity::PRIMAL_NAME` constant
+- [x] All files ≤743 lines, 1,645 tests, 42 methods, 0 failures, 0 clippy warnings, cross-arch clean
 
 ### v0.7.63 — BTSP Client Handshake (Wave 151b, July 2026)
 
@@ -729,39 +732,32 @@
 
 ## Next
 
-### v0.8.0 — Real Deployment + Content Convergence Phase 1 (Q2 2026)
+### v0.9.0 — E2E Cross-Primal + Content Convergence (Q3 2026)
 
-**Goal**: Connect to production-deployed primals, implement convergence tracking
+**Goal**: Live E2E testing with trio partners, convergence tracking for springs
 
-- [ ] Connect to deployed signing service (via Capability::Signing)
-- [ ] Connect to deployed session events service (via Capability::SessionEvents)
-- [ ] Connect to deployed anchoring service (via Capability::Anchoring)
-- [ ] End-to-end multi-primal integration testing
+- [ ] E2E integration testing with live loamSpine on westGate
+- [ ] E2E integration testing with live rhizoCrypt on westGate
+- [ ] `is_dataset_converged()` check method (primordial → CAS-only → fully braided)
 - [ ] Chemistry entity types for wetSpring (Molecule, BasisSet, DftCampaign)
 - [ ] Chemistry braid relations (DependsOn, ValidatedBy, ComputedWith, TrainedOn)
 - [ ] `ContentConvergence` and `ConvergentArrival` types in `sweet-grass-core`
-- [ ] Evolved `MemoryStore` indexes (collision-preserving)
 - [ ] `convergence.query` JSON-RPC method
 - [x] Coverage target: 90%+ with llvm-cov *(91.7% line coverage, 1,602 tests)*
 
-### v0.9.0 — sunCloud Integration (Q3 2026)
+### v1.0.0 — sunCloud Integration + Production GA (Q4 2026)
 
-**Goal**: Fair reward distribution based on attribution
+**Goal**: Fair reward distribution, stable public API
 
 - [ ] Attribution API for sunCloud
 - [ ] Real-time attribution updates
 - [ ] Historical attribution queries
 - [ ] Payment flow integration
 
-### v1.0.0 — Production GA (Q4 2026)
-
-**Goal**: Stable public API
-
 - [ ] API versioning strategy finalized
 - [ ] Full W3C PROV-O spec compliance (PROV-DM, PROV-N, PROV-AQ)
 - [ ] Distributed provenance (multi-node federation via Squirrel)
 - [ ] Performance benchmarks published
-- [ ] Kubernetes deployment manifests
 
 ---
 
@@ -847,6 +843,6 @@
 | v0.7.2 | March 2026 | Provenance Trio + biomeOS IPC (DONE) |
 | v0.7.1 | March 2026 | Standards + Zero-Copy Evolution (DONE) |
 | v0.7.0 | March 2026 | Deep Remediation (DONE) |
-| v0.8.0 | Q2 2026 | Real Deployment |
-| v0.9.0 | Q3 2026 | sunCloud Integration |
-| v1.0.0 | Q4 2026 | Production GA |
+| v0.8.0 | **Aug 2026** | Provenance Trio G3 + Deep Evolution + Trailer Pattern (DONE) |
+| v0.9.0 | Q3 2026 | E2E Cross-Primal + Content Convergence |
+| v1.0.0 | Q4 2026 | sunCloud Integration + Production GA |
