@@ -15,11 +15,15 @@ transport = ["http", "uds", "tcp"]
 
 [domains.braid]
 description = "Provenance record lifecycle"
-methods = ["create", "get", "get_by_hash", "query", "delete", "commit", "anchor", "batch_create", "batch_commit"]
+methods = ["create", "get", "get_by_hash", "query", "list", "delete", "commit", "anchor", "batch_create", "batch_commit"]
 
 [domains.anchoring]
 description = "Cryptographic anchoring and verification"
 methods = ["anchor", "verify"]
+
+[domains.convergence]
+description = "Provenance chain verification (trust gate for springs)"
+methods = ["check", "batch_check"]
 
 [domains.provenance]
 description = "Provenance graph traversal and export"
@@ -279,4 +283,19 @@ stability = "beta"
 [operations."tools.call"]
 depends_on = []
 cost = "low"
+stability = "stable"
+
+[operations."braid.list"]
+depends_on = []
+cost = "medium"
+stability = "stable"
+
+[operations."convergence.check"]
+depends_on = ["braid.create"]
+cost = "low"
+stability = "stable"
+
+[operations."convergence.batch_check"]
+depends_on = ["braid.create"]
+cost = "medium"
 stability = "stable"

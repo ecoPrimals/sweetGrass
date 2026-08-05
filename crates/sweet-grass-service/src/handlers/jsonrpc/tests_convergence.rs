@@ -108,7 +108,7 @@ async fn convergence_batch_check_mixed() {
     assert_eq!(result["summary"]["total"], 2);
     assert_eq!(result["summary"]["partial"], 1); // hash1 has CAS+braid
     assert_eq!(result["summary"]["primordial"], 1); // hash2 has nothing
-    assert_eq!(result["items"][0]["depth"], 4); // braid present
+    assert_eq!(result["items"][0]["depth"], 2); // CAS + braid_struct
     assert_eq!(result["items"][1]["depth"], 0); // primordial
 }
 

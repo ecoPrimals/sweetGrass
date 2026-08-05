@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Convergence + Observability (Wave 156e)
+
+#### Added
+- **`convergence.check`** — one-call provenance chain verification. Returns
+  stage-by-stage status (CAS → DAG → Spine → Braid → Signed) for a given
+  content hash. Trust gate for spring data consumption.
+- **`convergence.batch_check`** — batch provenance verification for up to 1,000
+  hashes. Returns convergence depth (0–5) and summary counts
+  (converged/partial/primordial).
+- **`braid.list`** — lightweight braid enumeration for observability and audit.
+  Returns summary entries (id, hash, MIME, size, attribution, timestamps,
+  anchored/signed status) instead of full braid objects.
+- Niche module: added `convergence` domain descriptions, semantic mappings,
+  operation dependencies, and cost estimates.
+- Dispatch table: 42 → 45 methods.
+
 ### Trailer Pattern Alignment (Wave 155u/156b)
 
 #### Changed

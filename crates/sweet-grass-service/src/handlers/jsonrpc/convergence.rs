@@ -261,3 +261,16 @@ pub(super) async fn handle_convergence_batch_check(
 
     to_value(&response)
 }
+
+/// Compute provenance depth for a braid (count of confirmed stages, 0–5).
+///
+/// Stages: CAS (1) + DAG (1) + Spine (1) + Braid (1) + Signed (1).
+/// If we found a braid object, CAS and Braid are always implicitly present.
+fn compute_depth(b: &sweet_grass_core::braid::Braid) -> u8 {
+    let cas: u8 = 1;
+    let braid_struct: u8 = 1;
+    let dag = u8::from(b.ecop.session_ref.is_some());
+    let spine = u8::from(b.loam_anchor.is_some() || b.ecop.ledger_commit.is_some());
+    let signed = u8::from(b.is_signed());
+    cas + dag + spine + braid_struct + signed
+}
