@@ -290,6 +290,80 @@ pub(super) async fn handle_braid_delete(
     to_value(&deleted)
 }
 
+/// Parameters for `braid.list` — lightweight enumeration with optional filters.
+#[derive(Debug, Deserialize)]
+pub(super) struct ListBraidsParams {
+    #[serde(default)]
+    filter: QueryFilter,
+    #[serde(default)]
+    order: Option<QueryOrder>,
+}
+
+/// Lightweight summary entry for `braid.list` responses.
+#[derive(Debug, serde::Serialize)]
+struct BraidListEntry {
+    id: String,
+    data_hash: String,
+    mime_type: String,
+    size: u64,
+    attributed_to: String,
+    created_at: u64,
+    anchored: bool,
+    signed: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    source_primal: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    source_gate: Option<String>,
+}
+
+/// Response from `braid.list`.
+#[derive(Debug, serde::Serialize)]
+struct BraidListResponse {
+    total: usize,
+    items: Vec<BraidListEntry>,
+}
+
+/// Handle `braid.list` — lightweight braid enumeration for observability.
+///
+/// Returns summary entries (not full braid objects) suitable for audit
+/// dashboards and dataset convergence assessment.
+pub(super) async fn handle_braid_list(
+    state: &AppState,
+    params: serde_json::Value,
+) -> DispatchResult {
+    let p: ListBraidsParams = parse_params(params)?;
+    let order = p.order.unwrap_or(QueryOrder::NewestFirst);
+    let result = state
+        .store
+        .query(&p.filter, order)
+        .await
+        .map_err(internal)?;
+
+    let items: Vec<BraidListEntry> = result
+        .braids
+        .iter()
+        .map(|b| BraidListEntry {
+            id: b.id.to_string(),
+            data_hash: b.data_hash.to_string(),
+            mime_type: b.mime_type.to_string(),
+            size: b.size,
+            attributed_to: b.was_attributed_to.to_string(),
+            created_at: b.generated_at_time.nanos(),
+            anchored: b.is_anchored(),
+            signed: b.is_signed(),
+            source_primal: b.ecop.source_primal.as_deref().map(ToOwned::to_owned),
+            source_gate: b.ecop.source_gate.as_deref().map(ToOwned::to_owned),
+        })
+        .collect();
+
+    let response = BraidListResponse {
+        total: items.len(),
+        items,
+    };
+
+    to_value(&response)
+}
+
 /// Package a Braid for `LoamSpine` anchoring.
 ///
 /// Extracts UUID from `BraidId` and converts `ContentHash` to `[u8; 32]`

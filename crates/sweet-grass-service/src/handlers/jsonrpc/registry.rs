@@ -50,6 +50,11 @@ pub(super) static METHODS: &[MethodEntry] = &[
         name: "braid.batch_commit",
         handler: |s, p| Box::pin(super::braid::handle_braid_batch_commit(s, p)),
     },
+    // Braid listing (observability)
+    MethodEntry {
+        name: "braid.list",
+        handler: |s, p| Box::pin(super::braid::handle_braid_list(s, p)),
+    },
     MethodEntry {
         name: "anchoring.anchor",
         handler: |s, p| Box::pin(super::anchoring::handle_anchor_braid(s, p)),
@@ -57,6 +62,15 @@ pub(super) static METHODS: &[MethodEntry] = &[
     MethodEntry {
         name: "anchoring.verify",
         handler: |s, p| Box::pin(super::anchoring::handle_verify_anchor(s, p)),
+    },
+    // Convergence (provenance chain verification)
+    MethodEntry {
+        name: "convergence.check",
+        handler: |s, p| Box::pin(super::convergence::handle_convergence_check(s, p)),
+    },
+    MethodEntry {
+        name: "convergence.batch_check",
+        handler: |s, p| Box::pin(super::convergence::handle_convergence_batch_check(s, p)),
     },
     // Provenance
     MethodEntry {

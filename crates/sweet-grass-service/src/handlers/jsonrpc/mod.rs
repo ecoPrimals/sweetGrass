@@ -10,8 +10,9 @@
 //!
 //! | Domain | Operations |
 //! |--------|------------|
-//! | `braid` | `create`, `get`, `get_by_hash`, `query`, `delete`, `commit`, `batch_create`, `batch_commit` |
+//! | `braid` | `create`, `get`, `get_by_hash`, `query`, `list`, `delete`, `commit`, `batch_create`, `batch_commit` |
 //! | `anchoring` | `anchor`, `verify` |
+//! | `convergence` | `check`, `batch_check` (provenance chain verification) |
 //! | `provenance` | `graph`, `export_provo`, `export_graph_provo` |
 //! | `attribution` | `chain`, `calculate_rewards`, `top_contributors`, `witness` |
 //! | `compression` | `compress_session`, `create_meta_braid` |
@@ -40,6 +41,7 @@ mod capability;
 mod composition;
 mod compression;
 mod contribution;
+mod convergence;
 mod health;
 mod lifecycle;
 mod provenance;
@@ -452,6 +454,8 @@ pub(crate) fn to_value<T: Serialize>(v: &T) -> DispatchResult {
 mod tests;
 #[cfg(test)]
 mod tests_anchoring;
+#[cfg(test)]
+mod tests_convergence;
 #[cfg(test)]
 mod tests_attribution;
 #[cfg(test)]
