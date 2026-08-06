@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.8.0 | 1,655 tests | 88% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin A++ | BTSP enforced on TCP | Wire L3 | Stadial ready | 47 methods + 11 aliases | JH-0 method gate | BearDog crypto delegation | BTSP ClientHello handshake | JH-5 audit pipeline | DH-0 clean | Privacy-enforced | PROV-O complete | Zero bare env var strings | TransportEndpoint Phase 2 SHIPPED | Localhost-only defaults | Zero C/ASM crypto | TRANSPORT_ENDPOINT | HEALTH-01 ready | BTSP E2E ready | riboCipher reference impl | Mito-beacon 0xED accepted | Zero clippy warnings | cargo-deny clean | sqlx banned | Cross-arch (x86_64-pc-windows-gnu) clean | Provenance Trio WIRED | G31 batch pipeline | Zero hardcoded primal names | convergence.check trust gate | braid.list observability
+v0.8.0 | 1,662 tests | 88% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin A++ | BTSP enforced on TCP | Wire L3 | Stadial ready | 48 methods + 11 aliases | JH-0 method gate | BearDog crypto delegation | BTSP ClientHello handshake | JH-5 audit pipeline | DH-0 clean | Privacy-enforced | PROV-O complete | Zero bare env var strings | TransportEndpoint Phase 2 SHIPPED | Localhost-only defaults | Zero C/ASM crypto | TRANSPORT_ENDPOINT | HEALTH-01 ready | BTSP E2E ready | riboCipher reference impl | Mito-beacon 0xED accepted | Zero clippy warnings | cargo-deny clean | sqlx banned | Cross-arch (x86_64-pc-windows-gnu) clean | Provenance Trio WIRED | G31 batch pipeline | Zero hardcoded primal names | convergence.check trust gate | braid.list observability | C2 dual-socket UDS (tarpc) | convergence.pressure backpressure
 
 ---
 

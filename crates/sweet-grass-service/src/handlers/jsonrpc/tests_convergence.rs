@@ -220,3 +220,52 @@ async fn braid_list_limit() {
 
     assert_eq!(result["total"], 2);
 }
+
+// ==================== convergence.pressure ====================
+
+#[tokio::test]
+async fn convergence_pressure_empty_store() {
+    let state = test_state();
+    let result = dispatch(&state, "convergence.pressure", serde_json::json!({}))
+        .await
+        .unwrap();
+
+    assert_eq!(result["total_scanned"], 0);
+    assert_eq!(result["converged"], 0);
+    assert_eq!(result["pressure"], 0.0);
+    assert_eq!(result["throttle"], false);
+}
+
+#[tokio::test]
+async fn convergence_pressure_all_unconverged() {
+    let state = test_state();
+    let hash = "blake3:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0001";
+    create_braid(&state, hash).await;
+    let hash2 = "blake3:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0002";
+    create_braid(&state, hash2).await;
+
+    let result = dispatch(&state, "convergence.pressure", serde_json::json!({}))
+        .await
+        .unwrap();
+
+    assert_eq!(result["total_scanned"], 2);
+    assert_eq!(result["converged"], 0);
+    assert_eq!(result["pressure"], 1.0);
+    assert_eq!(result["throttle"], true);
+}
+
+#[tokio::test]
+async fn convergence_pressure_reports_backlog() {
+    let state = test_state();
+    let hash = "blake3:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0003";
+    create_braid(&state, hash).await;
+
+    let result = dispatch(&state, "convergence.pressure", serde_json::json!({}))
+        .await
+        .unwrap();
+
+    let backlog = result["backlog_by_depth"].as_array().unwrap();
+    assert_eq!(backlog.len(), 6);
+    assert_eq!(backlog[2], 1); // CAS + braid_struct = depth 2
+    assert_eq!(result["total_scanned"], 1);
+}

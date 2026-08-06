@@ -23,7 +23,7 @@ methods = ["anchor", "verify"]
 
 [domains.convergence]
 description = "Provenance chain verification (trust gate for springs)"
-methods = ["check", "batch_check"]
+methods = ["check", "batch_check", "pressure"]
 
 [domains.provenance]
 description = "Provenance graph traversal and export"
@@ -296,6 +296,11 @@ cost = "low"
 stability = "stable"
 
 [operations."convergence.batch_check"]
+depends_on = ["braid.create"]
+cost = "medium"
+stability = "stable"
+
+[operations."convergence.pressure"]
 depends_on = ["braid.create"]
 cost = "medium"
 stability = "stable"

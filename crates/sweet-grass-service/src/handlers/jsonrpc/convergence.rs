@@ -274,3 +274,94 @@ fn compute_depth(b: &sweet_grass_core::braid::Braid) -> u8 {
     let signed = u8::from(b.is_signed());
     cas + dag + spine + braid_struct + signed
 }
+
+// ==================== Backpressure ====================
+
+/// Parameters for `convergence.pressure`.
+#[derive(Debug, Deserialize)]
+pub(super) struct ConvergencePressureParams {
+    /// Optional filter (e.g., by `source_primal` or niche).
+    #[serde(default)]
+    filter: QueryFilter,
+    /// Maximum items to scan for pressure calculation.
+    #[serde(default = "default_scan_limit")]
+    scan_limit: usize,
+}
+
+const fn default_scan_limit() -> usize {
+    10_000
+}
+
+/// Backpressure response: convergence lag as a throttling signal.
+#[derive(Debug, Clone, Serialize)]
+struct ConvergencePressureResponse {
+    /// Total braids scanned.
+    total_scanned: usize,
+    /// Fully converged (depth 5).
+    converged: usize,
+    /// Backlog at each depth (0=no braid, 2=CAS+braid only, 3=+DAG, 4=+spine, 5=full).
+    backlog_by_depth: [usize; 6],
+    /// Pressure metric: ratio of unconverged to total (`0.0` = all converged, `1.0` = none).
+    pressure: f64,
+    /// Whether downstream should throttle ingestion.
+    throttle: bool,
+}
+
+/// Pressure threshold above which `throttle` is `true`.
+const PRESSURE_THROTTLE_THRESHOLD: f64 = 0.8;
+
+/// Handle `convergence.pressure` — backpressure signal from convergence lag.
+///
+/// Scans the braid store and reports how much content is piling up at each
+/// convergence depth. Downstream pipelines (convoy, `bulk_braid.py`) use this
+/// to decide whether to slow down ingestion.
+pub(super) async fn handle_convergence_pressure(
+    state: &AppState,
+    params: serde_json::Value,
+) -> DispatchResult {
+    let p: ConvergencePressureParams = parse_params(params)?;
+
+    let filter = QueryFilter {
+        limit: Some(p.scan_limit),
+        ..p.filter
+    };
+
+    let result = state
+        .store
+        .query(&filter, sweet_grass_store::QueryOrder::NewestFirst)
+        .await
+        .map_err(internal)?;
+
+    let total = result.braids.len();
+    let mut backlog: [usize; 6] = [0; 6];
+    let mut converged = 0usize;
+
+    for braid in &result.braids {
+        let depth = compute_depth(braid) as usize;
+        let idx = depth.min(5);
+        backlog[idx] += 1;
+        if depth >= 5 {
+            converged += 1;
+        }
+    }
+
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "pressure ratio is approximate — sub-ulp precision irrelevant"
+    )]
+    let pressure = if total == 0 {
+        0.0
+    } else {
+        1.0 - (converged as f64 / total as f64)
+    };
+
+    let response = ConvergencePressureResponse {
+        total_scanned: total,
+        converged,
+        backlog_by_depth: backlog,
+        pressure,
+        throttle: pressure > PRESSURE_THROTTLE_THRESHOLD,
+    };
+
+    to_value(&response)
+}

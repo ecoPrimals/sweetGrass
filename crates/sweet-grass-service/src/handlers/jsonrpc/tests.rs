@@ -268,8 +268,8 @@ async fn test_record_session_dispatch() {
 fn test_dispatch_table_completeness() {
     assert_eq!(
         METHODS.len(),
-        45,
-        "dispatch table should have all 45 methods (41 domain + lifecycle + 3 auth)"
+        46,
+        "dispatch table should have all 46 methods (42 domain + lifecycle + 3 auth)"
     );
 
     let expected = [
@@ -287,6 +287,7 @@ fn test_dispatch_table_completeness() {
         "anchoring.verify",
         "convergence.check",
         "convergence.batch_check",
+        "convergence.pressure",
         "provenance.graph",
         "provenance.export_provo",
         "provenance.export_graph_provo",

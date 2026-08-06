@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Cephalization C2 + Backpressure (Wave 156j)
+
+#### Added
+- **Dual-socket UDS pattern (C2)** — `tarpc_uds` module serves tarpc binary RPC
+  on `sweetgrass.tarpc.sock` alongside JSON-RPC on `sweetgrass.sock`. Sub-ms
+  intra-gate composition for same-NUCLEUS primals. Uses `tarpc::serde_transport::unix`
+  with length-delimited bincode framing. Socket resolution follows the same
+  5-tier fallback as JSON-RPC: `SWEETGRASS_TARPC_SOCKET` → `BIOMEOS_SOCKET_DIR` →
+  `XDG_RUNTIME_DIR` → `TMPDIR` → default.
+- **`convergence.pressure`** — backpressure signal from convergence lag. Scans
+  the braid store, reports depth distribution (backlog_by_depth[0..6]), pressure
+  ratio (0.0–1.0), and throttle recommendation. Downstream pipelines (convoy,
+  `bulk_braid.py`) use this to gate ingestion rate.
+- tarpc trait additions: `convergence_check` and `convergence_pressure` methods
+  now available over the binary RPC path as well as JSON-RPC.
+- Dispatch table: 45 → 46 methods.
+
 ### Convergence + Observability (Wave 156e)
 
 #### Added

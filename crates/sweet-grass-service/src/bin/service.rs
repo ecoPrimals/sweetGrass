@@ -410,6 +410,25 @@ async fn serve_all(
     };
 
     #[cfg(unix)]
+    let tarpc_uds_path = if config.tcp_only || config.no_tarpc {
+        None
+    } else {
+        let path = sweet_grass_service::tarpc_uds::resolve_tarpc_socket_path(None);
+        let server = SweetGrassServer::from_app_state(&state);
+        let shutdown_rx = shutdown_tx.subscribe();
+        let p = path.clone();
+        tokio::spawn(async move {
+            if let Err(e) =
+                sweet_grass_service::tarpc_uds::start_tarpc_uds_server(server, &p, shutdown_rx)
+                    .await
+            {
+                tracing::warn!("tarpc UDS server error: {e}");
+            }
+        });
+        Some(path)
+    };
+
+    #[cfg(unix)]
     spawn_neural_announce(&config, uds_socket_path.as_ref());
     #[cfg(not(unix))]
     spawn_neural_announce(&config, None);
@@ -438,6 +457,9 @@ async fn serve_all(
             sweet_grass_service::uds::cleanup_socket_at(path);
         } else {
             sweet_grass_service::uds::cleanup_socket();
+        }
+        if let Some(ref path) = tarpc_uds_path {
+            sweet_grass_service::tarpc_uds::cleanup_tarpc_socket(path);
         }
     }
 

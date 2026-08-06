@@ -130,6 +130,16 @@ impl SweetGrassServer {
     }
 }
 
+/// Convergence depth: count of confirmed provenance stages (0–5).
+fn convergence_depth(b: &Braid) -> u8 {
+    let cas: u8 = 1;
+    let braid_struct: u8 = 1;
+    let dag = u8::from(b.ecop.session_ref.is_some());
+    let spine = u8::from(b.loam_anchor.is_some() || b.ecop.ledger_commit.is_some());
+    let signed = u8::from(b.is_signed());
+    cas + dag + spine + braid_struct + signed
+}
+
 impl SweetGrassRpc for SweetGrassServer {
     #[instrument(skip(self, _ctx))]
     async fn create_braid(
@@ -515,6 +525,73 @@ impl SweetGrassRpc for SweetGrassServer {
         }
 
         Ok(response)
+    }
+
+    async fn convergence_check(
+        self,
+        _ctx: Context,
+        data_hash: ContentHash,
+    ) -> Result<serde_json::Value, RpcError> {
+        let filter = QueryFilter {
+            data_hash: Some(data_hash.clone()),
+            ..QueryFilter::default()
+        };
+        let result = self
+            .store
+            .query(&filter, QueryOrder::NewestFirst)
+            .await
+            .map_err(|e| RpcError::Store(e.to_string()))?;
+
+        let braid = result.braids.into_iter().next();
+        let (converged, depth) = braid.as_ref().map_or((false, 0u8), |b| {
+            let d = convergence_depth(b);
+            (d == 5, d)
+        });
+
+        serde_json::to_value(serde_json::json!({
+            "data_hash": data_hash.to_string(),
+            "converged": converged,
+            "depth": depth,
+        }))
+        .map_err(|e| RpcError::Internal(e.to_string()))
+    }
+
+    #[expect(clippy::cast_precision_loss, reason = "approximate ratio")]
+    async fn convergence_pressure(
+        self,
+        _ctx: Context,
+        scan_limit: u32,
+    ) -> Result<serde_json::Value, RpcError> {
+        let filter = QueryFilter {
+            limit: Some(scan_limit as usize),
+            ..QueryFilter::default()
+        };
+        let result = self
+            .store
+            .query(&filter, QueryOrder::NewestFirst)
+            .await
+            .map_err(|e| RpcError::Store(e.to_string()))?;
+
+        let total = result.braids.len();
+        let converged = result
+            .braids
+            .iter()
+            .filter(|b| convergence_depth(b) >= 5)
+            .count();
+
+        let pressure = if total == 0 {
+            0.0
+        } else {
+            1.0 - (converged as f64 / total as f64)
+        };
+
+        serde_json::to_value(serde_json::json!({
+            "total_scanned": total,
+            "converged": converged,
+            "pressure": pressure,
+            "throttle": pressure > 0.8,
+        }))
+        .map_err(|e| RpcError::Internal(e.to_string()))
     }
 
     async fn health_check(self, _ctx: Context) -> Result<HealthStatus, RpcError> {

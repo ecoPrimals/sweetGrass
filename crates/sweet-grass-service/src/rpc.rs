@@ -246,6 +246,16 @@ pub trait SweetGrassRpc {
         depth: u32,
     ) -> Result<JsonLdDocument, RpcError>;
 
+    // ==================== Convergence ====================
+
+    /// Check provenance convergence depth for a content hash.
+    async fn convergence_check(data_hash: ContentHash) -> Result<serde_json::Value, RpcError>;
+
+    /// Backpressure signal: convergence lag as a throttling gate.
+    async fn convergence_pressure(
+        scan_limit: u32,
+    ) -> Result<serde_json::Value, RpcError>;
+
     // ==================== Health ====================
 
     /// Health check.

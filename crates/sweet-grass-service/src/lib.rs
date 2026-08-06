@@ -78,6 +78,8 @@ pub mod streaming;
 pub mod tcp_jsonrpc;
 pub mod transport_connect;
 #[cfg(unix)]
+pub mod tarpc_uds;
+#[cfg(unix)]
 pub mod uds;
 
 pub use backend::BraidBackend;

@@ -72,6 +72,10 @@ pub(super) static METHODS: &[MethodEntry] = &[
         name: "convergence.batch_check",
         handler: |s, p| Box::pin(super::convergence::handle_convergence_batch_check(s, p)),
     },
+    MethodEntry {
+        name: "convergence.pressure",
+        handler: |s, p| Box::pin(super::convergence::handle_convergence_pressure(s, p)),
+    },
     // Provenance
     MethodEntry {
         name: "provenance.graph",

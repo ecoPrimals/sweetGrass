@@ -34,7 +34,7 @@ capabilities_provided = [
     "braid.create", "braid.get", "braid.get_by_hash", "braid.query", "braid.list",
     "braid.delete", "braid.commit", "braid.anchor",
     "braid.batch_create", "braid.batch_commit",
-    "convergence.check", "convergence.batch_check",
+    "convergence.check", "convergence.batch_check", "convergence.pressure",
     "attribution.chain", "attribution.calculate_rewards",
     "attribution.top_contributors", "attribution.witness",
     "provenance.graph", "provenance.export_provo", "provenance.export_graph_provo",
