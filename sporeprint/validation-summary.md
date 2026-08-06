@@ -1,7 +1,7 @@
 +++
 title = "sweetGrass Validation Summary"
-description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,645 tests, 42 methods, DH-0 clean. Pure Rust (sqlx banned), riboCipher reference impl, BTSP ClientHello handshake, HEALTH-01, mito-beacon 0xED, cross-arch clean, TransportEndpoint Phase 2 shipped. Provenance Trio G3 WIRED. G31 batch pipeline + trailer pattern alignment. Zero-copy Arc<str>. Zero hardcoded primal names. All files ≤743L."
-date = 2026-08-04
+description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,662 tests, 48 methods, DH-0 clean. Pure Rust (sqlx banned), riboCipher reference impl, BTSP ClientHello handshake, HEALTH-01, mito-beacon 0xED, cross-arch clean, TransportEndpoint Phase 2 shipped. Provenance Trio G3 WIRED. G31 batch pipeline + trailer pattern alignment. Zero-copy Arc<str>. Zero hardcoded primal names. All files ≤743L. C2 dual-socket UDS (tarpc). Convergence backpressure."
+date = 2026-08-06
 
 [taxonomies]
 primals = ["sweetgrass", "beardog", "rhizocrypt", "loamspine", "nestgate"]
@@ -11,14 +11,16 @@ springs = []
 ## Status
 
 - **Version**: v0.8.0
-- **1,645 tests** (all passed, 0 failed, pure Rust — no Docker required)
+- **1,662 tests** (all passed, 0 failed, pure Rust — no Docker required)
 - **DH-0 clean**: Zero debt, zero unsafe, zero hardcoded primal names, zero dead_code
+- **C2 dual-socket UDS**: tarpc binary RPC on `sweetgrass.tarpc.sock` — sub-ms intra-gate composition
+- **Convergence backpressure**: `convergence.pressure` — pipeline throttle gate from convergence lag
 - **G31 batch pipeline**: `braid.batch_create` + `braid.batch_commit` for 10× throughput; concurrent dispatch via `join_all`; `MAX_BATCH_SIZE` (5,000) guard
 - **Zero-copy evolution**: `Witness`, `LoamAnchor.spine_id`, `EcoPrimalsAttributes.session_ref` → `Arc<str>`
 - **Provenance Trio G3 WIRED**: `LedgerClient` closes sweetGrass→loamSpine triangle
 - **BTSP ClientHello handshake**: 4-step challenge-response with protocol version validation
 - **TransportEndpoint Phase 2**: All transport via `TransportEndpoint` abstraction (UDS/TCP/mesh)
-- **42 registered capability methods** across 13 domains
+- **48 registered capability methods** across 14 domains
 - **215+ source files**, max 804 lines per file (production code ≤545 lines)
 - **riboCipher**: Reference implementation in `peek.rs` — signal detection for `0xEC`/`0xED`/`0xEE` before legacy peek (Wave 111, Stream 7)
 - **HEALTH-01**: Bare `health` method alias, enriched `health.check` with `primal` + `uptime_secs`

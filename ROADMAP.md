@@ -6,6 +6,14 @@
 
 ## Completed
 
+### v0.8.0 — Cephalization C2 + Convergence Backpressure (Wave 156j, Aug 2026)
+
+- [x] **Dual-socket UDS pattern (C2)** — `tarpc_uds` module serves tarpc binary RPC on `sweetgrass.tarpc.sock` alongside JSON-RPC on `sweetgrass.sock`. Sub-ms intra-gate composition via `tarpc::serde_transport::unix`. 5-tier socket resolution. Graceful shutdown + cleanup.
+- [x] **`convergence.pressure` backpressure signal** — scans braid store, reports depth distribution, pressure ratio (0.0–1.0), and throttle recommendation. Downstream pipelines use this to gate ingestion rate.
+- [x] **tarpc trait enrichment** — `convergence_check` + `convergence_pressure` available over both JSON-RPC and tarpc binary paths
+- [x] Promoted from `tarpc-wired` to `tarpc-default + dual-socket` tier
+- [x] 1,662 tests, 48 methods + 11 aliases, 0 clippy warnings, DH-0 clean
+
 ### v0.8.0 — Provenance Trio G3 + Deep Evolution + Trailer Pattern (Wave 155i–156b, July–Aug 2026)
 
 - [x] **`LedgerClient` module** — JSON-RPC 2.0 client over UDS/TCP for loamSpine (`braid.commit`, `certificate.verify`)
