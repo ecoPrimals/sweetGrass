@@ -52,7 +52,7 @@ open target/llvm-cov/html/index.html
 
 ```
 crates/
-├── Unit Tests          (1,660+ tests)  - src/ modules across all 9 crates
+├── Unit Tests          (1,670+ tests)  - src/ modules across all 9 crates
 ├── Integration Tests   (21 tests)     - sweet-grass-service/tests/integration.rs
 ├── Chaos Tests         (17 tests)     - sweet-grass-service/tests/chaos.rs
 ├── Fault Injection     (9 tests)      - sweet-grass-service/tests/fault_injection.rs

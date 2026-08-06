@@ -41,7 +41,7 @@ use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, ReadBuf};
-use tracing::error;
+use tracing::{debug, error};
 
 /// riboCipher signal prefix: clear (local, trusted wire).
 pub const RIBOCIPHER_CLEAR: u8 = 0xEC;
@@ -82,6 +82,10 @@ pub enum DetectedProtocol {
         /// The protocol type byte from the signal envelope.
         protocol_type: u8,
     },
+
+    /// G65 protocol negotiation request — first byte was `P` (start of
+    /// `PROTOCOLS: ...`). Caller should complete the line read and negotiate.
+    ProtocolNegotiation,
 
     /// Unsignalled connection rejected per Wave 113 deprecation policy.
     /// The first byte is preserved for error reporting.
@@ -129,11 +133,16 @@ pub async fn detect_protocol<S: AsyncRead + Unpin>(
             std::io::ErrorKind::Unsupported,
             "riboCipher nuclear-sealed tier not yet implemented",
         )),
+        b'P' => {
+            debug!("G65 protocol negotiation detected (first byte 'P')");
+            Ok(DetectedProtocol::ProtocolNegotiation)
+        },
         byte => {
             error!(
                 first_byte = byte,
                 "REJECTED: unsignalled connection (no riboCipher prefix). \
-                 Clients MUST send [0xEC/0xED, protocol_type] prefix. \
+                 Clients MUST send [0xEC/0xED, protocol_type] prefix or \
+                 G65 PROTOCOLS: negotiation. \
                  See RIBOCIPHER_TRANSPORT_SIGNAL_STANDARD.md."
             );
             Ok(DetectedProtocol::Rejected { first_byte: byte })

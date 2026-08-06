@@ -2,6 +2,10 @@
 // Copyright (C) 2024–2026 ecoPrimals Project
 //! tarpc UDS transport — dual-socket pattern (G64 Cephalization C2).
 //!
+//! **NOTE:** G65 protocol negotiation (single-socket) supersedes this as the
+//! canonical tarpc entry point. This module remains for backward compatibility
+//! with clients that connect directly to `.tarpc.sock`.
+//!
 //! Provides intra-gate sub-ms binary RPC over Unix domain sockets.
 //! JSON-RPC stays on `sweetgrass.sock`; tarpc serves on `sweetgrass.tarpc.sock`.
 //!

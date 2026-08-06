@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### G65 Protocol Negotiation (Wave 156m)
+
+#### Added
+- **G65 protocol negotiation** — single-socket protocol selection replaces C2
+  dual-socket. Clients send `PROTOCOLS: tarpc,jsonrpc\n`, server responds with
+  `PROTOCOL: tarpc\n`. Backward compatible: existing riboCipher-signalled and
+  BTSP clients work unchanged. After negotiation selects tarpc, the connection
+  uses length-delimited bincode framing directly on the stream.
+- **`protocol_negotiation` module** — `IpcProtocol` enum, wire format parsing,
+  `negotiate_server_from_partial` (server-side), `negotiate_client` (client-side),
+  `select_protocol` (preference-based selection with JSON-RPC fallback).
+- **Peek layer extended** — `DetectedProtocol::ProtocolNegotiation` variant
+  triggers on first byte `P` (start of `PROTOCOLS:`), routing to G65 handler.
+- **TCP + UDS support** — both transport layers support G65 negotiation.
+- 14 new unit tests for protocol negotiation (wire format, round-trip, partial).
+
+#### Changed
+- C2 dual-socket remains operational for backward compatibility but G65 is the
+  canonical entry point for new clients.
+
 ### Cephalization C2 + Backpressure (Wave 156j)
 
 #### Added

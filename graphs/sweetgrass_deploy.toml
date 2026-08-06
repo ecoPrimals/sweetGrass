@@ -19,6 +19,8 @@ btsp_phase = 3
 primal = "sweetgrass"
 binary = "sweetgrass"
 subcommand = "server"
+protocols_supported = ["jsonrpc", "tarpc"]
+protocol_negotiation = "G65"
 
 [graph.bonding_policy]
 security = "required-when-family"

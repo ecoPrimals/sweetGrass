@@ -135,6 +135,9 @@ async fn handle_tcp_with_autodetect(
         | DetectedProtocol::RiboCipherMito { protocol_type: pt } => {
             handle_ribocipher_clear_tcp(stream, peer, state, pt).await;
         },
+        DetectedProtocol::ProtocolNegotiation => {
+            handle_g65_negotiation_tcp(stream, peer, state).await;
+        },
         DetectedProtocol::Rejected { first_byte } => {
             use tokio::io::AsyncWriteExt;
             warn!(
@@ -145,7 +148,8 @@ async fn handle_tcp_with_autodetect(
                 "jsonrpc": "2.0",
                 "error": {
                     "code": -32002,
-                    "message": "riboCipher signal required. Send [0xEC/0xED, protocol_type] prefix.",
+                    "message": "riboCipher signal required. Send [0xEC/0xED, protocol_type] prefix \
+                     or G65 PROTOCOLS: negotiation.",
                 },
                 "id": null,
             });
@@ -260,6 +264,53 @@ async fn handle_ribocipher_clear_tcp(
                 protocol_type = unknown,
                 "TCP from {peer} riboCipher: unsupported protocol type"
             );
+        },
+    }
+}
+
+/// G65 protocol negotiation over TCP.
+#[cfg(unix)]
+async fn handle_g65_negotiation_tcp(
+    mut stream: tokio::net::TcpStream,
+    peer: SocketAddr,
+    state: crate::state::AppState,
+) {
+    use crate::protocol_negotiation::{IpcProtocol, negotiate_server_from_partial};
+    use tokio::io::AsyncWriteExt;
+
+    match negotiate_server_from_partial(&mut stream, b'P').await {
+        Ok(IpcProtocol::Tarpc) => {
+            use crate::rpc::SweetGrassRpc;
+            use futures::prelude::*;
+            use tarpc::server::{BaseChannel, Channel};
+            use tarpc::tokio_serde::formats::Bincode;
+
+            debug!("TCP from {peer}: G65 negotiated tarpc");
+            let server = crate::server::SweetGrassServer::from_app_state(&state);
+            let framed =
+                tarpc::tokio_util::codec::length_delimited::Builder::new().new_framed(stream);
+            let transport = tarpc::serde_transport::new(framed, Bincode::default());
+            let channel = BaseChannel::with_defaults(transport);
+            let () = channel.execute(server.serve()).for_each(|f| f).await;
+        },
+        Ok(IpcProtocol::JsonRpc) => {
+            debug!("TCP from {peer}: G65 negotiated jsonrpc");
+            if let Err(e) = handle_tcp_connection_raw(stream, state).await {
+                warn!("TCP G65 JSON-RPC connection from {peer}: {e}");
+            }
+        },
+        Err(e) => {
+            warn!("TCP from {peer}: G65 negotiation failed: {e}");
+            let err = serde_json::json!({
+                "jsonrpc": "2.0",
+                "error": { "code": -32002, "message": format!("G65 negotiation failed: {e}") },
+                "id": null,
+            });
+            if let Ok(mut resp) = serde_json::to_string(&err) {
+                resp.push('\n');
+                let _ = stream.write_all(resp.as_bytes()).await;
+                let _ = stream.flush().await;
+            }
         },
     }
 }

@@ -75,6 +75,7 @@ pub mod rpc;
 pub mod server;
 pub mod state;
 pub mod streaming;
+pub mod protocol_negotiation;
 pub mod tcp_jsonrpc;
 pub mod transport_connect;
 #[cfg(unix)]

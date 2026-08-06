@@ -6,13 +6,21 @@
 
 ## Completed
 
+### v0.8.0 — G65 Protocol Negotiation (Wave 156m, Aug 2026)
+
+- [x] **G65 protocol negotiation** — single-socket protocol selection (Phase 3 of cephalization). Clients negotiate tarpc or JSON-RPC at connection time. Replaces C2 dual-socket as canonical entry point.
+- [x] **Backward compatible** — existing riboCipher, BTSP, and raw JSON-RPC clients work unchanged. C2 `.tarpc.sock` remains available.
+- [x] **Peek layer extended** — `DetectedProtocol::ProtocolNegotiation` on first byte `P`.
+- [x] **TCP + UDS** — both transports support G65 negotiation.
+- [x] 1,676 tests, 48 methods, 0 clippy warnings, DH-0 clean
+
 ### v0.8.0 — Cephalization C2 + Convergence Backpressure (Wave 156j, Aug 2026)
 
 - [x] **Dual-socket UDS pattern (C2)** — `tarpc_uds` module serves tarpc binary RPC on `sweetgrass.tarpc.sock` alongside JSON-RPC on `sweetgrass.sock`. Sub-ms intra-gate composition via `tarpc::serde_transport::unix`. 5-tier socket resolution. Graceful shutdown + cleanup.
 - [x] **`convergence.pressure` backpressure signal** — scans braid store, reports depth distribution, pressure ratio (0.0–1.0), and throttle recommendation. Downstream pipelines use this to gate ingestion rate.
 - [x] **tarpc trait enrichment** — `convergence_check` + `convergence_pressure` available over both JSON-RPC and tarpc binary paths
 - [x] Promoted from `tarpc-wired` to `tarpc-default + dual-socket` tier
-- [x] 1,662 tests, 48 methods + 11 aliases, 0 clippy warnings, DH-0 clean
+- [x] 1,676 tests, 48 methods + 11 aliases, 0 clippy warnings, DH-0 clean
 
 ### v0.8.0 — Provenance Trio G3 + Deep Evolution + Trailer Pattern (Wave 155i–156b, July–Aug 2026)
 
