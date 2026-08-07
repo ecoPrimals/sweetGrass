@@ -80,7 +80,7 @@ pub fn create_capability_symlink(socket_path: &std::path::Path) {
         return;
     }
 
-    if let Err(e) = std::os::unix::fs::symlink(socket_filename, &symlink_path) {
+    if let Err(e) = platform_link(socket_filename, &symlink_path) {
         warn!(
             "Failed to create capability symlink {} -> {}: {e}",
             symlink_path.display(),
@@ -123,5 +123,28 @@ pub fn cleanup_socket_at(path: &std::path::Path) {
         } else {
             debug!("Cleaned up UDS socket {}", path.display());
         }
+    }
+}
+
+/// G68 platform-abstracted link creation.
+///
+/// On Unix: creates a symbolic link (standard filesystem discovery).
+/// On non-Unix: creates a hard link (junctions require directories;
+/// symlinks require elevated privileges on Windows < 10 1703).
+///
+/// Both achieve the same observable goal: `{domain}.sock` resolves to the
+/// primal socket. The caller doesn't know which mechanism was used.
+fn platform_link(
+    original: &std::ffi::OsStr,
+    link: &std::path::Path,
+) -> std::io::Result<()> {
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(original, link)
+    }
+    #[cfg(not(unix))]
+    {
+        let original_path = link.parent().unwrap_or(std::path::Path::new(".")).join(original);
+        std::fs::hard_link(original_path, link)
     }
 }
