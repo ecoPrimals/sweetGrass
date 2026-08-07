@@ -1,20 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2024–2026 ecoPrimals Project
-//! Capability-based crypto delegation via UDS JSON-RPC.
+//! Capability-based crypto delegation via transport-agnostic JSON-RPC.
 //!
 //! Implements `crypto.sign` delegation per `NUCLEUS_TWO_TIER_CRYPTO_MODEL`.
 //! sweetGrass never touches key material — all signing is delegated to
 //! whichever primal provides the `Capability::Signing` domain (currently
-//! `BearDog`) over a Unix Domain Socket using newline-delimited JSON-RPC 2.0.
+//! `BearDog`) over the transport layer using newline-delimited JSON-RPC 2.0.
+//!
+//! G66 evolution: uses `TransportEndpoint` + `connect_transport()` instead of
+//! raw `UnixStream`. Works on all platforms without silicon deism.
 
 use std::path::{Path, PathBuf};
 
 use base64::Engine;
+use sweet_grass_core::primal_names::{env_vars, paths};
+use sweet_grass_core::transport::TransportEndpoint;
 use thiserror::Error;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tracing::debug;
-
-use sweet_grass_core::primal_names::{env_vars, paths};
 
 /// Errors from crypto delegation to the signing capability provider.
 #[derive(Debug, Error)]
@@ -47,17 +50,21 @@ pub struct CryptoSignResult {
     pub public_key: Vec<u8>,
 }
 
-/// Capability-based UDS JSON-RPC client for `crypto.sign` / `crypto.verify`.
+/// Capability-based JSON-RPC client for `crypto.sign` / `crypto.verify`.
 ///
 /// Discovers the signing provider at runtime via environment tiers — the
 /// primal providing `Capability::Signing` is never hardcoded.
+///
+/// G66: stores a `TransportEndpoint` instead of a raw socket path.
+/// Works on all platforms via `connect_transport()`.
 #[derive(Debug, Clone)]
 pub struct CryptoDelegate {
+    endpoint: TransportEndpoint,
     socket_path: PathBuf,
 }
 
 impl CryptoDelegate {
-    /// Resolve the signing capability provider socket from environment.
+    /// Resolve the signing capability provider from environment.
     ///
     /// Resolution order (first match wins):
     /// 1. `SECURITY_PROVIDER_SOCKET` — explicit capability socket
@@ -69,20 +76,47 @@ impl CryptoDelegate {
     #[must_use]
     pub fn resolve() -> Option<Self> {
         let path = Self::resolve_socket_path()?;
+        let endpoint = TransportEndpoint::uds(path.to_string_lossy());
         debug!(socket = %path.display(), "crypto delegate resolved");
-        Some(Self { socket_path: path })
+        Some(Self {
+            endpoint,
+            socket_path: path,
+        })
     }
 
     /// Create with an explicit socket path (for testing / DI).
     #[must_use]
-    pub const fn with_socket(socket_path: PathBuf) -> Self {
-        Self { socket_path }
+    pub fn with_socket(socket_path: PathBuf) -> Self {
+        let endpoint = TransportEndpoint::uds(socket_path.to_string_lossy());
+        Self {
+            endpoint,
+            socket_path,
+        }
     }
 
-    /// The resolved socket path.
+    /// Create with a transport endpoint directly (G66 pattern).
+    #[must_use]
+    pub fn with_endpoint(endpoint: TransportEndpoint) -> Self {
+        let socket_path = match &endpoint {
+            TransportEndpoint::Uds { path } => PathBuf::from(path),
+            _ => PathBuf::new(),
+        };
+        Self {
+            endpoint,
+            socket_path,
+        }
+    }
+
+    /// The resolved socket path (for backward compat — prefer `endpoint()`).
     #[must_use]
     pub fn socket_path(&self) -> &Path {
         &self.socket_path
+    }
+
+    /// The resolved transport endpoint.
+    #[must_use]
+    pub const fn endpoint(&self) -> &TransportEndpoint {
+        &self.endpoint
     }
 
     /// Sign a message via `BearDog` `crypto.sign`.
@@ -167,13 +201,12 @@ impl CryptoDelegate {
         method: &str,
         params: serde_json::Value,
     ) -> Result<serde_json::Value, CryptoDelegateError> {
-        let mut stream = tokio::net::UnixStream::connect(&self.socket_path)
+        let mut stream = crate::transport_connect::connect_transport(&self.endpoint)
             .await
             .map_err(|e| {
-                CryptoDelegateError::Unavailable(format!("{}: {e}", self.socket_path.display()))
+                CryptoDelegateError::Unavailable(format!("{}: {e}", self.endpoint))
             })?;
 
-        // Perform BTSP handshake when strict mode is active
         if crate::btsp_client::btsp_strict_mode_expected() {
             crate::btsp_client::perform_client_handshake(&mut stream)
                 .await
@@ -181,7 +214,8 @@ impl CryptoDelegate {
             debug!("BTSP handshake complete, sending JSON-RPC");
         }
 
-        let (reader, mut writer) = stream.into_split();
+        let (reader, writer) = tokio::io::split(stream);
+        let mut writer = writer;
 
         let request = serde_json::json!({
             "jsonrpc": "2.0",

@@ -27,8 +27,7 @@ use base64::prelude::BASE64_STANDARD;
 use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::net::UnixStream;
+use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader};
 use tracing::debug;
 
 use sweet_grass_core::primal_names::env_vars;
@@ -122,7 +121,7 @@ pub fn btsp_strict_mode_expected() -> bool {
         .is_ok_and(|v| v.trim() == "1")
 }
 
-/// Perform the client-side BTSP handshake over a `UnixStream`.
+/// Perform the client-side BTSP handshake over any transport stream.
 ///
 /// Authenticates to bearDog using the family seed from environment.
 /// After success, the stream is ready for JSON-RPC traffic.
@@ -131,9 +130,12 @@ pub fn btsp_strict_mode_expected() -> bool {
 ///
 /// Returns [`BtspClientError`] if the family seed is unavailable, the server
 /// rejects the handshake, or I/O fails.
-pub async fn perform_client_handshake(
-    stream: &mut UnixStream,
-) -> Result<BtspClientSession, BtspClientError> {
+pub async fn perform_client_handshake<S>(
+    stream: &mut S,
+) -> Result<BtspClientSession, BtspClientError>
+where
+    S: AsyncRead + AsyncWrite + Unpin,
+{
     let family_seed = resolve_family_seed().ok_or(BtspClientError::NoFamilySeed)?;
 
     let mut ephemeral_key = [0u8; 32];
@@ -256,6 +258,7 @@ pub async fn perform_client_handshake(
 mod tests {
     use super::*;
     use std::os::unix::net::UnixListener as StdUnixListener;
+    use tokio::net::UnixStream;
 
     #[test]
     fn btsp_strict_mode_default_off() {

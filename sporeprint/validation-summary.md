@@ -1,6 +1,6 @@
 +++
 title = "sweetGrass Validation Summary"
-description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,676 tests, 48 methods, DH-0 clean. Pure Rust (sqlx banned), riboCipher reference impl, BTSP ClientHello handshake, HEALTH-01, mito-beacon 0xED, cross-arch clean, TransportEndpoint Phase 2 shipped. Provenance Trio G3 WIRED. G31 batch pipeline + trailer pattern alignment. Zero-copy Arc<str>. Zero hardcoded primal names. All files ≤743L. G65 protocol negotiation (single-socket tarpc+jsonrpc). Convergence backpressure."
+description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,679 tests, 48 methods, DH-0 clean. Pure Rust (sqlx banned), riboCipher reference impl, BTSP ClientHello handshake, HEALTH-01, mito-beacon 0xED, cross-arch clean, TransportEndpoint Phase 2 shipped. Provenance Trio G3 WIRED. G31 batch pipeline + trailer pattern alignment. Zero-copy Arc<str>. Zero hardcoded primal names. All files ≤743L. G65 protocol negotiation (single-socket tarpc+jsonrpc). G66 transport abstraction (silicon-agnostic). Convergence backpressure."
 date = 2026-08-06
 
 [taxonomies]
@@ -11,7 +11,7 @@ springs = []
 ## Status
 
 - **Version**: v0.8.0
-- **1,676 tests** (all passed, 0 failed, pure Rust — no Docker required)
+- **1,679 tests** (all passed, 0 failed, pure Rust — no Docker required)
 - **DH-0 clean**: Zero debt, zero unsafe, zero hardcoded primal names, zero dead_code
 - **C2 dual-socket UDS**: tarpc binary RPC on `sweetgrass.tarpc.sock` — sub-ms intra-gate composition
 - **Convergence backpressure**: `convergence.pressure` — pipeline throttle gate from convergence lag

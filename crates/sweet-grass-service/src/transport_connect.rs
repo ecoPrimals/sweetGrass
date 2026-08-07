@@ -108,6 +108,90 @@ pub async fn connect_transport(endpoint: &TransportEndpoint) -> std::io::Result<
     }
 }
 
+// ──────────────────────── Server-side: TransportListener ────────────────────────
+
+/// A transport-agnostic server listener.
+///
+/// Accepts connections and yields [`TransportStream`] — the accept loop
+/// never needs to know UDS vs TCP.
+#[derive(Debug)]
+pub enum TransportListener {
+    /// UDS listener (Unix only).
+    #[cfg(unix)]
+    Uds(tokio::net::UnixListener),
+    /// TCP listener.
+    Tcp(tokio::net::TcpListener),
+}
+
+impl TransportListener {
+    /// Bind a listener according to the endpoint descriptor.
+    ///
+    /// # Errors
+    ///
+    /// Returns `io::Error` if bind fails.
+    pub async fn bind(endpoint: &TransportEndpoint) -> std::io::Result<Self> {
+        match endpoint {
+            #[cfg(unix)]
+            TransportEndpoint::Uds { path } => {
+                let path = std::path::Path::new(path);
+                if let Some(parent) = path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                if path.exists() {
+                    std::fs::remove_file(path)?;
+                }
+                let listener = tokio::net::UnixListener::bind(path)?;
+                Ok(Self::Uds(listener))
+            },
+            #[cfg(not(unix))]
+            TransportEndpoint::Uds { path } => Err(std::io::Error::new(
+                std::io::ErrorKind::Unsupported,
+                format!("UDS listener not available on this platform: {path}"),
+            )),
+            TransportEndpoint::Tcp { host, port } => {
+                let listener =
+                    tokio::net::TcpListener::bind(format!("{host}:{port}")).await?;
+                Ok(Self::Tcp(listener))
+            },
+            _ => Err(std::io::Error::new(
+                std::io::ErrorKind::Unsupported,
+                "cannot bind a listener on mesh_relay or unknown endpoint",
+            )),
+        }
+    }
+
+    /// Accept a single connection and return a transport-agnostic stream.
+    ///
+    /// # Errors
+    ///
+    /// Returns `io::Error` on accept failure.
+    pub async fn accept(&self) -> std::io::Result<TransportStream> {
+        match self {
+            #[cfg(unix)]
+            Self::Uds(l) => {
+                let (stream, _) = l.accept().await?;
+                Ok(TransportStream::Uds(stream))
+            },
+            Self::Tcp(l) => {
+                let (stream, _) = l.accept().await?;
+                Ok(TransportStream::Tcp(stream))
+            },
+        }
+    }
+
+    /// Whether this listener is a local-only transport (UDS).
+    #[must_use]
+    pub const fn is_local(&self) -> bool {
+        match self {
+            #[cfg(unix)]
+            Self::Uds(_) => true,
+            Self::Tcp(_) => false,
+        }
+    }
+}
+
+// ──────────────────────── Utilities ────────────────────────
+
 /// Default timeout for JSON-RPC probes.
 pub const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
 

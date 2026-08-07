@@ -53,6 +53,43 @@ pub enum TransportEndpoint {
 }
 
 impl TransportEndpoint {
+    /// Platform-appropriate default endpoint for a primal.
+    ///
+    /// On Unix → UDS at `{socket_dir}/{name}.sock`.
+    /// On non-Unix → TCP localhost on a derived port.
+    #[must_use]
+    pub fn platform_default(name: &str, socket_dir: &str) -> Self {
+        #[cfg(unix)]
+        {
+            Self::Uds {
+                path: format!("{socket_dir}/{name}.sock"),
+            }
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = socket_dir;
+            let port = derive_default_port(name);
+            Self::Tcp {
+                host: String::from("127.0.0.1"),
+                port,
+            }
+        }
+    }
+
+    /// Resolve endpoint from the environment, falling back to platform default.
+    ///
+    /// Checks `TRANSPORT_ENDPOINT` env var first. If absent, uses
+    /// [`Self::platform_default`] with the given primal name and socket dir.
+    #[must_use]
+    pub fn from_env_or_default(name: &str, socket_dir: &str) -> Self {
+        if let Ok(json) = std::env::var(TRANSPORT_ENDPOINT_ENV)
+            && let Ok(ep) = parse_transport_endpoint(&json)
+        {
+            return ep;
+        }
+        Self::platform_default(name, socket_dir)
+    }
+
     /// Construct a UDS endpoint.
     #[must_use]
     pub fn uds(path: impl Into<String>) -> Self {
@@ -127,6 +164,18 @@ impl fmt::Display for TransportEndpoint {
 /// expected format.
 pub fn parse_transport_endpoint(json: &str) -> Result<TransportEndpoint, serde_json::Error> {
     serde_json::from_str(json)
+}
+
+/// Derive a deterministic localhost port from a primal name (non-Unix fallback).
+///
+/// Maps the name hash into the 10000–60000 range to avoid well-known ports.
+#[cfg(not(unix))]
+#[must_use]
+fn derive_default_port(name: &str) -> u16 {
+    let hash: u32 = name.bytes().fold(0u32, |acc, b| acc.wrapping_mul(31).wrapping_add(u32::from(b)));
+    #[expect(clippy::cast_possible_truncation, reason = "intentional range reduction")]
+    let port = (hash % 50_000) as u16 + 10_000;
+    port
 }
 
 /// The env var name for transport endpoint injection.
@@ -252,5 +301,30 @@ mod tests {
             TransportEndpoint::mesh_relay("p", "c").transport_name(),
             "mesh_relay"
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn platform_default_unix_returns_uds() {
+        let ep = TransportEndpoint::platform_default("sweetgrass", "/run/membrane");
+        assert_eq!(ep, TransportEndpoint::uds("/run/membrane/sweetgrass.sock"));
+    }
+
+    #[test]
+    fn from_env_or_default_uses_env() {
+        let json = r#"{"transport":"tcp","host":"10.0.0.1","port":9100}"#;
+        temp_env::with_var(TRANSPORT_ENDPOINT_ENV, Some(json), || {
+            let ep = TransportEndpoint::from_env_or_default("sweetgrass", "/run/membrane");
+            assert_eq!(ep, TransportEndpoint::tcp("10.0.0.1", 9100));
+        });
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn from_env_or_default_falls_back_to_uds() {
+        temp_env::with_var(TRANSPORT_ENDPOINT_ENV, None::<&str>, || {
+            let ep = TransportEndpoint::from_env_or_default("sweetgrass", "/run/membrane");
+            assert_eq!(ep, TransportEndpoint::uds("/run/membrane/sweetgrass.sock"));
+        });
     }
 }

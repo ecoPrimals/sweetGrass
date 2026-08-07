@@ -6,6 +6,15 @@
 
 ## Completed
 
+### v0.8.0 — G66 Transport Abstraction (Wave 156s, Aug 2026)
+
+- [x] **G66 transport abstraction** — silicon-agnostic IPC. `TransportEndpoint::platform_default()` + `from_env_or_default()` eliminate silicon deism.
+- [x] **`TransportListener`** — server-side abstraction (UDS + TCP) with `bind()` and `accept()` → `TransportStream`.
+- [x] **`perform_client_handshake` generic** — BTSP client accepts any `AsyncRead + AsyncWrite` (no longer hardcoded to `UnixStream`).
+- [x] **`CryptoDelegate` evolved** — stores `TransportEndpoint`, uses `connect_transport()` instead of raw `UnixStream::connect`.
+- [x] **Zero unconditional Unix imports** in production code — all `#[cfg(unix)]` confined to transport layer.
+- [x] 1,679 tests, 48 methods, 0 clippy warnings, DH-0 clean
+
 ### v0.8.0 — G65 Protocol Negotiation (Wave 156m, Aug 2026)
 
 - [x] **G65 protocol negotiation** — single-socket protocol selection (Phase 3 of cephalization). Clients negotiate tarpc or JSON-RPC at connection time. Replaces C2 dual-socket as canonical entry point.

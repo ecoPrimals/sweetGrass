@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### G66 Transport Abstraction (Wave 156s)
+
+#### Added
+- **`TransportEndpoint::platform_default()`** — silicon-agnostic endpoint
+  resolution. Unix → UDS, non-Unix → TCP localhost (deterministic port).
+- **`TransportEndpoint::from_env_or_default()`** — transport injection from
+  `TRANSPORT_ENDPOINT` env var with platform-aware fallback.
+- **`TransportListener`** — server-side transport abstraction. `bind()` on a
+  `TransportEndpoint`, `accept()` yields `TransportStream`. UDS or TCP
+  without `#[cfg]` in the caller.
+- **`CryptoDelegate::with_endpoint()`** — G66 constructor for transport-injected
+  crypto delegation.
+
+#### Changed
+- **`perform_client_handshake`** — now generic `<S: AsyncRead + AsyncWrite + Unpin>`
+  instead of `&mut UnixStream`. Works on any transport stream.
+- **`CryptoDelegate`** — stores `TransportEndpoint`, uses `connect_transport()`
+  instead of raw `tokio::net::UnixStream::connect`. Silicon-agnostic.
+- **Zero unconditional Unix imports** in production code — all `#[cfg(unix)]`
+  confined to the transport layer (`transport_connect.rs`).
+
 ### G65 Protocol Negotiation (Wave 156m)
 
 #### Added

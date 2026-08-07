@@ -27,7 +27,7 @@ attribution before distributing rewards.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 (required) + tarpc (optional high-perf) + REST + UDS
 - **License:** scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0)
-- **Tests:** 1,676 (cargo test --all-features, pure Rust — no Docker required)
+- **Tests:** 1,679 (cargo test --all-features, pure Rust — no Docker required)
 
 ## Degradation Behavior
 
