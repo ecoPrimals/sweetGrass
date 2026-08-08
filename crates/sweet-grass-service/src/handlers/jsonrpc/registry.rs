@@ -167,6 +167,11 @@ pub(super) static METHODS: &[MethodEntry] = &[
         name: "capability.list",
         handler: |s, p| Box::pin(async move { super::capability::handle_capability_list(s, p) }),
     },
+    // Neural API routing envelope (biomeOS dispatches via capability.call)
+    MethodEntry {
+        name: "capability.call",
+        handler: |s, p| Box::pin(super::capability::handle_capability_call(s, p)),
+    },
     // MCP tool exposure (airSpring v0.10 pattern for Squirrel AI coordination)
     MethodEntry {
         name: "tools.list",

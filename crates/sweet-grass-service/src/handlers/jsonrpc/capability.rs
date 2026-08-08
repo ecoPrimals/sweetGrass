@@ -239,6 +239,44 @@ fn mcp_tools() -> Vec<McpTool> {
     ]
 }
 
+/// `capability.call` — Neural API routing envelope dispatch.
+///
+/// biomeOS Neural API routes domain requests via this envelope method.
+/// The payload contains `{ "method": "<domain.op>", "params": {...} }`,
+/// which this handler unwraps and dispatches through the standard table.
+/// Returns the raw method result (no MCP content wrapping).
+///
+/// Wire format (from biomeOS routing layer):
+/// ```json
+/// {"jsonrpc":"2.0","method":"capability.call","params":{"method":"provenance.graph","params":{...}},"id":1}
+/// ```
+///
+/// # Errors
+///
+/// Returns `INVALID_PARAMS` if the `method` field is missing, or propagates
+/// errors from the inner handler dispatch.
+pub(super) async fn handle_capability_call(
+    state: &AppState,
+    params: serde_json::Value,
+) -> DispatchResult {
+    #[derive(serde::Deserialize)]
+    struct CapabilityCallParams {
+        method: String,
+        #[serde(default)]
+        params: serde_json::Value,
+    }
+
+    let call: CapabilityCallParams = parse_params(params)?;
+
+    let handler = super::find_handler(&call.method).ok_or_else(|| DispatchError {
+        code: error_code::METHOD_NOT_FOUND,
+        message: format!("capability.call: inner method not found: {}", call.method),
+        source_detail: None,
+    })?;
+
+    handler(state, call.params).await
+}
+
 /// `tools.list` — MCP-compatible tool listing for Squirrel AI coordination.
 ///
 /// Returns tools in the MCP `tools/list` format so Squirrel (or other

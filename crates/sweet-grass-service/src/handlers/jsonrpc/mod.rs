@@ -24,7 +24,7 @@
 //! | `trust` | `event` (cross-gate trust braid weaving) |
 //! | `lifecycle` | `status` (public surface — running state, version, gate mode) |
 //! | `capabilities` | `list` (canonical per wateringHole v2.1) |
-//! | `capability` | `list` (alias) |
+//! | `capability` | `list` (alias), `call` (Neural API routing envelope) |
 //! | `tools` | `list`, `call` (MCP exposure for Squirrel AI coordination) |
 //! | `auth` | `mode`, `check`, `peer_info` (JH-0 method gate introspection) |
 //!

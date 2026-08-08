@@ -54,8 +54,8 @@ description = "Capability discovery (canonical per wateringHole v2.1)"
 methods = ["list"]
 
 [domains.capability]
-description = "Capability discovery (alias)"
-methods = ["list"]
+description = "Capability discovery and Neural API routing"
+methods = ["list", "call"]
 
 [domains.identity]
 description = "Primal identity"
@@ -246,6 +246,11 @@ cost = "low"
 stability = "stable"
 
 [operations."capability.list"]
+depends_on = []
+cost = "low"
+stability = "stable"
+
+[operations."capability.call"]
 depends_on = []
 cost = "low"
 stability = "stable"
