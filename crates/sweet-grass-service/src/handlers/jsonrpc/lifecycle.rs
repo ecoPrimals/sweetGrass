@@ -31,7 +31,7 @@ pub(super) fn handle_lifecycle_status(
         "status": "running",
         "primal": name,
         "version": version,
-        "gate_mode": state.method_gate.mode().as_str(),
+        "gate_mode": state.method_gate.enforcement_mode().as_str(),
         "uptime_secs": uptime_secs,
         "method_count": METHODS.len(),
         "capabilities_count": niche::CAPABILITIES.len(),
@@ -46,7 +46,7 @@ pub(super) fn handle_lifecycle_status(
 #[expect(clippy::unnecessary_wraps, reason = "must match DispatchFn signature")]
 pub(super) fn handle_auth_mode(state: &AppState) -> DispatchResult {
     Ok(serde_json::json!({
-        "mode": state.method_gate.mode().as_str(),
+        "mode": state.method_gate.enforcement_mode().as_str(),
     }))
 }
 
@@ -66,7 +66,7 @@ pub(super) fn handle_auth_check(state: &AppState, params: serde_json::Value) -> 
     Ok(serde_json::json!({
         "authenticated": has_token,
         "verified": false,
-        "enforcement": state.method_gate.mode().as_str(),
+        "enforcement": state.method_gate.enforcement_mode().as_str(),
         "scopes": serde_json::Value::Null,
         "subject": serde_json::Value::Null,
         "expires_in": serde_json::Value::Null,

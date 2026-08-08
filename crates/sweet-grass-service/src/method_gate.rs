@@ -186,7 +186,7 @@ impl MethodGate {
 
     /// Current enforcement mode.
     #[must_use]
-    pub const fn mode(&self) -> EnforcementMode {
+    pub const fn enforcement_mode(&self) -> EnforcementMode {
         self.mode
     }
 
