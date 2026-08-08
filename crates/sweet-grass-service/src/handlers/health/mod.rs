@@ -7,7 +7,7 @@
 //! - Detailed component status for debugging
 //! - Integration status for connected primals
 //!
-//! All probes use transport-agnostic [`TransportEndpoint`] dispatch —
+//! All probes use transport-agnostic [`TransportEndpoint`](sweet_grass_core::transport::TransportEndpoint) dispatch —
 //! UDS on Unix, TCP if configured, no platform-specific gating.
 
 use axum::{Json, extract::State, http::StatusCode};
