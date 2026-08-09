@@ -164,13 +164,28 @@ fn mcp_tools() -> Vec<McpTool> {
             input_schema: serde_json::json!({
                 "type": "object",
                 "properties": {
-                    "attributed_to": {"type": "string", "description": "Filter by agent DID"},
-                    "data_hash": {"type": "string", "description": "Filter by content hash"},
-                    "mime_type": {"type": "string", "description": "Filter by MIME type prefix"},
-                    "tag": {"type": "string", "description": "Filter by tag"},
-                    "limit": {"type": "integer", "description": "Max results (default 100)"},
-                    "offset": {"type": "integer", "description": "Pagination offset"},
-                }
+                    "filter": {
+                        "type": "object",
+                        "description": "Query filter object",
+                        "properties": {
+                            "attributed_to": {"type": "string", "description": "Filter by agent DID"},
+                            "data_hash": {"type": "string", "description": "Filter by content hash (sha256:...)"},
+                            "mime_type": {"type": "string", "description": "Filter by MIME type prefix"},
+                            "tag": {"type": "string", "description": "Filter by tag"},
+                            "created_after": {"type": "string", "description": "Filter by min timestamp (RFC 3339)"},
+                            "created_before": {"type": "string", "description": "Filter by max timestamp (RFC 3339)"},
+                        },
+                    },
+                    "order": {
+                        "type": "object",
+                        "description": "Sort order (optional)",
+                        "properties": {
+                            "field": {"type": "string", "description": "Sort field (created_at, data_hash)"},
+                            "direction": {"type": "string", "enum": ["asc", "desc"]},
+                        },
+                    },
+                },
+                "required": ["filter"]
             }),
         },
         McpTool {
@@ -179,10 +194,17 @@ fn mcp_tools() -> Vec<McpTool> {
             input_schema: serde_json::json!({
                 "type": "object",
                 "properties": {
-                    "entity_hash": {"type": "string", "description": "Content hash to trace"},
-                    "max_depth": {"type": "integer", "description": "Max traversal depth (default 10)"},
+                    "entity": {
+                        "type": "object",
+                        "description": "Entity reference — one of: {data_hash}, {braid_id}, {spine_id, entry_hash}, {url}",
+                        "properties": {
+                            "data_hash": {"type": "string", "description": "Content hash (sha256:...)"},
+                            "braid_id": {"type": "string", "description": "Braid ID (urn:braid:uuid:...)"},
+                        },
+                    },
+                    "depth": {"type": "integer", "description": "Max traversal depth (default 10)"},
                 },
-                "required": ["entity_hash"]
+                "required": ["entity"]
             }),
         },
         McpTool {

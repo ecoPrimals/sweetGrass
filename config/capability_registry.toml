@@ -115,6 +115,16 @@ depends_on = ["braid.create"]
 cost = "medium"
 stability = "stable"
 
+[operations."braid.batch_create"]
+depends_on = []
+cost = "medium"
+stability = "stable"
+
+[operations."braid.batch_commit"]
+depends_on = ["braid.batch_create"]
+cost = "medium"
+stability = "stable"
+
 [operations."braid.anchor"]
 depends_on = ["braid.create"]
 cost = "medium"
