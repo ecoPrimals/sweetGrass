@@ -34,7 +34,6 @@ tokio = { workspace = true }
 
 # Pure Rust RPC (Primal Sovereignty - no gRPC/protobuf)
 tarpc = { workspace = true }
-bincode = { workspace = true }
 
 # Serialization
 serde = { workspace = true }
@@ -45,9 +44,6 @@ thiserror = { workspace = true }
 
 # Logging
 tracing = { workspace = true }
-
-# Time
-chrono = { workspace = true }
 
 # Zero-copy byte buffers (wateringHole standards)
 bytes = { workspace = true }
