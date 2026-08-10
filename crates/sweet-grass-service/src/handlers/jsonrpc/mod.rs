@@ -37,6 +37,8 @@
 mod anchoring;
 mod attribution;
 mod braid;
+mod braid_batch;
+mod braid_verify;
 mod capability;
 mod composition;
 mod compression;

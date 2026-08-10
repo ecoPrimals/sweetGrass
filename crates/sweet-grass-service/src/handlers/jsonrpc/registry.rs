@@ -44,11 +44,11 @@ pub(super) static METHODS: &[MethodEntry] = &[
     },
     MethodEntry {
         name: "braid.batch_create",
-        handler: |s, p| Box::pin(super::braid::handle_braid_batch_create(s, p)),
+        handler: |s, p| Box::pin(super::braid_batch::handle_braid_batch_create(s, p)),
     },
     MethodEntry {
         name: "braid.batch_commit",
-        handler: |s, p| Box::pin(super::braid::handle_braid_batch_commit(s, p)),
+        handler: |s, p| Box::pin(super::braid_batch::handle_braid_batch_commit(s, p)),
     },
     // Braid listing (observability)
     MethodEntry {
@@ -58,7 +58,7 @@ pub(super) static METHODS: &[MethodEntry] = &[
     // Atomic provenance verification (P1 — pen test)
     MethodEntry {
         name: "braid.verify",
-        handler: |s, p| Box::pin(super::braid::handle_braid_verify(s, p)),
+        handler: |s, p| Box::pin(super::braid_verify::handle_braid_verify(s, p)),
     },
     MethodEntry {
         name: "anchoring.anchor",
