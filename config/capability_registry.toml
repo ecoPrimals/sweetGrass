@@ -15,7 +15,7 @@ transport = ["http", "uds", "tcp"]
 
 [domains.braid]
 description = "Provenance record lifecycle"
-methods = ["create", "get", "get_by_hash", "query", "list", "delete", "commit", "anchor", "batch_create", "batch_commit"]
+methods = ["create", "get", "get_by_hash", "query", "list", "verify", "delete", "commit", "anchor", "batch_create", "batch_commit"]
 
 [domains.anchoring]
 description = "Cryptographic anchoring and verification"
@@ -102,6 +102,11 @@ stability = "stable"
 
 [operations."braid.query"]
 depends_on = []
+cost = "medium"
+stability = "stable"
+
+[operations."braid.verify"]
+depends_on = ["braid.create"]
 cost = "medium"
 stability = "stable"
 

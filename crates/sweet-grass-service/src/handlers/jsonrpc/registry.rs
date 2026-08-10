@@ -55,6 +55,11 @@ pub(super) static METHODS: &[MethodEntry] = &[
         name: "braid.list",
         handler: |s, p| Box::pin(super::braid::handle_braid_list(s, p)),
     },
+    // Atomic provenance verification (P1 — pen test)
+    MethodEntry {
+        name: "braid.verify",
+        handler: |s, p| Box::pin(super::braid::handle_braid_verify(s, p)),
+    },
     MethodEntry {
         name: "anchoring.anchor",
         handler: |s, p| Box::pin(super::anchoring::handle_anchor_braid(s, p)),

@@ -172,6 +172,42 @@ impl CryptoDelegate {
         })
     }
 
+    /// Verify an Ed25519 signature via the capability provider (`crypto.verify_ed25519`).
+    ///
+    /// Delegates verification to the same primal that provides `Capability::Signing`
+    /// (typically bearDog). Returns `Ok(true)` if the signature is valid, `Ok(false)` if
+    /// invalid, or an error if the provider is unreachable.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`CryptoDelegateError`] if the provider is unreachable or returns a
+    /// malformed response.
+    pub async fn verify(
+        &self,
+        message: &[u8],
+        signature: &[u8],
+        public_key: &[u8],
+    ) -> Result<bool, CryptoDelegateError> {
+        let b64 = base64::engine::general_purpose::STANDARD;
+        let result = self
+            .call_jsonrpc(
+                "crypto.verify_ed25519",
+                serde_json::json!({
+                    "message": b64.encode(message),
+                    "signature": b64.encode(signature),
+                    "public_key": b64.encode(public_key),
+                }),
+            )
+            .await?;
+
+        result
+            .get("valid")
+            .and_then(serde_json::Value::as_bool)
+            .ok_or_else(|| {
+                CryptoDelegateError::InvalidResponse("missing `valid` boolean field".into())
+            })
+    }
+
     fn resolve_socket_path() -> Option<PathBuf> {
         if let Ok(p) = std::env::var(env_vars::SECURITY_PROVIDER_SOCKET) {
             return Some(PathBuf::from(p));
