@@ -6,6 +6,22 @@
 
 ## Completed
 
+### v0.8.0 — Stadial Shift: G72 + braid.verify + Refactoring (Wave 157g, Aug 2026)
+
+- [x] **braid.verify behavioral tests (P2→DONE)** — 5 tests: unsigned braids, content integrity format, crypto-down permissive, not-found, metadata
+- [x] **G72 Dependency Pandemic Tier 1** — tokio trimmed from `["full"]` to 7 features; dead deps excised (bincode, chrono in integration; axum macros; tracing-subscriber env-filter). 155 unique transitive crates.
+- [x] **Smart refactoring** — `braid.rs` (959L→504L) split into `braid_batch.rs` (268L) + `braid_verify.rs` (218L). Zero production files >800L.
+- [x] **Deep debt audit clean** — 0 TODO, 0 unsafe, 0 hardcoded names, 0 production mocks, 0 dead_code, 0 clippy
+- [x] 1,684 tests, 48 methods, DH-0 clean
+
+### v0.8.0 — G68 + Neural API + Vertebrate + braid.verify (Wave 157a–e, Aug 2026)
+
+- [x] **G68 platform substrate** — `platform_link()` replaces raw `std::os::unix::fs::symlink`; `enforcement_mode()` rename clears scanner L2
+- [x] **Neural API routing** — `capability.call` handler for biomeOS dispatch; `PUBLIC_METHODS` inclusion
+- [x] **Vertebrate self-audit** — RPC surface ↔ capability_registry.toml ↔ niche.rs triple-alignment verified; MCP schema corrections
+- [x] **braid.verify atomic (P1→SHIPPED)** — content integrity + Ed25519 signature + ledger in one call; `CryptoDelegate::verify`; method #48
+- [x] 1,679 tests, 48 methods, DH-0 clean
+
 ### v0.8.0 — G66 Transport Abstraction (Wave 156s, Aug 2026)
 
 - [x] **G66 transport abstraction** — silicon-agnostic IPC. `TransportEndpoint::platform_default()` + `from_env_or_default()` eliminate silicon deism.

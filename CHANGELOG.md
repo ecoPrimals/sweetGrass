@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Stadial Shift — G72 + Deep Debt (Wave 157g)
+
+#### Added
+- **`braid.verify` behavioral tests** — 5 tests covering unsigned braids, content
+  integrity format, crypto-down permissive, not-found error, attribution metadata.
+  P2 CLOSED.
+
+#### Changed
+- **G72 Dependency Pandemic Tier 1** — tokio trimmed from `["full"]` to exact
+  features (`rt-multi-thread`, `net`, `io-util`, `sync`, `time`, `signal`, `macros`).
+  Removed `axum` macros feature, `tracing-subscriber` env-filter feature. Excised
+  dead `bincode` and `chrono` from `sweet-grass-integration`. 155 unique transitive
+  crates (down from ~165).
+- **Smart refactoring** — `braid.rs` (959L) split into `braid.rs` (504L) +
+  `braid_batch.rs` (268L) + `braid_verify.rs` (218L). Zero production files >800L.
+
+### G68 + Neural API + Vertebrate + braid.verify (Wave 157a–e)
+
+#### Added
+- **`braid.verify` atomic method** — P1 SHIPPED. Content integrity + Ed25519
+  signature + ledger confirmation in single call. Method #48.
+- **`capability.call` handler** — Neural API routing envelope for biomeOS dispatch.
+- **`CryptoDelegate::verify`** — Ed25519 verification delegation to crypto provider.
+
+#### Changed
+- **G68 platform substrate** — `platform_link()` for cross-platform symlink/hardlink;
+  `enforcement_mode()` rename clears sourDough scanner L2 false positive.
+- **Vertebrate self-audit** — RPC surface aligned across dispatch table,
+  `niche::CAPABILITIES`, and `capability_registry.toml`. MCP tool schemas corrected
+  for `provenance.graph` and `braid.query`.
+
 ### G66 Transport Abstraction (Wave 156s)
 
 #### Added

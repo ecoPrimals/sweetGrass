@@ -52,7 +52,7 @@ open target/llvm-cov/html/index.html
 
 ```
 crates/
-├── Unit Tests          (1,670+ tests)  - src/ modules across all 9 crates
+├── Unit Tests          (1,680+ tests)  - src/ modules across all 9 crates
 ├── Integration Tests   (21 tests)     - sweet-grass-service/tests/integration.rs
 ├── Chaos Tests         (17 tests)     - sweet-grass-service/tests/chaos.rs
 ├── Fault Injection     (9 tests)      - sweet-grass-service/tests/fault_injection.rs
@@ -140,7 +140,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 1,600+ tests (pure Rust, no Docker), 88%+ line coverage via llvm-cov
+- **Overall**: 1,684 tests (pure Rust, no Docker), 88%+ line coverage via llvm-cov
 - **Target**: 90%+ coverage on core crates (achieved)
 
 ### Per-Crate Coverage

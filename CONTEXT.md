@@ -27,7 +27,7 @@ attribution before distributing rewards.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 (required) + tarpc (optional high-perf) + REST + UDS
 - **License:** scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0)
-- **Tests:** 1,679 (cargo test --all-features, pure Rust — no Docker required)
+- **Tests:** 1,684 (cargo test --all-features, pure Rust — no Docker required)
 
 ## Degradation Behavior
 
@@ -80,7 +80,7 @@ When sweetGrass is **unavailable** in a composition:
 
 ## Key Capabilities (JSON-RPC methods)
 
-42 semantic methods across 13 domains:
+48 semantic methods across 14 domains:
 
 - `braid.create`, `braid.get`, `braid.get_by_hash`, `braid.query`, `braid.delete`, `braid.commit`, `braid.anchor`, `braid.batch_create`, `braid.batch_commit` — provenance record CRUD + branch anchoring + bulk pipeline
 - `contribution.record`, `contribution.record_session`, `contribution.record_dehydration`, `contribution.record_provenance` — inter-primal contribution tracking + provenance chain events

@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.8.0 | 1,679 tests | 88% coverage | Edition 2024 | scyBorg Triple-Copyleft | Pure Rust | ecoBin A++ | BTSP enforced on TCP | Wire L3 | Stadial ready | 48 methods + 11 aliases | JH-0 method gate | BearDog crypto delegation | BTSP ClientHello handshake | JH-5 audit pipeline | DH-0 clean | Privacy-enforced | PROV-O complete | Zero bare env var strings | TransportEndpoint Phase 2 SHIPPED | Localhost-only defaults | Zero C/ASM crypto | TRANSPORT_ENDPOINT | HEALTH-01 ready | BTSP E2E ready | riboCipher reference impl | Mito-beacon 0xED accepted | Zero clippy warnings | cargo-deny clean | sqlx banned | Cross-arch (x86_64-pc-windows-gnu) clean | Provenance Trio WIRED | G31 batch pipeline | Zero hardcoded primal names | convergence.check trust gate | braid.list observability | G65 protocol negotiation (single-socket) | G66 transport abstraction (silicon-agnostic) | convergence.pressure backpressure
+v0.8.0 | 1,684 tests | 88% coverage | Edition 2024 | Pure Rust | DH-0 clean | G72 Tier 1 complete | 48 methods | G65 protocol negotiation | G66 transport abstraction | G68 platform substrate | braid.verify atomic | Neural API routing | 155 transitive deps
 
 ---
 
@@ -200,24 +200,23 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Metric | Value |
 |--------|-------|
 | Version | v0.8.0 |
-| Tests | 1,645 (pure Rust, no Docker) |
+| Tests | 1,684 (pure Rust, no Docker) |
 | Coverage | 88%+ line (llvm-cov) |
 | Edition | 2024 (MSRV 1.87) |
-| Unsafe code | 0 (`#![forbid(unsafe_code)]` workspace-level + all crate roots) |
+| Unsafe code | 0 (`#![forbid(unsafe_code)]` all 9 crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
-| Clippy | 0 warnings (pedantic + nursery, `-D warnings`) |
-| Max file size | 743 lines (limit: 1000) |
-| .rs files | 215+ |
+| Clippy | 0 warnings (pedantic + nursery) |
+| Max file size | 504 lines (limit: 1000) |
+| Transitive deps | 155 unique crates (G72 Tier 1 trimmed) |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |
 | cargo deny | advisories ok, bans ok, licenses ok, sources ok |
-| Benchmarks | 7 criterion groups |
-| JSON-RPC methods | 42 (batch + notification + MCP tool exposure + Wire Standard L3 + composition health + auth + trust + lifecycle) |
+| JSON-RPC methods | 48 (braid CRUD/batch/verify + provenance + attribution + trust + health + lifecycle + MCP) |
 | Property-based tests | proptest (25 strategies across 7 crates) |
 | Chaos/fault tests | 11 attribution chaos + 17 service chaos + 9 fault injection |
-| BTSP | Phase 3 — `btsp.negotiate` + ChaCha20-Poly1305 AEAD framing; riboCipher signal detection (0xEC/0xED/0xEE) before legacy peek; `BEARDOG_SOCKET` in resolution |
-| riboCipher | Reference implementation — Tier 1 clear signal routing (probe, JSON-RPC, BTSP binary/JSON-line); legacy WARN deprecation |
+| BTSP | Phase 3 — ChaCha20-Poly1305 AEAD framing; riboCipher signal detection |
+| riboCipher | Reference impl — Tier 1 clear signal routing |
 
 ### ecoBin Compliance
 

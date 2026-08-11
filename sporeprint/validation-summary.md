@@ -1,7 +1,7 @@
 +++
 title = "sweetGrass Validation Summary"
-description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,679 tests, 48 methods, DH-0 clean. Pure Rust (sqlx banned), riboCipher reference impl, BTSP ClientHello handshake, HEALTH-01, mito-beacon 0xED, cross-arch clean, TransportEndpoint Phase 2 shipped. Provenance Trio G3 WIRED. G31 batch pipeline + trailer pattern alignment. Zero-copy Arc<str>. Zero hardcoded primal names. All files ≤743L. G65 protocol negotiation (single-socket tarpc+jsonrpc). G66 transport abstraction (silicon-agnostic). Convergence backpressure."
-date = 2026-08-06
+description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,684 tests, 48 methods, DH-0 clean. Pure Rust. G72 Tier 1 (155 transitive deps). G65 protocol negotiation. G66 transport abstraction. G68 platform substrate. braid.verify atomic. Neural API routing. All files ≤504L. Zero TODO/unsafe/hardcoded names."
+date = 2026-08-10
 
 [taxonomies]
 primals = ["sweetgrass", "beardog", "rhizocrypt", "loamspine", "nestgate"]
@@ -11,23 +11,19 @@ springs = []
 ## Status
 
 - **Version**: v0.8.0
-- **1,679 tests** (all passed, 0 failed, pure Rust — no Docker required)
+- **1,684 tests** (all passed, 0 failed, pure Rust — no Docker required)
 - **DH-0 clean**: Zero debt, zero unsafe, zero hardcoded primal names, zero dead_code
-- **C2 dual-socket UDS**: tarpc binary RPC on `sweetgrass.tarpc.sock` — sub-ms intra-gate composition
-- **Convergence backpressure**: `convergence.pressure` — pipeline throttle gate from convergence lag
-- **G31 batch pipeline**: `braid.batch_create` + `braid.batch_commit` for 10× throughput; concurrent dispatch via `join_all`; `MAX_BATCH_SIZE` (5,000) guard
-- **Zero-copy evolution**: `Witness`, `LoamAnchor.spine_id`, `EcoPrimalsAttributes.session_ref` → `Arc<str>`
+- **G72 Tier 1 complete**: tokio trimmed from "full", dead deps excised, 155 unique transitive crates
+- **braid.verify atomic**: Content integrity + Ed25519 signature + ledger confirmation in one call
+- **G65 protocol negotiation**: Single-socket tarpc+jsonrpc (replaces dual-socket C2)
+- **G66 transport abstraction**: Silicon-agnostic IPC (TransportEndpoint/Stream/Listener)
+- **G68 platform substrate**: Cross-platform link creation, no raw Unix syscalls
+- **Neural API routing**: `capability.call` handler for biomeOS dispatch
+- **G31 batch pipeline**: `braid.batch_create` + `braid.batch_commit` for 10x throughput
 - **Provenance Trio G3 WIRED**: `LedgerClient` closes sweetGrass→loamSpine triangle
-- **BTSP ClientHello handshake**: 4-step challenge-response with protocol version validation
-- **TransportEndpoint Phase 2**: All transport via `TransportEndpoint` abstraction (UDS/TCP/mesh)
 - **48 registered capability methods** across 14 domains
-- **215+ source files**, max 804 lines per file (production code ≤545 lines)
-- **riboCipher**: Reference implementation in `peek.rs` — signal detection for `0xEC`/`0xED`/`0xEE` before legacy peek (Wave 111, Stream 7)
-- **HEALTH-01**: Bare `health` method alias, enriched `health.check` with `primal` + `uptime_secs`
-- **BTSP E2E ready**: `BEARDOG_SOCKET` in security socket resolution tier 2
-- **Zero bare env var strings**: All `env::var()` calls use `primal_names::env_vars` constants
-- **Zero production debt**: 0 unsafe, 0 `#[allow]`, 0 TODO/FIXME, 0 `println!`, 0 production `unwrap()`, 0 `std::sync::Mutex`, 0 `Box<dyn Error>`, 0 `async_trait`, 0 `Rc<`, 0 missing SPDX
-- **Clippy**: 0 warnings (pedantic + nursery)
+- **All production files ≤504 lines** (braid handlers split into focused submodules)
+- **Zero production debt**: 0 unsafe, 0 TODO/FIXME, 0 `unwrap()`, 0 clippy warnings
 - **`#![forbid(unsafe_code)]`** on all 9 crate roots
 - **BTSP enforced** on TCP when `FAMILY_ID` set (v0.7.36+)
 - **JH-0 Method Gate** adopted — permissive mode, `auth.check`/`auth.mode`/`auth.peer_info` registered
