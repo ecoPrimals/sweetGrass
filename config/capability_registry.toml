@@ -73,6 +73,10 @@ methods = ["status"]
 description = "Ecosystem composition health probes"
 methods = ["tower_health", "node_health", "nest_health", "nucleus_health"]
 
+[domains.rootpulse]
+description = "rootPulse graph step handlers (provenance trio pipeline)"
+methods = ["attribute", "query"]
+
 [domains.trust]
 description = "Cross-gate trust braid weaving"
 methods = ["event"]
@@ -293,6 +297,16 @@ stability = "beta"
 [operations."composition.nucleus_health"]
 depends_on = []
 cost = "low"
+stability = "beta"
+
+[operations."rootpulse.attribute"]
+depends_on = ["braid.create"]
+cost = "medium"
+stability = "beta"
+
+[operations."rootpulse.query"]
+depends_on = []
+cost = "medium"
 stability = "beta"
 
 [operations."trust.event"]

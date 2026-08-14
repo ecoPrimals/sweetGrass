@@ -32,8 +32,8 @@ async fn test_invalid_params() {
 fn test_dispatch_table_completeness() {
     assert_eq!(
         METHODS.len(),
-        48,
-        "dispatch table should have all 48 methods (43 domain + capability.call + lifecycle + 3 auth)"
+        50,
+        "dispatch table should have all 50 methods (45 domain + capability.call + lifecycle + 3 auth)"
     );
 
     let expected = [
@@ -47,6 +47,7 @@ fn test_dispatch_table_completeness() {
         "braid.batch_create",
         "braid.batch_commit",
         "braid.list",
+        "braid.verify",
         "anchoring.anchor",
         "anchoring.verify",
         "convergence.check",
@@ -66,6 +67,8 @@ fn test_dispatch_table_completeness() {
         "contribution.record_dehydration",
         "contribution.record_provenance",
         "pipeline.attribute",
+        "rootpulse.attribute",
+        "rootpulse.query",
         "health.check",
         "health.liveness",
         "health.readiness",

@@ -21,6 +21,7 @@
 //! | `health` | `check`, `liveness`, `readiness` |
 //! | `identity` | `get` (biomeOS Neural API: primal name + version) |
 //! | `composition` | `tower_health`, `node_health`, `nest_health`, `nucleus_health` |
+//! | `rootpulse` | `attribute`, `query` (rootPulse graph step handlers) |
 //! | `trust` | `event` (cross-gate trust braid weaving) |
 //! | `lifecycle` | `status` (public surface — running state, version, gate mode) |
 //! | `capabilities` | `list` (canonical per wateringHole v2.1) |
@@ -48,6 +49,7 @@ mod health;
 mod lifecycle;
 mod provenance;
 mod registry;
+mod rootpulse;
 mod trust;
 
 use std::future::Future;
@@ -476,3 +478,5 @@ mod tests_privacy;
 mod tests_protocol;
 #[cfg(test)]
 mod tests_provenance;
+#[cfg(test)]
+mod tests_rootpulse;

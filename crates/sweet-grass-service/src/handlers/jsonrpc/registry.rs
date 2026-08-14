@@ -207,6 +207,15 @@ pub(super) static METHODS: &[MethodEntry] = &[
         name: "lifecycle.status",
         handler: |s, p| Box::pin(async move { super::lifecycle::handle_lifecycle_status(s, p) }),
     },
+    // rootPulse graph step handlers (P2 #10)
+    MethodEntry {
+        name: "rootpulse.attribute",
+        handler: |s, p| Box::pin(super::rootpulse::handle_rootpulse_attribute(s, p)),
+    },
+    MethodEntry {
+        name: "rootpulse.query",
+        handler: |s, p| Box::pin(super::rootpulse::handle_rootpulse_query(s, p)),
+    },
     // Cross-gate trust events
     MethodEntry {
         name: "trust.event",
@@ -257,6 +266,8 @@ static ALIASES: &[(&str, &str)] = &[
     ("attribution.export_prov", "provenance.export_provo"),
     ("provenance.lineage", "attribution.chain"),
     ("attribution.anchor", "anchoring.anchor"),
+    // rootPulse graph step alias (rootpulse_commit.toml → attribute_provenance)
+    ("braid.attribute", "rootpulse.attribute"),
     // HEALTH-01 convergence: bare "health" probes from E2E harnesses
     ("health", "health.check"),
 ];
