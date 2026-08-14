@@ -140,7 +140,7 @@ cargo audit
 ## 📊 Coverage Goals
 
 ### Current Status
-- **Overall**: 1,684 tests (pure Rust, no Docker), 88%+ line coverage via llvm-cov
+- **Overall**: 1,746 tests (pure Rust, no Docker), 90%+ line/branch coverage via llvm-cov
 - **Target**: 90%+ coverage on core crates (achieved)
 
 ### Per-Crate Coverage

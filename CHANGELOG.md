@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Wave 157k Deep Interstadial — rootPulse + Deep Debt Sweep
+
+#### Added
+- **rootPulse trio step handlers (P2 #10)** — `rootpulse.attribute` creates
+  provenance attribution braids from the `rootpulse_commit` graph executor
+  (ledger_ref + cas_ref + build metadata). `rootpulse.query` queries rootPulse
+  braids by wave, target, primal, graph name. `braid.attribute` wire-name alias
+  routes graph operation to handler.
+- **13 rootPulse tests** — full attribution, minimal/null inputs, deterministic
+  hashing, alias routing, multi-filter queries, limit enforcement, metadata
+  round-trip.
+- **49 coverage tests** — `braid_verify.rs` (21 tests, 33.8%→97.2%),
+  `backend.rs` (8 tests, 63.6%→93.4%), `server/mod.rs` (health, convergence,
+  store errors — 57.6%→86.3%).
+
+#### Changed
+- **Registry: 48→50 methods** across niche CAPABILITIES, dispatch table, and
+  `capability_registry.toml` — all three sources in sync.
+- **3 hardcoded timeouts → env-configurable** — `SWEETGRASS_LEDGER_TIMEOUT_MS`,
+  `SWEETGRASS_ANNOUNCE_TIMEOUT_MS`, `SWEETGRASS_PROBE_TIMEOUT_MS`. Operators
+  can tune without recompile.
+- **Zero-copy graph traversal** — eliminate unnecessary `Braid`/`Activity`
+  clones in provenance traversal (move-insert, `entry().or_insert()`).
+- **Smart refactoring (3 large files)** — `handlers/jsonrpc/tests.rs`
+  (799L→9 domain modules), `uds.rs` (752L→mod+resolution), `btsp/transport.rs`
+  (743L→transport+encrypted_stream). All files ≤710L.
+- **Clippy pedantic** — 6 `#[must_use]` annotations, 8 formatting diffs resolved.
+- **Coverage** — overall 88.09%→89.62% line, 89.26%→90.70% branch.
+- **Tests** — 1,684→1,746 (pure Rust, 0 failures).
+
 ### Stadial Shift — G72 + Deep Debt (Wave 157g)
 
 #### Added

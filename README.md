@@ -2,7 +2,7 @@
 
 **Semantic Provenance and Attribution Layer for ecoPrimals**
 
-v0.8.0 | 1,684 tests | 88% coverage | Edition 2024 | Pure Rust | DH-0 clean | G72 Tier 1 complete | 48 methods | G65 protocol negotiation | G66 transport abstraction | G68 platform substrate | braid.verify atomic | Neural API routing | 155 transitive deps
+v0.8.0 | 1,746 tests | 90% coverage | Edition 2024 | Pure Rust | DH-0 clean | G72 Tier 1 complete | 50 methods | rootPulse step handlers | G65 protocol negotiation | G66 transport abstraction | G68 platform substrate | braid.verify atomic | Neural API routing | 155 transitive deps
 
 ---
 
@@ -87,10 +87,10 @@ sweetgrass socket        # Print UDS socket path
 | tarpc | `SWEETGRASS_TARPC_ADDRESS` | ~50μs | Primal-to-primal binary RPC |
 | TCP JSON-RPC | `SWEETGRASS_PORT` | ~1ms | Composition (`--port`, UniBin standard) |
 | UDS JSON-RPC | `SWEETGRASS_SOCKET` | ~0.5ms | biomeOS IPC (XDG-compliant) |
-| HTTP JSON-RPC | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | 40 methods, batch, MCP tools |
+| HTTP JSON-RPC | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | 50 methods, batch, MCP tools |
 | REST | `SWEETGRASS_HTTP_ADDRESS` | ~10ms | Debug, admin (`/api/v1/braids`) |
 
-- **JSON-RPC 2.0**: 40 semantic methods (`braid.create`, `braid.commit`, `braid.anchor`, `trust.event`, `contribution.record`, `contribution.record_provenance`, `identity.get`, `capabilities.list`, `tools.list`, `tools.call`, `health.check`, `auth.check`, `lifecycle.status`, `attribution.witness`, `composition.tower_health`, etc.) with batch requests and notification support
+- **JSON-RPC 2.0**: 50 semantic methods (`braid.create`, `braid.commit`, `braid.verify`, `rootpulse.attribute`, `rootpulse.query`, `trust.event`, `contribution.record`, `contribution.record_provenance`, `identity.get`, `capabilities.list`, `tools.list`, `tools.call`, `health.check`, `auth.check`, `lifecycle.status`, `attribution.witness`, `composition.tower_health`, etc.) with batch requests and notification support
 - **MCP tool exposure**: `tools.list` + `tools.call` for Squirrel AI coordination
 - **Capability-domain symlink**: `provenance.sock -> sweetgrass.sock` for Tier 3 filesystem discovery
 
@@ -200,19 +200,19 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for all options.
 | Metric | Value |
 |--------|-------|
 | Version | v0.8.0 |
-| Tests | 1,684 (pure Rust, no Docker) |
-| Coverage | 88%+ line (llvm-cov) |
+| Tests | 1,746 (pure Rust, no Docker) |
+| Coverage | 90%+ line (llvm-cov) |
 | Edition | 2024 (MSRV 1.87) |
 | Unsafe code | 0 (`#![forbid(unsafe_code)]` all 9 crate roots) |
 | Production unwraps | 0 (`unwrap_used`/`expect_used` = `deny`) |
 | Clippy | 0 warnings (pedantic + nursery) |
-| Max file size | 504 lines (limit: 1000) |
+| Max file size | 710 lines (limit: 1000) |
 | Transitive deps | 155 unique crates (G72 Tier 1 trimmed) |
 | TODOs in source | 0 |
 | SPDX + copyright | All .rs files |
 | License | scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0) |
 | cargo deny | advisories ok, bans ok, licenses ok, sources ok |
-| JSON-RPC methods | 48 (braid CRUD/batch/verify + provenance + attribution + trust + health + lifecycle + MCP) |
+| JSON-RPC methods | 50 (braid CRUD/batch/verify + rootPulse + provenance + attribution + trust + health + lifecycle + MCP) |
 | Property-based tests | proptest (25 strategies across 7 crates) |
 | Chaos/fault tests | 11 attribution chaos + 17 service chaos + 9 fault injection |
 | BTSP | Phase 3 — ChaCha20-Poly1305 AEAD framing; riboCipher signal detection |

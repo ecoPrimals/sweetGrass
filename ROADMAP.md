@@ -6,6 +6,16 @@
 
 ## Completed
 
+### v0.8.0 — Wave 157k Deep Interstadial (rootPulse + Deep Debt Sweep, Aug 2026)
+
+- [x] **rootPulse trio step handlers (P2 #10)** — `rootpulse.attribute` + `rootpulse.query` for `rootpulse_commit` graph. `braid.attribute` wire-name alias via GAP-36.
+- [x] **Neural API translation registry audit (P2 #11)** — 50/50/50 alignment verified across niche CAPABILITIES, dispatch table, and `capability_registry.toml`.
+- [x] **Deep-debt sweep** — `cargo fmt` (8 diffs), `clippy` pedantic (6 `#[must_use]`), 3 hardcoded timeouts → env-configurable functions.
+- [x] **Zero-copy evolution** — eliminate `Braid`/`Activity` clones in provenance graph traversal (move-insert, `entry().or_insert()`).
+- [x] **Smart refactoring (3 files)** — `tests.rs` (799L→9 modules), `uds.rs` (752L→mod+resolution), `btsp/transport.rs` (743L→transport+encrypted_stream).
+- [x] **Coverage expansion (+62 tests)** — `braid_verify.rs` 33.8%→97.2%, `backend.rs` 63.6%→93.4%, `server/mod.rs` 57.6%→86.3%. Overall: 88.09%→89.62% line, 89.26%→90.70% branch.
+- [x] 1,746 tests, 50 methods, DH-0 clean
+
 ### v0.8.0 — Stadial Shift: G72 + braid.verify + Refactoring (Wave 157g, Aug 2026)
 
 - [x] **braid.verify behavioral tests (P2→DONE)** — 5 tests: unsigned braids, content integrity format, crypto-down permissive, not-found, metadata

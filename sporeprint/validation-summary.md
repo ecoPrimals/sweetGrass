@@ -1,7 +1,7 @@
 +++
 title = "sweetGrass Validation Summary"
-description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,684 tests, 48 methods, DH-0 clean. Pure Rust. G72 Tier 1 (155 transitive deps). G65 protocol negotiation. G66 transport abstraction. G68 platform substrate. braid.verify atomic. Neural API routing. All files ≤504L. Zero TODO/unsafe/hardcoded names."
-date = 2026-08-10
+description = "Attribution primal — W3C PROV-O braids, provenance graphs, radiating attribution. 1,746 tests, 50 methods, DH-0 clean. Pure Rust. G72 Tier 1 (155 transitive deps). rootPulse step handlers. 90% coverage. All files ≤710L. Zero TODO/unsafe/hardcoded names."
+date = 2026-08-14
 
 [taxonomies]
 primals = ["sweetgrass", "beardog", "rhizocrypt", "loamspine", "nestgate"]
@@ -11,8 +11,10 @@ springs = []
 ## Status
 
 - **Version**: v0.8.0
-- **1,684 tests** (all passed, 0 failed, pure Rust — no Docker required)
+- **1,746 tests** (all passed, 0 failed, pure Rust — no Docker required)
+- **90%+ coverage** (line 89.62%, branch 90.70% via llvm-cov)
 - **DH-0 clean**: Zero debt, zero unsafe, zero hardcoded primal names, zero dead_code
+- **rootPulse step handlers**: `rootpulse.attribute` + `rootpulse.query` for trio pipeline (P2 #10)
 - **G72 Tier 1 complete**: tokio trimmed from "full", dead deps excised, 155 unique transitive crates
 - **braid.verify atomic**: Content integrity + Ed25519 signature + ledger confirmation in one call
 - **G65 protocol negotiation**: Single-socket tarpc+jsonrpc (replaces dual-socket C2)
@@ -21,8 +23,8 @@ springs = []
 - **Neural API routing**: `capability.call` handler for biomeOS dispatch
 - **G31 batch pipeline**: `braid.batch_create` + `braid.batch_commit` for 10x throughput
 - **Provenance Trio G3 WIRED**: `LedgerClient` closes sweetGrass→loamSpine triangle
-- **48 registered capability methods** across 14 domains
-- **All production files ≤504 lines** (braid handlers split into focused submodules)
+- **50 registered capability methods** across 15 domains
+- **All production files ≤710 lines** (3 large files smartly refactored this wave)
 - **Zero production debt**: 0 unsafe, 0 TODO/FIXME, 0 `unwrap()`, 0 clippy warnings
 - **`#![forbid(unsafe_code)]`** on all 9 crate roots
 - **BTSP enforced** on TCP when `FAMILY_ID` set (v0.7.36+)
@@ -35,7 +37,7 @@ springs = []
 
 | Domain | Methods | Stability |
 |--------|--------:|-----------|
-| braid | 7 | Stable |
+| braid | 11 | Stable |
 | anchoring | 2 | Stable |
 | provenance | 3 | Stable |
 | attribution | 4 | Stable |
@@ -48,6 +50,7 @@ springs = []
 | lifecycle | 1 | Stable |
 | capabilities + tools | 4 | Stable |
 | auth | 3 | Stable |
+| rootpulse | 2 | Beta |
 | trust | 1 | Beta |
 
 ## Key Binaries

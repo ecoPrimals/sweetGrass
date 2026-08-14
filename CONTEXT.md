@@ -27,7 +27,7 @@ attribution before distributing rewards.
 - **Architecture:** Single binary (UniBin), multiple operational modes
 - **Communication:** JSON-RPC 2.0 (required) + tarpc (optional high-perf) + REST + UDS
 - **License:** scyBorg Triple-Copyleft (AGPL-3.0-or-later + ORC-1.0 + CC-BY-SA-4.0)
-- **Tests:** 1,684 (cargo test --all-features, pure Rust — no Docker required)
+- **Tests:** 1,746 (cargo test --all-features, pure Rust — no Docker required)
 
 ## Degradation Behavior
 
@@ -66,7 +66,7 @@ When sweetGrass is **unavailable** in a composition:
 - **Neural API `primal.announce`:** Self-registers with biomeOS on startup — capabilities, cost hints, latency estimates, signal tier (nest). Graceful degradation when biomeOS unavailable.
 - **riboCipher:** Reference implementation in `peek.rs` — signal detection for `0xEC`/`0xED`/`0xEE` before legacy peek logic per `RIBOCIPHER_TRANSPORT_SIGNAL_STANDARD.md` (Wave 111, Stream 7)
 - **HEALTH-01:** Bare `{"method":"health"}` alias, enriched `health.check` with `primal` + `uptime_secs` fields
-- **Source files:** 215+ `.rs` files, max 743 lines (production code ≤545 lines per module)
+- **Source files:** 221+ `.rs` files, max 710 lines (production code ≤710 lines per module)
 - **Property testing:** 25 proptest strategies across 7 crates
 - **Chaos/fault:** 11 attribution chaos + 17 service chaos + 9 fault injection
 - **Edition:** 2024 (`resolver = "3"`), MSRV 1.87
@@ -80,7 +80,7 @@ When sweetGrass is **unavailable** in a composition:
 
 ## Key Capabilities (JSON-RPC methods)
 
-48 semantic methods across 14 domains:
+50 semantic methods across 15 domains:
 
 - `braid.create`, `braid.get`, `braid.get_by_hash`, `braid.query`, `braid.delete`, `braid.commit`, `braid.anchor`, `braid.batch_create`, `braid.batch_commit` — provenance record CRUD + branch anchoring + bulk pipeline
 - `contribution.record`, `contribution.record_session`, `contribution.record_dehydration`, `contribution.record_provenance` — inter-primal contribution tracking + provenance chain events
@@ -92,6 +92,7 @@ When sweetGrass is **unavailable** in a composition:
 - `identity.get` — Wire Standard L2 primal identity
 - `capabilities.list`, `capability.list`, `tools.list`, `tools.call` — self-knowledge and MCP tool exposure
 - `pipeline.attribute` — provenance trio pipeline coordination
+- `rootpulse.attribute`, `rootpulse.query` — rootPulse graph step handlers (provenance trio pipeline)
 - `auth.mode`, `auth.check`, `auth.peer_info` — JH-0 method gate introspection
 - `lifecycle.status` — running state, version, gate mode
 - `trust.event` — cross-gate trust braid weaving (auto-maps trust events to PROV-O activities)
