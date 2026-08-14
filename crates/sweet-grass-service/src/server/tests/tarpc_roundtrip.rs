@@ -162,6 +162,63 @@ async fn test_tarpc_status() {
 }
 
 #[tokio::test]
+async fn test_tarpc_health_readiness_count_failing_store() {
+    let (listener, addr) = bind_ephemeral().await;
+    let server = super::make_count_failing_server();
+    let (handle, _shutdown_tx) = spawn_server(listener, server);
+
+    let transport = tcp::connect(addr, Bincode::default).await.expect("connect");
+    let client = SweetGrassRpcClient::new(tarpc::client::Config::default(), transport).spawn();
+
+    let ready = client
+        .health_readiness(context::current())
+        .await
+        .expect("tarpc transport");
+    assert!(!ready);
+
+    let health = client
+        .health_check(context::current())
+        .await
+        .expect("tarpc transport");
+    assert!(health.is_err());
+
+    handle.abort();
+}
+
+#[tokio::test]
+async fn test_tarpc_create_braid_propagates_store_error() {
+    let (listener, addr) = bind_ephemeral().await;
+    let (server, fault) = super::make_fault_injection_server();
+    fault.set_fail_puts(true);
+    let (handle, _shutdown_tx) = spawn_server(listener, server);
+
+    let transport = tcp::connect(addr, Bincode::default).await.expect("connect");
+    let client = SweetGrassRpcClient::new(tarpc::client::Config::default(), transport).spawn();
+
+    let request = CreateBraidRequest {
+        data_hash: format!(
+            "sha256:tarpc-fault{}",
+            COUNTER.fetch_add(1, Ordering::SeqCst)
+        )
+        .into(),
+        mime_type: "text/plain".to_string(),
+        size: 1024,
+        attributed_to: Did::new("did:key:z6MkTest"),
+        activity: None,
+        derived_from: vec![],
+        metadata: None,
+    };
+
+    let result = client
+        .create_braid(context::current(), request)
+        .await
+        .expect("tarpc transport");
+    assert!(result.is_err());
+
+    handle.abort();
+}
+
+#[tokio::test]
 async fn test_start_tarpc_server_shutdown_exits() {
     let (listener, _addr) = bind_ephemeral().await;
     let server = make_server();

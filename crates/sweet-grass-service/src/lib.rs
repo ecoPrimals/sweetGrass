@@ -70,16 +70,16 @@ pub mod ledger_client;
 pub mod method_gate;
 pub mod neural_announce;
 pub mod peek;
+pub mod protocol_negotiation;
 pub mod router;
 pub mod rpc;
 pub mod server;
 pub mod state;
 pub mod streaming;
-pub mod protocol_negotiation;
-pub mod tcp_jsonrpc;
-pub mod transport_connect;
 #[cfg(unix)]
 pub mod tarpc_uds;
+pub mod tcp_jsonrpc;
+pub mod transport_connect;
 #[cfg(unix)]
 pub mod uds;
 

@@ -457,15 +457,17 @@ mod tests;
 #[cfg(test)]
 mod tests_anchoring;
 #[cfg(test)]
-mod tests_convergence;
-#[cfg(test)]
 mod tests_attribution;
+#[cfg(test)]
+mod tests_braid_verify;
 #[cfg(test)]
 mod tests_composition;
 #[cfg(test)]
 mod tests_compression;
 #[cfg(test)]
 mod tests_contribution;
+#[cfg(test)]
+mod tests_convergence;
 #[cfg(test)]
 mod tests_cross_gate;
 #[cfg(test)]

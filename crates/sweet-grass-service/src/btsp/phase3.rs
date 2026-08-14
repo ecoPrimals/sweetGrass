@@ -54,6 +54,7 @@ pub enum Phase3Cipher {
 
 impl Phase3Cipher {
     /// Wire-format name for this cipher.
+    #[must_use]
     pub const fn wire_name(self) -> &'static str {
         match self {
             Self::ChaCha20Poly1305 => "chacha20-poly1305",
@@ -238,6 +239,7 @@ pub fn generate_server_nonce() -> Result<[u8; KEY_DERIVATION_NONCE_SIZE], BtspEr
 /// Select the best cipher from the client's offered list.
 ///
 /// Returns `ChaCha20Poly1305` if the client offers it, otherwise `Null`.
+#[must_use]
 pub fn select_cipher(offered: &[String]) -> Phase3Cipher {
     if offered
         .iter()

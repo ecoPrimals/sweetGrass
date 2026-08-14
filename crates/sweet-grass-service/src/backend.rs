@@ -296,13 +296,14 @@ impl BraidStore for BraidBackend {
 }
 
 #[cfg(test)]
-#[expect(
-    clippy::unwrap_used,
-    reason = "test module: unwrap is standard in tests"
-)]
+#[expect(clippy::unwrap_used, reason = "test module")]
 mod tests {
     use super::*;
+    use sweet_grass_core::activity::ActivityType;
     use sweet_grass_core::agent::Did;
+    use sweet_grass_core::entity::EntityReference;
+    use sweet_grass_store_redb::RedbStore;
+    use tempfile::TempDir;
 
     fn test_braid() -> Braid {
         Braid::builder()
@@ -312,6 +313,29 @@ mod tests {
             .attributed_to(Did::new("did:key:z6MkBackendTest"))
             .build()
             .unwrap()
+    }
+
+    fn test_braid_with_hash(hash: &str, agent: &str) -> Braid {
+        Braid::builder()
+            .data_hash(hash)
+            .mime_type("text/plain")
+            .size(128)
+            .attributed_to(Did::new(agent))
+            .build()
+            .unwrap()
+    }
+
+    fn open_redb_backend() -> (BraidBackend, TempDir) {
+        let temp = TempDir::new().unwrap();
+        let db_path = temp.path().join("backend-test.redb");
+        let store = RedbStore::open_path(&db_path).unwrap();
+        (BraidBackend::Redb(store), temp)
+    }
+
+    fn test_activity() -> Activity {
+        Activity::builder(ActivityType::Computation)
+            .compute_units(1.0)
+            .build()
     }
 
     #[tokio::test]
@@ -391,5 +415,199 @@ mod tests {
 
         let result = backend.count(&filter).await;
         assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn memory_backend_get_by_hash_and_query_paths() {
+        let backend = BraidBackend::Memory(MemoryStore::new());
+        let braid = test_braid();
+        let hash = braid.data_hash.clone();
+        let agent = Did::new("did:key:z6MkBackendTest");
+
+        backend.put(&braid).await.unwrap();
+
+        let by_hash = backend.get_by_hash(&hash).await.unwrap();
+        assert!(by_hash.is_some());
+        assert_eq!(by_hash.unwrap().id, braid.id);
+
+        let by_agent = backend.by_agent(&agent).await.unwrap();
+        assert_eq!(by_agent.len(), 1);
+
+        let filter = QueryFilter::new().with_hash(hash.clone());
+        let query = backend
+            .query(&filter, QueryOrder::NewestFirst)
+            .await
+            .unwrap();
+        assert_eq!(query.total_count, 1);
+    }
+
+    #[tokio::test]
+    async fn memory_backend_derived_from_and_get_all_by_hash() {
+        let backend = BraidBackend::Memory(MemoryStore::new());
+        let mut braid = test_braid_with_hash("sha256:derived-child", "did:key:z6MkBackendTest");
+        braid
+            .was_derived_from
+            .push(EntityReference::by_hash("sha256:derived-source"));
+        backend.put(&braid).await.unwrap();
+
+        let derived = backend
+            .derived_from(&"sha256:derived-source".into())
+            .await
+            .unwrap();
+        assert_eq!(derived.len(), 1);
+        assert_eq!(derived[0].id, braid.id);
+
+        let mut braid2 = test_braid_with_hash("sha256:converged-hash", "did:key:z6MkAlice");
+        let mut braid3 = test_braid_with_hash("sha256:converged-hash", "did:key:z6MkBob");
+        braid2.id = BraidId::new();
+        braid3.id = BraidId::new();
+        backend.put(&braid2).await.unwrap();
+        backend.put(&braid3).await.unwrap();
+
+        let all = backend.get_all_by_hash(&braid2.data_hash).await.unwrap();
+        assert_eq!(all.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn memory_backend_activity_roundtrip() {
+        let backend = BraidBackend::Memory(MemoryStore::new());
+        let braid = test_braid();
+        let activity = test_activity();
+
+        backend.put(&braid).await.unwrap();
+        backend.put_activity(&activity).await.unwrap();
+
+        let retrieved = backend.get_activity(&activity.id).await.unwrap();
+        assert!(retrieved.is_some());
+
+        let for_braid = backend.activities_for_braid(&braid.id).await.unwrap();
+        assert!(for_braid.is_empty());
+    }
+
+    #[tokio::test]
+    async fn redb_backend_enum_dispatch_covers_store_paths() {
+        let (backend, _temp) = open_redb_backend();
+        let braid = test_braid_with_hash("sha256:redb-dispatch", "did:key:z6MkRedbTest");
+        let hash = braid.data_hash.clone();
+        let agent = Did::new("did:key:z6MkRedbTest");
+        let activity = test_activity();
+
+        backend.put(&braid).await.unwrap();
+        backend.put_activity(&activity).await.unwrap();
+
+        let by_id = backend.get(&braid.id).await.unwrap();
+        assert!(by_id.is_some());
+
+        let by_hash = backend.get_by_hash(&hash).await.unwrap();
+        assert!(by_hash.is_some());
+
+        let by_agent = backend.by_agent(&agent).await.unwrap();
+        assert_eq!(by_agent.len(), 1);
+
+        let filter = QueryFilter::new().with_hash(hash.clone());
+        let query = backend
+            .query(&filter, QueryOrder::NewestFirst)
+            .await
+            .unwrap();
+        assert_eq!(query.total_count, 1);
+
+        let mut derived_braid =
+            test_braid_with_hash("sha256:redb-derived-child", "did:key:z6MkRedbTest");
+        derived_braid
+            .was_derived_from
+            .push(EntityReference::by_hash("sha256:redb-derived-source"));
+        backend.put(&derived_braid).await.unwrap();
+        let derived = backend
+            .derived_from(&"sha256:redb-derived-source".into())
+            .await
+            .unwrap();
+        assert_eq!(derived.len(), 1);
+
+        let mut braid2 = test_braid_with_hash("sha256:redb-converged", "did:key:z6MkAlice");
+        let mut braid3 = test_braid_with_hash("sha256:redb-converged", "did:key:z6MkBob");
+        braid2.id = BraidId::new();
+        braid3.id = BraidId::new();
+        backend.put(&braid2).await.unwrap();
+        backend.put(&braid3).await.unwrap();
+        let all = backend.get_all_by_hash(&braid2.data_hash).await.unwrap();
+        assert_eq!(all.len(), 2);
+
+        let retrieved_activity = backend.get_activity(&activity.id).await.unwrap();
+        assert!(retrieved_activity.is_some());
+
+        let for_braid = backend.activities_for_braid(&braid.id).await.unwrap();
+        assert!(for_braid.is_empty());
+    }
+
+    #[tokio::test]
+    async fn fault_injection_fail_puts_blocks_writes() {
+        let store = FaultInjectionStore::new();
+        let backend = BraidBackend::FaultInjection(Arc::clone(&store));
+        let braid = test_braid();
+        let activity = test_activity();
+
+        store.set_fail_puts(true);
+        assert!(backend.put(&braid).await.is_err());
+        assert!(backend.put_activity(&activity).await.is_err());
+
+        store.set_fail_puts(false);
+        backend.put(&braid).await.unwrap();
+        backend.put_activity(&activity).await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn fault_injection_fail_gets_blocks_reads() {
+        let store = FaultInjectionStore::new();
+        let backend = BraidBackend::FaultInjection(Arc::clone(&store));
+        let braid = test_braid();
+        let activity = test_activity();
+        let hash = braid.data_hash.clone();
+
+        backend.put(&braid).await.unwrap();
+        backend.put_activity(&activity).await.unwrap();
+
+        store.set_fail_gets(true);
+        assert!(backend.get(&braid.id).await.is_err());
+        assert!(backend.get_by_hash(&hash).await.is_err());
+        assert!(backend.exists(&braid.id).await.is_err());
+        assert!(backend.get_activity(&activity.id).await.is_err());
+
+        store.set_fail_gets(false);
+        assert!(backend.get(&braid.id).await.unwrap().is_some());
+        assert!(backend.get_by_hash(&hash).await.unwrap().is_some());
+        assert!(backend.exists(&braid.id).await.unwrap());
+        assert!(backend.get_activity(&activity.id).await.unwrap().is_some());
+    }
+
+    #[tokio::test]
+    async fn fault_injection_fail_queries_blocks_query_paths() {
+        let store = FaultInjectionStore::new();
+        let backend = BraidBackend::FaultInjection(Arc::clone(&store));
+        let braid = test_braid();
+        let agent = Did::new("did:key:z6MkBackendTest");
+        let filter = QueryFilter::default();
+
+        backend.put(&braid).await.unwrap();
+
+        store.set_fail_queries(true);
+        assert!(
+            backend
+                .query(&filter, QueryOrder::NewestFirst)
+                .await
+                .is_err()
+        );
+        assert!(backend.count(&filter).await.is_err());
+        assert!(backend.by_agent(&agent).await.is_err());
+        assert!(
+            backend
+                .derived_from(&"sha256:missing-source".into())
+                .await
+                .is_err()
+        );
+        assert!(backend.activities_for_braid(&braid.id).await.is_err());
+
+        store.set_fail_queries(false);
+        assert_eq!(backend.count(&filter).await.unwrap(), 1);
+        assert_eq!(backend.by_agent(&agent).await.unwrap().len(), 1);
     }
 }

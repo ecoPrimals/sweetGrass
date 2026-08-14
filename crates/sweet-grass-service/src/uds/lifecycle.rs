@@ -19,6 +19,7 @@ use tracing::{debug, info, warn};
 pub const CAPABILITY_DOMAIN: &str = "provenance";
 
 /// Derive the PID file path from a socket path: `sweetgrass.sock` → `sweetgrass.pid`.
+#[must_use]
 pub fn pid_path(socket_path: &std::path::Path) -> PathBuf {
     socket_path.with_extension("pid")
 }
@@ -134,17 +135,17 @@ pub fn cleanup_socket_at(path: &std::path::Path) {
 ///
 /// Both achieve the same observable goal: `{domain}.sock` resolves to the
 /// primal socket. The caller doesn't know which mechanism was used.
-fn platform_link(
-    original: &std::ffi::OsStr,
-    link: &std::path::Path,
-) -> std::io::Result<()> {
+fn platform_link(original: &std::ffi::OsStr, link: &std::path::Path) -> std::io::Result<()> {
     #[cfg(unix)]
     {
         std::os::unix::fs::symlink(original, link)
     }
     #[cfg(not(unix))]
     {
-        let original_path = link.parent().unwrap_or(std::path::Path::new(".")).join(original);
+        let original_path = link
+            .parent()
+            .unwrap_or(std::path::Path::new("."))
+            .join(original);
         std::fs::hard_link(original_path, link)
     }
 }

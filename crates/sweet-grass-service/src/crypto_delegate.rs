@@ -239,9 +239,7 @@ impl CryptoDelegate {
     ) -> Result<serde_json::Value, CryptoDelegateError> {
         let mut stream = crate::transport_connect::connect_transport(&self.endpoint)
             .await
-            .map_err(|e| {
-                CryptoDelegateError::Unavailable(format!("{}: {e}", self.endpoint))
-            })?;
+            .map_err(|e| CryptoDelegateError::Unavailable(format!("{}: {e}", self.endpoint)))?;
 
         if crate::btsp_client::btsp_strict_mode_expected() {
             crate::btsp_client::perform_client_handshake(&mut stream)

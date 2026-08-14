@@ -245,11 +245,13 @@ pub(super) async fn handle_braid_batch_commit(
             .map(|(braid_id, maybe_payload)| {
                 maybe_payload.map_or_else(
                     || serde_json::json!({ "braid_id": braid_id, "status": "not_found" }),
-                    |payload| serde_json::json!({
-                        "braid_id": braid_id,
-                        "status": "local_only",
-                        "payload": payload,
-                    }),
+                    |payload| {
+                        serde_json::json!({
+                            "braid_id": braid_id,
+                            "status": "local_only",
+                            "payload": payload,
+                        })
+                    },
                 )
             })
             .collect()

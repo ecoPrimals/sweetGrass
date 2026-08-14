@@ -11,11 +11,14 @@
 mod attribution;
 mod braid_crud;
 mod compression;
+mod convergence;
+mod health;
 mod provenance;
+mod store_errors;
 mod tarpc_roundtrip;
 
 use super::*;
-use crate::backend::BraidBackend;
+use crate::backend::{BraidBackend, CountFailingStore, FaultInjectionStore};
 use crate::rpc::{CreateBraidRequest, SweetGrassRpc};
 use crate::state::AppState;
 
@@ -33,8 +36,10 @@ use tarpc::context;
 
 static COUNTER: AtomicU64 = AtomicU64::new(0);
 
-fn make_server() -> SweetGrassServer {
-    let store = Arc::new(BraidBackend::Memory(MemoryStore::new()));
+fn make_server_from_store(
+    store: Arc<BraidBackend>,
+    store_backend: &'static str,
+) -> SweetGrassServer {
     let did = Did::new("did:key:z6MkTest");
     let factory = Arc::new(BraidFactory::new(did));
     let query = Arc::new(QueryEngine::new(Arc::clone(&store)));
@@ -42,7 +47,23 @@ fn make_server() -> SweetGrassServer {
     let attribution = Arc::new(AttributionCalculator::new());
 
     SweetGrassServer::new(store, factory, query, compression, attribution)
-        .with_store_backend("memory")
+        .with_store_backend(store_backend)
+}
+
+fn make_server() -> SweetGrassServer {
+    make_server_from_store(Arc::new(BraidBackend::Memory(MemoryStore::new())), "memory")
+}
+
+fn make_count_failing_server() -> SweetGrassServer {
+    let inner = Arc::new(MemoryStore::new());
+    let store = Arc::new(BraidBackend::CountFailing(CountFailingStore(inner)));
+    make_server_from_store(store, "count_failing")
+}
+
+fn make_fault_injection_server() -> (SweetGrassServer, Arc<FaultInjectionStore>) {
+    let fault = FaultInjectionStore::new();
+    let store = Arc::new(BraidBackend::FaultInjection(Arc::clone(&fault)));
+    (make_server_from_store(store, "fault_injection"), fault)
 }
 
 async fn create_test_braid(server: &SweetGrassServer) -> Braid {

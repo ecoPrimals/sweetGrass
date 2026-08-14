@@ -17,7 +17,7 @@ use sweet_grass_store::{BraidStore, QueryFilter};
 use sweet_grass_core::identity;
 
 use crate::state::AppState;
-use crate::transport_connect::{PROBE_TIMEOUT, resolve_capability_endpoint, try_liveness_probe};
+use crate::transport_connect::{probe_timeout, resolve_capability_endpoint, try_liveness_probe};
 
 /// Health check response.
 #[derive(Serialize)]
@@ -283,7 +283,7 @@ async fn probe_integration(domain: &str, socket_dir: &std::path::Path) -> Primal
 
     let address = endpoint.to_string();
 
-    match tokio::time::timeout(PROBE_TIMEOUT, try_liveness_probe(&endpoint)).await {
+    match tokio::time::timeout(probe_timeout(), try_liveness_probe(&endpoint)).await {
         Ok(Ok(())) => PrimalStatus::connected(Some(address)),
         Ok(Err(e)) => PrimalStatus {
             connected: false,

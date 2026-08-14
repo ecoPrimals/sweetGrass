@@ -53,9 +53,9 @@ pub(super) async fn handle_braid_verify(
     let mut checks: Vec<serde_json::Value> = Vec::with_capacity(3);
     let mut all_passed = true;
 
-    // Check 1: Content integrity — recompute signing hash
+    // Check 1: Content integrity — recompute signing hash and validate data hash
     let signing_hash = braid.compute_signing_hash();
-    let content_valid = signing_hash.as_str().starts_with("sha256:");
+    let content_valid = content_integrity_valid(&signing_hash, &braid.data_hash);
     checks.push(serde_json::json!({
         "check": "content_integrity",
         "status": if content_valid { "pass" } else { "fail" },
@@ -69,10 +69,7 @@ pub(super) async fn handle_braid_verify(
     // Check 2: Ed25519 signature verification
     if braid.witness.is_signed() {
         let sig_check = verify_witness_signature(state, &braid).await;
-        let passed = sig_check
-            .get("status")
-            .and_then(serde_json::Value::as_str)
-            != Some("fail");
+        let passed = sig_check.get("status").and_then(serde_json::Value::as_str) != Some("fail");
         if !passed {
             all_passed = false;
         }
@@ -205,11 +202,19 @@ async fn verify_witness_signature(
     }
 }
 
+/// Whether content integrity checks pass for a braid's hashes.
+pub(super) fn content_integrity_valid(
+    signing_hash: &sweet_grass_core::braid::ContentHash,
+    data_hash: &sweet_grass_core::braid::ContentHash,
+) -> bool {
+    signing_hash.as_str().starts_with("sha256:") && data_hash.as_str().starts_with("sha256:")
+}
+
 /// Extract raw Ed25519 public key bytes from a `did:key:z6Mk...` DID.
 ///
 /// Uses base64url-no-pad decoding (matching `Did::from_public_key_bytes`).
 /// Returns `None` if the DID format is unrecognized or decoding fails.
-fn extract_public_key_from_did(did: &sweet_grass_core::agent::Did) -> Option<Vec<u8>> {
+pub(super) fn extract_public_key_from_did(did: &sweet_grass_core::agent::Did) -> Option<Vec<u8>> {
     let s = did.as_str();
     let key_part = s.strip_prefix("did:key:z6Mk")?;
     base64::engine::general_purpose::URL_SAFE_NO_PAD

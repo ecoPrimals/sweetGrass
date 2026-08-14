@@ -149,8 +149,7 @@ impl TransportListener {
                 format!("UDS listener not available on this platform: {path}"),
             )),
             TransportEndpoint::Tcp { host, port } => {
-                let listener =
-                    tokio::net::TcpListener::bind(format!("{host}:{port}")).await?;
+                let listener = tokio::net::TcpListener::bind(format!("{host}:{port}")).await?;
                 Ok(Self::Tcp(listener))
             },
             _ => Err(std::io::Error::new(
@@ -193,7 +192,14 @@ impl TransportListener {
 // ──────────────────────── Utilities ────────────────────────
 
 /// Default timeout for JSON-RPC probes.
-pub const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
+///
+/// Override via `SWEETGRASS_PROBE_TIMEOUT_MS` for tuning without recompilation.
+pub fn probe_timeout() -> Duration {
+    std::env::var("SWEETGRASS_PROBE_TIMEOUT_MS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .map_or(Duration::from_secs(3), Duration::from_millis)
+}
 
 /// Send a JSON-RPC request via a [`TransportEndpoint`] and return the response.
 ///
@@ -254,7 +260,7 @@ pub async fn try_liveness_probe(endpoint: &TransportEndpoint) -> std::io::Result
         "id": 1,
     });
 
-    let response = send_jsonrpc(endpoint, &request, PROBE_TIMEOUT).await?;
+    let response = send_jsonrpc(endpoint, &request, probe_timeout()).await?;
 
     if response.get("result").is_some() {
         Ok(())
@@ -272,6 +278,7 @@ pub async fn try_liveness_probe(endpoint: &TransportEndpoint) -> std::io::Result
 /// 1. Check env var `CAPABILITY_{DOMAIN}_ENDPOINT` for explicit JSON endpoint
 /// 2. On Unix: check `{socket_dir}/{domain}.sock` existence → UDS endpoint
 /// 3. Returns `None` if no endpoint is discoverable
+#[must_use]
 pub fn resolve_capability_endpoint(
     domain: &str,
     socket_dir: &std::path::Path,

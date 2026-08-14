@@ -24,6 +24,7 @@
 //! JSON-RPC. This first-line auto-detect aligns with Phase 45b wire-format
 //! guidance and matches `BearDog` (PG-35) / `Squirrel` (PG-30) patterns.
 
+pub mod encrypted_stream;
 pub mod phase3;
 pub mod protocol;
 pub mod server;

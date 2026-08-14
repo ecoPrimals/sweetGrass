@@ -77,22 +77,15 @@ pub async fn start_tarpc_uds_server(
 
     if let Some(parent) = socket_path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| {
-            crate::ServiceError::Internal(format!(
-                "tarpc UDS mkdir {}: {e}",
-                parent.display()
-            ))
+            crate::ServiceError::Internal(format!("tarpc UDS mkdir {}: {e}", parent.display()))
         })?;
     }
 
-    let mut listener =
-        tarpc::serde_transport::unix::listen(socket_path, Bincode::default)
-            .await
-            .map_err(|e| {
-                crate::ServiceError::Internal(format!(
-                    "tarpc UDS bind {}: {e}",
-                    socket_path.display()
-                ))
-            })?;
+    let mut listener = tarpc::serde_transport::unix::listen(socket_path, Bincode::default)
+        .await
+        .map_err(|e| {
+            crate::ServiceError::Internal(format!("tarpc UDS bind {}: {e}", socket_path.display()))
+        })?;
 
     info!(path = %socket_path.display(), "tarpc UDS server listening");
 
@@ -185,10 +178,7 @@ mod tests {
             [(TARPC_SOCKET_ENV, Some("/custom/path.tarpc.sock"))],
             || {
                 let resolved = resolve_tarpc_socket_path(None);
-                assert_eq!(
-                    resolved,
-                    PathBuf::from("/custom/path.tarpc.sock")
-                );
+                assert_eq!(resolved, PathBuf::from("/custom/path.tarpc.sock"));
             },
         );
     }

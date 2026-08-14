@@ -261,7 +261,6 @@ fn extract_handshake_key_wrong_length() {
 
 #[test]
 fn extract_handshake_key_invalid_base64() {
-    let verify_result =
-        serde_json::json!({"verified": true, "session_key": "not-valid-b64!!!"});
+    let verify_result = serde_json::json!({"verified": true, "session_key": "not-valid-b64!!!"});
     assert!(super::server::extract_handshake_key(&verify_result).is_none());
 }

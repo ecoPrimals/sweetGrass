@@ -172,8 +172,13 @@ pub fn parse_transport_endpoint(json: &str) -> Result<TransportEndpoint, serde_j
 #[cfg(not(unix))]
 #[must_use]
 fn derive_default_port(name: &str) -> u16 {
-    let hash: u32 = name.bytes().fold(0u32, |acc, b| acc.wrapping_mul(31).wrapping_add(u32::from(b)));
-    #[expect(clippy::cast_possible_truncation, reason = "intentional range reduction")]
+    let hash: u32 = name.bytes().fold(0u32, |acc, b| {
+        acc.wrapping_mul(31).wrapping_add(u32::from(b))
+    });
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "intentional range reduction"
+    )]
     let port = (hash % 50_000) as u16 + 10_000;
     port
 }

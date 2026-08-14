@@ -115,9 +115,7 @@ async fn convergence_batch_check_mixed() {
 #[tokio::test]
 async fn convergence_batch_check_exceeds_limit() {
     let state = test_state();
-    let hashes: Vec<String> = (0..1001)
-        .map(|i| format!("blake3:{i:064x}"))
-        .collect();
+    let hashes: Vec<String> = (0..1001).map(|i| format!("blake3:{i:064x}")).collect();
     let result = dispatch(
         &state,
         "convergence.batch_check",
@@ -196,10 +194,7 @@ async fn braid_list_with_filter() {
     .unwrap();
 
     assert_eq!(result["total"], 1);
-    assert_eq!(
-        result["items"][0]["data_hash"].as_str().unwrap(),
-        hash
-    );
+    assert_eq!(result["items"][0]["data_hash"].as_str().unwrap(), hash);
 }
 
 #[tokio::test]

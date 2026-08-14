@@ -40,6 +40,7 @@ const DEFAULT_SECURITY_SOCKET: &str = "security.sock";
 ///
 /// Public for `AppState` startup snapshot; prefer the snapshotted
 /// `AppState.security_socket_path` over calling this at runtime.
+#[must_use]
 pub fn resolve_security_socket_from_env() -> std::path::PathBuf {
     use sweet_grass_core::primal_names::{env_vars, paths};
 

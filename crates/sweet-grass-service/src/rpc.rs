@@ -252,9 +252,7 @@ pub trait SweetGrassRpc {
     async fn convergence_check(data_hash: ContentHash) -> Result<serde_json::Value, RpcError>;
 
     /// Backpressure signal: convergence lag as a throttling gate.
-    async fn convergence_pressure(
-        scan_limit: u32,
-    ) -> Result<serde_json::Value, RpcError>;
+    async fn convergence_pressure(scan_limit: u32) -> Result<serde_json::Value, RpcError>;
 
     // ==================== Health ====================
 

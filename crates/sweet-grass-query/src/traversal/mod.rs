@@ -208,25 +208,26 @@ impl ProvenanceGraphBuilder {
 
             let hash_key = String::from(hash.as_str());
 
-            graph.entities.insert(hash_key.clone(), braid.clone());
+            let parent_hashes: Vec<ContentHash> = braid
+                .was_derived_from
+                .iter()
+                .filter_map(|e| e.content_hash().cloned())
+                .collect();
 
             if self.include_activities
                 && let Some(activity) = &braid.was_generated_by
             {
                 let activity_key = String::from(activity.id.as_str());
                 graph
-                    .activities
-                    .insert(activity_key.clone(), activity.clone());
-                graph
                     .generation_edges
-                    .insert(hash_key.clone(), activity_key);
+                    .insert(hash_key.clone(), activity_key.clone());
+                graph
+                    .activities
+                    .entry(activity_key)
+                    .or_insert_with(|| activity.clone());
             }
 
-            let parent_hashes: Vec<ContentHash> = braid
-                .was_derived_from
-                .iter()
-                .filter_map(|e| e.content_hash().cloned())
-                .collect();
+            graph.entities.entry(hash_key.clone()).or_insert(braid);
 
             if !parent_hashes.is_empty() {
                 let parent_keys: Vec<String> = parent_hashes

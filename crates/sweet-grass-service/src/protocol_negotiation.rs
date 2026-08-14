@@ -85,6 +85,7 @@ pub fn select_protocol(
 /// Parse a `PROTOCOLS:` request line into supported protocols.
 ///
 /// Expected format: `"PROTOCOLS: tarpc,jsonrpc\n"`
+#[must_use]
 pub fn parse_protocol_request(line: &str) -> Option<Vec<IpcProtocol>> {
     let trimmed = line.trim();
     let body = trimmed.strip_prefix("PROTOCOLS: ")?;
@@ -203,8 +204,14 @@ mod tests {
 
     #[test]
     fn protocol_from_wire() {
-        assert_eq!(IpcProtocol::from_wire("jsonrpc"), Some(IpcProtocol::JsonRpc));
-        assert_eq!(IpcProtocol::from_wire("json-rpc"), Some(IpcProtocol::JsonRpc));
+        assert_eq!(
+            IpcProtocol::from_wire("jsonrpc"),
+            Some(IpcProtocol::JsonRpc)
+        );
+        assert_eq!(
+            IpcProtocol::from_wire("json-rpc"),
+            Some(IpcProtocol::JsonRpc)
+        );
         assert_eq!(IpcProtocol::from_wire("TARPC"), Some(IpcProtocol::Tarpc));
         assert_eq!(IpcProtocol::from_wire("tarpc"), Some(IpcProtocol::Tarpc));
         assert_eq!(IpcProtocol::from_wire("unknown"), None);
@@ -261,7 +268,10 @@ mod tests {
 
     #[test]
     fn format_response() {
-        assert_eq!(format_protocol_response(IpcProtocol::Tarpc), "PROTOCOL: tarpc\n");
+        assert_eq!(
+            format_protocol_response(IpcProtocol::Tarpc),
+            "PROTOCOL: tarpc\n"
+        );
         assert_eq!(
             format_protocol_response(IpcProtocol::JsonRpc),
             "PROTOCOL: jsonrpc\n"
@@ -300,9 +310,10 @@ mod tests {
     async fn negotiate_server_from_partial_selects_tarpc() {
         let (mut client_stream, mut server_stream) = tokio::io::duplex(4096);
 
-        let server_handle = tokio::spawn(async move {
-            negotiate_server_from_partial(&mut server_stream, b'P').await
-        });
+        let server_handle =
+            tokio::spawn(
+                async move { negotiate_server_from_partial(&mut server_stream, b'P').await },
+            );
 
         client_stream
             .write_all(b"ROTOCOLS: tarpc,jsonrpc\n")
@@ -323,9 +334,10 @@ mod tests {
     async fn negotiate_server_from_partial_jsonrpc_only() {
         let (mut client_stream, mut server_stream) = tokio::io::duplex(4096);
 
-        let server_handle = tokio::spawn(async move {
-            negotiate_server_from_partial(&mut server_stream, b'P').await
-        });
+        let server_handle =
+            tokio::spawn(
+                async move { negotiate_server_from_partial(&mut server_stream, b'P').await },
+            );
 
         client_stream
             .write_all(b"ROTOCOLS: jsonrpc\n")

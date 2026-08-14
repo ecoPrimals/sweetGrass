@@ -501,4 +501,3 @@ pub(super) async fn handle_braid_anchor(
 
     to_value(&response)
 }
-

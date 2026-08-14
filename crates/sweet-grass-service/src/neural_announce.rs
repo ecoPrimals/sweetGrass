@@ -28,7 +28,14 @@ use crate::transport_connect::send_jsonrpc;
 const DEFAULT_FAMILY: &str = "ecoPrimal";
 
 /// Timeout for neural-api announce call (longer than standard probe).
-const ANNOUNCE_TIMEOUT: Duration = Duration::from_secs(5);
+///
+/// Override via `SWEETGRASS_ANNOUNCE_TIMEOUT_MS` for tuning without recompilation.
+fn announce_timeout() -> Duration {
+    std::env::var("SWEETGRASS_ANNOUNCE_TIMEOUT_MS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .map_or(Duration::from_secs(5), Duration::from_millis)
+}
 
 /// Resolve the biomeOS neural-api transport endpoint.
 ///
@@ -143,7 +150,7 @@ pub async fn announce_to_neural_api(own_endpoint: &TransportEndpoint, version: &
 
     let payload = build_announce_payload(own_endpoint, version);
 
-    match send_jsonrpc(&neural_endpoint, &payload, ANNOUNCE_TIMEOUT).await {
+    match send_jsonrpc(&neural_endpoint, &payload, announce_timeout()).await {
         Ok(response) => {
             if let Some(result) = response.get("result") {
                 info!(
@@ -429,7 +436,7 @@ mod tests {
         let endpoint = TransportEndpoint::uds(&sock_str);
         let ep = TransportEndpoint::uds("/tmp/test.sock");
         let payload = build_announce_payload(&ep, "0.7.59");
-        let result = send_jsonrpc(&endpoint, &payload, ANNOUNCE_TIMEOUT).await;
+        let result = send_jsonrpc(&endpoint, &payload, announce_timeout()).await;
         assert!(result.is_ok());
         let response = result.unwrap();
         assert_eq!(response["result"]["capabilities_registered"], 3);
@@ -467,7 +474,7 @@ mod tests {
         let endpoint = TransportEndpoint::tcp("127.0.0.1", port);
         let ep = TransportEndpoint::tcp("127.0.0.1", 9100);
         let payload = build_announce_payload(&ep, "0.7.61");
-        let result = send_jsonrpc(&endpoint, &payload, ANNOUNCE_TIMEOUT).await;
+        let result = send_jsonrpc(&endpoint, &payload, announce_timeout()).await;
         assert!(result.is_ok());
         let response = result.unwrap();
         assert_eq!(response["result"]["capabilities_registered"], 3);
@@ -479,7 +486,7 @@ mod tests {
     async fn test_send_jsonrpc_connection_refused() {
         let endpoint = TransportEndpoint::tcp("127.0.0.1", 1);
         let payload = serde_json::json!({"jsonrpc": "2.0", "method": "test", "id": 1});
-        let result = send_jsonrpc(&endpoint, &payload, ANNOUNCE_TIMEOUT).await;
+        let result = send_jsonrpc(&endpoint, &payload, announce_timeout()).await;
         assert!(result.is_err());
     }
 }

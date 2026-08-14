@@ -25,7 +25,12 @@ use sweet_grass_core::primal_names::{env_vars, names, socket_env_var};
 use crate::transport_connect::{TransportStream, connect_transport};
 use sweet_grass_core::transport::TransportEndpoint;
 
-const LEDGER_TIMEOUT: Duration = Duration::from_secs(5);
+fn ledger_timeout() -> Duration {
+    std::env::var("SWEETGRASS_LEDGER_TIMEOUT_MS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .map_or(Duration::from_secs(5), Duration::from_millis)
+}
 
 /// Errors from ledger client operations.
 #[derive(Debug, Error)]
@@ -179,7 +184,7 @@ impl LedgerClient {
         method: &str,
         params: serde_json::Value,
     ) -> Result<serde_json::Value, LedgerClientError> {
-        let stream = tokio::time::timeout(LEDGER_TIMEOUT, connect_transport(&self.endpoint))
+        let stream = tokio::time::timeout(ledger_timeout(), connect_transport(&self.endpoint))
             .await
             .map_err(|_| LedgerClientError::Unavailable("connection timeout".into()))?
             .map_err(|e| LedgerClientError::Unavailable(format!("{e}")))?;
@@ -211,7 +216,7 @@ impl LedgerClient {
         writer.flush().await?;
 
         let mut lines = BufReader::new(reader).lines();
-        let response_line = tokio::time::timeout(LEDGER_TIMEOUT, lines.next_line())
+        let response_line = tokio::time::timeout(ledger_timeout(), lines.next_line())
             .await
             .map_err(|_| LedgerClientError::Unavailable("response timeout".into()))?
             .map_err(LedgerClientError::Io)?

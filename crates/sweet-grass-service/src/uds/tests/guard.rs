@@ -33,9 +33,7 @@ fn guard_fails_family_and_insecure() {
 
 #[test]
 fn guard_error_display_is_descriptive() {
-    let err = BtspGuardViolation {
-        family_id: "myFamily42".to_string(),
-    };
+    let err = validate_insecure_guard_with(Some("myFamily42"), true).unwrap_err();
     let msg = err.to_string();
     assert!(msg.contains("myFamily42"));
     assert!(msg.contains("mutually exclusive"));

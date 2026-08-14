@@ -16,7 +16,7 @@ use sweet_grass_store::BraidStore;
 use tracing::debug;
 
 use crate::state::AppState;
-use crate::transport_connect::{PROBE_TIMEOUT, resolve_capability_endpoint, try_liveness_probe};
+use crate::transport_connect::{probe_timeout, resolve_capability_endpoint, try_liveness_probe};
 
 use super::{DispatchResult, to_value};
 
@@ -47,7 +47,7 @@ async fn probe_capability_in_dir(domain: &str, socket_dir: &std::path::Path) -> 
         return "unavailable";
     };
 
-    let result = tokio::time::timeout(PROBE_TIMEOUT, try_liveness_probe(&endpoint)).await;
+    let result = tokio::time::timeout(probe_timeout(), try_liveness_probe(&endpoint)).await;
 
     match result {
         Ok(Ok(())) => "ok",
@@ -66,7 +66,7 @@ async fn probe_capability_with_reader(
         return "unavailable";
     };
 
-    let result = tokio::time::timeout(PROBE_TIMEOUT, try_liveness_probe(&endpoint)).await;
+    let result = tokio::time::timeout(probe_timeout(), try_liveness_probe(&endpoint)).await;
 
     match result {
         Ok(Ok(())) => "ok",

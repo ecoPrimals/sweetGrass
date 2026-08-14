@@ -72,23 +72,18 @@ pub(super) async fn handle_convergence_check(
 
     let braid = result.braids.into_iter().next();
 
-    let (cas_present, dag_present, spine_present, braid_present, signed_present, braid_id) =
-        braid.as_ref().map_or(
-            (false, false, false, false, false, None),
-            |b| {
-                let dag = b.ecop.session_ref.is_some();
-                let spine = b.loam_anchor.is_some() || b.ecop.ledger_commit.is_some();
-                let signed = b.is_signed();
-                (true, dag, spine, true, signed, Some(b.id.to_string()))
-            },
-        );
+    let (cas_present, dag_present, spine_present, braid_present, signed_present, braid_id) = braid
+        .as_ref()
+        .map_or((false, false, false, false, false, None), |b| {
+            let dag = b.ecop.session_ref.is_some();
+            let spine = b.loam_anchor.is_some() || b.ecop.ledger_commit.is_some();
+            let signed = b.is_signed();
+            (true, dag, spine, true, signed, Some(b.id.to_string()))
+        });
 
-    let dag_detail = braid.as_ref().and_then(|b| {
-        b.ecop
-            .session_ref
-            .as_ref()
-            .map(|s| format!("session: {s}"))
-    });
+    let dag_detail = braid
+        .as_ref()
+        .and_then(|b| b.ecop.session_ref.as_ref().map(|s| format!("session: {s}")));
 
     let spine_detail = braid.as_ref().and_then(|b| {
         b.loam_anchor.as_ref().map_or_else(
@@ -102,15 +97,12 @@ pub(super) async fn handle_convergence_check(
         )
     });
 
-    let signed_detail = braid
-        .as_ref()
-        .filter(|b| b.is_signed())
-        .and_then(|b| {
-            b.witness
-                .algorithm
-                .as_ref()
-                .map(|alg| format!("algorithm: {alg}"))
-        });
+    let signed_detail = braid.as_ref().filter(|b| b.is_signed()).and_then(|b| {
+        b.witness
+            .algorithm
+            .as_ref()
+            .map(|alg| format!("algorithm: {alg}"))
+    });
 
     let stages = vec![
         ConvergenceStage {
@@ -224,15 +216,10 @@ pub(super) async fn handle_convergence_batch_check(
             .await
             .map_err(internal)?;
 
-        let (is_converged, depth) =
-            result
-                .braids
-                .into_iter()
-                .next()
-                .map_or((false, 0), |b| {
-                    let d = compute_depth(&b);
-                    (d == 5, d)
-                });
+        let (is_converged, depth) = result.braids.into_iter().next().map_or((false, 0), |b| {
+            let d = compute_depth(&b);
+            (d == 5, d)
+        });
 
         if is_converged {
             converged_count += 1;
