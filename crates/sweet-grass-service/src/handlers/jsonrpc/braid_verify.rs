@@ -161,44 +161,58 @@ async fn verify_witness_signature(
         }
     };
 
-    let Some(crypto) = &state.crypto else {
-        return serde_json::json!({
+    #[cfg(unix)]
+    {
+        let Some(crypto) = &state.crypto else {
+            return serde_json::json!({
+                "check": "signature",
+                "status": "present",
+                "detail": "signature present but crypto provider unavailable for verification",
+                "agent": braid.witness.agent.as_str(),
+                "algorithm": braid.witness.algorithm.as_deref(),
+            });
+        };
+
+        let Some(pub_key_bytes) = extract_public_key_from_did(&braid.witness.agent) else {
+            return serde_json::json!({
+                "check": "signature",
+                "status": "present",
+                "detail": "cannot extract public key from agent DID for verification",
+                "agent": braid.witness.agent.as_str(),
+            });
+        };
+
+        match crypto.verify(message, &sig_bytes, &pub_key_bytes).await {
+            Ok(true) => serde_json::json!({
+                "check": "signature",
+                "status": "pass",
+                "agent": braid.witness.agent.as_str(),
+                "algorithm": braid.witness.algorithm.as_deref(),
+            }),
+            Ok(false) => serde_json::json!({
+                "check": "signature",
+                "status": "fail",
+                "detail": "Ed25519 signature invalid",
+                "agent": braid.witness.agent.as_str(),
+            }),
+            Err(e) => serde_json::json!({
+                "check": "signature",
+                "status": "present",
+                "detail": format!("crypto provider error: {e}"),
+                "agent": braid.witness.agent.as_str(),
+            }),
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = (&sig_bytes, message);
+        serde_json::json!({
             "check": "signature",
             "status": "present",
-            "detail": "signature present but crypto provider unavailable for verification",
+            "detail": "crypto provider requires unix (Tower-delegated bearDog UDS) — use TCP RPC on this platform",
             "agent": braid.witness.agent.as_str(),
             "algorithm": braid.witness.algorithm.as_deref(),
-        });
-    };
-
-    let Some(pub_key_bytes) = extract_public_key_from_did(&braid.witness.agent) else {
-        return serde_json::json!({
-            "check": "signature",
-            "status": "present",
-            "detail": "cannot extract public key from agent DID for verification",
-            "agent": braid.witness.agent.as_str(),
-        });
-    };
-
-    match crypto.verify(message, &sig_bytes, &pub_key_bytes).await {
-        Ok(true) => serde_json::json!({
-            "check": "signature",
-            "status": "pass",
-            "agent": braid.witness.agent.as_str(),
-            "algorithm": braid.witness.algorithm.as_deref(),
-        }),
-        Ok(false) => serde_json::json!({
-            "check": "signature",
-            "status": "fail",
-            "detail": "Ed25519 signature invalid",
-            "agent": braid.witness.agent.as_str(),
-        }),
-        Err(e) => serde_json::json!({
-            "check": "signature",
-            "status": "present",
-            "detail": format!("crypto provider error: {e}"),
-            "agent": braid.witness.agent.as_str(),
-        }),
+        })
     }
 }
 
