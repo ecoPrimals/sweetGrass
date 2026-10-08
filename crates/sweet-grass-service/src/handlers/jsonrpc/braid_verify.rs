@@ -161,6 +161,18 @@ async fn verify_witness_signature(
         }
     };
 
+    #[cfg(not(unix))]
+    {
+        let _ = (&sig_bytes, message);
+        return serde_json::json!({
+            "check": "signature",
+            "status": "present",
+            "detail": "signature present but crypto provider unavailable on this platform",
+            "agent": braid.witness.agent.as_str(),
+            "algorithm": braid.witness.algorithm.as_deref(),
+        });
+    }
+
     #[cfg(unix)]
     {
         let Some(crypto) = &state.crypto else {
@@ -202,17 +214,6 @@ async fn verify_witness_signature(
                 "agent": braid.witness.agent.as_str(),
             }),
         }
-    }
-    #[cfg(not(unix))]
-    {
-        let _ = (&sig_bytes, message);
-        serde_json::json!({
-            "check": "signature",
-            "status": "present",
-            "detail": "crypto provider requires unix (Tower-delegated bearDog UDS) — use TCP RPC on this platform",
-            "agent": braid.witness.agent.as_str(),
-            "algorithm": braid.witness.algorithm.as_deref(),
-        })
     }
 }
 

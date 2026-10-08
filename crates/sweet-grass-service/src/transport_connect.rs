@@ -97,14 +97,124 @@ pub async fn connect_transport(endpoint: &TransportEndpoint) -> std::io::Result<
         TransportEndpoint::MeshRelay {
             peer_id,
             capability,
-        } => Err(std::io::Error::new(
-            std::io::ErrorKind::Unsupported,
-            format!("mesh_relay transport not yet implemented (peer={peer_id}, cap={capability})"),
-        )),
+        } => {
+            // Gravitational mesh relay: route through local songBird.
+            // songBird discovers the peer's socket via mesh.peers and
+            // forwards the connection. The gravitational distance between
+            // this node and the peer determines relay latency.
+            mesh_relay_via_songbird(peer_id, capability).await
+        }
         _ => Err(std::io::Error::new(
             std::io::ErrorKind::Unsupported,
             "unsupported transport endpoint variant",
         )),
+    }
+}
+
+// ──────────────────────── Mesh relay via songBird ────────────────────────
+
+/// Route a connection through the local songBird mesh relay.
+///
+/// Discovers the songBird UDS socket, sends a `mesh.relay` request
+/// with the target peer_id and capability, and receives a TCP address
+/// to connect to. The relay path uses the gravitational mesh — closer
+/// peers (higher gravity in swarmVine PeerStats) get faster routing.
+#[cfg(unix)]
+async fn mesh_relay_via_songbird(peer_id: &str, capability: &str) -> std::io::Result<TransportStream> {
+    let songbird_socket = discover_songbird_socket().ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "songBird socket not found for mesh relay — cannot reach peer",
+        )
+    })?;
+
+    let request = serde_json::json!({
+        "jsonrpc": "2.0",
+        "method": "mesh.resolve",
+        "params": {
+            "peer_id": peer_id,
+            "capability": capability,
+        },
+        "id": 1,
+    });
+
+    let stream = tokio::net::UnixStream::connect(&songbird_socket).await.map_err(|e| {
+        std::io::Error::new(
+            std::io::ErrorKind::ConnectionRefused,
+            format!("Cannot connect to songBird for mesh relay: {e}"),
+        )
+    })?;
+
+    let (rd, mut wr) = tokio::io::split(stream);
+    let mut reader = BufReader::new(rd);
+
+    // riboCipher clear signal
+    wr.write_all(&[0xEC, 0x01]).await?;
+    let msg = format!("{request}\n");
+    wr.write_all(msg.as_bytes()).await?;
+
+    let mut response = String::new();
+    let timeout = Duration::from_secs(5);
+    match tokio::time::timeout(timeout, reader.read_line(&mut response)).await {
+        Ok(Ok(n)) if n > 0 => {}
+        Ok(Ok(_)) => return Err(std::io::Error::new(
+            std::io::ErrorKind::UnexpectedEof,
+            "Empty response from songBird mesh.resolve",
+        )),
+        Ok(Err(e)) => return Err(e),
+        Err(_) => return Err(std::io::Error::new(
+            std::io::ErrorKind::TimedOut,
+            "Timeout waiting for songBird mesh.resolve",
+        )),
+    }
+
+    let resp: serde_json::Value = serde_json::from_str(&response).map_err(|e| {
+        std::io::Error::new(std::io::ErrorKind::InvalidData, format!("Invalid mesh.resolve response: {e}"))
+    })?;
+
+    if let Some(error) = resp.get("error") {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            format!("mesh.resolve error: {error}"),
+        ));
+    }
+
+    // songBird returns the resolved endpoint — connect via TCP
+    let result = resp.get("result").ok_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::InvalidData, "No result in mesh.resolve response")
+    })?;
+
+    let addr = result.get("endpoint").and_then(|v| v.as_str()).ok_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::InvalidData, "No endpoint in mesh.resolve result")
+    })?;
+
+    let tcp_stream = tokio::net::TcpStream::connect(addr).await?;
+    Ok(TransportStream::Tcp(tcp_stream))
+}
+
+#[cfg(not(unix))]
+async fn mesh_relay_via_songbird(peer_id: &str, capability: &str) -> std::io::Result<TransportStream> {
+    Err(std::io::Error::new(
+        std::io::ErrorKind::Unsupported,
+        format!("mesh_relay requires Unix sockets (peer={peer_id}, cap={capability})"),
+    ))
+}
+
+/// Discover the local songBird UDS socket.
+#[cfg(unix)]
+fn discover_songbird_socket() -> Option<std::path::PathBuf> {
+    // Priority: SONGBIRD_SOCKET env → /run/membrane/songbird.sock
+    if let Ok(path) = std::env::var("SONGBIRD_SOCKET") {
+        let p = std::path::PathBuf::from(path);
+        if p.exists() {
+            return Some(p);
+        }
+    }
+    let default = std::path::PathBuf::from("/run/membrane/songbird.sock");
+    if default.exists() {
+        Some(default)
+    } else {
+        None
     }
 }
 
