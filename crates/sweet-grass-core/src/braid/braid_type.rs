@@ -89,169 +89,75 @@ pub enum SummaryType {
 
 // ---------------------------------------------------------------------------
 // Dual-format serde: JSON (internally tagged) vs bincode (externally tagged)
+//
+// JSON needs `#[serde(tag = "type")]` for human-readable output; bincode
+// needs external tagging (serde default). The macro below generates both
+// helper enums and their bidirectional From impls from a single variant list,
+// eliminating the triple-definition boilerplate.
 // ---------------------------------------------------------------------------
 
-#[derive(Serialize, Deserialize)]
-#[serde(tag = "type")]
-enum BraidTypeJson {
+macro_rules! braid_type_serde_helpers {
+    (
+        $(
+            $variant:ident $( { $($field:ident : $ty:ty),+ $(,)? } )?
+        ),+ $(,)?
+    ) => {
+        #[derive(Serialize, Deserialize)]
+        #[serde(tag = "type")]
+        enum BraidTypeJson {
+            $( $variant $( { $($field: $ty),+ } )? ),+
+        }
+
+        #[derive(Serialize, Deserialize)]
+        enum BraidTypeBin {
+            $( $variant $( { $($field: $ty),+ } )? ),+
+        }
+
+        impl From<BraidType> for BraidTypeJson {
+            fn from(t: BraidType) -> Self {
+                match t {
+                    $( BraidType::$variant $( { $($field),+ } )? =>
+                        Self::$variant $( { $($field),+ } )? ),+
+                }
+            }
+        }
+
+        impl From<BraidTypeJson> for BraidType {
+            fn from(t: BraidTypeJson) -> Self {
+                match t {
+                    $( BraidTypeJson::$variant $( { $($field),+ } )? =>
+                        Self::$variant $( { $($field),+ } )? ),+
+                }
+            }
+        }
+
+        impl From<&BraidType> for BraidTypeBin {
+            fn from(t: &BraidType) -> Self {
+                match *t {
+                    $( BraidType::$variant $( { $(ref $field),+ } )? =>
+                        Self::$variant $( { $($field: $field.clone()),+ } )? ),+
+                }
+            }
+        }
+
+        impl From<BraidTypeBin> for BraidType {
+            fn from(t: BraidTypeBin) -> Self {
+                match t {
+                    $( BraidTypeBin::$variant $( { $($field),+ } )? =>
+                        Self::$variant $( { $($field),+ } )? ),+
+                }
+            }
+        }
+    };
+}
+
+braid_type_serde_helpers! {
     Entity,
     Activity,
     Agent,
-    Collection {
-        member_count: u64,
-        summary_type: SummaryType,
-    },
-    Delegation {
-        delegate: Did,
-        on_behalf_of: Did,
-    },
-    Slice {
-        slice_mode: String,
-        origin_spine: String,
-    },
-}
-
-#[derive(Serialize, Deserialize)]
-enum BraidTypeBin {
-    Entity,
-    Activity,
-    Agent,
-    Collection {
-        member_count: u64,
-        summary_type: SummaryType,
-    },
-    Delegation {
-        delegate: Did,
-        on_behalf_of: Did,
-    },
-    Slice {
-        slice_mode: String,
-        origin_spine: String,
-    },
-}
-
-impl From<BraidType> for BraidTypeJson {
-    fn from(t: BraidType) -> Self {
-        match t {
-            BraidType::Entity => Self::Entity,
-            BraidType::Activity => Self::Activity,
-            BraidType::Agent => Self::Agent,
-            BraidType::Collection {
-                member_count,
-                summary_type,
-            } => Self::Collection {
-                member_count,
-                summary_type,
-            },
-            BraidType::Delegation {
-                delegate,
-                on_behalf_of,
-            } => Self::Delegation {
-                delegate,
-                on_behalf_of,
-            },
-            BraidType::Slice {
-                slice_mode,
-                origin_spine,
-            } => Self::Slice {
-                slice_mode,
-                origin_spine,
-            },
-        }
-    }
-}
-
-impl From<BraidTypeJson> for BraidType {
-    fn from(t: BraidTypeJson) -> Self {
-        match t {
-            BraidTypeJson::Entity => Self::Entity,
-            BraidTypeJson::Activity => Self::Activity,
-            BraidTypeJson::Agent => Self::Agent,
-            BraidTypeJson::Collection {
-                member_count,
-                summary_type,
-            } => Self::Collection {
-                member_count,
-                summary_type,
-            },
-            BraidTypeJson::Delegation {
-                delegate,
-                on_behalf_of,
-            } => Self::Delegation {
-                delegate,
-                on_behalf_of,
-            },
-            BraidTypeJson::Slice {
-                slice_mode,
-                origin_spine,
-            } => Self::Slice {
-                slice_mode,
-                origin_spine,
-            },
-        }
-    }
-}
-
-impl From<&BraidType> for BraidTypeBin {
-    fn from(t: &BraidType) -> Self {
-        match t {
-            BraidType::Entity => Self::Entity,
-            BraidType::Activity => Self::Activity,
-            BraidType::Agent => Self::Agent,
-            BraidType::Collection {
-                member_count,
-                summary_type,
-            } => Self::Collection {
-                member_count: *member_count,
-                summary_type: summary_type.clone(),
-            },
-            BraidType::Delegation {
-                delegate,
-                on_behalf_of,
-            } => Self::Delegation {
-                delegate: delegate.clone(),
-                on_behalf_of: on_behalf_of.clone(),
-            },
-            BraidType::Slice {
-                slice_mode,
-                origin_spine,
-            } => Self::Slice {
-                slice_mode: slice_mode.clone(),
-                origin_spine: origin_spine.clone(),
-            },
-        }
-    }
-}
-
-impl From<BraidTypeBin> for BraidType {
-    fn from(t: BraidTypeBin) -> Self {
-        match t {
-            BraidTypeBin::Entity => Self::Entity,
-            BraidTypeBin::Activity => Self::Activity,
-            BraidTypeBin::Agent => Self::Agent,
-            BraidTypeBin::Collection {
-                member_count,
-                summary_type,
-            } => Self::Collection {
-                member_count,
-                summary_type,
-            },
-            BraidTypeBin::Delegation {
-                delegate,
-                on_behalf_of,
-            } => Self::Delegation {
-                delegate,
-                on_behalf_of,
-            },
-            BraidTypeBin::Slice {
-                slice_mode,
-                origin_spine,
-            } => Self::Slice {
-                slice_mode,
-                origin_spine,
-            },
-        }
-    }
+    Collection { member_count: u64, summary_type: SummaryType },
+    Delegation { delegate: Did, on_behalf_of: Did },
+    Slice { slice_mode: String, origin_spine: String },
 }
 
 impl Serialize for BraidType {
