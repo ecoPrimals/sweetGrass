@@ -32,8 +32,8 @@ async fn test_invalid_params() {
 fn test_dispatch_table_completeness() {
     assert_eq!(
         METHODS.len(),
-        50,
-        "dispatch table should have all 50 methods (45 domain + capability.call + lifecycle + 3 auth)"
+        51,
+        "dispatch table should have all 51 methods (45 domain + capability.call + lifecycle + 3 auth + titration)"
     );
 
     let expected = [
@@ -83,6 +83,7 @@ fn test_dispatch_table_completeness() {
         "capability.list",
         "tools.list",
         "tools.call",
+        "titration.metrics",
         "auth.mode",
         "auth.check",
         "auth.peer_info",

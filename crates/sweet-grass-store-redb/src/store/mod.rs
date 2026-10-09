@@ -86,7 +86,12 @@ impl RedbStore {
     }
 
     fn deserialize_braid(bytes: &[u8]) -> Result<Braid, RedbError> {
-        serde_json::from_slice(bytes).map_err(RedbError::from)
+        let mut braid: Braid = serde_json::from_slice(bytes).map_err(RedbError::from)?;
+        // On-read titration: detect and repair legacy braids
+        if sweet_grass_core::braid::titration::needs_titration(&braid) {
+            sweet_grass_core::braid::titration::titrate(&mut braid);
+        }
+        Ok(braid)
     }
 
     fn update_indexes(write_txn: &redb::WriteTransaction, braid: &Braid) -> Result<(), RedbError> {

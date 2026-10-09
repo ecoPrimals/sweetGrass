@@ -221,6 +221,14 @@ pub(super) static METHODS: &[MethodEntry] = &[
         name: "trust.event",
         handler: |s, p| Box::pin(super::trust::handle_trust_event(s, p)),
     },
+    // Titration metrics (braid schema evolution tracking)
+    MethodEntry {
+        name: "titration.metrics",
+        handler: |_s, _p| Box::pin(async move {
+            let m = sweet_grass_core::braid::titration::metrics();
+            Ok(serde_json::to_value(m).unwrap_or_default())
+        }),
+    },
     // Auth introspection (JH-0 method gate)
     MethodEntry {
         name: "auth.mode",
