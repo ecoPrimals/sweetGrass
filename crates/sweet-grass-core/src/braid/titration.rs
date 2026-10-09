@@ -24,6 +24,9 @@ use tracing::{debug, info};
 pub static LEGACY_READS: AtomicU64 = AtomicU64::new(0);
 pub static REPAIRS_APPLIED: AtomicU64 = AtomicU64::new(0);
 pub static V0_BRAIDS_SEEN: AtomicU64 = AtomicU64::new(0);
+pub static WITNESSES_EVOLVED: AtomicU64 = AtomicU64::new(0);
+pub static CERTS_ENRICHED: AtomicU64 = AtomicU64::new(0);
+pub static FIELD_ALIASES_CONSUMED: AtomicU64 = AtomicU64::new(0);
 
 /// Result of a titration scan on a single braid.
 #[derive(Debug, Clone, Default)]
@@ -47,6 +50,13 @@ pub enum RepairAction {
     CertificateEnriched,
     /// source_gate field populated from context.
     SourceGateInferred { gate: String },
+    /// Witness evolved: old `signature` field deserialized into Witness struct.
+    /// Tracked when `ecop.witnesses` is empty and the primary witness has
+    /// kind="signature" with non-empty evidence (came from legacy `signature` field).
+    WitnessEvolved,
+    /// Legacy field alias consumed during deserialization.
+    /// Tracks `rhizo_session` → `session_ref`, `loam_commit` → `ledger_commit`.
+    FieldAliasConsumed { field: String },
 }
 
 /// Scan a braid and determine if it needs titration.
@@ -103,6 +113,7 @@ pub fn titrate(braid: &mut Braid) -> TitrationReport {
                     enriched.issuing_gate = Some(gate.clone());
                     braid.ecop.certificate = Some(enriched);
                     actions.push(RepairAction::CertificateEnriched);
+                    CERTS_ENRICHED.fetch_add(1, Ordering::Relaxed);
                 }
             }
         }
@@ -119,6 +130,27 @@ pub fn titrate(braid: &mut Braid) -> TitrationReport {
                     });
                 }
             }
+        }
+
+        // 4. Track witness evolution — if the primary witness has evidence
+        // but came through the `signature` serde alias, it's a legacy
+        // witness that was deserialized into the new Witness struct.
+        if !braid.witness.evidence.is_empty()
+            && braid.witness.kind.as_ref() == "signature"
+            && braid.ecop.witnesses.is_empty()
+        {
+            actions.push(RepairAction::WitnessEvolved);
+            WITNESSES_EVOLVED.fetch_add(1, Ordering::Relaxed);
+        }
+
+        // 5. Track field alias consumption (rhizo_session → session_ref,
+        // loam_commit → ledger_commit). These are handled by serde `alias`
+        // attributes, but we count them so we know when all callers have
+        // migrated and the aliases can be removed.
+        if braid.ecop.session_ref.is_some() {
+            // Can't distinguish alias vs canonical at this point —
+            // the counter is a lower bound on alias usage.
+            FIELD_ALIASES_CONSUMED.fetch_add(1, Ordering::Relaxed);
         }
 
         braid.ecop.schema_version = BRAID_SCHEMA_VERSION;
@@ -153,6 +185,9 @@ pub fn metrics() -> TitrationMetrics {
         legacy_reads: LEGACY_READS.load(Ordering::Relaxed),
         repairs_applied: REPAIRS_APPLIED.load(Ordering::Relaxed),
         v0_braids_seen: V0_BRAIDS_SEEN.load(Ordering::Relaxed),
+        witnesses_evolved: WITNESSES_EVOLVED.load(Ordering::Relaxed),
+        certs_enriched: CERTS_ENRICHED.load(Ordering::Relaxed),
+        field_aliases_consumed: FIELD_ALIASES_CONSUMED.load(Ordering::Relaxed),
         current_version: BRAID_SCHEMA_VERSION,
     }
 }
@@ -163,6 +198,9 @@ pub struct TitrationMetrics {
     pub legacy_reads: u64,
     pub repairs_applied: u64,
     pub v0_braids_seen: u64,
+    pub witnesses_evolved: u64,
+    pub certs_enriched: u64,
+    pub field_aliases_consumed: u64,
     pub current_version: u8,
 }
 
@@ -293,5 +331,50 @@ mod tests {
         let after = metrics();
         assert!(after.legacy_reads > before.legacy_reads);
         assert!(after.repairs_applied > before.repairs_applied);
+    }
+
+    #[test]
+    fn titrate_tracks_witness_evolution() {
+        use crate::dehydration::Witness;
+        let mut braid = make_v0_braid();
+        braid.witness = Witness {
+            agent: Did::new("did:eco:signer"),
+            kind: "signature".into(),
+            evidence: "deadbeef".into(),
+            witnessed_at: crate::braid::Timestamp::now(),
+            encoding: "hex".into(),
+            algorithm: Some("ed25519".into()),
+            tier: None,
+            context: None,
+        };
+        let report = titrate(&mut braid);
+        assert!(report.repaired);
+        let evolved = report
+            .actions
+            .iter()
+            .any(|a| matches!(a, RepairAction::WitnessEvolved));
+        assert!(evolved, "should track witness evolution from legacy signature");
+    }
+
+    #[test]
+    fn titrate_cert_enrichment_increments_counter() {
+        let before = metrics();
+        let mut braid = make_v0_braid();
+        braid.ecop.source_gate = Some("strandGate".into());
+        braid.ecop.certificate = Some(CertificateRef::new("cert-002"));
+        titrate(&mut braid);
+        let after = metrics();
+        assert!(after.certs_enriched > before.certs_enriched);
+    }
+
+    #[test]
+    fn titrate_metrics_include_all_counters() {
+        let m = metrics();
+        // All counters should be present and serializable
+        let json = serde_json::to_value(&m).unwrap();
+        assert!(json.get("witnesses_evolved").is_some());
+        assert!(json.get("certs_enriched").is_some());
+        assert!(json.get("field_aliases_consumed").is_some());
+        assert!(json.get("current_version").is_some());
     }
 }
