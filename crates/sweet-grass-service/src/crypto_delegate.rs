@@ -251,6 +251,9 @@ impl CryptoDelegate {
         let (reader, writer) = tokio::io::split(stream);
         let mut writer = writer;
 
+        // riboCipher signal prefix — required by ecosystem JSON-RPC servers
+        writer.write_all(&[0xEC, 0x01]).await?;
+
         let request = serde_json::json!({
             "jsonrpc": "2.0",
             "method": method,
@@ -300,7 +303,11 @@ mod tests {
         tokio::spawn(async move {
             let (stream, _) = listener.accept().await.unwrap();
             let (reader, mut writer) = stream.into_split();
-            let mut lines = BufReader::new(reader).lines();
+            let mut reader = BufReader::new(reader);
+            // consume riboCipher signal prefix [0xEC, 0x01]
+            let mut prefix = [0u8; 2];
+            tokio::io::AsyncReadExt::read_exact(&mut reader, &mut prefix).await.unwrap();
+            let mut lines = reader.lines();
 
             if let Some(line) = lines.next_line().await.unwrap() {
                 let req: serde_json::Value = serde_json::from_str(&line).unwrap();
@@ -371,7 +378,11 @@ mod tests {
         let handle = tokio::spawn(async move {
             let (stream, _) = listener.accept().await.unwrap();
             let (reader, mut writer) = stream.into_split();
-            let mut lines = BufReader::new(reader).lines();
+            let mut reader = BufReader::new(reader);
+            // consume riboCipher signal prefix [0xEC, 0x01]
+            let mut prefix = [0u8; 2];
+            tokio::io::AsyncReadExt::read_exact(&mut reader, &mut prefix).await.unwrap();
+            let mut lines = reader.lines();
             let _ = lines.next_line().await.unwrap();
 
             let resp = serde_json::json!({
