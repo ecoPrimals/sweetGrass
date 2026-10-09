@@ -274,8 +274,26 @@ pub struct LoamAnchor {
 ///
 /// String fields use `Arc<str>` for O(1) clone — these values are shared
 /// across all Braids created by the same factory/engine instance.
+/// Current schema version for new braids.
+///
+/// Increment when the braid wire format changes. Old braids without this
+/// field deserialize as `0` (pre-versioning). The titration system uses
+/// this to detect and repair legacy records on read.
+pub const BRAID_SCHEMA_VERSION: u8 = 1;
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct EcoPrimalsAttributes {
+    /// Schema version for forward/backward compatibility.
+    ///
+    /// - `0` (or absent): pre-versioning legacy braid
+    /// - `1`: capability-based field names, structured CertificateRef,
+    ///        Witness type, transport-bound BTSP sessions
+    ///
+    /// The titration system detects v0 braids on read and upgrades them
+    /// to the current version on write-back.
+    #[serde(default)]
+    pub schema_version: u8,
+
     /// Source primal that created this Braid.
     pub source_primal: Option<Arc<str>>,
 

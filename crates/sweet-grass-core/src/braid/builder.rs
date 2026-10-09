@@ -197,7 +197,15 @@ impl BraidBuilder {
             invalidated_at_time: self.invalidated_at_time,
             alternate_of: self.alternate_of,
             metadata,
-            ecop: self.ecop,
+            ecop: {
+                let mut ecop = self.ecop;
+                // Stamp the current schema version on new braids.
+                // Only override if caller didn't explicitly set a version.
+                if ecop.schema_version == 0 {
+                    ecop.schema_version = super::types::BRAID_SCHEMA_VERSION;
+                }
+                ecop
+            },
             witness: self.witness.unwrap_or_else(Witness::unsigned),
             loam_anchor: None,
         })
